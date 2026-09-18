@@ -350,6 +350,9 @@ table.h2hsub thead th{padding:7px 10px}
   font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .subtabs button[aria-pressed="true"]{color:var(--ink);border-color:var(--clay);font-weight:600}
 .subtabs button:hover{color:var(--ink)}
+.subtabs2{gap:14px;margin:0 0 18px}
+.subtabs2 button{font-size:.72rem;padding:6px 2px}
+.subtabs2 button[aria-pressed="true"]{border-color:var(--accent)}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 22px}
 .chips button{border:1px solid var(--line-strong);background:var(--card);border-radius:999px;
@@ -807,9 +810,11 @@ function teamOfPlayer(x, year, isCareer){
 function teamCell(d){
   if(d.tot) return `<span class="ntm">${d.nTeams}TM</span>`;
   if(!d.team) return '—';
-  return d.team.split(' / ').map(full => TEAMS[full]
-      ? `<button class="pname" data-t="${esc(full)}">${esc(histName(full, d.year))}</button>`
-      : esc(full)).join(' / ')
+  return d.team.split(' / ').map(full => {
+      if(TEAMS[full]) return `<button class="pname" data-t="${esc(full)}">${esc(histName(full, d.year))}</button>`;
+      if(full==='Brookside Beavers') return `<button class="pname" data-beavers>${esc(full)}</button>`;
+      return esc(full);
+    }).join(' / ')
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 }
 function latestTeam(pl){
@@ -1524,7 +1529,7 @@ const SV_BF  = c => c.IPouts + c.pH + c.pBB + c.pHB;   // outs + H + BB + HBP al
 const SV_PCTF = v => (v*100).toFixed(1)+'%';
 const SV_BAT = [
   ['AVG', c=>avg(c), rate, false], ['OBP', c=>obp(c), rate, false],
-  ['SLG', c=>slg(c), rate, false], ['OPS', c=>ops(c), rate, false],
+  ['SLG', c=>slg(c), rate, false],
   ['OPS+', c=>opsPlusFor(c, [{year:c.year, pa:c.PA}]), v=>isFinite(v)?String(v):'—', false],
   ['ISO', SV_ISO, rate, false], ['BB%', c=>c.PA?c.BB/c.PA:NaN, SV_PCTF, false],
   ['K%',  c=>c.PA?c.K/c.PA:NaN,  SV_PCTF, true], ['HR%', c=>c.PA?c.HR/c.PA:NaN, SV_PCTF, false],
@@ -1707,21 +1712,25 @@ function teamSpark(t){
 function accolades(pl){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const nh = (typeof NOHIT_BY_PITCHER!=='undefined' && NOHIT_BY_PITCHER[pl.name]) || [];
-  if(!(h.rings.length || h.awards.length || h.asg.length || nh.length)) return '';
+  const hrdYears = (typeof HRD_BY_PLAYER!=='undefined' && HRD_BY_PLAYER[pl.name]) || [];
+  const asgMvpYears = (typeof ASGMVP_BY_PLAYER!=='undefined' && ASGMVP_BY_PLAYER[pl.name]) || [];
+  if(!(h.rings.length || h.awards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length)) return '';
   const rings = h.rings.length ? `<div class="acc-block">
     <h4>${h.rings.length}× World Series</h4>
     <div class="rings">${h.rings.map(r=>`<span class="ring">${TROPHY} ${r.year} <span class="rt">${histNickLink(r.team, r.year)}</span></span>`).join('')}</div>
   </div>` : '';
-  const AW_ORDER = ['MVP','CY Young','Postseason MVP','Rookie of the Year','Silver Slugger',
-    'Golden Hands','Batting Title','Home Run King','Reliever of the Year',
+  const AW_ORDER = ['MVP','CY Young','Postseason MVP','All-Star Game MVP','Rookie of the Year','Silver Slugger',
+    'Golden Hands','Batting Title','Home Run King','Home Run Derby Champion','Reliever of the Year',
     'Comeback Player of the Year','Manager of the Year'];
   const grp = {};
   h.awards.forEach(a=>{ (grp[a.award] = grp[a.award] || []).push(a.year); });
+  if(hrdYears.length) grp['Home Run Derby Champion'] = hrdYears.slice();
+  if(asgMvpYears.length) grp['All-Star Game MVP'] = asgMvpYears.slice();
   const gkeys = Object.keys(grp).sort((a,b)=>{
     const ia=AW_ORDER.indexOf(a), ib=AW_ORDER.indexOf(b);
     return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
   });
-  const totAw = h.awards.length;
+  const totAw = Object.values(grp).reduce((s,arr)=>s+arr.length, 0);
   const aw = totAw ? `<div class="acc-block">
     <h4>${totAw} Award${totAw>1?'s':''}</h4>
     <dl class="awroll">${gkeys.map(k=>`<div><dt>${esc(k)}${grp[k].length>1?` <b>×${grp[k].length}</b>`:''}</dt>
@@ -1744,7 +1753,7 @@ function accolades(pl){
     AS All-Star.${nh.length?' No-hitters and perfect games are from the league\'s own record — see the Records page.':''}</p></section>`;
 }
 
-let playerTab = 'Regular', logYear = null, splitYear = 'all';
+let playerTab = 'Regular', logYear = null, splitYear = 'all', playerSubView = 'stats';
 function detail(name){
   const pl = P[name];
   if(!pl){ location.hash=''; return; }
@@ -1771,23 +1780,43 @@ function detail(name){
     ${accolades(pl)}
     ${savantCard(pl)}`;
 
+  /* each phase's Stats/Splits/Game Log used to be concatenated into one long
+     scroll; returned separately here so they can be their own nested tabs
+     below the phase tab bar — a phase with nothing at all (e.g. Playoffs for
+     a player with no postseason) still returns a single `none` block. */
   const phaseTab = t => {
-    const stats = phaseBlock(pl, t);
-    const splits = t==='NWLA' ? playerNWLASplits(pl, splitYear) : playerSplits(pl, t, splitYear);
-    const log = t==='NWLA' ? playerNWLALog(pl, logYear) : playerGameLog(pl, t, logYear);
     if(t==='Playoffs' && !hasPost){
-      return `<div class="phase post"><h3>Postseason</h3><div class="nopost">No postseason games on record.</div></div>`;
+      return {none:`<div class="phase post"><h3>Postseason</h3><div class="nopost">No postseason games on record.</div></div>`};
     }
-    return stats + splits + log;
+    return {
+      stats: phaseBlock(pl, t),
+      splits: t==='NWLA' ? playerNWLASplits(pl, splitYear) : playerSplits(pl, t, splitYear),
+      log: t==='NWLA' ? playerNWLALog(pl, logYear) : playerGameLog(pl, t, logYear),
+    };
   };
   const tabs = ['Regular','Playoffs','AllStar','Spring','Fall','NWLA']
     .map(t=>[t, PHASE_META[t].head, phaseTab(t)])
-    .filter(([t,,html])=> t==='Regular' || t==='Playoffs' || html.trim());
+    .filter(([t,,c])=> t==='Regular' || t==='Playoffs' || c.none ||
+      (c.stats||'').trim() || (c.splits||'').trim() || (c.log||'').trim());
   if(!tabs.some(t=>t[0]===playerTab)) playerTab = 'Regular';
   const active = tabs.find(t=>t[0]===playerTab) || tabs[0];
   const tabBar = `<div class="subtabs" role="group" aria-label="Section">
     ${tabs.map(([k,label])=>`<button data-pt="${k}" aria-pressed="${playerTab===k}">${esc(label)}</button>`).join('')}
   </div>`;
+
+  const activeContent = active[2];
+  let activeHTML;
+  if(activeContent.none){
+    activeHTML = activeContent.none;
+  } else {
+    const views = [['stats','Stats'],['splits','Splits'],['log','Game Log']]
+      .filter(([k])=>(activeContent[k]||'').trim());
+    if(!views.some(([k])=>k===playerSubView)) playerSubView = views.length ? views[0][0] : 'stats';
+    const viewBar = views.length>1 ? `<div class="subtabs subtabs2" role="group" aria-label="View">
+      ${views.map(([k,label])=>`<button data-psv="${k}" aria-pressed="${playerSubView===k}">${esc(label)}</button>`).join('')}
+    </div>` : '';
+    activeHTML = viewBar + (activeContent[playerSubView] || '<p class="empty">Nothing here.</p>');
+  }
 
   const lt = latestTeam(pl);
   setTeamVars(lt);
@@ -1813,13 +1842,16 @@ function detail(name){
     </div>
     ${overviewHTML}
     ${tabBar}
-    ${active[2]}
+    ${activeHTML}
     <p class="note">Each phase — regular season, postseason, the exhibition sets (All-Star, spring training, fall ball) and the NWLA Tournament (national-team play, from GameChanger) — is tallied in its own block, one row per year plus a phase total; nothing is pooled across phases. Team is from the league roster (<span class="pt">*</span> = estimated from game appearances).
     <span class="estd">†</span> 2016: cumulative totals only — 2B, 3B and hits/walks allowed are extrapolated from
     the player's later rates, and Runs are unavailable. Spans ${RANGE}.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
   app.querySelectorAll('[data-pt]').forEach(b=>b.addEventListener('click',()=>{
     playerTab = b.dataset.pt; logYear = null; splitYear = 'all'; detail(name);
+  }));
+  app.querySelectorAll('[data-psv]').forEach(b=>b.addEventListener('click',()=>{
+    playerSubView = b.dataset.psv; detail(name);
   }));
   app.querySelectorAll('[data-ly]').forEach(b=>b.addEventListener('click',()=>{
     logYear = b.dataset.ly; detail(name);
@@ -1833,6 +1865,8 @@ function detail(name){
     location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
   app.querySelectorAll('.pname[data-bv]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/beavers/'+encodeURIComponent(b.dataset.bv); }));
+  app.querySelectorAll('.pname[data-beavers]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/beavers'; }));
   document.getElementById('editSeasonsBtn').addEventListener('click', ()=>openSeasonEditor(pl));
   document.getElementById('editPhotoBtn').addEventListener('click', ()=>{
     openImageEditor(`Player Photo — ${pl.name}`, pl.photo, 240, async url=>{
@@ -2495,6 +2529,20 @@ function renderDivision(canonical){
     (${asgYears[asgYears.length-1]}–${asgYears[0]}). <span class="cap">C</span> marks a squad captain.</p>
     <ol class="divchamps asglist">${asgRows}</ol>` : '';
 
+  // ---- All-Star team captain history: one per squad per year, from the "(C)" marker
+  //      already carried on that player's name in the squad roster ----
+  const asgCaptainFor = y => {
+    const sq = asgSquadFor(y);
+    return sq ? (sq.players||[]).find(p=>/\(c\)/i.test(p)) || null : null;
+  };
+  const capRows = asgYears.map(y=>{
+    const raw = asgCaptainFor(y);
+    return raw ? `<li><span class="dy">${y}</span> ${plink(raw)}</li>` : '';
+  }).join('');
+  const asgCaptainsHTML = capRows ? `<h3 class="hsub">All-Star Team Captain History</h3>
+    <p class="pmeta">Squad captain for this division's All-Star team, ${asgYears[asgYears.length-1]}–${asgYears[0]}.</p>
+    <ol class="divchamps">${capRows}</ol>` : '';
+
   /* ---- All-Star Game stats: actual batting/pitching lines from the ASG box
      scores (GAMES, phase==='AllStar') for whichever side was this division —
      a fundamentally different source than the roster/regular-season stats a
@@ -2563,6 +2611,7 @@ function renderDivision(canonical){
     <p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched playoff berth</p>
     ${champsHTML}
     ${asgHistoryHTML}
+    ${asgCaptainsHTML}
     ${asgStatsHTML}
     ${selHTML}
     ${membersHTML}
@@ -3656,7 +3705,7 @@ function playerNWLALog(pl, selYear){
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
   return `<section class="stat"><h4>Game Log</h4>
-    <p class="pmeta">From the Brookside Beavers' NWLA tournament box scores. Click a date for the full box score.</p>
+    <p class="pmeta">From the <button class="pname" data-beavers>Brookside Beavers</button>' NWLA tournament box scores. Click a date for the full box score.</p>
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
     <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>
@@ -3784,6 +3833,23 @@ const CHAMPS = DB.champs || [];
 const CHAMP_SRC = 'https://bwbwiffleball.blogspot.com/p/champs-of-bwb-wiffleball.html';
 const AWARDS = DB.awards || {};
 const ASG = DB.asg || {};
+/* Home Run Derby champs live only on the year-by-year ASG record (a.hrd), not in any
+   player's honors.awards — build a name lookup so a player's own Accolades card can
+   show it as a normal award tile alongside MVP/Cy Young/etc. */
+const HRD_BY_PLAYER = {};
+Object.entries(ASG).forEach(([y,a])=>{
+  if(a.hrd && a.hrd!=='N/A') (HRD_BY_PLAYER[a.hrd] = HRD_BY_PLAYER[a.hrd] || []).push(+y);
+});
+/* All-Star Game MVP, same idea — a.mvp is normally one name, but a tie (2024:
+   TJ Ciafone AND James Duffelmeyer) is stored "/"-separated, same convention
+   plink()/tnick() already use for a multi-name field. */
+const ASGMVP_BY_PLAYER = {};
+Object.entries(ASG).forEach(([y,a])=>{
+  if(!a.mvp || a.mvp==='N/A') return;
+  a.mvp.split('/').map(x=>x.trim()).filter(Boolean).forEach(n=>{
+    (ASGMVP_BY_PLAYER[n] = ASGMVP_BY_PLAYER[n] || []).push(+y);
+  });
+});
 const NICK2FULL = DB.nick2full || {};
 const AWARD_TEAM_ALIAS = {
   "Special K's":'Kings', 'The Process':'Process', 'Wildcats':'Process', 'Dashers':'Braves',

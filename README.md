@@ -3070,6 +3070,122 @@ either way — the Stats table's name-column sort already sorted by last name
 via `nameLast()` independent of what text was displayed, and the A–Z tab was
 already grouped by last-name initial.
 
+## Home Run Derby champion added to player Accolades
+
+HR Derby winners only lived on the year-by-year All-Star Game record
+(`ASG[year].hrd`), not in any player's `honors.awards` — so a Derby title
+never showed up on the winner's own profile page, only buried in the
+All-Star Games section. Built `HRD_BY_PLAYER` (a name → years lookup) once
+from `ASG` at module load, and merge it straight into `accolades()`'s
+existing award-grouping (`grp`) as a normal "Home Run Derby Champion" tile —
+same styling, same ×N-years treatment as MVP/Cy Young/etc., added to
+`AW_ORDER` right after Home Run King. `totAw` (the "N Awards" header count)
+now sums `grp`'s bucket lengths instead of just `h.awards.length`, so it
+counts Derby titles too. Verified against all 7 real winners in the data
+(Fraioli ×3, Wilkins ×3, Spoto ×2, plus four single winners) — every one
+shows the right year(s) on their own page now.
+
+## Brookside Beavers text linked to the Beavers page
+
+The player-profile NWLA tab's Game Log note ("From the Brookside Beavers'
+NWLA tournament box scores...") had "Brookside Beavers" as plain text — the
+only other places that name appears in `generate.py` are the Beavers page
+itself, which doesn't need to link to itself. Made it a real link: added a
+bare `data-beavers` marker (no value needed, unlike `data-t`/`data-g`/
+`data-bv` which carry an id) and a matching delegated click handler in
+`detail()`'s listener block that navigates to `#/beavers`. Verified the
+click actually lands on the Beavers page from a player's NWLA tab.
+
+## Player profile: Stats/Splits/Game Log split into their own tabs
+
+Each phase tab (Regular Season, Postseason, All-Star Games, Spring Training,
+Fall Ball, NWLA Tournament) used to concatenate its season-by-season stats
+table, Splits breakdown, and Game Log into one long stacked scroll. Asked the
+user whether splitting them into their own nested tabs was worth doing given
+the extra click it costs; they agreed, so added a second-level tab bar
+(Stats / Splits / Game Log) under the existing phase tab bar.
+
+`phaseTab(t)` now returns `{stats, splits, log}` separately instead of one
+concatenated string (or `{none: html}` for the "no postseason on record"
+case, which still shows with no sub-tabs — there's nothing to divide).
+The phase-tab-bar's own filter (hide a phase with nothing at all) now checks
+all three pieces combined rather than one merged string. A new `playerSubView`
+state (`'stats'|'splits'|'log'`, alongside the existing `playerTab`) picks
+which piece renders; the sub-tab bar only lists views that actually have
+content for the current phase, and falls back to the first available one if
+the current selection doesn't apply (same fallback pattern already used for
+`playerTab` itself). `playerSubView` persists across phase switches by
+design — if you're looking at Splits and click over to Postseason, you
+probably still want Splits, not to be dropped back to Stats.
+
+New CSS `.subtabs2` reuses `.subtabs`'s structure at a smaller size/tighter
+spacing so the hierarchy between "which phase" and "which view" reads
+clearly at a glance.
+
+Verified two ways: every one of a player's own view/phase clicks lands on
+the right content (spot-checked via the actual buttons, not just state
+changes), and a full sweep — all 96 players × 6 phases × 3 views (1,728
+renders) — threw zero errors. Also checked the whole dataset for a phase
+with only 1 or 2 of the three pieces non-empty (which would exercise the
+"hide the empty view tabs" branch): none exist today — every phase with any
+content has all three — so that branch is correct but currently dormant;
+kept it in since a future thin dataset (an exhibition phase with stats but
+no logged games, say) would need it.
+
+## Beavers link, part 2: the actual gap was the NWLA stats table
+
+The earlier "link Brookside Beavers" fix only covered one spot (the NWLA
+Game Log's note paragraph); the user pointed out it still wasn't linked
+elsewhere. The real remaining gap was `teamCell()` — the "Tm" column
+formatter used by every phase's season-by-season stats table (`phaseBlock`).
+It only knew how to link a real `TEAMS[...]` entry; "Brookside Beavers" isn't
+one (it's tracked separately under `DB.beavers`, never `DB.teams`), so it
+fell through to plain escaped text on the NWLA Stats tab specifically —
+exactly the tab most people would actually look at. Added a second
+special case to `teamCell()`: if the team string is literally "Brookside
+Beavers", render the same `data-beavers` button the earlier fix introduced
+(reusing its existing click wiring in `detail()`) instead of plain text.
+Verified on the NWLA season-table row, not just the Game Log note this time.
+
+## All-Star Team Captain History on division pages
+
+Added a new section to each division page listing who captained that
+division's All-Star squad every year — data that already existed (a
+"(C)" marker inline in `ASG[year].squads[].players`, the same field the
+per-game roster listing already reads) but had never been surfaced as its
+own history list. `asgCaptainFor(y)` picks that year's marked name out of
+the squad roster; rendered via the existing `plink()` helper (already
+handles the "(C)" marker, name aliases, and linking) into a new "All-Star
+Team Captain History" block, placed between "All-Star Game History" and
+"All-Star Game Stats". No data changes — every year back to 2013 already
+had this in the ASG roster data on both the Brookside and Brentwood pages.
+
+## Percentile Rankings: dropped OPS, kept OPS+
+
+User's reasoning: OPS+ already accounts for league average (that's the
+entire point of the stat), making it strictly more informative than raw OPS
+in a percentile-ranking context where every other stat is already being
+compared against the field. Removed the `SV_BAT` entry for OPS;
+OPS+ stays.
+
+## All-Star Game MVP added to accolades, and a data fix
+
+Same pattern as the Home Run Derby Champion addition: `ASGMVP_BY_PLAYER`
+built from `ASG[year].mvp` at load time, merged into `accolades()`'s award
+grouping as "All-Star Game MVP" (added to `AW_ORDER` right after Postseason
+MVP). Handles a co-MVP tie the same way `plink()`/`tnick()` already handle
+multi-name fields elsewhere: split the stored value on "/".
+
+That co-MVP case is exactly why this needed a data fix first: 2024's `mvp`
+field read `"TJC/James Duffy"` — shorthand, not the two players' actual
+register names ("TJ Ciafone" and "James Duffelmeyer"), per the user. Fixed
+directly in `players.json` to `"TJ Ciafone/James Duffelmeyer"`, which also
+fixes the existing All-Star Games page display (`awardsSection()`'s
+`plink(a.mvp)` call) — it had been rendering the shorthand as unlinked
+plain text since neither name matched a real player key. Verified both
+names now show as separate linked players on the Awards page's All-Star
+Games tab, and both players' own profiles show "All-Star Game MVP · 2024".
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
