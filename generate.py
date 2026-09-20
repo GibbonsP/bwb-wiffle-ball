@@ -2,7 +2,8 @@ import json
 
 data = open('players.json').read()
 
-HTML = r'''<title>BWB Wiffleball Career Register</title>
+HTML = r'''<meta charset="utf-8">
+<title>BWB Wiffleball Career Register</title>
 <meta name="description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026 — regular season and postseason kept separate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,7 +95,6 @@ tbody tr:hover{background:var(--accent-soft)}
   font-size:.9rem;text-align:left}
 .pname:hover{text-decoration:underline}
 td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-.dir tbody td:nth-child(2){color:var(--muted)}
 
 .azindex{margin-top:4px}
 .azgrp{margin-bottom:18px}
@@ -182,6 +182,18 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svval{font-family:"IBM Plex Mono",monospace;font-size:.76rem;text-align:right;
   font-variant-numeric:tabular-nums;color:var(--ink)}
 .svleg{margin:8px 0 0;font-size:.7rem;color:var(--muted)}
+.svunqtag{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-style:italic}
+.svrow.svunq{opacity:.5}
+.svrow.svunq .svbar::before{opacity:.55;background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 3px, transparent 3px 6px),
+    linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
+.svrow.svunq .svdot{border-style:dashed;border-width:2px;opacity:.85}
+.cmpsvbar .svdot{font-size:.56rem;overflow:visible}
+.svdotltr{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  font-size:.5rem;font-weight:800;line-height:1.4;color:var(--ink);background:var(--card);
+  border:1px solid var(--line-strong);border-radius:3px;padding:0 3px;pointer-events:none}
+.svrow.cmpsvunq{opacity:.85}
+.svdot.svunq-dot{border-style:dashed;border-width:2px;opacity:.7}
 
 .accolades{margin:0 0 34px}
 .acc-block{margin:0 0 16px}
@@ -221,7 +233,7 @@ button.acc-pennant:hover{filter:brightness(1.12)}
 .acc-pennant .acc-yr{color:#fff}
 .acc-pennant .acc-star{color:var(--gold);font-size:.72rem;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
 .acc-divlogo{width:22px;height:22px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
-.stand .rk{display:inline-block;min-width:1.6em;color:var(--muted);font-variant-numeric:tabular-nums;
+.stand .rk{display:inline-block;min-width:1.6em;color:var(--ink);font-variant-numeric:tabular-nums;
   font-size:.8rem;margin-right:2px}
 .divh{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;margin:22px 0 6px;
   color:var(--accent);letter-spacing:.02em;display:flex;align-items:center;gap:9px}
@@ -254,9 +266,9 @@ sup.seed.x{color:var(--clay)}
   color:var(--muted);border-bottom:1px solid var(--line);background:var(--accent-soft)}
 .pb-score{padding:5px 11px;font-size:.72rem;color:var(--muted);border-top:1px solid var(--line);
   font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--muted) 7%,transparent)}
-.pb-score-row{padding:2px 0}
-.pb-score button.pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px;
-  display:block;text-align:left}
+.pb-score-row{padding:2px 0;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.pb-score button.pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px}
+.pb-score button.pb-boxlink{display:block;text-align:left}
 .pb-row{display:flex;align-items:center;gap:9px;padding:9px 11px;font-size:.85rem;white-space:nowrap}
 .pb-row+.pb-row{border-top:1px solid var(--line)}
 .pb-row .sd{color:var(--muted);font-size:.7rem;min-width:1em;font-variant-numeric:tabular-nums}
@@ -265,6 +277,114 @@ sup.seed.x{color:var(--clay)}
 .pb-row button.pname,.pb-row span.nm{font:inherit;color:inherit;text-align:left}
 .pb-row.win{font-weight:700;background:color-mix(in srgb,var(--cd,var(--accent)) 12%,transparent)}
 .pb-row.win::after{content:"›";margin-left:auto;padding-left:8px;color:var(--cd,var(--accent));font-weight:700}
+.gscore{margin-left:auto;font-variant-numeric:tabular-nums}
+.game-cards{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:20px}
+
+/* -------------------------- player comparison -------------------------- */
+.cmppicker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 24px}
+.cmppicker input{padding:8px 12px;border:1px solid var(--line-strong);border-radius:6px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:.88rem;min-width:190px}
+.cmpvs{font-family:"Oswald","Arial Narrow",sans-serif;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);font-size:.78rem;flex:none}
+.cmpgo{background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:6px;font-weight:600}
+.cmpheads{display:flex;align-items:center;justify-content:center;gap:28px;margin:10px 0 26px;flex-wrap:wrap}
+.cmpplayer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:170px}
+.cmpplayer .pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover}
+.cmpname{font-size:1.05rem;font-weight:700;color:var(--accent)}
+.cmpblock{margin:0 0 26px}
+.cmpblock h4{text-align:center}
+.cmptable{width:100%;max-width:480px;margin:0 auto;border-collapse:collapse}
+.cmptable td{text-align:center;padding:5px 10px;border-bottom:1px solid var(--line)}
+.cmplab{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;width:100px}
+.cmpwin{color:var(--accent);font-weight:700}
+.cmpwinsample{padding:1px 6px;border-radius:4px;background:var(--accent-soft)}
+.gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
+  margin:14px 0;text-align:center;color:var(--ink)}
+.gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
+.gtable th,.gtable td{border:1px solid var(--line-strong);text-align:center;vertical-align:middle;padding:8px 6px}
+.gcorner{background:var(--paper)}
+.gtop,.gside{background:var(--card);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.74rem;
+  letter-spacing:.01em;line-height:1.25;color:var(--ink);font-weight:500}
+.gside{text-align:right;padding:8px 10px}
+.gcatlogo{width:20px;height:20px;object-fit:contain;display:block;margin:0 auto 4px}
+.gside .gcatlogo{margin:0 0 4px auto}
+.gcell{height:96px;min-width:104px;position:relative}
+.gcell.correct{background:color-mix(in srgb, var(--accent) 10%, transparent)}
+.gcell.wrong{background:color-mix(in srgb, var(--clay) 8%, transparent)}
+.gguess{width:100%;height:100%;border:1px dashed var(--line-strong);background:none;border-radius:8px;
+  color:var(--muted);font-size:.78rem;cursor:pointer;font-family:inherit}
+.gguess:hover{border-color:var(--accent);color:var(--accent)}
+.gform{display:flex;flex-direction:column;gap:4px;align-items:center}
+.gform input{width:100%;padding:5px 6px;border:1px solid var(--line-strong);border-radius:6px;font-size:.78rem;
+  background:var(--card);color:var(--ink);font-family:inherit}
+.gformbtns{display:flex;gap:4px}
+.gsubmit,.gcancel{font-size:.66rem;padding:3px 8px;border-radius:6px;border:1px solid var(--line-strong);
+  background:var(--card);cursor:pointer;font-family:inherit;color:var(--ink)}
+.gsubmit{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.gerr{font-size:.62rem;color:var(--clay);margin:2px 0 0;line-height:1.3}
+.gpick{display:block;font-size:.82rem}
+.gpoolnote{display:block;font-size:.6rem;color:var(--muted);margin-top:3px;font-weight:400}
+.gmiss{color:var(--clay);font-weight:600;text-decoration:line-through;font-size:.8rem}
+.statpad{display:flex;flex-direction:column;gap:14px;max-width:640px;margin:0 auto}
+.sprow{border:1px solid var(--line-strong);border-radius:10px;padding:12px 14px;background:var(--card)}
+.sprow.answered{background:color-mix(in srgb, var(--accent) 8%, var(--card))}
+.spquals{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.spq{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:600;padding:3px 8px;
+  border-radius:999px;border:1px solid var(--line-strong);background:var(--paper)}
+.spqlogo{width:16px;height:16px;object-fit:contain}
+.spqtag{font-style:normal;font-weight:400;text-transform:uppercase;letter-spacing:.04em;font-size:.6rem;
+  color:var(--muted);margin-left:2px}
+.spval{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spyear{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.85rem}
+.spscore{margin-left:auto;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.1rem;color:var(--accent)}
+.spretry{background:none;border:0;color:var(--muted);font-size:.7rem;padding:4px 0 0;cursor:pointer;
+  text-decoration:underline;font-family:inherit}
+.spretry:hover{color:var(--accent)}
+.spform{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.spform select{padding:6px 8px;border:1px solid var(--line-strong);border-radius:6px;font-size:.82rem;
+  background:var(--paper);color:var(--ink);font-family:inherit}
+.spform select.spplayer{flex:1;min-width:160px}
+.sprow.tiered{background:color-mix(in srgb, var(--tier) 14%, var(--card));border-color:var(--tier)}
+.sptierrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:2px}
+.sptier{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.72rem;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:700}
+.sppct{font-size:.72rem;color:var(--muted)}
+.sprk{border:1px solid var(--line-strong);border-radius:10px;padding:12px 14px;background:var(--card);
+  margin-bottom:12px}
+.sprklist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.sprklist li{display:flex;align-items:baseline;gap:8px;font-size:.84rem}
+.sprk-n{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.4em}
+.sprklist li b{margin-left:auto;font-variant-numeric:tabular-nums}
+.sprk-mine{background:color-mix(in srgb, var(--accent) 12%, transparent);border-radius:6px;padding:2px 6px;
+  margin:0 -6px}
+.sprk-tag{font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);font-weight:700}
+.sprk-yours{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+.b0team{display:flex;align-items:center;gap:12px;margin:16px 0}
+.b0logo{width:44px;height:44px;object-fit:contain;flex:none}
+.b0result{border:1px solid var(--tier,var(--line-strong));border-radius:12px;padding:18px 20px;margin:16px 0;
+  background:color-mix(in srgb, var(--tier,var(--line-strong)) 12%, var(--card));text-align:center}
+.b0record{font-family:"Oswald","Arial Narrow",sans-serif;font-size:2.4rem;font-weight:700;color:var(--tier,var(--ink))}
+.b0roster{list-style:decimal;margin:0 0 10px;padding-left:22px;display:flex;flex-direction:column;gap:2px}
+.b0pool{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.b0row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--line)}
+.b0row.b0picked{background:color-mix(in srgb, var(--accent) 10%, transparent);border-radius:6px}
+.b0stats{margin-left:auto;font-size:.76rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.b0draft,.b0remove{font-size:.7rem;padding:3px 10px;border-radius:6px;border:1px solid var(--line-strong);
+  background:var(--card);cursor:pointer;font-family:inherit;color:var(--ink)}
+.b0draft{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.b0remove{color:var(--clay);border-color:var(--clay)}
+.b0pround{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--accent-ink);
+  background:var(--accent);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:middle}
+.b0gamelog{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.b0gamelog li{font-size:.68rem;font-variant-numeric:tabular-nums;padding:3px 7px;border-radius:5px;
+  background:var(--paper);border:1px solid var(--line-strong)}
+.b0gamelog li.b0win{color:var(--accent);border-color:var(--accent)}
+.b0gamelog li.b0loss{color:var(--clay);border-color:var(--clay)}
+.b0sharebox{display:block;width:100%;max-width:360px;margin:8px auto 0;font-family:inherit;font-size:.78rem;
+  padding:8px;border-radius:6px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);
+  resize:none}
+.b0sharebox[hidden]{display:none}
+.game-cards .pb-row.win::after{content:none}
 .pb-trophy{display:flex;flex-direction:column;gap:9px;padding:24px 28px;border-radius:10px;min-width:240px;
   background:linear-gradient(115deg,var(--tp,var(--gold)),color-mix(in srgb,var(--tp,var(--gold)) 62%,#000));
   color:var(--ts,#fff);box-shadow:var(--shadow)}
@@ -276,7 +396,7 @@ sup.seed.x{color:var(--clay)}
 .capdot{font-size:.56rem;font-weight:700;background:var(--accent);color:var(--accent-ink);
   border-radius:3px;padding:0 3px;margin-left:2px;vertical-align:middle}
 .phase{margin:34px 0 0}
-.phase>h3{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:1.35rem;margin:0 0 2px;
+.phase>h3,.viewhead{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:1.35rem;margin:0 0 2px;
   letter-spacing:.02em}
 .phase.post>h3{color:var(--clay)}
 .pmeta{color:var(--muted);font-size:.82rem;margin:0 0 14px}
@@ -314,9 +434,7 @@ table.h2hsub thead th{padding:7px 10px}
 .note b{color:var(--ink);font-weight:600}
 .empty{padding:40px;text-align:center;color:var(--muted)}
 .lead{color:var(--muted);font-size:.88rem;margin:12px 0 20px;max-width:64ch}
-.leadrow{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.leadrow .lead{margin-bottom:20px;flex:1;min-width:220px}
-.annivbadge{height:130px;width:auto;flex:none}
+.annivpin{height:26px;width:auto;vertical-align:middle;margin-left:9px;position:relative;top:-2px}
 
 .ticker{position:relative;overflow-x:auto;overflow-y:hidden;white-space:nowrap;margin:0 0 14px;
   background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -372,9 +490,27 @@ table.h2hsub thead th{padding:7px 10px}
 .rec .sub{color:var(--muted);font-size:.8rem;margin-top:2px}
 td.res-W{color:var(--accent);font-weight:700}
 td.res-L{color:var(--clay);font-weight:700}
-.gtag{font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+.gtag{font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink);
   border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px;margin-left:7px}
 .recgrid + .segs{margin-bottom:20px}
+.bvtgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:0 0 28px}
+.bvtcard{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:8px;
+  background:var(--card);padding:12px 14px;box-shadow:var(--shadow);text-decoration:none;color:inherit}
+.bvtcard:hover{border-color:var(--line-strong)}
+.bvtcard h4{margin:0 0 2px;font-size:.88rem;color:var(--ink)}
+.bvtlogo{width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center}
+.bvtlogo img{max-width:100%;max-height:100%;object-fit:contain}
+.officegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:0 0 28px}
+.officegrid-lead{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.officecard{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:18px 14px 16px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.officecard.big{padding:24px 18px 20px;border-top:3px solid var(--accent)}
+.officephoto{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)}
+.officephoto.big{width:92px;height:92px}
+.officephoto-blank{display:block;background:var(--line)}
+.officename{font-weight:700;font-size:.92rem}
+.officecard.big .officename{font-size:1.05rem}
+.officetitles{list-style:none;margin:0;padding:0;color:var(--muted);font-size:.76rem;line-height:1.5}
 .vs{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-weight:600;padding:0 .35em}
 .wteam{font-weight:700}
 .linescore td.b,.linescore th.b{border-left:2px solid var(--line-strong)}
@@ -482,6 +618,12 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist button.pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
+.llogo-sm{width:18px;height:18px;object-fit:contain;flex:none;border-radius:4px}
+.llogo-lg{width:38px;height:38px;object-fit:contain;flex:none;border-radius:7px;vertical-align:middle}
+.muteam{display:inline-flex;align-items:center;gap:10px}
+.tmchips{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+.tmchip{padding:0;border:none;background:none;cursor:pointer;line-height:0;border-radius:4px}
+.tmchip:hover{outline:1.5px solid var(--line-strong)}
 .numhist{margin:0 0 26px}
 .numhist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .numrow{display:flex;flex-wrap:wrap;gap:12px}
@@ -602,7 +744,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
         <span id="brandLogo"></span>
         <h1><span class="b1">BWB</span> <span class="b2">Wiffleball</span></h1>
       </div>
-      <p id="subtitle">Career Register</p>
+      <p id="subtitle">Established in 2012</p>
     </div>
     <button class="tog" id="tog" aria-label="Toggle colour theme">
       <span id="togi">◐</span><span id="togt">Theme</span>
@@ -641,6 +783,13 @@ const DB = JSON.parse(document.getElementById('data').textContent);
 if(DB.leagueLogo){
   document.getElementById('brandLogo').innerHTML = `<img src="${DB.leagueLogo}" alt="BWB Wiffleball">`;
 }
+/* the 15th-anniversary mark — a small inline pin next to a section's own
+   heading text wherever it's shown, never floating alone in open space */
+function annivBadge(){
+  return DB.anniversaryLogo
+    ? `<img class="annivpin" src="${DB.anniversaryLogo}" alt="15th Anniversary, 2012–2026" title="15th Anniversary, 2012–2026">`
+    : '';
+}
 const P = DB.players;
 /* surname-first helpers so the player index reads like a register */
 const SUFFIXES = new Set(['jr','jr.','sr','sr.','ii','iii','iv','v']);
@@ -656,7 +805,6 @@ function nameLast(n){ const q=nameParts(n); return (q.last+' '+q.first+' '+q.suf
 function nameLF(n){ const q=nameParts(n); return q.first ? `${q.last}, ${q.first}${q.suffix?' '+q.suffix:''}` : q.last; }
 const NAMES = Object.keys(P).sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
 const RANGE = DB.seasonRange.join('–');
-document.getElementById('subtitle').textContent = 'Career Register · ' + RANGE;
 
 const tog = document.getElementById('tog');
 function applyTheme(t){
@@ -676,8 +824,8 @@ const FRANCHISE_COLORS = {
   'Brookside Kraken':{p:'#3aa8ff',s:'#ff2fd6'}, 'Brookside Panthers':{p:'#111111',s:'#e11d1d'},
   'Beaver Brook Lavahogs':{p:'#ff6d01',s:'#111111'}, 'Brookside Squirrels':{p:'#3d85c6',s:'#7a4a12'},
   'Brookside Royals':{p:'#e23b2e',s:'#ffffff'}, 'Davenport Sox':{p:'#ff9900',s:'#111111'},
-  'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Diablos':{p:'#3fb6bf',s:'#9c0d0d'},
-  'Parsons Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
+  'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
+  'Downtown Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
   'Brentwood Braves':{p:'#0b3d70',s:'#d21f1f'}, 'Glenwood Process':{p:'#1f47ff',s:'#ffffff'},
   'Harris Kings':{p:'#e23b2e',s:'#3aa8ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
   'Brentwood Gladiators':{p:'#3d2185',s:'#f2b90c'}, 'Purchase Dragons':{p:'#ff6d01',s:'#111111'},
@@ -712,8 +860,8 @@ function setNav(v){
   const b=(k,l)=>`<button data-v="${k}" class="${v===k?'active':''}">${l}</button>`;
   document.getElementById('nav').innerHTML =
     b('home','Home')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
-    +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champs')
-    +b('awards','Awards')+b('beavers','Beavers');
+    +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champions')
+    +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('arcade','Arcade');
   document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>{
     location.hash = x.dataset.v==='home' ? '#/' : '#/'+x.dataset.v;
   }));
@@ -733,7 +881,7 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
 const fld = d => d.TC ? (d.PO+d.A)/d.TC : NaN;
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TROPHY = '<svg class="trophy" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M6 3h12v2h2a1 1 0 0 1 1 1c0 3.3-2.2 5.6-5 5.95A5.5 5.5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5.5 5.5 0 0 1 8 11.95C5.2 11.6 3 9.3 3 6a1 1 0 0 1 1-1h2V3Zm0 4H4.6c.3 1.7 1.6 3 3.2 3.4A7.4 7.4 0 0 1 6 7Zm12 0a7.4 7.4 0 0 1-1.8 3.4c1.6-.4 2.9-1.7 3.2-3.4H18Z"/></svg>';
-const phLabel = p => p==='AllStar' ? 'All-Star' : p;
+const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p;
 
 /* display rows for one player, one phase — one per year, split by club with a
    season total row (Baseball-Reference style) when they changed clubs mid-year */
@@ -822,6 +970,41 @@ function latestTeam(pl){
   for(const y of ys){ const t=pl.teamsByYear[y]; if(t && t.team) return t.team; }
   return '';
 }
+/* every distinct franchise a player has ever been credited to (splitting a
+   two-team season's combined "A / B" string), in first-appearance order —
+   each as its own list of contiguous stints (a player who left and came
+   back to the same club gets two ranges, not one span papering over the
+   gap) — for showing a player's whole career team history at a glance,
+   not just their latest club */
+function careerTeams(pl){
+  const ys = Object.keys(pl.teamsByYear).map(Number).sort((a,b)=>a-b);
+  const order = [], byTeam = {};
+  ys.forEach(y=>{
+    const t = pl.teamsByYear[y] && pl.teamsByYear[y].team;
+    if(!t) return;
+    t.split(' / ').forEach(tm=>{
+      if(!tm) return;
+      if(!byTeam[tm]){ byTeam[tm]=[]; order.push(tm); }
+      const stints = byTeam[tm], open = stints[stints.length-1];
+      if(open && open.to===y-1) open.to = y; else stints.push({from:y, to:y});
+    });
+  });
+  return order.map(tm=>({team:tm, stints:byTeam[tm]}));
+}
+/* compact row of small clickable team-logo chips covering a player's whole
+   career, each tooltipped with the franchise name and the years it covers */
+function teamHistoryChips(pl){
+  const teams = careerTeams(pl);
+  if(!teams.length) return '—';
+  return `<span class="tmchips">${teams.map(t=>{
+    const lastYr = t.stints[t.stints.length-1].to;
+    const logo = TEAMS[t.team] ? teamLogoForYear(t.team, lastYr) : null;
+    const label = TEAMS[t.team] ? histName(t.team, lastYr) : t.team;
+    const yrs = t.stints.map(s=>s.from===s.to?String(s.from):`${s.from}–${s.to}`).join(', ');
+    return `<button class="pname tmchip" data-t="${esc(t.team)}" title="${esc(label)} · ${yrs}">${logo
+      ? `<img class="llogo llogo-sm" src="${logo}" alt="${esc(label)}">` : esc(TEAMS[t.team]?TEAMS[t.team].nick:t.team)}</button>`;
+  }).join('')}</span>`;
+}
 const yearsOf = (pl,type) => [...new Set(pl.seasons.filter(s=>s.type===type).map(s=>s.year))].sort();
 
 /* ---------------- directory ---------------- */
@@ -836,7 +1019,7 @@ const BAT_COLS = [
 const PIT_COLS = [
   ['name','Player','s'],['team','Tm','s'],['yrs','Yrs','n'],['G','G','n'],['IP','IP','n'],['W','W','n'],['L','L','n'],
   ['SV','SV','n'],['pH','H','n'],['ER','ER','n'],['pBB','BB','n'],['pK','K','n'],
-  ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r']
+  ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r'],['ERA+','ERA+','n']
 ];
 
 function rowVals(name){
@@ -850,7 +1033,7 @@ function rowVals(name){
     PA:c.PA, AB:c.AB, R:c.R, H:c.H, HR:c.HR, RBI:c.RBI, BB:c.BB, K:c.K,
     AVG:avg(c), OBP:obp(c), SLG:slg(c), OPS:ops(c), 'OPS+':opsPlusFor(c, careerWeights(pl, isPost)),
     IP:c.IPouts/3, W:c.W, L:c.L, SV:c.SV, pH:c.pH, ER:c.ER, pBB:c.pBB, pK:c.pK,
-    ERA:era(c), WHIP:whip(c), K9:k9(c),
+    ERA:era(c), WHIP:whip(c), K9:k9(c), 'ERA+':eraPlusFor(c, careerWeightsPit(pl, isPost)),
     _ipouts:c.IPouts, _bat:c.G_bat
   };
 }
@@ -942,7 +1125,7 @@ function renderHome(){
       }).join('');
       return `<div class="snapdiv"><h4>${esc(dn)} Division</h4><ol>${items}</ol></div>`;
     }).join('');
-    standingsSnap = `<h3 class="hsub">${snapY} Standings</h3>
+    standingsSnap = `<h3 class="hsub">${snapY} Standings${annivBadge()}</h3>
       <div class="snapgrid">${divCards}</div>
       <p class="lead"><button class="pname" data-go="standings">Full standings, any season →</button></p>`;
   }
@@ -955,11 +1138,6 @@ function renderHome(){
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
-    <div class="leadrow">
-      <p class="lead">The career register for BWB Wiffleball, ${RANGE} — batting, pitching and fielding for
-      every player, franchise histories with rosters and records, and a box score for every game played.</p>
-      ${DB.anniversaryLogo?`<img class="annivbadge" src="${DB.anniversaryLogo}" alt="15th Anniversary, 2012–2026">`:''}
-    </div>
     ${champbar}
     ${bracketSnap}
     ${standingsSnap}
@@ -994,6 +1172,8 @@ function renderHome(){
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
+  app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
+    const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
   document.getElementById('editBannerBtn').addEventListener('click', ()=>{
     openImageEditor('Home Banner', DB.banner, 900, async url=>{
       const before = DB.banner;
@@ -1023,6 +1203,7 @@ function renderDir(){
   }).join('');
   const body = rows.map(r=>'<tr>'+cols.map(([k,label,t],i)=>{
     if(i===0) return `<td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td>`;
+    if(k==='team') return `<td class="lft tm">${teamHistoryChips(P[r.name])}</td>`;
     return `<td class="${t==='r'?'mono':''} ${t==='s'?'lft tm':''}">${cell(r[k],t,k)}</td>`;
   }).join('')+'</tr>').join('');
   const azFiltered = NAMES.filter(n => !query || n.toLowerCase().includes(query.toLowerCase()));
@@ -1031,10 +1212,10 @@ function renderDir(){
   const azHtml = Object.keys(azGroups).sort().map(L=>`
     <div class="azgrp"><h3 class="azh">${L}</h3>
       <div class="azcols">${azGroups[L].map(n=>{
-        const y=P[n].years, tm=latestTeam(P[n]);
+        const y=P[n].years, tms=careerTeams(P[n]).map(t=>TEAMS[t.team]?TEAMS[t.team].nick:t.team);
         return `<button class="azitem" data-p="${esc(n)}">
           <span class="azn">${esc(nameLF(n))}</span>
-          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}${tm?` · ${esc(TEAMS[tm]?TEAMS[tm].nick:tm)}`:''}</span>
+          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}${tms.length?` · ${esc(tms.join('/'))}`:''}</span>
         </button>`;}).join('')}</div>
     </div>`).join('') || '<p class="empty">No players match.</p>';
 
@@ -1057,6 +1238,7 @@ function renderDir(){
         <button data-m="bat" aria-pressed="${mode==='bat'}">Batting</button>
         <button data-m="pit" aria-pressed="${mode==='pit'}">Pitching</button>
       </div>`:''}
+      <button class="pname" id="cmpLink">Compare Players →</button>
     </div>
     ${pView==='az' ? `<div class="azindex">${azHtml}</div>` : `
     <div class="tscroll"><table class="dir">
@@ -1065,6 +1247,7 @@ function renderDir(){
     </table></div>`}
     <p class="note" id="footnote"></p>`;
   footnote();
+  document.getElementById('cmpLink').addEventListener('click',()=>{ location.hash='#/compare'; });
   const qi = document.getElementById('q');
   qi.addEventListener('input',e=>{ query=e.target.value; const p=qi.selectionStart; renderDir();
     const n=document.getElementById('q'); n.focus(); n.setSelectionRange(p,p); });
@@ -1081,7 +1264,7 @@ function renderDir(){
     if(mode===b.dataset.m) return;
     mode=b.dataset.m;
     const batKeys=['PA','AB','H','HR','RBI','AVG','OBP','SLG','OPS','OPS+'];
-    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9'];
+    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9','ERA+'];
     if(mode==='pit' && batKeys.includes(sortKey)) sortKey='W';
     if(mode==='bat' && pitKeys.includes(sortKey)) sortKey='HR';
     sortDir=-1; renderDir();
@@ -1149,7 +1332,7 @@ const LEAGUE_BY_YEAR = buildLeagueByYear('Regular');
 const LEAGUE_BY_YEAR_POST = buildLeagueByYear('Playoffs');
 function leagueRatesFor(year, post){
   const lg = (post ? LEAGUE_BY_YEAR_POST[year] : null) || LEAGUE_BY_YEAR[year];
-  return lg ? {obp:obp(lg), slg:slg(lg)} : null;
+  return lg ? {obp:obp(lg), slg:slg(lg), era:era(lg)} : null;
 }
 /* OPS+ for a stat bucket, normalized against a PA-weighted blend of the
    league averages for whichever year(s) contributed to it. `weights` is
@@ -1175,6 +1358,30 @@ function opsPlusFor(d, weights){
 function careerWeights(pl, post){
   return pl.seasons.filter(s=>s.type===(post?'Playoffs':'Regular') && !s.tot && s.PA)
     .map(s=>({year:s.year, pa:s.PA, post}));
+}
+/* ERA+ is OPS+'s pitching mirror: 100 * (that season's league ERA / the
+   player's own ERA), blended across whichever year(s) contributed —
+   weighted by innings (outs) instead of PA, everything else identical to
+   opsPlusFor's reasoning (a single-season bucket is just that year's own
+   league rate; a career blends every year the player actually pitched,
+   weighted by how much). A perfect 0.00 ERA sample makes this mathematically
+   infinite — left as Infinity rather than special-cased, since every
+   display site already falls back to "—" for a non-finite value exactly
+   like they do for OPS+. */
+function eraPlusFor(d, weights){
+  let wEra=0, totOuts=0;
+  (weights||[]).forEach(w=>{
+    const r = w && w.outs ? leagueRatesFor(w.year, w.post) : null;
+    if(!r) return;
+    wEra += r.era*w.outs; totOuts += w.outs;
+  });
+  if(!totOuts || !d || !d.IPouts) return NaN;
+  const le = wEra/totOuts;
+  return le ? Math.round(100*(le/era(d))) : NaN;
+}
+function careerWeightsPit(pl, post){
+  return pl.seasons.filter(s=>s.type===(post?'Playoffs':'Regular') && !s.tot && s.IPouts)
+    .map(s=>({year:s.year, outs:s.IPouts, post}));
 }
 
 /* ============================== LIVE EDITING ==============================
@@ -1259,7 +1466,7 @@ function recomputePlayer(pl){
   });
   pl.teamsByYear = tby;
 }
-const SEASON_TYPES = ['Regular','Playoffs','AllStar','Spring','Fall','NWLA'];
+const SEASON_TYPES = ['Regular','Playoffs','AllStar','Spring','Fall','Exhib','NWLA'];
 const EDIT_BAT = [['G_bat','G'],['GS_bat','GS'],['AB','AB'],['R','R'],['1B','1B'],['2B','2B'],
   ['3B','3B'],['HR','HR'],['RBI','RBI'],['BB','BB'],['K','K'],['HBP','HBP'],['SB','SB'],['CS','CS'],
   ['SF','SF'],['SH','SH']];
@@ -1440,6 +1647,7 @@ const PHASE_META = {
   AllStar:  {cls:'exh',   head:'All-Star Games', tot:'All-Star',    unit:'appearance'},
   Spring:   {cls:'exh',   head:'Spring Training',tot:'Spring',      unit:'year'},
   Fall:     {cls:'exh',   head:'Fall Ball',      tot:'Fall',        unit:'year'},
+  Exhib:    {cls:'exh',   head:'Exhibition',     tot:'Exhibition', unit:'appearance'},
   NWLA:     {cls:'exh',   head:'NWLA Tournament',tot:'NWLA',        unit:'appearance'},
 };
 
@@ -1488,7 +1696,13 @@ function phaseBlock(pl, type){
       {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
-      {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}, ...awCol];
+      {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+      {l:'ERA+',m:1,f:d=>{
+        const v = d.year!=null
+          ? eraPlusFor(d, [{year:d.year, outs:d.IPouts, post:type==='Playoffs'}])
+          : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
+        return isFinite(v)?String(v):'—';
+      }}, ...awCol];
     pit = statTable('Pitching', pitCols, rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls);
   }
 
@@ -1500,14 +1714,28 @@ function phaseBlock(pl, type){
     fldT = statTable('Fielding', fCols, rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls);
   }
   const span = yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`;
+  /* Exhibition is a generic phase that can hold several one-off named events
+     (Brookside Field Finale, and whatever comes after it) — name the specific
+     event(s) actually played, read straight off those games' own `div` field
+     rather than hardcoded, so a second event just shows up correctly too. */
+  let evNote = '';
+  if(type==='Exhib'){
+    const evs = [...new Set(collectPlayerGames(pl, type).map(r=>r.g.div).filter(Boolean))]
+      .map(d=>d.replace(/^\d{4}\s+/, ''));
+    if(evs.length) evNote = ' · ' + evs.map(esc).join(', ');
+  }
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
-    <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}</p>
+    <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
     ${bat}${pit}${fldT}</div>`;
 }
 
 /* ---- Baseball-Savant-style percentile rankings (per regular season) ---- */
-const SV_MING = 9, SV_MINOUTS = 36;   // 9+ G batting, 12+ IP pitching (per season)
+const SV_MING = 9, SV_MINOUTS = 36;   // 9+ G batting, 12+ IP pitching (per season) — the qualified pool
+/* below full qualification, still show a faded/patterned percentile estimate down to this floor —
+   never adds these players into the qualified pool itself (qb/qp below stay built off SV_MING/SV_MINOUTS
+   alone), just plots where they'd land against it. 3 G batting, 3 IP (9 outs) pitching. */
+const SV_MIN_SHOW_G = 3, SV_MIN_SHOW_OUTS = 9;
 let svYear = null;                     // sticky across player pages
 function svColor(p){
   const t = Math.max(0,Math.min(100,p))/100;
@@ -1550,15 +1778,20 @@ function svSeasons(pl){
   return [...new Set(pl.seasons.filter(s=>s.type==='Regular'&&!s.split).map(s=>s.year))]
     .sort((a,b)=>a-b);
 }
-function svPanel(title, metrics, subject, pool){
+/* unqualified: this subject falls short of the real qualification bar, so
+   the percentile is an estimate against the qualified pool rather than a
+   real ranking — pool itself is untouched either way (the subject was never
+   in it, qualified or not), only the row's own look changes. */
+function svPanel(title, metrics, subject, pool, unqualified){
   const rows = metrics.map(([lab,fn,fmt,low])=>{
     const p = svPct(pool.map(fn).filter(isFinite), fn(subject), low);
     if(p==null) return '';
-    return `<div class="svrow"><span class="svlab">${lab}</span>
+    return `<div class="svrow${unqualified?' svunq':''}"><span class="svlab">${lab}</span>
       <span class="svbar"><span class="svdot" style="left:${p}%;background:${svColor(p)}">${p}</span></span>
       <span class="svval">${fmt(fn(subject))}</span></div>`;
   }).join('');
-  return rows ? `<div class="svpanel"><h4>${title}</h4>${rows}</div>` : '';
+  const titleHTML = unqualified ? `${esc(title)} <span class="svunqtag">est. · unqualified</span>` : esc(title);
+  return rows ? `<div class="svpanel${unqualified?' svpanel-unq':''}"><h4>${titleHTML}</h4>${rows}</div>` : '';
 }
 function savantInner(pl){
   const yrs = svSeasons(pl);
@@ -1574,18 +1807,25 @@ function savantInner(pl){
   const qb = seasonRows.filter(r=>r.G_bat>=SV_MING);
   const qp = seasonRows.filter(r=>r.IPouts>=SV_MINOUTS);
   const batOK = row && row.G_bat>=SV_MING, pitOK = row && row.IPouts>=SV_MINOUTS;
-  const panels = (batOK ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb) : '')
-    + (pitOK ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp) : '');
+  const batShow = row && !batOK && row.G_bat>=SV_MIN_SHOW_G;
+  const pitShow = row && !pitOK && row.IPouts>=SV_MIN_SHOW_OUTS;
+  const panels = (batOK ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb)
+      : batShow ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb, true) : '')
+    + (pitOK ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp)
+      : pitShow ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp, true) : '');
   if(!panels){
-    return `${chips}<p class="smeta">No qualified ${svYear} regular season
-      (${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching).</p>`;
+    return `${chips}<p class="smeta">No ${svYear} regular season line long enough to estimate
+      (${SV_MIN_SHOW_G}+ G batting or ${SV_MIN_SHOW_OUTS/3}+ IP pitching needed at minimum).</p>`;
   }
-  const twoUp = (batOK && pitOK) ? ' two' : '';
+  const twoUp = ((batOK||batShow) && (pitOK||pitShow)) ? ' two' : '';
+  const anyUnq = batShow || pitShow;
   return `${chips}
-    <p class="smeta">${svYear} regular season, percentile vs qualified players ·
-      <span style="color:${svColor(100)}">red</span> = league-best,
+    <p class="smeta">${svYear} regular season, percentile vs qualified players (${SV_MING}+ G batting,
+      ${SV_MINOUTS/3}+ IP pitching) · <span style="color:${svColor(100)}">red</span> = league-best,
       <span style="color:${svColor(0)}">blue</span> = trailing.
-      K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.</p>
+      K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.
+      ${anyUnq?` Faded, dashed rows are below the qualification bar — shown as an estimate against the
+      qualified field (down to ${SV_MIN_SHOW_G}+ G / ${SV_MIN_SHOW_OUTS/3}+ IP) but don't count toward it.`:''}</p>
     <div class="svpanels${twoUp}">${panels}</div>`;
 }
 function savantCard(pl){
@@ -1744,7 +1984,7 @@ function accolades(pl){
   const nhPerf = nh.filter(x=>x.perfect).length;
   const noHit = nh.length ? `<div class="acc-block">
     <h4>${nh.length} No-Hitter${nh.length>1?'s':''}${nhPerf?` · ${nhPerf} Perfect Game${nhPerf>1?'s':''}`:''}</h4>
-    <p class="acc-years">${nh.map(x=>`${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)} vs ${histNickLink(x.opp, +x.date.slice(0,4))}${x.perfect?' <span class="estd">Perfect</span>':''}`).join('<br>')}</p>
+    <p class="acc-years">${nh.map(x=>`${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)} vs ${histNickLink(x.opp, +x.date.slice(0,4))}${x.perfect?' <span class="estd">Perfect Game</span>':''}`).join('<br>')}</p>
   </div>` : '';
   return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${asg}${noHit}
     <p class="acc-leg">In the season tables below, the <b>Awards</b> column marks that year:
@@ -1794,7 +2034,7 @@ function detail(name){
       log: t==='NWLA' ? playerNWLALog(pl, logYear) : playerGameLog(pl, t, logYear),
     };
   };
-  const tabs = ['Regular','Playoffs','AllStar','Spring','Fall','NWLA']
+  const tabs = ['Regular','Playoffs','AllStar','Spring','Fall','Exhib','NWLA']
     .map(t=>[t, PHASE_META[t].head, phaseTab(t)])
     .filter(([t,,c])=> t==='Regular' || t==='Playoffs' || c.none ||
       (c.stats||'').trim() || (c.splits||'').trim() || (c.log||'').trim());
@@ -1843,7 +2083,7 @@ function detail(name){
     ${overviewHTML}
     ${tabBar}
     ${activeHTML}
-    <p class="note">Each phase — regular season, postseason, the exhibition sets (All-Star, spring training, fall ball) and the NWLA Tournament (national-team play, from GameChanger) — is tallied in its own block, one row per year plus a phase total; nothing is pooled across phases. Team is from the league roster (<span class="pt">*</span> = estimated from game appearances).
+    <p class="note">Each phase — regular season, postseason, the exhibition sets (All-Star, spring training, fall ball, the Brookside Field Finale) and the NWLA Tournament (national-team play, from GameChanger) — is tallied in its own block, one row per year plus a phase total; nothing is pooled across phases. Team is from the league roster (<span class="pt">*</span> = estimated from game appearances).
     <span class="estd">†</span> 2016: cumulative totals only — 2B, 3B and hits/walks allowed are extrapolated from
     the player's later rates, and Runs are unavailable. Spans ${RANGE}.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
@@ -1880,6 +2120,166 @@ function detail(name){
   app.querySelectorAll('table.sortable').forEach(makeSortable);
 }
 
+/* ============================ PLAYER COMPARISON ============================ */
+const CMP_BAT = [
+  ['G',   c=>c.G_bat, v=>v, false], ['PA',  c=>c.PA, v=>v, false], ['AB', c=>c.AB, v=>v, false],
+  ['R',   c=>c.R,     v=>v, false], ['H',   c=>c.H,  v=>v, false],
+  ['2B',  c=>c['2B'], v=>v, false], ['3B',  c=>c['3B'], v=>v, false], ['HR', c=>c.HR, v=>v, false],
+  ['RBI', c=>c.RBI,   v=>v, false], ['BB',  c=>c.BB, v=>v, false], ['K', c=>c.K, v=>v, true],
+  ['AVG', c=>avg(c), rate, false], ['OBP', c=>obp(c), rate, false],
+  ['SLG', c=>slg(c), rate, false], ['OPS', c=>ops(c), rate, false],
+];
+const CMP_PIT = [
+  ['G',  c=>c.G_pit, v=>v, false], ['IP', c=>c.IPouts, ipStr, false],
+  ['W',  c=>c.W, v=>v, false], ['L', c=>c.L, v=>v, true], ['SV', c=>c.SV, v=>v, false],
+  ['K',  c=>c.pK, v=>v, false],
+  ['ERA', c=>era(c), two, true], ['WHIP', c=>whip(c), two, true], ['K/3', c=>k9(c), two, false],
+];
+function cmpRow(label, valA, valB, fmt, lowerBetter){
+  const winA = isFinite(valA) && (!isFinite(valB) || (lowerBetter ? valA<valB : valA>valB));
+  const winB = isFinite(valB) && (!isFinite(valA) || (lowerBetter ? valB<valA : valB>valA));
+  return `<tr><td class="mono${winA?' cmpwin':''}">${isFinite(valA)?fmt(valA):'—'}</td>
+    <td class="lft cmplab">${label}</td>
+    <td class="mono${winB?' cmpwin':''}">${isFinite(valB)?fmt(valB):'—'}</td></tr>`;
+}
+function cmpTable(title, rows, ca, cb, extraRowsHTML){
+  const body = rows.map(([label,fn,fmt,low])=>cmpRow(label, fn(ca), fn(cb), fmt, low)).join('');
+  return `<div class="cmpblock"><h4 class="hsub">${title}</h4>
+    <table class="detail cmptable"><tbody>${body}${extraRowsHTML||''}</tbody></table></div>`;
+}
+function cmpHead(pl){
+  const yrs = pl.years;
+  const lt = latestTeam(pl);
+  return `<div class="cmpplayer">
+    ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
+    <button class="pname cmpname" data-p="${esc(pl.name)}">${esc(pl.name)}</button>
+    <span class="azm">${yrs.length} season${yrs.length>1?'s':''} · ${yrs[0]}–${yrs[yrs.length-1]}${lt&&TEAMS[lt]?` · ${esc(TEAMS[lt].nick)}`:''}</span>
+  </div>`;
+}
+function cmpAccRow(label, a, b){
+  if(!a && !b) return '';
+  return `<tr><td class="mono${a>b?' cmpwin':''}">${a||'—'}</td><td class="lft cmplab">${label}</td>
+    <td class="mono${b>a?' cmpwin':''}">${b||'—'}</td></tr>`;
+}
+/* career-line percentile comparison, reusing the same SV_BAT/SV_PIT metric
+   list, svColor/svPct math and qualification bar (SV_MING/SV_MINOUTS, with
+   the same SV_MIN_SHOW_G/SV_MIN_SHOW_OUTS faded-estimate floor) already
+   built for a single player's own Percentile Rankings — just against a
+   career-totals pool instead of one season's, and with both players' dots
+   sharing one track per row instead of one dot per row */
+const CMP_POOL_BAT = NAMES.map(n=>P[n].careerReg).filter(c=>c.G_bat>=SV_MING);
+const CMP_POOL_PIT = NAMES.map(n=>P[n].careerReg).filter(c=>c.IPouts>=SV_MINOUTS);
+function cmpCareerQual(c){
+  return {
+    batOK: c.G_bat>=SV_MING, pitOK: c.IPouts>=SV_MINOUTS,
+    batShow: c.G_bat<SV_MING && c.G_bat>=SV_MIN_SHOW_G,
+    pitShow: c.IPouts<SV_MINOUTS && c.IPouts>=SV_MIN_SHOW_OUTS,
+  };
+}
+function cmpSvRow(label, fn, fmt, low, ca, cb, pool, unqA, unqB, nameA, nameB){
+  const vals = pool.map(fn).filter(isFinite);
+  const pA = svPct(vals, fn(ca), low), pB = svPct(vals, fn(cb), low);
+  if(pA==null && pB==null) return '';
+  const dot = (p, unq, letter, nm) => p==null ? '' :
+    `<span class="svdot${unq?' svunq-dot':''}" style="left:${p}%;background:${svColor(p)}"
+      title="${esc(nm)} — ${ORDINAL_TH(p)} percentile${unq?' (estimate — below the qualification bar)':''}">
+      <b class="svdotltr">${letter}</b>${p}</span>`;
+  return `<div class="svrow${(unqA&&pA!=null)||(unqB&&pB!=null)?' cmpsvunq':''}"><span class="svlab">${label}</span>
+    <span class="svbar cmpsvbar">${dot(pA,unqA,'A',nameA)}${dot(pB,unqB,'B',nameB)}</span>
+    <span class="svval">${isFinite(fn(ca))?fmt(fn(ca)):'—'} · ${isFinite(fn(cb))?fmt(fn(cb)):'—'}</span></div>`;
+}
+function cmpSvPanel(title, metrics, ca, cb, pool, unqA, unqB, nameA, nameB){
+  const rows = metrics.map(([lab,fn,fmt,low])=>cmpSvRow(lab, fn, fmt, low, ca, cb, pool, unqA, unqB, nameA, nameB)).join('');
+  return rows ? `<div class="svpanel"><h4>${esc(title)}</h4>${rows}</div>` : '';
+}
+function cmpSavantHTML(a, b){
+  const ca = a.careerReg, cb = b.careerReg;
+  const qa = cmpCareerQual(ca), qb = cmpCareerQual(cb);
+  const showBat = qa.batOK||qa.batShow||qb.batOK||qb.batShow;
+  const showPit = qa.pitOK||qa.pitShow||qb.pitOK||qb.pitShow;
+  if(!showBat && !showPit) return '';
+  const batHTML = showBat ? cmpSvPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, ca, cb, CMP_POOL_BAT, !qa.batOK, !qb.batOK, a.name, b.name) : '';
+  const pitHTML = showPit ? cmpSvPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, ca, cb, CMP_POOL_PIT, !qa.pitOK, !qb.pitOK, a.name, b.name) : '';
+  const anyUnq = (showBat && !qa.batOK) || (showBat && !qb.batOK) || (showPit && !qa.pitOK) || (showPit && !qb.pitOK);
+  return `<section class="savant"><h3>Percentile Comparison</h3>
+    <p class="smeta">Career totals, percentile vs every qualified player's own career (${SV_MING}+ G batting,
+      ${SV_MINOUTS/3}+ IP pitching) · <b>A</b> = ${esc(a.name)}, <b>B</b> = ${esc(b.name)} ·
+      <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing.
+      K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.
+      ${anyUnq?' Faded dots are below the qualification bar — shown as an estimate, not a real ranking.':''}</p>
+    <div class="svpanels two">${batHTML}${pitHTML}</div>
+  </section>`;
+}
+function renderComparePicker(prefA, prefB, notFound){
+  return `<div class="phead"><h2>Compare Players</h2></div>
+    <p class="pmeta">Pick two players to compare their career lines side by side.</p>
+    <div class="cmppicker">
+      <input id="cmpA" list="cmplist" placeholder="Player A" value="${esc(prefA||'')}">
+      <span class="cmpvs">vs</span>
+      <input id="cmpB" list="cmplist" placeholder="Player B" value="${esc(prefB||'')}">
+      <button class="pname cmpgo" id="cmpGo">Compare →</button>
+    </div>
+    <datalist id="cmplist">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    ${notFound?`<p class="empty">Couldn't find "${esc(notFound)}" — pick a name from the list.</p>`:''}`;
+}
+function wireComparePicker(nameA, nameB){
+  const go = () => {
+    const a = document.getElementById('cmpA').value.trim();
+    const b = document.getElementById('cmpB').value.trim();
+    if(!a || !b) return;
+    location.hash = '#/compare/'+encodeURIComponent(a)+'/'+encodeURIComponent(b);
+  };
+  document.getElementById('cmpGo').addEventListener('click', go);
+  ['cmpA','cmpB'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{
+    if(e.key==='Enter') go();
+  }));
+}
+function renderCompare(nameA, nameB){
+  setNav('players');
+  const a = nameA ? P[nameA] : null, b = nameB ? P[nameB] : null;
+  if(!a || !b){
+    app.innerHTML = `<button class="back" id="back">← Players</button>
+      ${renderComparePicker(nameA, nameB, (nameA&&!a)?nameA : (nameB&&!b)?nameB : null)}`;
+    document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
+    wireComparePicker(nameA, nameB);
+    return;
+  }
+  const ca = a.careerReg, cb = b.careerReg;
+  const hasPit = ca.IPouts>0 || cb.IPouts>0;
+  const opspA = opsPlusFor(ca, careerWeights(a, false)), opspB = opsPlusFor(cb, careerWeights(b, false));
+  const battingHTML = cmpTable('Career Hitting', CMP_BAT, ca, cb, cmpRow('OPS+', opspA, opspB, v=>String(v), false));
+  const erapA = eraPlusFor(ca, careerWeightsPit(a, false)), erapB = eraPlusFor(cb, careerWeightsPit(b, false));
+  const pitchingHTML = hasPit ? cmpTable('Career Pitching', CMP_PIT, ca, cb, cmpRow('ERA+', erapA, erapB, v=>String(v), false)) : '';
+  const ha = a.honors||{rings:[],awards:[],asg:[]}, hb = b.honors||{rings:[],awards:[],asg:[]};
+  const nhA = (NOHIT_BY_PITCHER[a.name]||[]).length, nhB = (NOHIT_BY_PITCHER[b.name]||[]).length;
+  const hrdA = (HRD_BY_PLAYER[a.name]||[]).length, hrdB = (HRD_BY_PLAYER[b.name]||[]).length;
+  const mvpA = (ASGMVP_BY_PLAYER[a.name]||[]).length, mvpB = (ASGMVP_BY_PLAYER[b.name]||[]).length;
+  const accHTML = `<div class="cmpblock"><h4 class="hsub">Accolades</h4><table class="detail cmptable"><tbody>
+    ${cmpAccRow('World Series', ha.rings.length, hb.rings.length)}
+    ${cmpAccRow('Awards', ha.awards.length, hb.awards.length)}
+    ${cmpAccRow('All-Star', ha.asg.length, hb.asg.length)}
+    ${cmpAccRow('All-Star Game MVP', mvpA, mvpB)}
+    ${cmpAccRow('Home Run Derby', hrdA, hrdB)}
+    ${cmpAccRow('No-Hitters', nhA, nhB)}
+  </tbody></table></div>`;
+  const svHTML = cmpSavantHTML(a, b);
+  app.innerHTML = `
+    <button class="back" id="back">← Players</button>
+    <div class="phead"><h2>Compare Players</h2></div>
+    <div class="cmpwrap">
+      <div class="cmpheads">${cmpHead(a)}<span class="cmpvs">vs</span>${cmpHead(b)}</div>
+      ${battingHTML}${pitchingHTML}${accHTML}
+    </div>
+    ${svHTML}
+    <p class="note">Career regular-season totals. <span class="cmpwin cmpwinsample">Highlighted</span> value is
+    the better of the two in each row; K is fewer-is-better for batters, more-is-better for pitchers.</p>
+    ${renderComparePicker(nameA, nameB)}`;
+  document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
+  wireComparePicker(nameA, nameB);
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
+}
+
 /* ================================ TEAMS ================================ */
 const TEAMS = DB.teams || {};
 const TEAMNAMES = Object.keys(TEAMS).sort((a,b)=>a.localeCompare(b));
@@ -1892,17 +2292,21 @@ const wirePlayerLinks = () => app.querySelectorAll('.pname[data-p]').forEach(b=>
 /* franchise all-time regular-season aggregate (sum of every season's roster lines) */
 const TAGG = {};
 const TAGG_WEIGHTS = {};   // [{year,pa}] per franchise — for weighting that team's career OPS+ baseline
+const TAGG_PIT_WEIGHTS = {};   // [{year,outs}] per franchise — same, for career ERA+
 TEAMNAMES.forEach(n=>{
   const reg=[];
   const weights=[];
+  const pitWeights=[];
   Object.entries(TEAMS[n].seasons).forEach(([y,s])=>{
     const lines = (s.roster||[]).filter(e=>e.regular).map(e=>e.regular);
     reg.push(...lines);
     const yearTot = sumRows(lines);
     if(yearTot.PA) weights.push({year:+y, pa:yearTot.PA});
+    if(yearTot.IPouts) pitWeights.push({year:+y, outs:yearTot.IPouts});
   });
   TAGG[n]=sumRows(reg);
   TAGG_WEIGHTS[n]=weights;
+  TAGG_PIT_WEIGHTS[n]=pitWeights;
 });
 
 const T_BAT_COLS = [
@@ -1913,7 +2317,7 @@ const T_BAT_COLS = [
 const T_PIT_COLS = [
   ['name','Team','s'],['yrs','Yr','n'],['Gp','G','n'],['IP','IP','n'],['pR','R','n'],['ER','ER','n'],
   ['pH','H','n'],['pBB','BB','n'],['pK','K','n'],
-  ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r'],
+  ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r'],['ERA+','ERA+','n'],
 ];
 
 function teamRowVals(n){
@@ -1923,7 +2327,7 @@ function teamRowVals(n){
     G:c.G_bat, PA:c.PA, R:c.R, H:c.H, HR:c.HR, RBI:c.RBI, BB:c.BB, K:c.K,
     AVG:avg(c), OBP:obp(c), SLG:slg(c), OPS:ops(c), 'OPS+':opsPlusFor(c, TAGG_WEIGHTS[n]),
     Gp:c.G_pit, IP:c.IPouts/3, pR:c.pR, ER:c.ER, pH:c.pH, pBB:c.pBB, pK:c.pK,
-    ERA:era(c), WHIP:whip(c), K9:k9(c),
+    ERA:era(c), WHIP:whip(c), K9:k9(c), 'ERA+':eraPlusFor(c, TAGG_PIT_WEIGHTS[n]),
   };
 }
 
@@ -1944,10 +2348,10 @@ const FRANCHISE_SUMMARY = [
   {t:'Squirrels',       f:null, full:'Brookside Squirrels',w:66, l:69, pct:.489, yr:'2012–2015', ws:0,wsa:0, dv:0, po:2, wsz:1, as:4,  por:'0–2'},
   {t:'Dragons',         f:'Purchase Dragons',             w:16, l:29, pct:.356, yr:'2021–2023', ws:0,wsa:0, dv:0, po:1, wsz:0, as:6,  por:'0–1'},
   {t:'Mustangs',        f:'Brentwood Mustangs',           w:32, l:92, pct:.258, yr:'2015–2018', ws:0,wsa:0, dv:0, po:1, wsz:0, as:6,  por:'0–1'},
-  {t:'Angels',          f:null, full:'Parsons Angels',      w:40, l:40, pct:.500, yr:'2013–2014', ws:0,wsa:0, dv:0, po:0, wsz:1, as:1,  por:'—'},
+  {t:'Angels',          f:null, full:'Downtown Angels',    w:40, l:40, pct:.500, yr:'2013–2014', ws:0,wsa:0, dv:0, po:0, wsz:1, as:1,  por:'—'},
   {t:'Titans',          f:'Downtown Titans',              w:11, l:4,  pct:.733, yr:'2025',      ws:0,wsa:0, dv:0, po:0, wsz:1, as:1,  por:'—'},
   {t:'PawSox',          f:'Purchase PawSox',              w:11, l:28, pct:.282, yr:'2019–2020', ws:0,wsa:0, dv:0, po:0, wsz:1, as:3,  por:'—'},
-  {t:'Diablos',         f:null, full:'Gleason Diablos',    w:19, l:61, pct:.238, yr:'2013–2014', ws:0,wsa:0, dv:0, po:0, wsz:0, as:0,  por:'—'},
+  {t:'Devils',          f:null, full:'Gleason Devils',     w:19, l:61, pct:.238, yr:'2013–2014', ws:0,wsa:0, dv:0, po:0, wsz:0, as:0,  por:'—'},
   {t:'Snapping Turtles',f:'Silver Lake Snapping Turtles', w:4,  l:26, pct:.133, yr:'2025–Pres', ws:0,wsa:0, dv:0, po:0, wsz:0, as:2,  por:'—'},
 ];
 
@@ -1983,10 +2387,10 @@ const FRANCHISE_TIMELINE = [
     {from:2012,to:2012,loc:'Davenport',nick:'Sox'}]},
   {full:'Brentwood Aces', nick:'Aces', eras:[
     {from:2013,to:2016,loc:'Brentwood',nick:'Aces'}]},
-  {full:'Gleason Diablos', nick:'Diablos', eras:[
+  {full:'Gleason Devils', nick:'Devils', eras:[
     {from:2013,to:2014,loc:'Gleason',nick:'Devils'}]},
-  {full:'Parsons Angels', nick:'Angels', eras:[
-    {from:2013,to:2014,loc:'Parsons',nick:'Angels'}]},
+  {full:'Downtown Angels', nick:'Angels', eras:[
+    {from:2013,to:2014,loc:'Downtown',nick:'Angels'}]},
   {full:'Brentwood Mustangs', nick:'Mustangs', eras:[
     {from:2015,to:2015,loc:'Brentwood',nick:'Mustangs'},
     {from:2016,to:2016,loc:'Brentwood',nick:'Bulldogs'},
@@ -2221,9 +2625,11 @@ function seriesGids(year, teamA, teamB){
    pattern by bracket side either. So the winner shown per game is read off the real,
    matched GAMES entry (away/home + R), never inferred from the tuple's own order —
    the tuple is only used for the plain-text fallback when a game couldn't be matched. */
-function pbScore(games, gids, year){
+function pbScore(games, gids, year, seriesKey){
   if(!games || !games.length) return '';
   const linked = gids && gids.length===games.length;
+  const seriesRow = seriesKey
+    ? `<div class="pb-score-row"><button class="pname" data-series="${year}|${seriesKey}">Full series →</button></div>` : '';
   return `<div class="pb-score">${games.map((g,i)=>{
     let winner = null;
     if(linked){
@@ -2233,7 +2639,7 @@ function pbScore(games, gids, year){
     }
     const label = `Game ${i+1}: ${g[0]}–${g[1]}${winner?` (${esc(winner)})`:''}`;
     return `<div class="pb-score-row">${linked ? `<button class="pname" data-g="${gids[i]}">${label}</button>` : label}</div>`;
-  }).join('')}</div>`;
+  }).join('')}${seriesRow}</div>`;
 }
 function pbMatch(title, rows, score){
   return `<div class="pb-match">${title?`<h5>${esc(title)}</h5>`:''}${rows}${score||''}</div>`;
@@ -2248,7 +2654,7 @@ function playoffBracket(year){
     const teamA = p[side].seeds[0] && p[side].seeds[0].full, teamB = p[side].seeds[1] && p[side].seeds[1].full;
     return pbMatch(side==='brookside'?'Brookside':'Brentwood',
       p[side].seeds.map((t,i)=>pbTeam(i+1, t, t.nick===p[side].winner, year)).join(''),
-      pbScore(p[side].series, seriesGids(year, teamA, teamB), year));
+      pbScore(p[side].series, seriesGids(year, teamA, teamB), year, side));
   };
   const winOf = side => (p[side].seeds.find(t=>t.nick===p[side].winner)) || {nick:p[side].winner, full:null};
   const finalists = [winOf('brookside'), winOf('brentwood')];
@@ -2274,13 +2680,178 @@ function playoffBracket(year){
         ${wsLogo?`<img class="pbicon" src="${wsLogo}" alt="">`:''}
         <h4 class="pbround">World Series</h4>
       </div>
-      <div class="pb-col" style="grid-column:3">${pbMatch('', finalRows, pbScore(p.finalSeries, finalGids, year))}</div>
+      <div class="pb-col" style="grid-column:3">${pbMatch('', finalRows, pbScore(p.finalSeries, finalGids, year, 'final'))}</div>
       <div class="pb-conn line" style="grid-column:4"></div>
       <div class="pb-col" style="grid-column:5"><div class="pb-trophy"${champCol.p?` style="--tp:${champCol.p};--ts:${champCol.s}"`:''}>
         <span class="tl">${TROPHY} Champion</span>
         <div class="pb-champrow">${champLogo?`<img class="pbtrophylogo" src="${champLogo}" alt="">`:''}<span class="tn">${champLabel}</span></div>
       </div></div>
     </div></div>`;
+}
+
+/* One page per playoff series (round-1 division/wild-card series, or the
+   World Series) — every game plus each side's combined batting/pitching
+   across just those games, baseball-reference-postseason-page style.
+   roundKey matches exactly what a team page's Playoffs column links to:
+   'brookside'/'brentwood' for a round-1 series, 'final' for the WS. */
+function renderSeries(year, roundKey){
+  setNav('standings');
+  const p = PLAYOFFS[String(year)];
+  if(!p){ location.hash='#/standings'; return; }
+  let teamA, teamB, roundLabel, winnerFull;
+  if(roundKey==='final'){
+    const finalists = ['brookside','brentwood'].map(sk=>{
+      const sd = p[sk] || {};
+      return (sd.seeds||[]).find(s=>s.nick===sd.winner) || {nick:sd.winner, full:null};
+    });
+    [teamA, teamB] = finalists;
+    roundLabel = 'World Series';
+    winnerFull = p.championFull;
+  } else if(roundKey==='brookside' || roundKey==='brentwood'){
+    const side = p[roundKey];
+    if(!side || !side.seeds || side.seeds.length<2){ location.hash='#/standings'; return; }
+    [teamA, teamB] = side.seeds;
+    roundLabel = `${year>=2025?'Divisional Series':'Wild Card'} · ${roundKey==='brookside'?'Brookside':'Brentwood'} Bracket`;
+    const w = side.seeds.find(s=>s.nick===side.winner);
+    winnerFull = w && w.full;
+  } else { location.hash='#/standings'; return; }
+  if(!teamA || !teamB || !teamA.full || !teamB.full){ location.hash='#/standings'; return; }
+
+  const gids = seriesGids(year, teamA.full, teamB.full);
+  if(!gids.length){
+    /* no box scores matched (mostly 2017-era games) — still show what the
+       bracket itself knows (who played, who won) rather than bounce the
+       user back to Standings with no explanation */
+    const winnerName = winnerFull ? histName(winnerFull, year) : null;
+    app.innerHTML = `
+      <button class="back" id="back">← Standings</button>
+      <div class="phead">
+        <h2>${histTeamLink(teamA.full, year)}<span class="vs">vs</span>${histTeamLink(teamB.full, year)}</h2>
+        <span class="yrs">${year} ${esc(roundLabel)}${winnerName?` · ${esc(winnerName)} won`:''}</span>
+      </div>
+      <p class="empty">No box scores on record for this series — this era predates per-game logging.</p>`;
+    document.getElementById('back').addEventListener('click',()=>{ location.hash='#/standings'; });
+    app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
+      location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
+    return;
+  }
+  let aWins=0, bWins=0;
+  const gameRows = gids.map((gid,i)=>{
+    const g = GAMES[gid];
+    const aIsAway = g.away.team===teamA.full;
+    const aR = aIsAway?g.away.R:g.home.R, bR = aIsAway?g.home.R:g.away.R;
+    if(aR>bR) aWins++; else if(bR>aR) bWins++;
+    return {i, gid, g, aR, bR};
+  });
+  /* the pitching decisions (W/L/SV) for one game, straight off whichever
+     side's pit line actually carries a 1 in that column — at most one
+     pitcher per game gets each, same as any real box score */
+  function decisionsFor(g){
+    const all = [...(g.away.pit||[]), ...(g.home.pit||[])];
+    return {w: all.find(p=>p.w>0), l: all.find(p=>p.l>0), sv: all.find(p=>p.sv>0)};
+  }
+  /* a pitcher's postseason W-L/SV record through and including one game —
+     real box scores show this next to each decision ("(1-0)", "(4)") — scoped
+     to just that year's postseason (not regular season or career), matching
+     how a running postseason record actually resets each October. Cached per
+     pitcher since the same closer/starter often shows up in multiple games
+     in the same series. */
+  const tallyCache = {};
+  function pitcherPostseasonTally(name){
+    if(tallyCache[name]) return tallyCache[name];
+    const pl = P[name];
+    const map = new Map();
+    if(pl){
+      const games = collectPlayerGames(pl, 'Playoffs')
+        .filter(r => r.pit && +r.g.date.slice(0,4)===year)
+        .sort((a,b)=>((a.g.dt||a.g.date)).localeCompare(b.g.dt||b.g.date));
+      let w=0,l=0,sv=0;
+      games.forEach(r=>{
+        w+=r.pit.w||0; l+=r.pit.l||0; sv+=r.pit.sv||0;
+        map.set(String(r.g.gid), {w,l,sv});
+      });
+    }
+    return tallyCache[name]=map;
+  }
+  const dateLabel = iso => { const d=new Date(iso+'T00:00:00');
+    return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
+  const gameRowHTML = (full, runs, win) => {
+    const logo = TEAMS[full] ? teamLogoForYear(full, year) : null;
+    return `<div class="pb-row${win?' win':''}" style="--cd:${teamAccent(full)||'var(--line-strong)'}">
+      ${logo?`<img class="pblogo" src="${logo}" alt="">`:'<span class="dot"></span>'}
+      ${histTeamLink(full, year)}<b class="gscore">${runs}</b></div>`;
+  };
+  const gamesHTML = `<div class="game-cards">${gameRows.map(r=>{
+    const dec = decisionsFor(r.g);
+    const decRow = (tag, p, fmt) => {
+      if(!p) return '';
+      const t = pitcherPostseasonTally(p.n).get(String(r.gid));
+      const rec = t ? ` <span class="azm">(${fmt(t)})</span>` : '';
+      return `<div class="pb-score-row"><b>${tag}</b> ${plink(p.n)}${rec}</div>`;
+    };
+    return `<div class="pb-match">
+      <h5>Game ${r.i+1} · ${esc(dateLabel(r.g.date))}</h5>
+      ${gameRowHTML(teamA.full, r.aR, r.aR>r.bR)}
+      ${gameRowHTML(teamB.full, r.bR, r.bR>r.aR)}
+      <div class="pb-score">
+        ${decRow('W', dec.w, t=>`${t.w}-${t.l}`)}
+        ${decRow('L', dec.l, t=>`${t.w}-${t.l}`)}
+        ${decRow('S', dec.sv, t=>`${t.sv}`)}
+        <div class="pb-score-row"><button class="pname pb-boxlink" data-g="${r.gid}">Box score →</button></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  /* combine this series' own games into one roster per side — same shape
+     rosterBatting/rosterPitching already expect from the ASG/team pages */
+  function seriesRoster(teamFull){
+    const acc = {};
+    gameRows.forEach(({g})=>{
+      const side = g.away.team===teamFull ? g.away : (g.home.team===teamFull ? g.home : null);
+      if(!side) return;
+      (side.bat||[]).forEach(b=>{
+        const a = acc[b.n] || (acc[b.n]={name:b.n, rows:[]});
+        a.rows.push(gameBatRow(b));
+      });
+      (side.pit||[]).forEach(pt=>{
+        const a = acc[pt.n] || (acc[pt.n]={name:pt.n, rows:[]});
+        a.rows.push(gamePitRow(pt));
+      });
+    });
+    return Object.values(acc).map(a=>({name:a.name, series: sumRows(a.rows)}));
+  }
+  const weights = [{year, pa:1, post:true}];
+  const pitWeights = [{year, outs:1, post:true}];
+  const statsFor = (teamFull, label) => {
+    const roster = seriesRoster(teamFull);
+    return rosterBatting(roster, 'series', label, weights) + rosterPitching(roster, 'series', label, pitWeights);
+  };
+
+  const winnerName = winnerFull ? histName(winnerFull, year) : null;
+  const hero = `<div class="phead">
+      <h2>${histTeamLink(teamA.full, year)}<span class="vs">${aWins}–${bWins}</span>${histTeamLink(teamB.full, year)}</h2>
+      <span class="yrs">${year} ${esc(roundLabel)}${winnerName?` · ${esc(winnerName)} won`:''}</span>
+    </div>`;
+
+  app.innerHTML = `
+    <button class="back" id="back">← Standings</button>
+    ${hero}
+    <h3 class="hsub">Games</h3>
+    ${gamesHTML}
+    <h3 class="hsub">${esc(histName(teamA.full,year))}</h3>
+    ${statsFor(teamA.full, histName(teamA.full,year))}
+    <h3 class="hsub">${esc(histName(teamB.full,year))}</h3>
+    ${statsFor(teamB.full, histName(teamB.full,year))}
+    <p class="note">Combined batting and pitching from this series' own games only — click a game above for its
+    full box score. OPS+ compares against ${year}'s own postseason league average.</p>`;
+  document.getElementById('back').addEventListener('click',()=>{ location.hash='#/standings'; });
+  app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/g/'+b.dataset.g; }));
+  app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
+  document.querySelectorAll('table.sortable').forEach(makeSortable);
 }
 
 function renderStandings(){
@@ -2378,7 +2949,8 @@ function renderStandings(){
     {l:'Team',lft:1,f:d=>nk(d.name)},
     {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'H',f:d=>d.pH},{l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}],
+    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+    {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, [{year:standYear, outs:d.IPouts, post:standPhase==='post'}]);return isFinite(v)?String(v):'—';}}],
     agg, league, 'League', '', true);
 
   app.innerHTML = `
@@ -2404,6 +2976,8 @@ function renderStandings(){
     teamYear=null; location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/g/'+b.dataset.g; }));
+  app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
+    const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
 }
 
 /* ------------------------------ DIVISION PAGES ------------------------------
@@ -2482,13 +3056,13 @@ function renderDivision(canonical){
     return (a.squads||[]).find(s=>canonicalDivision(s.name)!==canonical) || null;
   };
   /* same name-normalization plink() already does (strip captain mark, drop
-     periods, apply the same two known aliases) so a selections count merges
+     periods, apply the same known alias) so a selections count merges
      with the exact P[] key plink()'s own roster links resolve to */
   const normASG = raw => {
     const disp = raw.replace(/\s*\(c\)\s*/ig,'').trim();
     let key = disp;
     if(!P[key]) key = disp.replace(/\./g,'');
-    if(!P[key]) key = ({'Dan Brady':'Daniel Brady','Trevor Fraioli':'Trevor Meyler'})[disp]||disp;
+    if(!P[key]) key = ({'Trevor Fraioli':'Trevor Meyler'})[disp]||disp;
     return key;
   };
   const asgYears = Object.keys(ASG).map(Number).filter(y=>asgSquadFor(y)).sort((a,b)=>b-a);
@@ -2710,6 +3284,7 @@ function renderLeaders(){
         'OPS+': opsPlusFor(s, isCareer ? careerWeights(P[x.n], isPost) : [{year:leadYear, pa:s.PA, post:isPost}]),
         IP:s.IPouts/3, W:s.W, L:s.L, SV:s.SV, pH:s.pH, ER:s.ER, pBB:s.pBB, pK:s.pK,
         ERA:era(s), WHIP:whip(s), K9:k9(s),
+        'ERA+': eraPlusFor(s, isCareer ? careerWeightsPit(P[x.n], isPost) : [{year:leadYear, outs:s.IPouts, post:isPost}]),
         _ipouts:s.IPouts, _bat:s.G_bat,
       };
     });
@@ -2764,6 +3339,8 @@ function renderLeaders(){
      season(s) to normalize against without changing cat()'s signature. */
   const opsPlusWeights = new Map(pool.map(x=>
     [x.s, isCareer ? careerWeights(P[x.n], isPost) : [{year:leadYear, pa:x.s.PA, post:isPost}]]));
+  const eraPlusWeights = new Map(pool.map(x=>
+    [x.s, isCareer ? careerWeightsPit(P[x.n], isPost) : [{year:leadYear, outs:x.s.IPouts, post:isPost}]]));
 
   const bat = [
     cat('Batting Average', s=>avg(s), rate, {min:'ab'}),
@@ -2783,6 +3360,7 @@ function renderLeaders(){
   const pit = [
     cat('Wins', s=>s.W, v=>v),
     cat('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
+    cat('ERA+', s=>eraPlusFor(s, eraPlusWeights.get(s)), v=>isFinite(v)?String(v):'—', {min:'o'}),
     cat('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
     cat('Strikeouts', s=>s.pK, v=>v),
     cat('K per 3 IP', s=>k9(s), two, {min:'o'}),
@@ -2819,7 +3397,7 @@ function renderLeaders(){
     if(leadMode===b.dataset.lm) return;
     leadMode=b.dataset.lm;
     const batKeys=['PA','AB','H','HR','RBI','AVG','OBP','SLG','OPS','OPS+'];
-    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9'];
+    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9','ERA+'];
     if(leadMode==='pit' && batKeys.includes(leadSortKey)) leadSortKey='W';
     if(leadMode==='bat' && pitKeys.includes(leadSortKey)) leadSortKey='HR';
     leadSortDir=-1; renderLeaders();
@@ -2856,7 +3434,7 @@ function rosterBatting(roster, ph, label, weights){
     {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
   return statTable('Batting'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
-function rosterPitching(roster, ph, label){
+function rosterPitching(roster, ph, label, weights){
   let rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.IPouts>0);
   if(!rows.length) return '';
   rows.sort((a,b)=>b.IPouts-a.IPouts);
@@ -2865,7 +3443,8 @@ function rosterPitching(roster, ph, label){
     {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
     {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
+    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+    {l:'ERA+',m:1,f:d=>{const v=weights?eraPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
   return statTable('Pitching'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
 function gameLog(games, yr){
@@ -2899,7 +3478,8 @@ function teamOneYear(t, y){
       <div class="big">${two(era(T))} ERA</div>
       <div class="sub">${two(whip(T))} WHIP · ${T.pK} K · ${ipStr(T.IPouts)} IP</div></div>` : '') : '');
   const rosterHTML = roster.length
-    ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}]) + rosterPitching(roster, phKey)
+    ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}])
+      + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}])
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
@@ -2908,41 +3488,137 @@ function teamOneYear(t, y){
 }
 
 /* compact franchise-history overview: one row per year, shown regardless of the year picker */
+/* which division (by that year's own name — North/South pre-2021, Brookside/
+   Brentwood from 2021 on) a franchise played in, straight off DB.divisions'
+   own keys for that year — no canonicalizing needed, they're already
+   era-accurate since that's how the raw standings data is keyed. */
+function divisionOf(name, y){
+  const divs = (DB.divisions||{})[y]; if(!divs) return null;
+  return Object.keys(divs).find(dn => (divs[dn]||[]).some(([tm])=>tm===name)) || null;
+}
+const ORDINAL = n => {
+  const s = ['th','st','nd','rd'], v = n%100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+};
+/* standing within that division that year — same sort as the division page
+   itself (PCT, then head-to-head, then run differential) */
+function divisionFinish(name, y, dn){
+  if(!dn) return null;
+  const order = ((DB.divisions[y]||{})[dn]) || [];
+  const h2h = (a,b) => { const v=a.vs[b.name]||{W:0,L:0}; return v.W-v.L; };
+  const rows = order.map(([tm])=>standRow(tm,y)).filter(Boolean)
+    .sort((a,b)=> (b.PCT-a.PCT) || (-h2h(a,b)) || (b.DIFF-a.DIFF));
+  const idx = rows.findIndex(r=>r.name===name);
+  return idx<0 ? null : `${ORDINAL(idx+1)} of ${rows.length}`;
+}
+/* Narrative playoff result for one team-year: DNQ, a first-round loss (always
+   sudden death — one game, win or go home — so no score to show), or a
+   World Series result with a real series score. That score is read off the
+   ACTUAL matched box scores (seriesGids + real away/home runs), never off
+   PLAYOFFS[y].finalSeries' own tuple order — checked against several years
+   of real results while building the bracket's per-game winner tags and
+   found that order isn't consistent year to year, so it can't be trusted
+   for who-won-which-game here either.
+   `seriesKey` identifies the series this result links to (matching
+   renderSeries' own routing: 'brookside'/'brentwood' for a round-1 exit,
+   'final' for anything that reached the World Series) — null when there's
+   no series to link to (DNQ, or no playoff data at all that year). */
+function playoffResultFor(name, y){
+  const p = PLAYOFFS[String(y)];
+  if(!p) return {label:null, seriesKey:null};
+  const sideKey = ['brookside','brentwood'].find(sk => ((p[sk]||{}).seeds||[]).some(s=>s.full===name));
+  if(!sideKey) return {label:'DNQ', seriesKey:null};
+  const side = p[sideKey];
+  const seed = side.seeds.find(s=>s.full===name);
+  const round1 = y>=2025 ? 'DS' : 'WC';
+  if(seed.nick !== side.winner) return {label:`LOST ${round1}`, seriesKey:sideKey};
+  const finalists = ['brookside','brentwood'].map(sk=>{
+    const sd = p[sk] || {};
+    return (sd.seeds||[]).find(s=>s.nick===sd.winner) || {nick:sd.winner, full:null};
+  });
+  const opp = finalists.find(f=>f.full!==name);
+  const gids = seriesGids(y, name, opp && opp.full);
+  let myWins=0, oppWins=0;
+  gids.forEach(gid=>{
+    const g = GAMES[gid];
+    const iAway = g.away.team===name;
+    const myR = iAway?g.away.R:g.home.R, oppR = iAway?g.home.R:g.away.R;
+    if(myR>oppR) myWins++; else if(oppR>myR) oppWins++;
+  });
+  const champ = p.championFull===name;
+  const score = gids.length ? ` ${champ?myWins:oppWins}-${champ?oppWins:myWins}` : '';
+  return {label:`${champ?'WON':'LOST'} WS${score}`, seriesKey:'final'};
+}
+/* one combined cell for a W-L split plus its own PCT, muted and parenthetical
+   so the primary W-L reads first — used for Home/Away and vs-division splits,
+   which would otherwise need 2-3 columns each to show both pieces. */
+function fmtSplit(w, l){
+  const gp = w+l;
+  return gp ? `${w}–${l} <span class="azm">(${rate(w/gp)})</span>` : '—';
+}
+/* this team's W-L against every opponent that CANONICAL division fielded
+   that year (North/South folded into Brookside/Brentwood so one pair of
+   columns works across the whole table, not just one era of it) */
+function vsCanonicalRecord(r, y, canonical){
+  let w=0, l=0;
+  for(const opp in r.vs){
+    const dn = divisionOf(opp, y);
+    if(dn && canonicalDivision(dn)===canonical){ w+=r.vs[opp].W; l+=r.vs[opp].L; }
+  }
+  return {w, l};
+}
 function teamRecordTable(t){
   const yrs = t.years.slice().sort((a,b)=>a-b);
+  const cHA = {hw:0,hl:0,aw:0,al:0};
+  const cVs = {Brookside:{w:0,l:0}, Brentwood:{w:0,l:0}};
   const srows = yrs.map(y=>{
     const rec=(t.seasons[y]||{}).record||{};
-    const R=rec.Regular||{W:0,L:0,T:0,RF:0,RA:0}, PO=rec.Playoffs;
-    const rs=(t.seasons[y]||{}).roster||[];
+    const R=rec.Regular||{W:0,L:0,T:0,RF:0,RA:0};
     const gp=R.W+R.L, diff=R.RF-R.RA;
     const nm=(t.nameByYear||{})[y] || t.nick;
     const nmFull = t.loc && !nm.startsWith(t.loc) ? t.loc+' '+nm : nm;
+    const dn = divisionOf(t.name, y);
+    const finish = divisionFinish(t.name, y, dn);
+    const result = playoffResultFor(t.name, y);
+    const sr = standRow(t.name, y) || {hW:0,hL:0,aW:0,aL:0,vs:{}};
+    cHA.hw+=sr.hW; cHA.hl+=sr.hL; cHA.aw+=sr.aW; cHA.al+=sr.aL;
+    const vsB = vsCanonicalRecord(sr, y, 'Brookside'), vsT = vsCanonicalRecord(sr, y, 'Brentwood');
+    cVs.Brookside.w+=vsB.w; cVs.Brookside.l+=vsB.l; cVs.Brentwood.w+=vsT.w; cVs.Brentwood.l+=vsT.l;
+    const resultCell = result.seriesKey
+      ? `<button class="pname" data-series="${y}|${result.seriesKey}">${esc(result.label)}</button>`
+      : esc(result.label||'—');
     return `<tr><td class="lft"><button class="pname" data-yv="${y}">${y}</button></td>
       <td class="lft">${esc(nmFull)}</td>
-      <td class="mono">${recWL(R)}</td><td class="mono">${gp?rate(R.W/gp):'—'}</td>
+      <td class="lft">${dn?esc(dn):'—'}</td>
+      <td>${R.W}</td><td>${R.L}</td><td class="mono">${gp?rate(R.W/gp):'—'}</td>
+      <td class="lft">${resultCell}</td>
+      <td class="lft">${finish?esc(finish):'—'}</td>
       <td>${R.RF}</td><td>${R.RA}</td><td>${diff>0?'+':''}${diff}</td>
-      <td class="mono">${PO?recWL(PO):'—'}</td><td>${rs.length}</td></tr>`;
+      <td class="mono">${fmtSplit(sr.hW,sr.hL)}</td><td class="mono">${fmtSplit(sr.aW,sr.aL)}</td>
+      <td class="mono">${fmtSplit(vsB.w,vsB.l)}</td><td class="mono">${fmtSplit(vsT.w,vsT.l)}</td></tr>`;
   }).join('');
   /* career totals across every season on record — summed, not averaged, so
      PCT and Diff are recomputed from the summed W/L/RF/RA rather than
-     rolling up each year's own rate */
-  const cR = {W:0,L:0,T:0,RF:0,RA:0}, cPO = {W:0,L:0,T:0};
-  let hasPO = false, cRos = 0;
+     rolling up each year's own rate. Division/Result/Finish don't aggregate
+     across years, so the total row leaves them blank. */
+  const cR = {W:0,L:0,T:0,RF:0,RA:0};
   yrs.forEach(y=>{
-    const rec=(t.seasons[y]||{}).record||{};
-    const R=rec.Regular, PO=rec.Playoffs;
+    const R=((t.seasons[y]||{}).record||{}).Regular;
     if(R){ cR.W+=R.W; cR.L+=R.L; cR.T+=R.T||0; cR.RF+=R.RF; cR.RA+=R.RA; }
-    if(PO){ hasPO=true; cPO.W+=PO.W; cPO.L+=PO.L; cPO.T+=PO.T||0; }
-    cRos += ((t.seasons[y]||{}).roster||[]).length;
   });
   const cGp = cR.W+cR.L, cDiff = cR.RF-cR.RA;
-  const totalRow = `<tr><td class="lft">Career</td><td class="lft"></td>
-    <td class="mono">${recWL(cR)}</td><td class="mono">${cGp?rate(cR.W/cGp):'—'}</td>
+  const totalRow = `<tr><td class="lft">Career</td><td class="lft"></td><td class="lft"></td>
+    <td>${cR.W}</td><td>${cR.L}</td><td class="mono">${cGp?rate(cR.W/cGp):'—'}</td>
+    <td class="lft"></td><td class="lft"></td>
     <td>${cR.RF}</td><td>${cR.RA}</td><td>${cDiff>0?'+':''}${cDiff}</td>
-    <td class="mono">${hasPO?recWL(cPO):'—'}</td><td>${cRos}</td></tr>`;
+    <td class="mono">${fmtSplit(cHA.hw,cHA.hl)}</td><td class="mono">${fmtSplit(cHA.aw,cHA.al)}</td>
+    <td class="mono">${fmtSplit(cVs.Brookside.w,cVs.Brookside.l)}</td><td class="mono">${fmtSplit(cVs.Brentwood.w,cVs.Brentwood.l)}</td></tr>`;
   return `<section class="stat"><h4>Season by Season</h4><div class="tscroll"><table class="detail">
-    <thead><tr><th class="lft">Year</th><th class="lft">Name</th><th class="mono">W–L</th><th class="mono">PCT</th>
-    <th>RF</th><th>RA</th><th>Diff</th><th class="mono">Playoffs</th><th>Ros</th></tr></thead>
+    <thead><tr><th class="lft">Year</th><th class="lft">Name</th><th class="lft">Division</th>
+    <th>W</th><th>L</th><th class="mono">PCT</th><th class="lft">Playoffs</th><th class="lft">Finish</th>
+    <th>RF</th><th>RA</th><th>Diff</th>
+    <th class="mono">Home</th><th class="mono">Away</th>
+    <th class="mono">vs Brookside</th><th class="mono">vs Brentwood</th></tr></thead>
     <tbody>${srows}</tbody><tfoot>${totalRow}</tfoot></table></div></section>`;
 }
 
@@ -2972,7 +3648,13 @@ function teamStatsBySeason(t){
   const tpCols=[yr0,
     {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'H',f:d=>d.pH},{l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
+    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+    {l:'ERA+',m:1,f:d=>{
+      const v = d.year!=null
+        ? eraPlusFor(d, [{year:d.year, outs:d.IPouts}])
+        : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts})));
+      return isFinite(v)?String(v):'—';
+    }}];
   const teamPit = statTable('Team Pitching by Season', tpCols, byYear, grand, 'All', '');
   return teamBat + teamPit;
 }
@@ -2982,24 +3664,40 @@ function teamAllYears(t, name){
   const acc={};
   yrs.forEach(y=>((t.seasons[y]||{}).roster||[]).forEach(e=>{
     if(!e.regular) return;
-    const a = acc[e.name] || (acc[e.name]={name:e.name, _yrs:new Set(), yearPA:{}, s:sumRows([])});
+    const a = acc[e.name] || (acc[e.name]={name:e.name, _yrs:new Set(), yearPA:{}, yearOuts:{}, s:sumRows([])});
     a._yrs.add(y);
     a.yearPA[y] = (a.yearPA[y]||0) + (e.regular.PA||0);
+    a.yearOuts[y] = (a.yearOuts[y]||0) + (e.regular.IPouts||0);
     for(const k of ZERO_KEYS) a.s[k]+=(e.regular[k]||0);
   }));
   const arows=Object.values(acc).map(a=>({name:a.name, yrs:a._yrs.size,
-      _weights: Object.entries(a.yearPA).map(([y,pa])=>({year:+y, pa})), ...a.s}))
+      _weights: Object.entries(a.yearPA).map(([y,pa])=>({year:+y, pa})),
+      _pitWeights: Object.entries(a.yearOuts).map(([y,outs])=>({year:+y, outs})), ...a.s}))
     .sort((x,y)=>y.PA-x.PA);
-  const cols=[
+  const batCols=[
     {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
     {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
-    {l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d, d._weights);return isFinite(v)?String(v):'—';}},
-    {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},{l:'ERA',m:1,f:d=>two(era(d))}];
-  const grandTotal = sumRows(arows);
-  grandTotal._weights = TAGG_WEIGHTS[name];
-  return statTable('Franchise Roster · Regular Season', cols, arows, grandTotal, 'Total', '', true);
+    {l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d, d._weights);return isFinite(v)?String(v):'—';}}];
+  const batRows = arows.filter(d=>d.PA>0);
+  const batTotal = sumRows(batRows);
+  batTotal._weights = TAGG_WEIGHTS[name];
+  const battingHTML = batRows.length
+    ? statTable('Franchise Roster · Hitting', batCols, batRows, batTotal, 'Total', '', true) : '';
+
+  const pitCols=[
+    {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
+    {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},
+    {l:'W',f:d=>d.W},{l:'L',f:d=>d.L},{l:'ERA',m:1,f:d=>two(era(d))},
+    {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, d._pitWeights);return isFinite(v)?String(v):'—';}}];
+  const pitRows = arows.filter(d=>d.IPouts>0).sort((x,y)=>y.IPouts-x.IPouts);
+  const pitTotal = sumRows(pitRows);
+  pitTotal._pitWeights = TAGG_PIT_WEIGHTS[name];
+  const pitchingHTML = pitRows.length
+    ? statTable('Franchise Roster · Pitching', pitCols, pitRows, pitTotal, 'Total', '', true) : '';
+
+  return battingHTML + pitchingHTML;
 }
 
 /* all-time series record vs every other franchise (regular season + playoffs) */
@@ -3212,6 +3910,10 @@ function teamDetail(name){
   app.querySelectorAll('.pname[data-yv]').forEach(b=>b.addEventListener('click',()=>{
     teamYear = +b.dataset.yv; teamDetail(name);
   }));
+  app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
+    const [yy,rk] = b.dataset.series.split('|');
+    location.hash = '#/series/'+yy+'/'+rk;
+  }));
   document.getElementById('editLogoBtn').addEventListener('click', ()=>{
     openImageEditor(`Team Logo — ${t.name}`, t.logo, 200, async url=>{
       const before = t.logo;
@@ -3265,6 +3967,7 @@ const gkey = g => (GAMES[g].dt || GAMES[g].date) + '|' + g;
 const GIDS = Object.keys(GAMES).sort((a,b)=>gkey(b).localeCompare(gkey(a)));
 let gYear='all';
 let recordsEra='all';
+let recordsTab='season';
 
 /* No-hitters & perfect games: the league's own hand-kept list (build.py reads
    the "No Hitters_Perfect Games" CSV), not derived from box scores — so it
@@ -3330,6 +4033,7 @@ function renderRecords(){
     catS('Wins', s=>s.W, v=>v),
     catS('Strikeouts', s=>s.pK, v=>v),
     catS('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
+    catS('ERA+', s=>eraPlusFor(s, [{year:s.year, outs:1}]), v=>isFinite(v)?String(v):'—', {min:'o'}),
     catS('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
     catS('Saves', s=>s.SV, v=>v),
     catS('Innings Pitched', s=>s.IPouts/3, ipfmt),
@@ -3369,6 +4073,65 @@ function renderRecords(){
   const gamePit = [
     catG(pitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
     catG(pitPool, 'Innings Pitched in a Game', s=>s.ip/3, ipfmt),
+  ].join('');
+
+  // ---- postseason records: "single postseason" = one player's whole playoff run in a
+  //      year, combined across every round they appeared in (the Playoffs-type season
+  //      row already is that combined line — verified no player has more than one
+  //      Playoffs row for the same year); "single game" reuses the box-score pools
+  //      above, filtered down to playoff games only ----
+  const poPool = [];
+  NAMES.forEach(n=>{
+    P[n].seasons.forEach(s=>{ if(s.type==='Playoffs' && inEra(s.year)) poPool.push({n, s, y:s.year}); });
+  });
+  // a full postseason run is a Wild Card/Divisional Series game plus a best-of-3 World
+  // Series at most — nowhere near the regular season's 9-G/12-IP bar, so rate stats here
+  // need only 3+ games batting or 3+ IP pitching, as much as that short a run can offer
+  const poMinG=3, poMinO=9;
+  const poSub = x => `${x.y} Postseason · ${esc(histNick(x.s.team, x.y))}`;
+  const poLogo = x => (x.s.team && TEAMS[x.s.team]) ? teamLogoForYear(x.s.team, x.y) : null;
+  const catPO = (title, f, fmt, o={}) => {
+    let a = poPool;
+    if(o.min==='g') a = a.filter(x=>x.s.G_bat>=poMinG);
+    else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=poMinO);
+    const dir = o.dir||1;
+    const items = a.map(x=>({n:x.n, v:f(x.s), tm:poSub(x), logo:poLogo(x)}))
+      .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
+    return items.length ? llist(title, items, fmt, dir<0) : '';
+  };
+  const poBat = [
+    catPO('Batting Average', s=>avg(s), rate, {min:'g'}),
+    catPO('OPS', s=>ops(s), rate, {min:'g'}),
+    catPO('OPS+', s=>opsPlusFor(s, [{year:s.year, pa:1, post:true}]), v=>isFinite(v)?String(v):'—', {min:'g'}),
+    catPO('Home Runs', s=>s.HR, v=>v),
+    catPO('RBI', s=>s.RBI, v=>v),
+    catPO('Runs', s=>s.R, v=>v),
+    catPO('Hits', s=>s.H, v=>v),
+    catPO('Total Bases', s=>s.TB, v=>v),
+    catPO('Walks', s=>s.BB, v=>v),
+  ].join('');
+  const poPit = [
+    catPO('Wins', s=>s.W, v=>v),
+    catPO('Strikeouts', s=>s.pK, v=>v),
+    catPO('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
+    catPO('ERA+', s=>eraPlusFor(s, [{year:s.year, outs:1, post:true}]), v=>isFinite(v)?String(v):'—', {min:'o'}),
+    catPO('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
+    catPO('Saves', s=>s.SV, v=>v),
+    catPO('Innings Pitched', s=>s.IPouts/3, ipfmt),
+  ].join('');
+  const poBatPool = batPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
+  const poPitPool = pitPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
+  const poGameBat = [
+    catG(poBatPool, 'Home Runs in a Game', s=>s.hr, v=>v),
+    catG(poBatPool, 'Hits in a Game', s=>s.h, v=>v),
+    catG(poBatPool, 'RBI in a Game', s=>s.rbi, v=>v),
+    catG(poBatPool, 'Runs in a Game', s=>s.r, v=>v),
+    catG(poBatPool, 'Doubles in a Game', s=>s['2b'], v=>v),
+    catG(poBatPool, 'Triples in a Game', s=>s['3b'], v=>v),
+  ].join('');
+  const poGamePit = [
+    catG(poPitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
+    catG(poPitPool, 'Innings Pitched in a Game', s=>s.ip/3, ipfmt),
   ].join('');
 
   // ---- streaks (era-filtered, like the rest of the page) ----
@@ -3479,74 +4242,146 @@ function renderRecords(){
     out.sort((a,b)=>b.v-a.v);
     return out;
   }
-  const streakList = (title, streaks) => {
+  const streakList = (title, streaks, fmt) => {
     const items = streaks.slice(0,10).map(x=>{
       const team = x.g[x.side].team, yr = +x.end.slice(0,4);
       return {n:x.n, v:x.v, tm:`${x.start===x.end?x.start:`${x.start} – ${x.end}`}${x.ongoing?' · ongoing':''} · ${esc(histNick(team,yr))}`,
         logo: TEAMS[team] ? teamLogoForYear(team, yr) : null};
     });
-    return items.length ? llist(title, items, v=>v) : '';
+    return items.length ? llist(title, items, fmt||(v=>v)) : '';
   };
   const streakHit = streakList('Longest Hitting Streaks (games)', playerStreaks(b=>b.h>0));
   const streakHR = streakList('Longest Home Run Streaks (games)', playerStreaks(b=>b.hr>0));
   const streakOB = streakList('Longest On-Base Streaks (games)', playerStreaks(b=>b.h>0 || b.bb>0 || b.hbp>0));
 
+  /* pitcher streaks: same idea as the batting streaks above (consecutive
+     regular-season appearances meeting some condition, reset at a season
+     boundary), but walking each player's per-game PITCHING line instead —
+     restricted to games with a recorded individual pitching line, 2020 on.
+     `valueFn` lets a streak accumulate something other than "1 per game":
+     the scoreless streak sums real innings pitched (outs) across every
+     game in the streak, the traditional way a scoreless streak is measured,
+     rather than just counting outings. */
+  function pitcherStreaks(cond, valueFn){
+    const out = [];
+    NAMES.forEach(n=>{
+      const pitGames = collectPlayerGames(P[n], 'Regular')
+        .filter(r=>r.pit && +r.g.date.slice(0,4)>=2020 && inEra(+r.g.date.slice(0,4)))
+        .sort((a,b)=>((a.g.dt||a.g.date)).localeCompare(b.g.dt||b.g.date));
+      let curVal=0, curGames=0, curStart=null;
+      const flush = (val,start,end,side,g,ongoing) => out.push({n, v:val, start, end, side, g, ongoing});
+      pitGames.forEach((r,i)=>{
+        const newSeason = i>0 && r.g.date.slice(0,4)!==pitGames[i-1].g.date.slice(0,4);
+        if(newSeason && curGames>0){
+          flush(curVal, curStart, pitGames[i-1].g.date, pitGames[i-1].side, pitGames[i-1].g, false);
+          curVal=0; curGames=0; curStart=null;
+        }
+        if(cond(r.pit, r.g)){
+          if(curGames===0) curStart=r.g.date;
+          curVal += valueFn(r.pit, r.g); curGames++;
+        } else {
+          if(curGames>0) flush(curVal, curStart, pitGames[i-1].g.date, pitGames[i-1].side, pitGames[i-1].g, false);
+          curVal=0; curGames=0; curStart=null;
+        }
+        if(i===pitGames.length-1 && curGames>0)
+          flush(curVal, curStart, r.g.date, r.side, r.g, +r.g.date.slice(0,4)===LATEST_YEAR);
+      });
+    });
+    out.sort((a,b)=>b.v-a.v);
+    return out;
+  }
+  const streakScoreless = streakList('Longest Scoreless Innings Streaks',
+    pitcherStreaks(p=>p.r===0, p=>p.ip), v=>ipStr(v));
+  /* a complete game, per real appearance, isn't a stored field on the box
+     score itself — derived instead straight from the two real numbers that
+     ARE recorded: this pitcher's own IP for the game equals the game's
+     full length (in outs), meaning nobody else on their side recorded an
+     out that game either. */
+  const streakCG = streakList('Longest Complete-Game Streaks (starts)',
+    pitcherStreaks((p,g)=>p.ip===(g.innings||3)*3, ()=>1));
+
   // ---- no-hitters & perfect games (not era-filtered — this list is a full historical
   //      record regardless of which era the rest of the page is showing) ----
   const nPerf = NOHIT.filter(x=>x.perfect).length;
-  const nhRows = NOHIT.slice().reverse().map(x=>`<tr>
+  const nhTeamCell = (team, y) => {
+    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
+    return `<span class="tmcell">${logo?`<img class="llogo" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+  };
+  const nhRows = NOHIT.slice().reverse().map(x=>{
+    const y = +x.date.slice(0,4);
+    return `<tr>
     <td class="lft">${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)}${x.postseason?' <span class="gtag">Post</span>':''}</td>
     <td class="lft"><button class="pname" data-p="${esc(x.pitcher)}">${esc(x.pitcher)}</button></td>
-    <td class="lft">${histTeamLink(x.team, +x.date.slice(0,4))}</td>
-    <td class="lft">${histTeamLink(x.opp, +x.date.slice(0,4))}</td>
+    <td class="lft">${nhTeamCell(x.team, y)}</td>
+    <td class="lft">${nhTeamCell(x.opp, y)}</td>
     <td class="mono">${ipStr(x.ip)}</td><td>${x.k}</td><td>${x.bb}</td>
     <td class="mono">${esc(x.score)}</td>
-    <td>${x.perfect?'<span class="estd">Perfect</span>':''}</td>
-    <td class="am lft">${esc(x.notes||'')}</td></tr>`).join('');
+    <td>${x.perfect?'<span class="estd">Perfect Game</span>':''}</td></tr>`;
+  }).join('');
   const nohitBlock = NOHIT.length ? `<div class="tscroll"><table class="detail">
     <thead><tr><th class="lft">Date</th><th class="lft">Pitcher</th><th class="lft">Team</th>
     <th class="lft">Opponent</th><th class="mono">IP</th><th>K</th><th>BB</th><th class="mono">Score</th>
-    <th></th><th class="lft">Notes</th></tr></thead>
+    <th></th></tr></thead>
     <tbody>${nhRows}</tbody></table></div>
     <p class="pmeta">${nPerf} perfect game${nPerf===1?'':'s'} among ${NOHIT.length} no-hitter${NOHIT.length===1?'':'s'},
     per the league's own records, ${Math.min(...NOHIT.map(x=>+x.date.slice(0,4)))}–${Math.max(...NOHIT.map(x=>+x.date.slice(0,4)))}.</p>`
     : '<p class="lead">None on record.</p>';
 
-  app.innerHTML = `
-    <div class="phead"><h2>Records</h2><span class="yrs">${RANGE}</span></div>
-    ${eraChips}
-    <div class="phase">
-      <h3>Single-Season Records</h3>
+  const tabs = [
+    ['season', 'Single-Season', 'Single-Season Records', `<div class="phase">
       <p class="pmeta">Best individual regular seasons in league history, ${eraLabel} — one row per player-season
       (a player split across two clubs counts once, combined). Rate stats need 9+ games batting or 12+ IP pitching.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${seasonBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${seasonPit}</div>
-    </div>
-    <div class="phase">
-      <h3>Single-Game Records</h3>
+    </div>`],
+    ['game', 'Single-Game', 'Single-Game Records', `<div class="phase">
       <p class="pmeta">Best individual game lines from recorded box scores, ${eraLabel}, regular season and playoffs.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${gameBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${gamePit}</div>
-    </div>
-    <div class="phase">
-      <h3>Streaks</h3>
+    </div>`],
+    ['postseason', 'Postseason', 'Postseason Records', `<div class="phase">
+      <p class="pmeta">Best individual postseason performances, ${eraLabel}. Single Postseason combines every
+      round a player appeared in during one year's playoff run (Wild Card/Divisional Series plus World Series);
+      rate stats need ${poMinG}+ games batting or ${poMinO/3}+ IP pitching, well below the regular-season bar
+      since a full postseason run rarely offers more than that. Single Game is drawn from playoff box scores only.</p>
+      <h4 class="hsub">Single Postseason · Batting</h4><div class="llgrid">${poBat}</div>
+      <h4 class="hsub">Single Postseason · Pitching</h4><div class="llgrid">${poPit}</div>
+      <h4 class="hsub">Single Game · Batting</h4><div class="llgrid">${poGameBat}</div>
+      <h4 class="hsub">Single Game · Pitching</h4><div class="llgrid">${poGamePit}</div>
+    </div>`],
+    ['streaks', 'Streaks', 'Streaks', `<div class="phase">
       <p class="pmeta">Longest runs in the selected era, regular season. Team win/loss streaks are unified
-      across a franchise's name changes; player streaks are limited to games with an individual batting
-      line, 2020 on. A handful of days in the record are forfeit batches rather than real games (many
+      across a franchise's name changes; player streaks are limited to games with an individual batting or
+      pitching line, 2020 on. A handful of days in the record are forfeit batches rather than real games (many
       results logged at once, mostly at the same canned score) — those games are excluded from streaks.</p>
       <h4 class="hsub">Team</h4><div class="llgrid">${streakTeam}</div>
-      <h4 class="hsub">Player</h4><div class="llgrid">${streakHit}${streakHR}${streakOB}</div>
-    </div>
-    <div class="phase">
-      <h3>No-Hitters &amp; Perfect Games</h3>
+      <h4 class="hsub">Batting</h4><div class="llgrid">${streakHit}${streakHR}${streakOB}</div>
+      <h4 class="hsub">Pitching</h4><div class="llgrid">${streakScoreless}${streakCG}</div>
+    </div>`],
+    ['nohit', 'No-Hitters/Perfect Games', 'No-Hitters &amp; Perfect Games', `<div class="phase">
       ${nohitBlock}
       <p class="note">From the league's own hand-kept no-hitter log, which predates and reaches further back
       than this site's per-game data — several of these games are from 2013–2016, before individual box scores
       were tracked here. Dates link to a box score where one could be matched to the game log (2017 on).
       Not affected by the era toggle above — this list always covers the league's full history.</p>
-    </div>`;
+    </div>`],
+  ];
+  if(!tabs.some(t=>t[0]===recordsTab)) recordsTab = 'season';
+  const tabBar = `<div class="subtabs" role="group" aria-label="Section">
+    ${tabs.map(([k,label])=>`<button data-rt="${k}" aria-pressed="${recordsTab===k}">${label}</button>`).join('')}
+  </div>`;
+  const active = tabs.find(t=>t[0]===recordsTab);
+
+  app.innerHTML = `
+    <div class="phead"><h2>Records</h2><span class="yrs">${RANGE}</span></div>
+    ${eraChips}
+    ${tabBar}
+    <h3>${active[2]}</h3>
+    ${active[3]}`;
   app.querySelectorAll('[data-era]').forEach(b=>b.addEventListener('click',()=>{
     recordsEra=b.dataset.era; renderRecords(); }));
+  app.querySelectorAll('[data-rt]').forEach(b=>b.addEventListener('click',()=>{
+    recordsTab=b.dataset.rt; renderRecords(); }));
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{
@@ -3561,13 +4396,17 @@ function renderGames(){
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
+  const gamesTeamCell = (team, y) => {
+    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
+    return `<span class="tmcell">${logo?`<img class="llogo" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+  };
   const body=list.map(id=>{
     const g=GAMES[id], a=g.away.R, hh=g.home.R, yr=+g.date.slice(0,4);
     return `<tr>
       <td class="lft"><button class="pname" data-g="${id}">${g.date}</button></td>
-      <td class="lft ${a>hh?'wteam':''}">${histTeamLink(g.away.team, yr)}</td>
+      <td class="lft ${a>hh?'wteam':''}">${gamesTeamCell(g.away.team, yr)}</td>
       <td class="mono b">${a}–${hh}</td>
-      <td class="lft ${hh>a?'wteam':''}">${histTeamLink(g.home.team, yr)}</td>
+      <td class="lft ${hh>a?'wteam':''}">${gamesTeamCell(g.home.team, yr)}</td>
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
@@ -3622,9 +4461,13 @@ function boxScore(gid){
   const a=g.away.R, hh=g.home.R;
   const bs=s=>s.bat.reduce((x,b)=>x+b.r,0);
   const untied = (g.away.bat.length && bs(g.away)!==a) || (g.home.bat.length && bs(g.home)!==hh);
+  const muTeam = (team, y) => {
+    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
+    return `<span class="muteam">${logo?`<img class="llogo-lg" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+  };
   app.innerHTML=`
     <button class="back" id="back">← All games</button>
-    <div class="phead"><h2>${histTeamLink(g.away.team,yr)}<span class="vs">${a}–${hh}</span>${histTeamLink(g.home.team,yr)}</h2></div>
+    <div class="phead"><h2>${muTeam(g.away.team,yr)}<span class="vs">${a}–${hh}</span>${muTeam(g.home.team,yr)}</h2></div>
     <p class="pmeta">${esc(g.div)} · ${g.date}${g.loc?' · '+esc(g.loc):''} · ${g.innings} innings</p>
     ${lineScore(g, yr)}
     ${boxSide(g,'away',yr)}${boxSide(g,'home',yr)}
@@ -3672,7 +4515,7 @@ function playerGameLog(pl, type, selYear){
     <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td></tr>`).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
-  return `<section class="stat"><h4>Game Log</h4>
+  return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
@@ -3704,7 +4547,7 @@ function playerNWLALog(pl, selYear){
   }).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
-  return `<section class="stat"><h4>Game Log</h4>
+  return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">From the <button class="pname" data-beavers>Brookside Beavers</button>' NWLA tournament box scores. Click a date for the full box score.</p>
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
@@ -3753,18 +4596,19 @@ const splitBatCols = weights => [
   {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
   {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
   {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
-const SPLIT_PIT_COLS = [
+const splitPitCols = weights => [
   {l:'Split',lft:1,f:d=>d.label},
   {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
   {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
   {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
-  {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
-function splitDim(title, rows, weights){
+  {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+  {l:'ERA+',m:1,f:d=>{const v=weights?eraPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
+function splitDim(title, rows, weights, pitWeights){
   if(!rows.length) return '';
   const total = sumRows(rows);
   const bat = total.PA>0 ? statTable('Batting', splitBatCols(weights), rows, total, 'Total', '', true) : '';
   const pit = total.IPouts>0
-    ? statTable('Pitching', SPLIT_PIT_COLS, rows.filter(d=>d.IPouts>0), total, 'Total', '', true) : '';
+    ? statTable('Pitching', splitPitCols(pitWeights), rows.filter(d=>d.IPouts>0), total, 'Total', '', true) : '';
   return (bat||pit) ? `<div class="splitdim"><h4 class="divh">${esc(title)}</h4>${bat}${pit}</div>` : '';
 }
 /* "All" plus a chip per year a player has games in for this split — a second,
@@ -3800,9 +4644,18 @@ function playerSplits(pl, type, selYear){
     });
     return Object.entries(byYr).map(([yr,pa])=>({year:+yr, pa, post}));
   })();
-  const blocks = [splitDim('Home vs Away', homeAway, weights), splitDim('By Field', byField, weights),
-    splitDim('vs Each Team', vsTeam, weights)].join('');
-  return blocks ? `<section class="splits"><h3 class="hsub">Splits</h3>
+  const pitWeights = y!=='all' ? [{year:+y, outs:1, post}] : (()=>{
+    const byYr = {};
+    games.forEach(r=>{
+      if(!r.pit) return;
+      const yr = +r.g.date.slice(0,4);
+      byYr[yr] = (byYr[yr]||0) + (gamePitRow(r.pit).IPouts||0);
+    });
+    return Object.entries(byYr).map(([yr,outs])=>({year:+yr, outs, post}));
+  })();
+  const blocks = [splitDim('Home vs Away', homeAway, weights, pitWeights), splitDim('By Field', byField, weights, pitWeights),
+    splitDim('vs Each Team', vsTeam, weights, pitWeights)].join('');
+  return blocks ? `<section class="splits"><h3 class="viewhead">Splits</h3>
     <p class="pmeta">Built from per-game lines where recorded (2020 on) — may run lighter than the phase totals above, which also cover earlier, season-only years.</p>
     ${splitYearChips(yrs, y)}
     ${blocks}</section>` : '';
@@ -3823,7 +4676,7 @@ function playerNWLASplits(pl, selYear){
     .sort((a,b)=> a.label==='Home' ? -1 : 1);
   const vsTeam = splitGroup(games, r=>r.opp||'Unknown', k=>esc(k)).sort(splitByUsage);
   const blocks = [splitDim('Home vs Away', homeAway), splitDim('vs Each Team', vsTeam)].join('');
-  return blocks ? `<section class="splits"><h3 class="hsub">Splits</h3>
+  return blocks ? `<section class="splits"><h3 class="viewhead">Splits</h3>
     ${splitYearChips(yrs, y)}
     ${blocks}</section>` : '';
 }
@@ -3864,7 +4717,7 @@ function plink(raw){
     const disp=x.replace(/\s*\(c\)\s*/ig,'').trim();
     let key=disp;
     if(!P[key]) key=disp.replace(/\./g,'');
-    if(!P[key]) key=({'Dan Brady':'Daniel Brady','Trevor Fraioli':'Trevor Meyler'})[disp]||disp;
+    if(!P[key]) key=({'Trevor Fraioli':'Trevor Meyler'})[disp]||disp;
     const el = P[key] ? `<button class="pname" data-p="${esc(key)}">${esc(disp)}</button>` : esc(disp);
     return el + (cap?' <span class="cap">C</span>':'');
   }).join(', ')).join(' / ');
@@ -4015,6 +4868,44 @@ function renderAwards(){
   }));
 }
 
+/* League Office: who actually runs BWB — hand-kept, not derived from any
+   game or roster data. Each entry's titles are shown in the order given;
+   the first group (Commissioner-level) gets a larger card, League
+   Operations shares one row of equal-weight cards below it. */
+const LEAGUE_OFFICE_LEAD = [
+  {name:'Parker Gibbons', titles:['Founder','Commissioner','Head of Operations']},
+  {name:'Peter Fraioli', titles:['Co-Commissioner','Head of Content Management and Design','League Operations Lead']},
+  {name:'Trevor Meyler', titles:['Assistant Commissioner','League Operations Lead']},
+];
+const LEAGUE_OFFICE_OPS = ['TJ Ciafone','Peter Sposato','Victor Cottini','Dan Brady','Austin Corvino','Vinny Spoto'];
+const LEAGUE_OFFICE_OTHER = [{name:'Griffin Krueger', titles:['League Columnist']}];
+function officeCard(name, titles, big){
+  const pl = P[name];
+  const photo = pl && pl.photo
+    ? `<img class="officephoto${big?' big':''}" src="${pl.photo}" alt="">`
+    : `<span class="officephoto${big?' big':''} officephoto-blank"></span>`;
+  const link = pl ? `<button class="pname officename" data-p="${esc(name)}">${esc(name)}</button>` : esc(name);
+  return `<div class="officecard${big?' big':''}">
+    ${photo}
+    ${link}
+    <ul class="officetitles">${titles.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+  </div>`;
+}
+function renderOffice(){
+  setNav('office');
+  app.innerHTML = `
+    <div class="phead"><h2>League Office</h2></div>
+    <p class="lead">The people who run BWB Wiffleball off the field.</p>
+    <div class="officegrid officegrid-lead">${LEAGUE_OFFICE_LEAD.map(o=>officeCard(o.name, o.titles, true)).join('')}</div>
+    <h3 class="hsub">League Operations</h3>
+    <div class="officegrid">${LEAGUE_OFFICE_OPS.map(n=>officeCard(n, ['League Operations'], false)).join('')}</div>
+    <h3 class="hsub">Columnist</h3>
+    <div class="officegrid">${LEAGUE_OFFICE_OTHER.map(o=>officeCard(o.name, o.titles, false)).join('')}</div>`;
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash = '#/p/'+encodeURIComponent(b.dataset.p);
+  }));
+}
+
 function buildTicker(){
   const el = document.getElementById('ticker');
   if(!el || !GIDS.length) return;
@@ -4120,8 +5011,36 @@ function mergeBvRows(rows, keys){
 }
 const BV_BAT_KEYS = ['G','PA','AB','R','H','2B','3B','HR','RBI','BB','K','TB'];
 const BV_PIT_KEYS = ['G','IPouts','pH','pR','ER','pBB','pK','W','L','SV'];
+/* shared by both the all-tournament overview and each tournament's own page —
+   no OPS+ here — the Beavers' NWLA tournament games have no BWB league-year
+   context to normalize against, so every row would just show '—' */
+const bvBatCols = () => [
+  {l:'Player',lft:1,f:d=>bvName(d.name)},
+  {l:'G',f:d=>d.G},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
+  {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
+  {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
+  {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
+  {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))}];
+const bvPitCols = () => [
+  {l:'Player',lft:1,f:d=>bvName(d.name)},
+  {l:'G',f:d=>d.G},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+  {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
+  {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
+  {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
+/* each tournament's page is addressed by its start date — the one field
+   guaranteed unique per BV_LIST entry (two BWB trips never start the same
+   day), so a URL keeps working even if more tournaments get inserted
+   out of chronological order later */
+const bvTournamentHref = t => '#/beavers/t/'+encodeURIComponent(t.meta.date);
+function bvTournamentLabel(t){ return `${(t.meta.date||'').slice(0,4)} ${t.meta.event||t.meta.season}`; }
+/* which tournament a given game id belongs to — a game-focused deep link
+   (e.g. from a player's own NWLA Game Log tab) needs to land on that
+   tournament's own page now that games no longer show on the overview */
+function bvTournamentForGame(gid){
+  return BV_LIST.find(t=>t.games.some(g=>String(g.gid)===String(gid)));
+}
 
-function renderBeavers(focusGid){
+function renderBeavers(){
   setNav('beavers');
   if(!BV_LIST.length){ app.innerHTML = '<p class="empty">No national-team data.</p>'; return; }
   const logo = (BV_LIST.find(t=>t.logo)||{}).logo;
@@ -4132,34 +5051,17 @@ function renderBeavers(focusGid){
   const bTot = bat.reduce((t,r)=>{['G','PA','AB','R','H','2B','3B','HR','RBI','BB','K','TB'].forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{HBP:0,SF:0});
   const pTot = pit.reduce((t,r)=>{['G','IPouts','pH','pR','ER','pBB','pK','W','L','SV'].forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{});
 
-  const batCols = [
-    {l:'Player',lft:1,f:d=>bvName(d.name)},
-    {l:'G',f:d=>d.G},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
-    {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
-    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
-    {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
-    {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))}];
-    /* no OPS+ here — the Beavers' NWLA tournament games have no BWB league-year
-       context to normalize against, so every row would just show '—' */
-  const pitCols = [
-    {l:'Player',lft:1,f:d=>bvName(d.name)},
-    {l:'G',f:d=>d.G},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
-    {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
-    {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
-
-  const tournamentsHtml = BV_LIST.slice().sort((a,b)=>(a.meta.date||'').localeCompare(b.meta.date||''))
+  /* one card per tournament linking out to its own roster/stats/game-log
+     page — the overview itself only ever shows the combined, all-tournament
+     picture below */
+  const tournamentsHtml = BV_LIST.slice().sort((a,b)=>(b.meta.date||'').localeCompare(a.meta.date||''))
     .map(t=>{
-      const phases = [];
-      t.games.forEach(g=>{
-        let p = phases.find(x=>x.name===g.phase);
-        if(!p){ p = {name:g.phase, gs:[]}; phases.push(p); }
-        p.gs.push(g);
-      });
       const tw = t.meta.record.W, tl = t.meta.record.L, tgp = tw+tl;
-      return `<h3 class="hsub">${esc((t.meta.date||'').slice(0,4))} ${esc(t.meta.event||t.meta.season)}</h3>
-        <p class="pmeta">${tw}–${tl} · ${esc(t.meta.location)} · ${tgp} game${tgp===1?'':'s'}</p>
-        ${phases.map(p=>`<h4 class="divh">${esc(p.name)}</h4>${p.gs.map(bvGameCard).join('')}`).join('')}`;
+      return `<a class="bvtcard" href="${bvTournamentHref(t)}">
+        <div class="bvtlogo">${t.logo?`<img src="${t.logo}" alt="">`:''}</div>
+        <div><h4>${esc(bvTournamentLabel(t))}</h4>
+        <span class="pmeta">${tw}–${tl} · ${esc(t.meta.location)} · ${tgp} game${tgp===1?'':'s'}</span></div>
+      </a>`;
     }).join('');
 
   const gp = rec.W+rec.L;
@@ -4179,16 +5081,64 @@ function renderBeavers(focusGid){
   app.innerHTML = `
     ${hero}
     ${overview}
-    ${tournamentsHtml}
-    <h3 class="hsub">Batting</h3>
-    ${statTable('', batCols, bat, {...bTot, name:'Total'}, 'Total', '', true)}
-    <h3 class="hsub">Pitching</h3>
-    ${statTable('', pitCols, pit, {...pTot, name:'Total'}, 'Total', '', true)}
-    <p class="note">Two-sided box scores from the team's GameChanger books (dated per tournament above).
-      Beavers lines reconcile to the printed team totals; opponent batting is best-effort from the
-      same screenshots (cells that could not be pinned are noted on the game). Games run 3–5 innings,
-      so <b>ERA</b> and <b>K/3</b> are per 3 IP; every run is booked earned.
+    <h3 class="hsub">Tournaments</h3>
+    <div class="bvtgrid">${tournamentsHtml}</div>
+    <h3 class="hsub">Batting — All Tournaments</h3>
+    ${statTable('', bvBatCols(), bat, {...bTot, name:'Total'}, 'Total', '', true)}
+    <h3 class="hsub">Pitching — All Tournaments</h3>
+    ${statTable('', bvPitCols(), pit, {...pTot, name:'Total'}, 'Total', '', true)}
+    <p class="note">Combined across every tournament below. Two-sided box scores are from the team's
+      GameChanger books; Beavers lines reconcile to the printed team totals, opponent batting is
+      best-effort from the same screenshots (cells that could not be pinned are noted on the game).
+      Games run 3–5 innings, so <b>ERA</b> and <b>K/3</b> are per 3 IP; every run is booked earned.
       Source: web.gc.com/teams/ohCbq6OU84HI.</p>`;
+  wirePlayerLinks();
+}
+/* one tournament's own page: its roster's batting/pitching for just that
+   trip (not merged with any other tournament) plus every game it played,
+   grouped by phase (pool play, bracket, etc.) same as the overview used
+   to show inline for all of them at once */
+function renderBeaverTournament(dateKey, focusGid){
+  setNav('beavers');
+  const t = BV_LIST.find(x=>x.meta.date===dateKey);
+  if(!t){ location.hash = '#/beavers'; return; }
+  const bat = t.batting.map(r=>({...r, HBP:0, SF:0})).slice().sort((a,b)=>b.PA-a.PA || b.AB-a.AB);
+  const pit = t.pitching.slice().sort((a,b)=>b.IPouts-a.IPouts);
+  const bTot = sumBox(bat, [...BV_BAT_KEYS, 'HBP', 'SF']);
+  const pTot = sumBox(pit, BV_PIT_KEYS);
+  const phases = [];
+  t.games.forEach(g=>{
+    let p = phases.find(x=>x.name===g.phase);
+    if(!p){ p = {name:g.phase, gs:[]}; phases.push(p); }
+    p.gs.push(g);
+  });
+  const tw = t.meta.record.W, tl = t.meta.record.L, tgp = tw+tl;
+  const hero = `<div class="thero" style="--tp:#c99a2e;--ts:#fff">
+      <div class="hero-row">${t.logo?`<img class="tlogo" src="${t.logo}" alt="">`:''}<h2>${esc(bvTournamentLabel(t))}</h2></div>
+      <p class="tsub"><b>${tw}–${tl}</b> · ${esc(t.meta.location)} · ${esc(t.meta.date)}${t.meta.level?` · ${esc(t.meta.level)}`:''}</p>
+    </div>`;
+  const overview = `<div class="recgrid">
+      <div class="rec"><h4>Record</h4><div class="big">${tw}–${tl}</div>
+        <div class="sub">${tgp?rate(tw/tgp):'—'} · ${tgp} game${tgp===1?'':'s'}</div></div>
+      <div class="rec"><h4>Team Batting</h4><div class="big">${rate(avg(bTot))}/${rate(obp(bTot))}/${rate(slg(bTot))}</div>
+        <div class="sub">${bTot.HR||0} HR · ${bTot.RBI||0} RBI · ${bTot.R||0} R</div></div>
+      <div class="rec"><h4>Team Pitching</h4><div class="big">${two(era(pTot))} ERA</div>
+        <div class="sub">${two(whip(pTot))} WHIP · ${pTot.pK||0} K · ${ipStr(pTot.IPouts||0)} IP</div></div>
+    </div>`;
+  app.innerHTML = `
+    <button class="back" id="back">← Brookside Beavers</button>
+    ${hero}
+    ${overview}
+    <h3 class="hsub">Roster — Batting</h3>
+    ${statTable('', bvBatCols(), bat, {...bTot, name:'Total'}, 'Total', '', true)}
+    <h3 class="hsub">Roster — Pitching</h3>
+    ${statTable('', bvPitCols(), pit, {...pTot, name:'Total'}, 'Total', '', true)}
+    ${phases.map(p=>`<h3 class="hsub">${esc(p.name)}</h3>${p.gs.map(bvGameCard).join('')}`).join('')}
+    <p class="note">Two-sided box scores from the team's GameChanger books. Beavers lines reconcile to
+      the printed team totals; opponent batting is best-effort from the same screenshots (cells that
+      could not be pinned are noted on the game). Games run 3–5 innings, so <b>ERA</b> and <b>K/3</b>
+      are per 3 IP; every run is booked earned. Source: web.gc.com/teams/ohCbq6OU84HI.</p>`;
+  document.getElementById('back').addEventListener('click',()=>{ location.hash = '#/beavers'; });
   wirePlayerLinks();
   if(focusGid){
     const el = document.getElementById('bvg-'+focusGid);
@@ -4196,22 +5146,1065 @@ function renderBeavers(focusGid){
   }
 }
 
+/* ============================== BWB GRID ==============================
+   An original 9-square trivia grid built entirely from this site's own data:
+   every square needs a player who fits both its row and column category.
+   One guess per square. Categories span franchises (5+ all-time players
+   only, so no category is a two-name gimme), divisions, awards/All-Star
+   honors, and career statistical thresholds sized to this league's own
+   numbers (checked against the real leaderboards before picking each
+   cutoff). "Today's Grid" is the same puzzle for everyone on a given day
+   (seeded off the date, no server needed); "Practice Grid" reshuffles
+   freely. No fabricated pick-frequency stats — landing a square shows how
+   many players in league history actually qualify for it, which is real
+   and computed, not guessed at. */
+function gridTeamCats(){
+  const rosterOf = {};
+  NAMES.forEach(n=>{
+    const teams = new Set();
+    P[n].seasons.forEach(s=>{ if(s.type==='Regular' && s.team) teams.add(s.team); });
+    teams.forEach(t=>{ (rosterOf[t] = rosterOf[t] || new Set()).add(n); });
+  });
+  return TEAMNAMES.filter(full => (rosterOf[full]||new Set()).size>=5).map(full=>{
+    const yrs = TEAMS[full].years||[];
+    return {key:'team:'+full, label:TEAMS[full].nick||full,
+      logo: teamLogoForYear(full, yrs[yrs.length-1]), set: rosterOf[full]};
+  });
+}
+function gridDivCats(){
+  return ['Brookside','Brentwood'].map(canon=>({
+    key:'div:'+canon, label:canon+' Division',
+    set: new Set(NAMES.filter(n=>P[n].seasons.some(s=>
+      s.type==='Regular' && s.team && canonicalDivision(divisionOf(s.team, s.year))===canon))),
+  }));
+}
+function gridAwardCats(){
+  const winners = {};
+  const add = (award, name) => (winners[award] = winners[award] || new Set()).add(name);
+  NAMES.forEach(n=>{
+    const h = P[n].honors || {rings:[],awards:[],asg:[]};
+    h.awards.forEach(a=>add(a.award, n));
+    if(h.rings.length) add('World Series Champion', n);
+    if(h.asg.length) add('All-Star', n);
+  });
+  Object.keys(HRD_BY_PLAYER).forEach(n=>add('Home Run Derby Champion', n));
+  Object.keys(ASGMVP_BY_PLAYER).forEach(n=>add('All-Star Game MVP', n));
+  Object.keys(NOHIT_BY_PITCHER).forEach(n=>add('Threw a No-Hitter', n));
+  return Object.keys(winners).filter(k=>winners[k].size>=3)
+    .map(k=>({key:'award:'+k, label:k, set:winners[k]}));
+}
+function gridStatCats(){
+  const c = n => P[n].careerReg;
+  // cutoffs picked against this league's own career leaderboards (not scaled from
+  // any other sport) so each lands with roughly 3-15 qualifiers, never 0 or "everyone"
+  return [
+    ['100+ Career Home Runs', n=>c(n).HR>=100],
+    ['300+ Career RBI', n=>c(n).RBI>=300],
+    ['200+ Career Runs', n=>c(n).R>=200],
+    ['300+ Career Hits', n=>c(n).H>=300],
+    ['150+ Career Walks', n=>c(n).BB>=150],
+    ['100+ Career Games Played', n=>c(n).G_bat>=100],
+    ['.400+ Career AVG (150+ PA)', n=>c(n).PA>=150 && c(n).AB>0 && avg(c(n))>=0.400],
+    ['1.500+ Career OPS (150+ PA)', n=>c(n).PA>=150 && c(n).AB>0 && ops(c(n))>=1.500],
+    ['30+ Career Wins', n=>c(n).W>=30],
+    ['150+ Career Strikeouts (Pitching)', n=>c(n).pK>=150],
+    ['50+ Career Innings Pitched', n=>c(n).IPouts>=150],
+    ['5+ Career Saves', n=>c(n).SV>=5],
+  ].map(([label,test])=>({key:'stat:'+label, label, set:new Set(NAMES.filter(test))}));
+}
+let GRID_CATS = null;
+function gridCats(){
+  if(!GRID_CATS) GRID_CATS = [...gridTeamCats(), ...gridDivCats(), ...gridAwardCats(), ...gridStatCats()];
+  return GRID_CATS;
+}
+function gridIntersection(a,b){ let n=0; a.set.forEach(x=>{ if(b.set.has(x)) n++; }); return n; }
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed>>>15), 1 | seed);
+    t = (t + Math.imul(t ^ (t>>>7), 61 | t)) ^ t;
+    return ((t ^ (t>>>14)) >>> 0) / 4294967296;
+  };
+}
+function gridSeedFromString(s){ let h=0; for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h; }
+/* pick 3 row + 3 column categories with every one of the 9 squares having a real
+   answer (checked, not assumed) — retries a fresh shuffle until one works, which
+   given how much these category pools overlap resolves almost immediately */
+function pickGrid(rng){
+  const pool = gridCats();
+  for(let attempt=0; attempt<300; attempt++){
+    const shuffled = pool.slice();
+    for(let i=shuffled.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
+    const rows = shuffled.slice(0,3), cols = shuffled.slice(3,6);
+    if(rows.every(r=>cols.every(c=>gridIntersection(r,c)>0))) return {rows, cols};
+  }
+  return {rows: pool.slice(0,3), cols: pool.slice(3,6)};  // pathological fallback, never hit in practice
+}
+function newPracticeGrid(){ const {rows, cols} = pickGrid(Math.random); return {rows, cols, answers:{}}; }
+function gridDailyKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+let gridMode = 'daily', gridDaily = null, gridPractice = null, gridActiveCell = null, gridError = null;
+function getDailyGrid(){
+  const key = gridDailyKey();
+  if(!gridDaily || gridDaily.key!==key){
+    const rng = mulberry32(gridSeedFromString('bwb-grid-'+key));
+    const {rows, cols} = pickGrid(rng);
+    gridDaily = {key, rows, cols, answers:{}};
+    try{ const raw = localStorage.getItem('bwb-grid-'+key); if(raw) gridDaily.answers = JSON.parse(raw); }catch(e){}
+  }
+  return gridDaily;
+}
+function saveDailyGrid(){ try{ localStorage.setItem('bwb-grid-'+gridDaily.key, JSON.stringify(gridDaily.answers)); }catch(e){} }
+function gridHeadHTML(cat){ return `${cat.logo?`<img class="gcatlogo" src="${cat.logo}" alt="">`:''}<span>${esc(cat.label)}</span>`; }
+/* every name already locked in as a CORRECT answer elsewhere in this grid —
+   guessing one of these again for a different square is refused, not just
+   discouraged, since the whole point of a 9-square grid is 9 different names */
+function gridUsedNames(puzzle){
+  return new Set(Object.values(puzzle.answers).filter(a=>a.correct).map(a=>a.name));
+}
+function gridCellHTML(k, ans){
+  if(ans){
+    if(ans.correct) return `<button class="pname gpick" data-p="${esc(ans.name)}">${esc(ans.name)}</button>
+      <span class="gpoolnote">${ans.pool} player${ans.pool===1?'':'s'} ${ans.pool===1?'qualifies':'qualify'}</span>`;
+    return `<span class="gmiss">${esc(ans.name)}</span>`;
+  }
+  if(gridActiveCell===k){
+    return `<form class="gform" data-cell="${k}">
+      <input type="text" list="gridNames" placeholder="Player name…" autocomplete="off" value="${gridError?esc(gridError.name):''}">
+      <div class="gformbtns"><button type="submit" class="gsubmit">Lock in</button>
+        <button type="button" class="gcancel" data-cell="${k}">Cancel</button></div>
+      ${gridError?`<p class="gerr">${gridError.reason==='used'
+        ? `You've already used "${esc(gridError.name)}" elsewhere in this grid — pick someone else.`
+        : `Couldn't find "${esc(gridError.name)}" — pick a name from the list.`}</p>`:''}
+    </form>`;
+  }
+  return `<button class="gguess" type="button" data-cell="${k}">Guess</button>`;
+}
+/* a shareable, Wordle-style result: no answers, just a row of emoji plus
+   the headline number, safe to post without spoiling that day's puzzle for
+   anyone else in the league. Tries the clipboard first; since this page runs
+   inside a sandboxed Artifact iframe, a blocked clipboard falls back to
+   revealing the text in a selected, read-only box rather than window.prompt
+   (sandboxed iframes generally can't show OS-level modals at all). */
+function shareResultButton(id){
+  return `<p class="note"><button type="button" class="pname" id="${id}">Share result →</button></p>
+    <textarea class="b0sharebox" id="${id}box" readonly hidden></textarea>`;
+}
+function wireShareButton(id, getText){
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const text = getText();
+    try{
+      await navigator.clipboard.writeText(text);
+      const orig = btn.textContent;
+      btn.textContent = 'Copied to clipboard!';
+      setTimeout(()=>{ btn.textContent = orig; }, 1600);
+    }catch(e){
+      const box = document.getElementById(id+'box');
+      if(box){
+        box.value = text; box.hidden = false;
+        box.focus(); box.select();
+      }
+      btn.textContent = 'Select the text below and copy →';
+    }
+  });
+}
+/* Grid and Stat Pad share one "Arcade" nav slot with this sub-tab bar; each
+   game's own render function still owns its full page (simplest way to keep
+   two otherwise-unrelated games from tangling their state together) — the
+   tab bar just switches the hash, and the router does the rest. */
+function arcadeTabBar(active){
+  return `<div class="subtabs" role="group" aria-label="Arcade game">
+    <button data-ag="grid" aria-pressed="${active==='grid'}">Grid</button>
+    <button data-ag="statpad" aria-pressed="${active==='statpad'}">Stat Pad</button>
+    <button data-ag="b0" aria-pressed="${active==='b0'}">15-0</button>
+  </div>`;
+}
+const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0'};
+function wireArcadeTabBar(){
+  app.querySelectorAll('[data-ag]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash = ARCADE_ROUTES[b.dataset.ag];
+  }));
+}
+function gridShareText(puzzle){
+  const rows = [];
+  for(let ri=0; ri<3; ri++){
+    let row = '';
+    for(let ci=0; ci<3; ci++){
+      const ans = puzzle.answers[ri+','+ci];
+      row += ans ? (ans.correct?'🟩':'🟥') : '⬜';
+    }
+    rows.push(row);
+  }
+  const solved = Object.values(puzzle.answers).filter(a=>a.correct).length;
+  return `BWB Grid ${puzzle.key}\n${rows.join('\n')}\n${solved}/9 correct`;
+}
+function renderGrid(){
+  setNav('arcade');
+  if(gridMode==='practice' && !gridPractice) gridPractice = newPracticeGrid();
+  const puzzle = gridMode==='daily' ? getDailyGrid() : gridPractice;
+  const rowsHTML = puzzle.rows.map((rc,ri)=>{
+    const cells = puzzle.cols.map((cc,ci)=>{
+      const k = ri+','+ci;
+      return `<td class="gcell${puzzle.answers[k]?(puzzle.answers[k].correct?' correct':' wrong'):''}">${gridCellHTML(k, puzzle.answers[k])}</td>`;
+    }).join('');
+    return `<tr><th class="gside">${gridHeadHTML(rc)}</th>${cells}</tr>`;
+  }).join('');
+  const topRow = `<tr><th class="gcorner"></th>${puzzle.cols.map(cc=>`<th class="gtop">${gridHeadHTML(cc)}</th>`).join('')}</tr>`;
+  const solved = Object.values(puzzle.answers).filter(a=>a.correct).length;
+  const attempted = Object.keys(puzzle.answers).length;
+  const done = attempted===9;
+  app.innerHTML = `
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${gridMode==='daily'?`Today's Grid · ${puzzle.key}`:'Practice Grid'}</span></div>
+    ${arcadeTabBar('grid')}
+    <p class="lead">Every square needs one BWB Wiffleball player who fits <b>both</b> its row and column category —
+      one guess per square, right or wrong. Landing a square shows how many players in league history actually
+      qualify for it; fewer means you found a rarer answer.</p>
+    <div class="segs" role="group" aria-label="Grid mode">
+      <button data-gm="daily" aria-pressed="${gridMode==='daily'}">Today's Grid</button>
+      <button data-gm="practice" aria-pressed="${gridMode==='practice'}">Practice Grid</button>
+    </div>
+    ${gridMode==='practice'?'<p class="note"><button class="pname" id="gridShuffle">Shuffle a new practice grid →</button></p>':''}
+    <div class="gscoreboard">${solved} / 9 correct${attempted>solved?` · ${attempted-solved} missed`:''}</div>
+    <div class="tscroll"><table class="gtable"><thead>${topRow}</thead><tbody>${rowsHTML}</tbody></table></div>
+    ${done && gridMode==='daily' ? shareResultButton('gridShare') : ''}
+    <datalist id="gridNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <p class="note">Franchise categories only use clubs with 5+ all-time players, so no square is a two-name gimme.
+      Career stat thresholds are sized to this league's own numbers, not borrowed from anywhere else.</p>`;
+  wireGrid();
+  if(done && gridMode==='daily') wireShareButton('gridShare', ()=>gridShareText(puzzle));
+}
+function wireGrid(){
+  wireArcadeTabBar();
+  app.querySelectorAll('[data-gm]').forEach(b=>b.addEventListener('click',()=>{
+    gridMode = b.dataset.gm; gridActiveCell = null; gridError = null;
+    if(gridMode==='practice' && !gridPractice) gridPractice = newPracticeGrid();
+    renderGrid();
+  }));
+  const shuffleBtn = document.getElementById('gridShuffle');
+  if(shuffleBtn) shuffleBtn.addEventListener('click', ()=>{
+    gridPractice = newPracticeGrid(); gridActiveCell = null; gridError = null; renderGrid();
+  });
+  app.querySelectorAll('.gguess').forEach(b=>b.addEventListener('click', ()=>{
+    gridActiveCell = b.dataset.cell; gridError = null; renderGrid();
+    const input = app.querySelector('.gform input'); if(input) input.focus();
+  }));
+  app.querySelectorAll('.gcancel').forEach(b=>b.addEventListener('click', ()=>{
+    gridActiveCell = null; gridError = null; renderGrid();
+  }));
+  app.querySelectorAll('.gform').forEach(f=>f.addEventListener('submit', e=>{
+    e.preventDefault();
+    const cellK = f.dataset.cell;
+    const [ri,ci] = cellK.split(',').map(Number);
+    const puzzle = gridMode==='daily' ? gridDaily : gridPractice;
+    const typed = f.querySelector('input').value.trim();
+    if(!P[typed]){ gridError = {name: typed, reason:'notfound'}; renderGrid();
+      const input = app.querySelector('.gform input'); if(input) input.focus();
+      return; }
+    const rowCat = puzzle.rows[ri], colCat = puzzle.cols[ci];
+    const correct = rowCat.set.has(typed) && colCat.set.has(typed);
+    if(correct && gridUsedNames(puzzle).has(typed)){
+      gridError = {name: typed, reason:'used'}; renderGrid();
+      const input = app.querySelector('.gform input'); if(input) input.focus();
+      return;
+    }
+    gridError = null;
+    puzzle.answers[cellK] = {name: typed, correct, pool: gridIntersection(rowCat, colCat)};
+    gridActiveCell = null;
+    if(gridMode==='daily') saveDailyGrid();
+    renderGrid();
+  }));
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/p/'+encodeURIComponent(b.dataset.p);
+  }));
+}
+
+/* ============================== BWB STAT PAD ==============================
+   A second original game, distinct from the Grid: instead of "find any
+   right answer," this one is "find the best answer." Five rows, each with
+   1-2 requirements (some checked in the specific season you submit, some
+   checked anywhere in the player's career); submit a player and a year for
+   each, and your score for that row is that player's real single-season
+   total in one target counting stat for the year you picked. The scoring
+   idea — submit a player+year meeting stated requirements, score = their
+   real stat total that year — is a generic constrained-optimization format;
+   every requirement, stat cutoff, and word of copy here is original and
+   built from this site's own data, not reproduced from anywhere else. */
+const STATPAD_STATS = [
+  {key:'HR', label:'Home Runs', get:s=>(s&&s.HR)||0},
+  {key:'RBI', label:'RBI', get:s=>(s&&s.RBI)||0},
+  {key:'R', label:'Runs', get:s=>(s&&s.R)||0},
+  {key:'H', label:'Hits', get:s=>(s&&s.H)||0},
+  {key:'BB', label:'Walks', get:s=>(s&&s.BB)||0},
+  {key:'W', label:'Wins', get:s=>(s&&s.W)||0},
+  {key:'pK', label:'Strikeouts (Pitching)', get:s=>(s&&s.pK)||0},
+  {key:'SV', label:'Saves', get:s=>(s&&s.SV)||0},
+];
+function statTargetMeta(key){ return STATPAD_STATS.find(s=>s.key===key); }
+/* "same season" requirements need a year-by-year roster, unlike the Grid's
+   career-wide "ever played for" sets */
+function statpadTeamCats(){
+  const yearsOf = {};
+  NAMES.forEach(n=>{
+    P[n].seasons.forEach(s=>{ if(s.type==='Regular' && s.team){
+      const m = yearsOf[s.team] = yearsOf[s.team] || {};
+      (m[n] = m[n] || new Set()).add(s.year);
+    }});
+  });
+  return TEAMNAMES.filter(full=>Object.keys(yearsOf[full]||{}).length>=5).map(full=>{
+    const yrs = TEAMS[full].years||[];
+    return {key:'team:'+full, label:TEAMS[full].nick||full, sameSeason:true,
+      logo: teamLogoForYear(full, yrs[yrs.length-1]),
+      yearsFor: n => (yearsOf[full]||{})[n] || new Set()};
+  });
+}
+function statpadDivCats(){
+  const yearsOf = {};
+  NAMES.forEach(n=>{
+    P[n].seasons.forEach(s=>{
+      if(s.type!=='Regular' || !s.team) return;
+      const canon = canonicalDivision(divisionOf(s.team, s.year));
+      if(!canon) return;
+      const m = yearsOf[canon] = yearsOf[canon] || {};
+      (m[n] = m[n] || new Set()).add(s.year);
+    });
+  });
+  return Object.keys(yearsOf).map(canon=>({
+    key:'div:'+canon, label:canon+' Division', sameSeason:true,
+    yearsFor: n => (yearsOf[canon]||{})[n] || new Set(),
+  }));
+}
+/* career-wide requirements reuse the Grid's own award/stat category sets —
+   those are already "true at any point in their career," exactly what a
+   "career" requirement here needs, so no separate logic to duplicate */
+function statpadAnytimeCats(){
+  return [...gridAwardCats(), ...gridStatCats()].map(c=>({...c, sameSeason:false}));
+}
+let STATPAD_QUALS = null;
+function statpadQualPool(){
+  if(!STATPAD_QUALS) STATPAD_QUALS = [...statpadTeamCats(), ...statpadDivCats(), ...statpadAnytimeCats()];
+  return STATPAD_QUALS;
+}
+/* years a name could legally submit for one row: their own real regular
+   seasons, narrowed by every "same season" requirement in that row (an
+   "anytime" requirement doesn't narrow years — it's checked separately) */
+function statpadRowYears(quals, name){
+  let yrs = new Set(svSeasons(P[name]));
+  quals.filter(q=>q.sameSeason).forEach(q=>{
+    const qy = q.yearsFor(name);
+    yrs = new Set([...yrs].filter(y=>qy.has(y)));
+  });
+  return yrs;
+}
+function statpadRowEligible(quals, name){
+  if(quals.some(q=>!q.sameSeason && !q.set.has(name))) return false;
+  return statpadRowYears(quals, name).size>0;
+}
+/* every real (name,year) combo that legally satisfies one row, as the target
+   stat's actual value that year — the full field a submitted answer is
+   being judged against, so "how good" reflects this league's real range
+   for that exact combination of requirements, not a guessed-at scale */
+function statpadRowCombos(quals, meta){
+  const combos = [];
+  NAMES.forEach(n=>{
+    if(quals.some(q=>!q.sameSeason && !q.set.has(n))) return;
+    statpadRowYears(quals, n).forEach(y=>{ combos.push({name:n, year:y, value: meta.get(svRegRow(P[n], y))}); });
+  });
+  return combos;
+}
+/* black/bronze/silver/gold/platinum, in that low-to-high order — an
+   original 5-band tier read on the same percentile svColor already uses,
+   not tied to any other game's specific cutoffs or palette */
+/* Platinum is reserved for the single best real answer that row could have
+   had (an exact match on the max, not just a high percentile) — checked by
+   value against the row's own field, not inferred from the percentile band,
+   since ties near the top could otherwise land just under it or over it by
+   svPct's tie-averaging */
+function statpadTier(pct, isBest){
+  if(isBest) return {name:'Platinum', color:'#d7e6ea'};
+  if(pct==null) return {name:'Silver', color:'#b7bcc4'};
+  if(pct>=60) return {name:'Gold', color:'var(--gold)'};
+  if(pct>=40) return {name:'Silver', color:'#b7bcc4'};
+  if(pct>=20) return {name:'Bronze', color:'#b3763f'};
+  return {name:'Black', color:'#71757c'};
+}
+function statpadFailureReason(quals, name, year){
+  if(!P[name]) return `Couldn't find "${name}" — pick a name from the list.`;
+  const failedCareer = quals.filter(q=>!q.sameSeason && !q.set.has(name));
+  if(failedCareer.length) return `${name} doesn't have: ${failedCareer.map(q=>q.label).join(', ')}.`;
+  if(!svRegRow(P[name], year)) return `${name} has no recorded regular season in ${year}.`;
+  const failedSeason = quals.filter(q=>q.sameSeason && !q.yearsFor(name).has(year));
+  if(failedSeason.length) return `${name} wasn't with ${failedSeason.map(q=>q.label).join(', ')} in ${year}.`;
+  return null;
+}
+/* the exact (player, year) pairs already locked into other rows — the same
+   player can fill two rows in two different years, but the identical
+   player-and-year combo can't answer two rows */
+function statpadUsedCombos(puzzle, excludeRow){
+  const set = new Set();
+  Object.entries(puzzle.answers).forEach(([idx,a])=>{ if(+idx!==excludeRow) set.add(a.name+'|'+a.year); });
+  return set;
+}
+function sameQualSet(a,b){
+  if(a.length!==b.length) return false;
+  return a.map(q=>q.key).sort().join('|') === b.map(q=>q.key).sort().join('|');
+}
+function pickStatpadRow(rng, pool, existingRows){
+  for(let tries=0; tries<30; tries++){
+    const count = rng()<0.55 ? 2 : 1;
+    const shuffled = pool.slice();
+    for(let i=shuffled.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
+    const quals = shuffled.slice(0, count);
+    if(existingRows.some(r=>sameQualSet(r,quals))) continue;
+    if(NAMES.some(n=>statpadRowEligible(quals, n))) return quals;
+  }
+  return [pool[Math.floor(rng()*pool.length)]];
+}
+function pickStatpad(rng){
+  const pool = statpadQualPool();
+  const rows = [];
+  for(let i=0;i<5;i++) rows.push(pickStatpadRow(rng, pool, rows));
+  const stat = STATPAD_STATS[Math.floor(rng()*STATPAD_STATS.length)];
+  return {statKey: stat.key, rows};
+}
+let statpadMode='daily', statpadDaily=null, statpadPractice=null, statpadReopenRow=null,
+  statpadErrorRow=null, statpadErrorMsg=null, statpadErrorName=null;
+function getDailyStatpad(){
+  const key = gridDailyKey();
+  if(!statpadDaily || statpadDaily.key!==key){
+    const rng = mulberry32(gridSeedFromString('bwb-statpad-'+key));
+    const {statKey, rows} = pickStatpad(rng);
+    statpadDaily = {key, statKey, rows, answers:{}, guesses:0};
+    try{ const raw = localStorage.getItem('bwb-statpad-'+key); if(raw) Object.assign(statpadDaily, JSON.parse(raw)); }catch(e){}
+  }
+  return statpadDaily;
+}
+function saveDailyStatpad(){
+  try{ localStorage.setItem('bwb-statpad-'+statpadDaily.key,
+    JSON.stringify({answers: statpadDaily.answers, guesses: statpadDaily.guesses})); }catch(e){}
+}
+function newPracticeStatpad(){ const {statKey, rows} = pickStatpad(Math.random); return {statKey, rows, answers:{}, guesses:0}; }
+function statpadQualChip(q){
+  return `<span class="spq">${q.logo?`<img class="spqlogo" src="${q.logo}" alt="">`:''}${esc(q.label)}
+    <i class="spqtag">${q.sameSeason?'that season':'career'}</i></span>`;
+}
+const ORDINAL_TH = n => { const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
+function statpadRowHTML(puzzle, ri){
+  const row = puzzle.rows[ri];
+  const ans = puzzle.answers[ri];
+  const meta = statTargetMeta(puzzle.statKey);
+  const showForm = !ans || statpadReopenRow===ri;
+  const qualsHTML = `<div class="spquals">${row.map(statpadQualChip).join('')}</div>`;
+  let bodyHTML, rowStyle = '', tierClass = '';
+  if(!showForm){
+    const vals = puzzle.rowValues[ri];
+    const pct = svPct(vals, ans.value, false);
+    const isBest = vals.length>0 && ans.value===Math.max(...vals);
+    const tier = statpadTier(pct, isBest);
+    rowStyle = ` style="--tier:${tier.color}"`;
+    tierClass = ' tiered';
+    bodyHTML = `<div class="spval"><button class="pname" data-p="${esc(ans.name)}">${esc(ans.name)}</button>
+      <span class="spyear">${ans.year}</span><b class="spscore" style="color:${tier.color}">${ans.value} ${esc(meta.label)}</b></div>
+      <div class="sptierrow"><span class="sptier" style="color:${tier.color}">${tier.name}</span>${pct!=null?
+        `<span class="sppct">${ORDINAL_TH(pct)} percentile of every valid answer</span>`:''}</div>
+      <button type="button" class="spretry" data-row="${ri}">Try a different player →</button>`;
+  } else {
+    const errHere = statpadErrorRow===ri;
+    bodyHTML = `<form class="spform" data-row="${ri}">
+      <select class="spplayer">
+        <option value="" disabled ${errHere?'':'selected'}>Choose a player…</option>
+        ${NAMES.map(n=>`<option value="${esc(n)}"${errHere&&n===statpadErrorName?' selected':''}>${esc(n)}</option>`).join('')}
+      </select>
+      <select class="spyear">${ALL_YEARS.map(y=>`<option value="${y}">${y}</option>`).join('')}</select>
+      <button type="submit" class="gsubmit">Submit</button>
+      ${ans?`<button type="button" class="gcancel" data-row="${ri}">Cancel</button>`:''}
+    </form>
+    ${errHere?`<p class="gerr">${esc(statpadErrorMsg)}</p>`:''}`;
+  }
+  return `<div class="sprow${ans&&!showForm?' answered':''}${tierClass}"${rowStyle}>${qualsHTML}${bodyHTML}</div>`;
+}
+/* revealed only once every row is filled — the actual best real answers for
+   each row, so a finished pad becomes a little of its own leaderboard */
+function statpadRevealHTML(puzzle){
+  const meta = statTargetMeta(puzzle.statKey);
+  const blocks = puzzle.rows.map((row,ri)=>{
+    const ans = puzzle.answers[ri];
+    const top5 = puzzle.rowCombos[ri].slice().sort((a,b)=>b.value-a.value).slice(0,5);
+    const items = top5.map((c,i)=>{
+      const mine = c.name===ans.name && c.year===ans.year;
+      return `<li class="${mine?'sprk-mine':''}"><span class="sprk-n">${i+1}.</span>
+        <button class="pname" data-p="${esc(c.name)}">${esc(c.name)}</button>
+        <span class="spyear">${c.year}</span><b>${c.value}</b>${mine?' <span class="sprk-tag">your pick</span>':''}</li>`;
+    }).join('');
+    const inTop5 = top5.some(c=>c.name===ans.name && c.year===ans.year);
+    return `<div class="sprk"><div class="spquals">${row.map(statpadQualChip).join('')}</div>
+      <ol class="sprklist">${items}</ol>
+      ${inTop5?'':`<p class="sprk-yours">Your pick — <button class="pname" data-p="${esc(ans.name)}">${esc(ans.name)}</button>
+        ${ans.year}: <b>${ans.value}</b> ${esc(meta.label)}</p>`}
+    </div>`;
+  }).join('');
+  return `<h3 class="hsub">Best Possible Answers</h3>
+    <p class="pmeta">The top 5 real player-seasons that could have legally answered each row, ${esc(meta.label)} —
+    now that the pad is done, see how close you got.</p>${blocks}`;
+}
+const STATPAD_TIER_EMOJI = {Black:'⬛', Bronze:'🟫', Silver:'⬜', Gold:'🟨', Platinum:'💎'};
+function statpadShareText(puzzle){
+  const meta = statTargetMeta(puzzle.statKey);
+  const strip = puzzle.rows.map((_,ri)=>{
+    const ans = puzzle.answers[ri];
+    const vals = puzzle.rowValues[ri];
+    const isBest = vals.length>0 && ans.value===Math.max(...vals);
+    const pct = svPct(vals, ans.value, false);
+    return STATPAD_TIER_EMOJI[statpadTier(pct, isBest).name];
+  }).join('');
+  const total = Object.values(puzzle.answers).reduce((s,a)=>s+a.value,0);
+  return `BWB Stat Pad ${puzzle.key} (${meta.label})\n${strip}\n${total} total ${meta.label}`;
+}
+function renderStatpad(){
+  setNav('arcade');
+  if(statpadMode==='practice' && !statpadPractice) statpadPractice = newPracticeStatpad();
+  const puzzle = statpadMode==='daily' ? getDailyStatpad() : statpadPractice;
+  const meta = statTargetMeta(puzzle.statKey);
+  if(!puzzle.rowCombos){
+    puzzle.rowCombos = puzzle.rows.map(row=>statpadRowCombos(row, meta));
+    puzzle.rowValues = puzzle.rowCombos.map(combos=>combos.map(c=>c.value));
+  }
+  const total = Object.values(puzzle.answers).reduce((s,a)=>s+a.value,0);
+  const filled = Object.keys(puzzle.answers).length;
+  const done = filled===puzzle.rows.length;
+  const rowsHTML = puzzle.rows.map((_,ri)=>statpadRowHTML(puzzle, ri)).join('');
+  const revealHTML = done ? statpadRevealHTML(puzzle) : '';
+  app.innerHTML = `
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${statpadMode==='daily'?`Today's Pad · ${puzzle.key}`:'Practice Pad'}</span></div>
+    ${arcadeTabBar('statpad')}
+    <p class="lead">Target stat: <b>${esc(meta.label)}</b>, single season. Submit one player — and the year — per
+      row that meets its requirements: a "career" tag means true anytime in their career, a "that season" tag
+      means it has to hold in the year you submit. Your score for a row is that player's real ${esc(meta.label)}
+      total in the year you pick, so the goal is finding the <i>best</i> valid year, not just any valid one.</p>
+    <div class="segs" role="group" aria-label="Stat Pad mode">
+      <button data-spm="daily" aria-pressed="${statpadMode==='daily'}">Today's Pad</button>
+      <button data-spm="practice" aria-pressed="${statpadMode==='practice'}">Practice Pad</button>
+    </div>
+    ${statpadMode==='practice'?'<p class="note"><button class="pname" id="statpadShuffle">Shuffle a new practice pad →</button></p>':''}
+    <div class="gscoreboard">${total} total ${esc(meta.label)} · ${filled}/5 rows filled · ${puzzle.guesses||0} guess${puzzle.guesses===1?'':'es'}</div>
+    <div class="statpad">${rowsHTML}</div>
+    ${revealHTML}
+    ${done && statpadMode==='daily' ? shareResultButton('statpadShare') : ''}
+    <p class="note">Franchise requirements only use clubs with 5+ all-time players. Award/honor and career-total
+      requirements are checked against this league's own real record — nothing here is estimated. Once a row is
+      filled, it's ranked against every real player-year that could have legally answered that exact row and
+      tiered <span style="color:${statpadTier(10,false).color}">Black</span> ·
+      <span style="color:${statpadTier(30,false).color}">Bronze</span> ·
+      <span style="color:${statpadTier(50,false).color}">Silver</span> ·
+      <span style="color:${statpadTier(70,false).color}">Gold</span> ·
+      <span style="color:${statpadTier(null,true).color}">Platinum</span>, worst to best — Platinum is only the single
+      best real answer that row could have had, the rest split evenly across the other four.</p>`;
+  wireStatpad();
+  if(done && statpadMode==='daily') wireShareButton('statpadShare', ()=>statpadShareText(puzzle));
+}
+function wireStatpad(){
+  wireArcadeTabBar();
+  app.querySelectorAll('[data-spm]').forEach(b=>b.addEventListener('click',()=>{
+    statpadMode = b.dataset.spm; statpadReopenRow=null; statpadErrorRow=null;
+    if(statpadMode==='practice' && !statpadPractice) statpadPractice = newPracticeStatpad();
+    renderStatpad();
+  }));
+  const shuffleBtn = document.getElementById('statpadShuffle');
+  if(shuffleBtn) shuffleBtn.addEventListener('click', ()=>{
+    statpadPractice = newPracticeStatpad(); statpadReopenRow=null; statpadErrorRow=null; renderStatpad();
+  });
+  app.querySelectorAll('.spretry').forEach(b=>b.addEventListener('click',()=>{
+    statpadReopenRow = +b.dataset.row; statpadErrorRow=null; renderStatpad();
+    const sel = app.querySelector('.spform select.spplayer'); if(sel) sel.focus();
+  }));
+  app.querySelectorAll('.gcancel').forEach(b=>b.addEventListener('click',()=>{
+    statpadReopenRow = null; statpadErrorRow = null; renderStatpad();
+  }));
+  app.querySelectorAll('.spform').forEach(f=>f.addEventListener('submit', e=>{
+    e.preventDefault();
+    const ri = +f.dataset.row;
+    const puzzle = statpadMode==='daily' ? statpadDaily : statpadPractice;
+    const name = f.querySelector('select.spplayer').value;
+    const year = +f.querySelector('select.spyear').value;
+    if(!name) return;
+    puzzle.guesses = (puzzle.guesses||0) + 1;
+    let reason = statpadFailureReason(puzzle.rows[ri], name, year);
+    if(!reason && statpadUsedCombos(puzzle, ri).has(name+'|'+year))
+      reason = `${name} in ${year} already answers another row — pick a different player or year.`;
+    if(reason){
+      statpadErrorRow = ri; statpadErrorMsg = reason; statpadErrorName = name;
+      if(statpadMode==='daily') saveDailyStatpad();
+      renderStatpad();
+      return;
+    }
+    const value = statTargetMeta(puzzle.statKey).get(svRegRow(P[name], year));
+    puzzle.answers[ri] = {name, year, value};
+    statpadReopenRow = null; statpadErrorRow = null;
+    if(statpadMode==='daily') saveDailyStatpad();
+    renderStatpad();
+  }));
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/p/'+encodeURIComponent(b.dataset.p);
+  }));
+}
+
+/* ============================== BWB 15-0 ==============================
+   A third original Arcade game: a 5-round draft. Each round deals one real
+   BWB team-and-year — that club's actual roster for that single season —
+   and you draft exactly one player from it onto your team; the next round
+   deals a different team-year. No player can be drafted twice even under a
+   different year. 2 of the 5 rounds — a random pair, different every deal
+   — are Pitcher Rounds: the pool for those two rounds is only players who
+   actually pitched that season, and whoever you draft there joins your
+   pitching staff automatically — they still hit for you too, same as
+   everyone else, using their real batting line. No manual
+   lineup step, no budget or salary cap: every player is a free pick, so the
+   season simulation itself is where the real difficulty lives. Once locked,
+   an actual 15-game simulation (not a single formula) determines the
+   record chasing a perfect 15-0. Only the general shape (deal themed pools
+   round by round, draft a fixed roster, project a season record from it)
+   is a generic, widely-cloned format; the pool logic, the regression, the
+   two-sided simulation and all the wording and visuals are original and
+   built from this site's own numbers — an openly rough estimate, not a
+   real simulation of an actual wiffleball game. */
+const B0_GAMES = 15, B0_ROSTER = 5, B0_PITCHER_COUNT = 2;
+/* which 2 of the 5 rounds are Pitcher Rounds is itself random per deal —
+   drawn from the same seeded rng as everything else, so the daily draft is
+   still reproducible/shareable, and practice drafts get a fresh pair each
+   time — a partial Fisher-Yates shuffle of the 5 round indices. */
+function b0PickPitcherRounds(rng){
+  const idxs = [0,1,2,3,4];
+  for(let i=idxs.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [idxs[i],idxs[j]]=[idxs[j],idxs[i]]; }
+  return idxs.slice(0, B0_PITCHER_COUNT).sort((a,b)=>a-b);
+}
+let B0_AVG = null;
+/* league-average AVG/SLG/BB-rate/HBP-rate/ERA (every regular-season line
+   ever recorded, combined) and league-average runs per team-game (straight
+   off real box scores) — the real numbers the sample-size regression and
+   the win projection are scaled against */
+function b0League(){
+  if(B0_AVG) return B0_AVG;
+  const rows = [];
+  NAMES.forEach(n=>{ P[n].seasons.forEach(s=>{ if(s.type==='Regular' && !s.split) rows.push(s); }); });
+  const tot = sumRows(rows);
+  let runs=0, games=0;
+  GIDS.forEach(gid=>{ const g=GAMES[gid]; if(g.phase==='Regular'){ runs+=g.away.R+g.home.R; games+=2; } });
+  B0_AVG = {
+    avg: avg(tot), slg: slg(tot), ops: ops(tot), era: era(tot),
+    bbRate: tot.PA ? tot.BB/tot.PA : 0, hbpRate: tot.PA ? tot.HBP/tot.PA : 0,
+    oneBRate: tot.PA ? tot['1B']/tot.PA : 0, twoBRate: tot.PA ? tot['2B']/tot.PA : 0,
+    threeBRate: tot.PA ? tot['3B']/tot.PA : 0, hrRate: tot.PA ? tot.HR/tot.PA : 0,
+    sbRate: tot.PA ? tot.SB/tot.PA : 0, csRate: tot.PA ? tot.CS/tot.PA : 0,
+    kRate: tot.IPouts ? tot.pK/tot.IPouts : 0, bbAllowedRate: tot.IPouts ? tot.pBB/tot.IPouts : 0,
+    hAllowedRate: tot.IPouts ? tot.pH/tot.IPouts : 0,
+    rpg: games ? runs/games : 5,
+  };
+  return B0_AVG;
+}
+let B0_RUNS_POOL = null;
+/* every real team-game run total this league has actually produced (each
+   game counted twice — once for each side), the pool the simulation
+   bootstraps from instead of an idealized Poisson curve. BWB scoring runs
+   far bursier than Poisson assumes (real box scores here include 30+ run
+   games), so sampling straight from what's actually happened captures that
+   real blowout-or-shutout shape instead of a tame bell curve built from
+   just the mean. A handful of dates are forfeit batches, not real games —
+   the same signature the Records page's streak-building already flags
+   (4+ games logged on one date, one score pair accounting for a strict
+   majority of them) — excluded here for the same reason: they're canned,
+   repeated placeholders, not real single-game outcomes to sample from. */
+function b0RunsPool(){
+  if(B0_RUNS_POOL) return B0_RUNS_POOL;
+  const regGames = GIDS.map(gid=>GAMES[gid]).filter(g=>g.phase==='Regular');
+  const byDate = {};
+  regGames.forEach(g=>{ (byDate[g.date] = byDate[g.date] || []).push(g); });
+  const badDates = new Set();
+  Object.entries(byDate).forEach(([date, gs])=>{
+    if(gs.length<4) return;
+    const counts = {};
+    gs.forEach(g=>{ const k=g.away.R+'-'+g.home.R; counts[k]=(counts[k]||0)+1; });
+    if(Math.max(...Object.values(counts))/gs.length > 0.5) badDates.add(date);
+  });
+  const pool = [];
+  regGames.forEach(g=>{ if(badDates.has(g.date)) return; pool.push(g.away.R, g.home.R); });
+  B0_RUNS_POOL = pool;
+  return pool;
+}
+/* a 2-game hot streak and a 15-game season shouldn't count for the same
+   thing — shrink each player-season's rate-driving fields toward league
+   average by how far its own games-played (batting) or innings (pitching)
+   falls short of this site's own established qualification bar (SV_MING/
+   SV_MINOUTS, the same 9 games / 12 IP already used for percentile
+   rankings elsewhere), instead of trusting a tiny sample at face value.
+   AB/PA/IPouts themselves are untouched — those games really happened. */
+function b0Shrink(value, leagueRate, denom, w){ return w*value + (1-w)*leagueRate*denom; }
+function b0RegressLine(line){
+  const lg = b0League();
+  const out = {...line};
+  if(line.AB>0){
+    const w = Math.min(1, (line.G_bat||0)/SV_MING), pa = line.PA;
+    out.H = w*line.H + (1-w)*lg.avg*line.AB;
+    out.BB = b0Shrink(line.BB, lg.bbRate, pa, w);
+    out.HBP = b0Shrink(line.HBP, lg.hbpRate, pa, w);
+    out.TB = w*line.TB + (1-w)*lg.slg*line.AB;
+    out['1B'] = b0Shrink(line['1B'], lg.oneBRate, pa, w);
+    out['2B'] = b0Shrink(line['2B'], lg.twoBRate, pa, w);
+    out['3B'] = b0Shrink(line['3B'], lg.threeBRate, pa, w);
+    out.HR = b0Shrink(line.HR, lg.hrRate, pa, w);
+    out.SB = b0Shrink(line.SB, lg.sbRate, pa, w);
+    out.CS = b0Shrink(line.CS, lg.csRate, pa, w);
+  }
+  if(line.IPouts>0){
+    const w = Math.min(1, line.IPouts/SV_MINOUTS), outs = line.IPouts;
+    out.ER = w*line.ER + (1-w)*(lg.era/9)*outs;
+    out.pK = b0Shrink(line.pK, lg.kRate, outs, w);
+    out.pBB = b0Shrink(line.pBB, lg.bbAllowedRate, outs, w);
+    out.pH = b0Shrink(line.pH, lg.hAllowedRate, outs, w);
+  }
+  return out;
+}
+let B0_ROUND_POOL = null, B0_PITCHER_POOL = null;
+/* every (team, year) with a real, playable-sized roster that season — the
+   deck the game's 3 open rounds get dealt from. Regression is applied
+   once, here, so the pool's own display and everything drafted from it
+   already agree with what the simulation will actually use. */
+/* line = the player's own real regular-season totals for that team-year
+   (integers, exactly what actually happened, what gets shown while
+   drafting) — never overwritten. regLine = the same season shrunk toward
+   league average for sample size, used only for the simulation's team
+   totals (b0Simulate), never for display. Showing the regressed numbers
+   instead of the real ones was a real bug — a player's "stat line" read
+   something like "1.38 HR" instead of a real integer. */
+function b0RoundPool(){
+  if(B0_ROUND_POOL) return B0_ROUND_POOL;
+  const pairs = [];
+  TEAMNAMES.forEach(t=>{
+    Object.entries(TEAMS[t].seasons||{}).forEach(([y,s])=>{
+      const roster = (s.roster||[])
+        .filter(e=>e.regular && (e.regular.AB>0 || e.regular.IPouts>0))
+        .map(e=>({name:e.name, line:e.regular, regLine: b0RegressLine(e.regular)}));
+      if(roster.length>=5) pairs.push({team:t, year:+y, roster});
+    });
+  });
+  B0_ROUND_POOL = pairs;
+  return pairs;
+}
+/* the same deck, but each team-year's roster trimmed to only the players
+   who actually pitched that season — the pool the 2 forced Pitcher Rounds
+   deal from, so every option there is a real, legal pitching pick. */
+function b0PitcherPool(){
+  if(B0_PITCHER_POOL) return B0_PITCHER_POOL;
+  const pairs = [];
+  TEAMNAMES.forEach(t=>{
+    Object.entries(TEAMS[t].seasons||{}).forEach(([y,s])=>{
+      const roster = (s.roster||[])
+        .filter(e=>e.regular && e.regular.IPouts>0)
+        .map(e=>({name:e.name, line:e.regular, regLine: b0RegressLine(e.regular)}));
+      if(roster.length>=2) pairs.push({team:t, year:+y, roster});
+    });
+  });
+  B0_PITCHER_POOL = pairs;
+  return pairs;
+}
+/* draw one game's runs by taking a REAL team-game run total off the
+   league's own board and scaling it to this team's own projected rate —
+   preserves the real, bursty shape of actual BWB scoring (see b0RunsPool)
+   instead of assuming a smooth textbook curve centered on the mean */
+function b0BootstrapDraw(rate, avgRate, pool, rng){
+  const raw = pool[Math.floor(rng()*pool.length)];
+  const scale = avgRate>0 ? rate/avgRate : 1;
+  return Math.max(0, Math.round(raw*scale));
+}
+/* offense comes from all 5 drafted players; pitching comes ONLY from the
+   2 picks made in the Pitcher Rounds — a player who happened to pitch a
+   little that season but wasn't drafted IN a Pitcher Round simply doesn't
+   count toward the team's run prevention */
+function b0Simulate(picks, pitcherNames, rng){
+  const teamBat = sumRows(picks.map(p=>p.regLine));
+  const teamPit = sumRows(picks.filter(p=>pitcherNames.includes(p.name)).map(p=>p.regLine));
+  const teamOPS = ops(teamBat), teamERA = era(teamPit);
+  const lg = b0League();
+  const pool = b0RunsPool();
+  const projRPG = lg.ops>0 ? lg.rpg*(teamOPS/lg.ops) : lg.rpg;
+  const projRA = (isFinite(teamERA) && lg.era>0) ? lg.rpg*(teamERA/lg.era) : lg.rpg;
+  const winPct = projRPG/(projRPG+projRA);
+  const rand = rng || Math.random;
+  const log = [];
+  let wins=0;
+  for(let g=1; g<=B0_GAMES; g++){
+    const rs = b0BootstrapDraw(projRPG, lg.rpg, pool, rand), ra = b0BootstrapDraw(projRA, lg.rpg, pool, rand);
+    const win = rs>ra || (rs===ra && rand()<0.5);   // BWB games can't literally end tied — a coin flip breaks it
+    if(win) wins++;
+    log.push({g, rs, ra, win});
+  }
+  return {teamOPS, teamERA, projRPG, projRA, winPct, wins, losses: B0_GAMES-wins, log};
+}
+/* deal all 5 rounds at once: 2 randomly-chosen round indices (a fresh draw
+   every deal — see b0PickPitcherRounds) come from the pitcher-only pool,
+   the other 3 from the general pool — every round a distinct (team, year)
+   pair. Also verifies the two Pitcher Rounds can actually supply 2
+   DIFFERENT real people (the same person could in theory be the only
+   shared option in both, if they pitched in both dealt seasons) — cheap
+   to check with only 2 small rosters, and retrying the whole deal on the
+   rare miss is simpler than a mid-draft dead end. */
+function b0Rounds(rng){
+  const normalPool = b0RoundPool(), pitcherPool = b0PitcherPool();
+  const pIdxs = b0PickPitcherRounds(rng);
+  const openIdxs = [0,1,2,3,4].filter(i=>!pIdxs.includes(i));
+  let rounds = null;
+  for(let attempt=0; attempt<200 && !rounds; attempt++){
+    const usedKeys = new Set();
+    const trial = new Array(B0_ROSTER);
+    let ok = true;
+    for(const idx of pIdxs){
+      let picked=null;
+      for(let t=0; t<50 && !picked; t++){
+        const cand = pitcherPool[Math.floor(rng()*pitcherPool.length)];
+        const key = cand.team+'|'+cand.year;
+        if(!usedKeys.has(key)){ picked=cand; usedKeys.add(key); }
+      }
+      if(!picked){ ok=false; break; }
+      trial[idx] = picked;
+    }
+    if(ok && pIdxs.length===2){
+      const [r1,r2] = pIdxs.map(i=>trial[i]);
+      if(!r1.roster.some(p1=>r2.roster.some(p2=>p2.name!==p1.name))) ok=false;
+    }
+    if(ok) for(const idx of openIdxs){
+      let picked=null;
+      for(let t=0; t<200 && !picked; t++){
+        const cand = normalPool[Math.floor(rng()*normalPool.length)];
+        const key = cand.team+'|'+cand.year;
+        if(!usedKeys.has(key)){ picked=cand; usedKeys.add(key); }
+      }
+      if(!picked){ ok=false; break; }
+      trial[idx] = picked;
+    }
+    if(ok) rounds = trial;
+  }
+  if(!rounds) rounds = [0,1,2,3,4].map(i=>pIdxs.includes(i)?pitcherPool[0]:normalPool[0]);   // pathological fallback, never hit in practice
+  return rounds.map((r,i)=>({...r, isPitcherRound: pIdxs.includes(i)}));
+}
+function newB0Deal(rng){ return {rounds: b0Rounds(rng), picks: [], pitchers: [], locked:false, result:null}; }
+let b0Mode='daily', b0ShowStats=true, b0Daily=null, b0Practice=null;
+/* storage key versioned (v7 = which 2 rounds are Pitcher Rounds is now
+   itself random per deal, shifting the whole rng sequence a deal draws
+   from) so a browser with an in-progress draft saved under the old, fixed
+   4-and-5 shape is ignored, not misread against newly-regenerated rounds
+   that no longer line up with it. */
+function getDailyB0(){
+  const key = gridDailyKey();
+  if(!b0Daily || b0Daily.key!==key){
+    const rng = mulberry32(gridSeedFromString('bwb-b0v7-'+key));
+    b0Daily = {key, ...newB0Deal(rng)};
+    try{
+      const raw = localStorage.getItem('bwb-b0v7-'+key);
+      if(raw){
+        const saved = JSON.parse(raw);
+        if(Array.isArray(saved.picks) && saved.picks.every(p=>p && p.line && p.regLine && typeof p.line==='object')){
+          b0Daily.picks = saved.picks;
+          b0Daily.pitchers = Array.isArray(saved.pitchers) ? saved.pitchers : [];
+          b0Daily.locked = !!saved.locked;
+        }
+      }
+    }catch(e){}
+  }
+  return b0Daily;
+}
+function saveDailyB0(){
+  try{ localStorage.setItem('bwb-b0v7-'+b0Daily.key,
+    JSON.stringify({picks: b0Daily.picks, pitchers: b0Daily.pitchers, locked: b0Daily.locked})); }catch(e){}
+}
+function newPracticeB0(){ return newB0Deal(Math.random); }
+/* a player-season can hit, pitch, or both — show whichever lines are real
+   for that specific year rather than assuming one or the other */
+function b0LineSummary(line){
+  const parts = [];
+  if(line.AB>0) parts.push(`${rate(avg(line))}/${rate(obp(line))}/${rate(slg(line))} · ${line.HR} HR · ${line.RBI} RBI`);
+  if(line.IPouts>0) parts.push(`${wl(line)}, ${two(era(line))} ERA · ${line.pK} K`);
+  return parts.join(' — ');
+}
+function b0PlayerRow(pick, alreadyPicked){
+  const isPitcher = pick.line.IPouts>0;
+  const statsHTML = b0ShowStats ? `<span class="b0stats">${b0LineSummary(pick.line)}</span>` : '';
+  const actionHTML = alreadyPicked
+    ? '<span class="pmeta">Already on your team</span>'
+    : `<button type="button" class="b0draft" data-name="${esc(pick.name)}">Draft</button>`;
+  return `<li class="b0row">
+    <button class="pname" data-p="${esc(pick.name)}">${esc(pick.name)}</button>
+    ${isPitcher&&b0ShowStats?'<span class="gtag">P</span>':''}
+    ${statsHTML}${actionHTML}</li>`;
+}
+/* the daily simulation's "luck" is seeded off the day alone (not the
+   roster), so two people who draft the same day's rounds differently are
+   compared on team-building, not on who got the friendlier random draw;
+   practice mode has no such fairness need, so it just uses fresh
+   randomness each run */
+function b0SimRng(puzzle){
+  return b0Mode==='daily' ? mulberry32(gridSeedFromString('bwb-b0v3-sim-'+puzzle.key)) : Math.random;
+}
+const B0_RESULT_EMOJI = {win:'🟩', loss:'🟥'};
+function b0ShareText(puzzle){
+  const r = puzzle.result;
+  const strip = r.log.map(x=>B0_RESULT_EMOJI[x.win?'win':'loss']).join('');
+  return `BWB 15-0 ${puzzle.key}\n${strip}\n${r.wins}-${r.losses}`;
+}
+function b0RosterHTML(puzzle){
+  if(!puzzle.picks.length) return '<p class="empty">No picks yet — Round 1 is below.</p>';
+  return `<ol class="b0roster">${puzzle.picks.map((p,i)=>`<li>
+      <button class="pname" data-p="${esc(p.name)}">${esc(p.name)}</button>
+      <span class="pmeta">${esc(TEAMS[p.team].nick||p.team)} · ${p.year}${puzzle.pitchers.includes(p.name)?' · <span class="gtag">P</span>':''}</span>
+      ${!puzzle.locked && i===puzzle.picks.length-1 ? '<button type="button" class="b0remove" id="b0Undo">Undo</button>' : ''}
+    </li>`).join('')}</ol>`;
+}
+function renderB0(){
+  setNav('arcade');
+  if(b0Mode==='practice' && !b0Practice) b0Practice = newPracticeB0();
+  const puzzle = b0Mode==='daily' ? getDailyB0() : b0Practice;
+  if(puzzle.locked && !puzzle.result) puzzle.result = b0Simulate(puzzle.picks, puzzle.pitchers, b0SimRng(puzzle));
+  const draftDone = puzzle.picks.length===B0_ROSTER;
+  const roundIdx = puzzle.picks.length;
+  const round = puzzle.rounds[roundIdx];
+  const pickedNames = new Set(puzzle.picks.map(p=>p.name));
+  const lg = b0League();
+  let bodyHTML;
+  if(puzzle.locked && puzzle.result){
+    const r = puzzle.result;
+    const gameLogHTML = r.log.map(x=>
+      `<li class="${x.win?'b0win':'b0loss'}">G${x.g} <b>${x.rs}-${x.ra}</b> ${x.win?'W':'L'}</li>`).join('');
+    bodyHTML = `<div class="b0result" style="--tier:${statpadTier(null, r.wins===B0_GAMES).color}">
+      <div class="b0record">${r.wins}-${r.losses}</div>
+      <p class="pmeta">A simulated ${B0_GAMES}-game season, one game at a time, chasing a perfect ${B0_GAMES}-0 —
+        this team's combined ${rate(r.teamOPS)} OPS (all 5) projects to about ${r.projRPG.toFixed(1)} runs a game
+        scored, and its two Pitcher Round picks' combined ${two(r.teamERA)} ERA projects to about
+        ${r.projRA.toFixed(1)} runs a game allowed, against a league that's averaged ${lg.rpg.toFixed(1)} runs a
+        game in real games — an expected win rate of ${rate(r.winPct)}. Each game's score is a real BWB team-game
+        run total pulled off the league's own board and scaled to this rate, not a textbook bell curve, so
+        blowouts and shutouts show up as often as they actually have around here. Every rate here is also already
+        regressed toward league average by how much each player actually played that season.</p>
+      <ul class="b0gamelog">${gameLogHTML}</ul>
+      ${b0Mode==='daily' ? shareResultButton('b0Share') : ''}
+    </div>`;
+  } else if(!draftDone && round){
+    const yrs = TEAMS[round.team].years||[];
+    const logo = teamLogoForYear(round.team, round.year<=yrs[yrs.length-1] ? round.year : yrs[yrs.length-1]);
+    const poolHTML = round.roster.map(p=>b0PlayerRow(p, pickedNames.has(p.name))).join('');
+    bodyHTML = `<div class="b0team">${logo?`<img class="b0logo" src="${logo}" alt="">`:''}
+        <div><h3 class="hsub" style="margin:0">${esc(TEAMS[round.team].nick||round.team)} · ${round.year}
+          ${round.isPitcherRound?'<span class="b0pround">Pitcher Round</span>':''}</h3>
+        <span class="pmeta">Round ${roundIdx+1} of ${B0_ROSTER} · ${round.roster.length} on this roster
+          ${round.isPitcherRound?'· everyone here pitched this season — whoever you draft joins your staff':''}</span></div>
+      </div>
+      <ul class="b0pool">${poolHTML}</ul>`;
+  } else {
+    bodyHTML = '';
+  }
+  const lockGateHTML = (draftDone && !puzzle.locked)
+    ? '<p class="note"><button type="button" class="pname" id="b0Lock">Lock in this team →</button></p>' : '';
+  app.innerHTML = `
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${b0Mode==='daily'?`Today's Draft · ${puzzle.key}`:'Practice Draft'}</span></div>
+    ${arcadeTabBar('b0')}
+    <p class="lead">Five rounds, one real BWB team-and-year dealt each round — draft exactly one player from that
+      season's actual roster before moving to the next round (no player twice, even in a different year). Two of
+      the five rounds — a random pair, different every deal — are <b>Pitcher Rounds</b>: the pool there is only
+      players who actually pitched that season, and whoever you draft joins your pitching staff automatically —
+      they still hit for you too. No budget, no cap — every player's a free pick; the ${B0_GAMES}-game simulation
+      is where the real difficulty lives. Lock in once all 5 are drafted to chase a perfect ${B0_GAMES}-0.</p>
+    <div class="segs" role="group" aria-label="15-0 mode">
+      <button data-b0m="daily" aria-pressed="${b0Mode==='daily'}">Today's Draft</button>
+      <button data-b0m="practice" aria-pressed="${b0Mode==='practice'}">Practice Draft</button>
+    </div>
+    ${b0Mode==='practice'?'<p class="note"><button class="pname" id="b0Shuffle">Deal a new practice draft →</button></p>':''}
+    <div class="segs" role="group" aria-label="Stat visibility">
+      <button data-b0v="show" aria-pressed="${b0ShowStats}">Draft — stats shown</button>
+      <button data-b0v="hide" aria-pressed="${!b0ShowStats}">Blind — stats hidden</button>
+    </div>
+    <h3 class="hsub">Your Team (${puzzle.picks.length}/${B0_ROSTER}${puzzle.picks.length?`, ${puzzle.pitchers.length} P`:''})</h3>
+    ${b0RosterHTML(puzzle)}
+    ${lockGateHTML}
+    ${bodyHTML}`;
+  wireB0();
+  if(puzzle.locked && puzzle.result && b0Mode==='daily') wireShareButton('b0Share', ()=>b0ShareText(puzzle));
+}
+function wireB0(){
+  wireArcadeTabBar();
+  app.querySelectorAll('[data-b0m]').forEach(b=>b.addEventListener('click',()=>{
+    b0Mode = b.dataset.b0m;
+    if(b0Mode==='practice' && !b0Practice) b0Practice = newPracticeB0();
+    renderB0();
+  }));
+  const shuffleBtn = document.getElementById('b0Shuffle');
+  if(shuffleBtn) shuffleBtn.addEventListener('click', ()=>{ b0Practice = newPracticeB0(); renderB0(); });
+  app.querySelectorAll('[data-b0v]').forEach(b=>b.addEventListener('click',()=>{
+    b0ShowStats = b.dataset.b0v==='show'; renderB0();
+  }));
+  app.querySelectorAll('.b0draft[data-name]').forEach(b=>b.addEventListener('click',()=>{
+    const puzzle = b0Mode==='daily' ? b0Daily : b0Practice;
+    if(puzzle.locked || puzzle.picks.length>=B0_ROSTER) return;
+    if(puzzle.picks.some(p=>p.name===b.dataset.name)) return;   // no player twice, even a different year
+    const round = puzzle.rounds[puzzle.picks.length];
+    const pick = round.roster.find(p=>p.name===b.dataset.name);
+    if(!pick) return;
+    puzzle.picks.push({name:pick.name, team:round.team, year:round.year, line:pick.line, regLine:pick.regLine});
+    if(round.isPitcherRound) puzzle.pitchers.push(pick.name);
+    if(b0Mode==='daily') saveDailyB0();
+    renderB0();
+  }));
+  const undoBtn = document.getElementById('b0Undo');
+  if(undoBtn) undoBtn.addEventListener('click', ()=>{
+    const puzzle = b0Mode==='daily' ? b0Daily : b0Practice;
+    if(puzzle.locked) return;
+    const last = puzzle.picks.pop();
+    if(last) puzzle.pitchers = puzzle.pitchers.filter(n=>n!==last.name);
+    if(b0Mode==='daily') saveDailyB0();
+    renderB0();
+  });
+  const lockBtn = document.getElementById('b0Lock');
+  if(lockBtn) lockBtn.addEventListener('click', ()=>{
+    const puzzle = b0Mode==='daily' ? b0Daily : b0Practice;
+    puzzle.locked = true;
+    puzzle.result = b0Simulate(puzzle.picks, puzzle.pitchers, b0SimRng(puzzle));
+    if(b0Mode==='daily') saveDailyB0();
+    renderB0();
+  });
+  app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/p/'+encodeURIComponent(b.dataset.p);
+  }));
+}
+
 function dispatch(h){
   let m;
   if(h === '#/standings') return renderStandings();
   if((m = h.match(/^#\/div\/(.+)$/))) return renderDivision(decodeURIComponent(m[1]));
+  if((m = h.match(/^#\/series\/(\d+)\/(\w+)$/))) return renderSeries(+m[1], m[2]);
   if(h === '#/leaders') return renderLeaders();
   if(h === '#/records') return renderRecords();
   if(h === '#/champs') return renderChampsPage();
   if(h === '#/awards') return renderAwards();
   if(h === '#/beavers') return renderBeavers();
-  if((m = h.match(/^#\/beavers\/(.+)$/))) return renderBeavers(decodeURIComponent(m[1]));
+  if((m = h.match(/^#\/beavers\/t\/(.+)$/))) return renderBeaverTournament(decodeURIComponent(m[1]));
+  if((m = h.match(/^#\/beavers\/(.+)$/))){
+    const gid = decodeURIComponent(m[1]);
+    const t = bvTournamentForGame(gid);
+    return t ? renderBeaverTournament(t.meta.date, gid) : renderBeavers();
+  }
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games') return renderGames();
   if((m = h.match(/^#\/t\/(.+)$/))) return teamDetail(decodeURIComponent(m[1]));
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))) return detail(decodeURIComponent(m[1]));
   if(h === '#/players') return renderDir();
+  if(h === '#/compare') return renderCompare(null, null);
+  if((m = h.match(/^#\/compare\/([^/]+)\/([^/]+)$/)))
+    return renderCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
+  if(h === '#/arcade') return renderGrid();
+  if(h === '#/grid') return renderGrid();
+  if(h === '#/statpad') return renderStatpad();
+  if(h === '#/15-0') return renderB0();
+  if(h === '#/office') return renderOffice();
   return renderHome();
 }
 function route(){

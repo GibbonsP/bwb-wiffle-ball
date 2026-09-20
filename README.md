@@ -3186,6 +3186,1590 @@ plain text since neither name matched a real player key. Verified both
 names now show as separate linked players on the Awards page's All-Star
 Games tab, and both players' own profiles show "All-Star Game MVP · 2024".
 
+## New exhibition game: the Brookside Field Finale
+
+Added a one-off exhibition game — All-Time Panthers vs. All-Time Kraken,
+2026-04-11 at Brookside Field — as a full new phase, not a Beavers-style
+bolt-on. Transcribed and verified against the source box score
+(mystatsonline.com, IDGame=1888619): every player's batting/pitching line
+cross-checked against that team's printed totals (AB, R, H, HR, RBI, BB, K
+for batting; H, R, ER, BB, K for pitching) before writing anything — all
+reconciled exactly.
+
+Chose to model this as a real `GAMES` entry (`gid: 1888619`, `phase:
+'Exhib'`) rather than a parallel data source like the Beavers, since unlike
+the Beavers' separate GameChanger export, this is a single normal-shaped box
+score that fits the existing schema exactly — doing it this way means
+`collectPlayerGames`/`playerGameLog`/`playerSplits`/`boxScore` all handle it
+for free, no new rendering code needed beyond registering the phase itself:
+
+- `SEASON_TYPES` and `PHASE_META` gained an `Exhib` entry (`head:'Brookside
+  Field Finale'`), and the player-profile tab order now reads Regular →
+  Playoffs → All-Star → Spring → Fall → **Exhib** → NWLA, per the user's
+  requested placement.
+- `phLabel()` maps `Exhib` → "Exhibition" for the small phase-tag badge
+  (games list, etc.), matching how `AllStar` already maps to "All-Star".
+- Added one `Exhib`-type season row per player to `players.json` (12
+  players total — 6 per side, all already-registered players), plus the
+  `GAMES` entry itself, via a script that asserted each side's per-player
+  lines summed to that side's actual final line-score totals before writing
+  anything.
+- "All-Time Panthers" / "All-Time Kraken" are plain strings, not `TEAMS`
+  entries — exactly like "Brookside Beavers" before it was special-cased,
+  every existing team-name formatter (`teamCell`, `histTeamLink`, etc.)
+  already falls back to plain unlinked text for an unknown team, so this
+  needed no new code to satisfy "they don't need team pages." Confirmed on
+  the Games list: the date is a link, the team names are not.
+
+Because it's tagged `phase: 'Exhib'` (not `'Regular'`), it's automatically
+excluded from things that should stay real-season-only: team win/loss
+streaks, single-game Records leaderboards, and the forfeit-day detector —
+none of those needed to change, they simply never look at this phase.
+
+Verified: all 12 players' Stats/Splits/Game Log sub-tabs render with zero
+errors; the two batting-only players (Peter Sposato, Austin Corvino)
+correctly show no Pitching table; the box score page's line score, R/H/E,
+and every batting/pitching line matches the source exactly; the Games list
+shows the game with an "Exhibition" tag and unlinked team names.
+
+## Exhibition tab: generic label, event name shown as context
+
+Follow-up correction: the new phase's tab/heading was showing "Brookside
+Field Finale" directly, but the user wanted the tab itself generic
+("Exhibition" — matching the pattern of every other phase tab being a
+category, not a specific event name) with the actual event named as context
+underneath, since this phase is meant to hold whatever one-off exhibition
+games come along later, not just this one.
+
+`PHASE_META.Exhib.head` changed to `'Exhibition'`. Rather than hardcode
+"Brookside Field Finale" into the subtitle (which would be wrong the moment
+a second, differently-named event gets added), `phaseBlock()` now derives
+the event name(s) straight from that phase's actual games — reading the
+`div` field already on each game (`collectPlayerGames(pl, 'Exhib').map(r=>
+r.g.div)`, deduped, year-prefix stripped since the year already shows
+separately). Subtitle now reads "1 appearance · 2026 · Brookside Field
+Finale" — generic label, specific event named from the data, and correct
+automatically if a differently-named second event shows up next year.
+
+## Team page: Season by Season redesign, Franchise Roster split
+
+**Season by Season** (`teamRecordTable`) column order changed to Year, Name,
+Division, W, L, PCT, Result, Finish, RF, RA, Diff, per the user's exact
+spec. Removed: Ros (roster count) and the old raw "Playoffs" W–L column,
+replaced by the new narrative Result column; the combined "W–L" mono column
+also split into separate W and L columns.
+
+Three new columns, all computed from data already on hand — nothing new
+added to `players.json`:
+
+- **Division**: `divisionOf(name, y)` finds which key in `DB.divisions[y]`
+  lists this team. Shows the division's own era-accurate name for that year
+  directly (`DB.divisions` is already keyed "North"/"South" pre-2021,
+  "Brookside"/"Brentwood" from 2021 on) — no canonicalizing needed. Caught a
+  genuine historical quirk while testing, not a bug: Brookside Panthers are
+  filed under the "Brentwood" division key in 2023 in the source data, since
+  (per an existing code comment) these are fixed bracket-position labels,
+  not geography. The column correctly surfaces that instead of hiding it.
+- **Finish**: `divisionFinish(name, y, dn)` reruns that division's own
+  standings sort (PCT, then head-to-head, then run differential — the exact
+  comparator `renderDivision` uses) and reports this team's rank as an
+  ordinal (1st/2nd/3rd/...).
+- **Result**: `playoffResultFor(name, y)` — `DNQ` if the team isn't in
+  either side's seeds that year; `LOST WC` or `LOST DS` (year ≥2025 → DS,
+  matching the user's note that the first round was always a single
+  winner-take-all game before 2025, so there's no score to show) if they
+  lost round one; otherwise `WON WS`/`LOST WS` with a real series score.
+  That score — same lesson as the bracket work earlier this session — is
+  counted from the actual matched box scores via the existing `seriesGids`
+  helper, never read off `PLAYOFFS[y].finalSeries`'s own tuple order (proven
+  unreliable then, so never trusted here either). Falls back to no score
+  (just "WON WS") on the one year (2017) where no box score for the Final
+  exists to count — same "don't fabricate a number" rule as everywhere else.
+
+**Franchise Roster** (`teamAllYears`) split into "Franchise Roster ·
+Hitting" and "Franchise Roster · Pitching" instead of one table with both
+sets of columns side by side — matches the Batting/Pitching split already
+used in every other stat table on the site (`phaseBlock`,
+`teamStatsBySeason`). Each table now only lists players relevant to it
+(`PA>0` / `IPouts>0`), and the pitching table sorts by innings pitched
+rather than inheriting the batting table's PA sort.
+
+Verified: all 15 franchises with a real team page render both new sections
+with zero errors; spot-checked several teams' Division/Finish/Result values
+against the underlying `DB.divisions`/`PLAYOFFS`/`GAMES` data directly
+(2026 Panthers "LOST WS 2-0" matches the Shock sweep confirmed earlier this
+session); Career total row correctly leaves Division/Result/Finish blank
+rather than showing a meaningless aggregate.
+
+## Season by Season: Home/Away and vs-division records, with PCT
+
+User asked for Home/Away and Brookside-vs-Brentwood records added, each
+with its own winning percentage, then asked directly whether it would all
+fit. It would not, as separate columns — Home alone would need 3 (W, L,
+PCT), ×4 record types = up to 12 new columns on top of the 11 already
+there. Fit it by combining each record into one cell instead: `fmtSplit(w,l)`
+renders `"10–1 (.909)"`, W-L primary and PCT muted/parenthetical — same
+idea as the site's existing combined "W–L" cells (Home/Away already render
+this way on the Standings page), just with PCT folded in. That kept it to
+4 new columns (Home, Away, vs Brookside, vs Brentwood) instead of up to 12.
+
+"Brookside vs Brentwood" specifically (not "vs North/South" pre-2021) was a
+deliberate choice, not just copying the Standings page's own per-division
+columns: this table spans every year in one place, both eras, so the column
+*headers* have to be fixed — `vsCanonicalRecord()` looks up each
+opponent's division for that specific year and folds it through
+`canonicalDivision()` (North→Brookside, South→Brentwood, the same mapping
+the site already uses to treat 2012's North/South as one continuous
+division under two names) before bucketing the W/L. A 2018 opponent from
+"North" and a 2023 opponent from "Brookside" land in the same column
+correctly.
+
+Home/Away comes straight off `standRow()`'s own hW/hL/aW/aL, already
+computed for the Standings page. Career-row totals for all four new columns
+are accumulated across years in the same loop that builds each season's row,
+rather than a second pass.
+
+Verified by reconciling every direction the numbers can be checked against
+each other for the 2017 Panthers and their career totals: Home+Away game
+counts equal the season's overall total, vs Brookside + vs Brentwood game
+counts also equal that same total, and both pairs' summed W/L match the
+season's overall W/L exactly — true for both the single 2017 row and the
+full career row (177 games either way summed). All 15 real team pages
+render with zero console errors.
+
+## Playoff series pages, Finish format, Playoffs column rename
+
+Three related asks in one turn.
+
+**Finish**: `divisionFinish()` now returns `"1st of 3"` instead of just
+`"1st"` — the division's own team count for that year appended, so the
+number means something without cross-referencing the standings.
+
+**Result → Playoffs**: renamed the column header only; the underlying
+`playoffResultFor()` data/logic is unchanged.
+
+**New playoff series pages** (`renderSeries(year, roundKey)`, routed at
+`#/series/<year>/<brookside|brentwood|final>`), modeled on
+baseball-reference's postseason series pages: every game in that series and
+each side's combined batting/pitching across just those games. The
+`roundKey` values are deliberately the same three keys `playoffResultFor()`
+already computes internally (`'brookside'`/`'brentwood'` for a round-1 exit,
+`'final'` for anything that reached the World Series) — that function now
+returns `{label, seriesKey}` instead of a bare string, so the Playoffs
+column's cell can link straight to the right series with no re-deriving of
+which round it was. `DNQ` and years/entries with no series naturally get
+`seriesKey: null` and render as plain unlinked text, so "no link for a team
+that didn't qualify" falls out of the existing logic rather than needing a
+special case.
+
+Stats reuse `rosterBatting`/`rosterPitching` (already built for the
+division All-Star pages) fed a roster built by summing just that series'
+own `gameBatRow`/`gamePitRow` lines per player — the exact same aggregation
+shape, just scoped to a handful of games instead of a whole division-year.
+OPS+ uses `post:true` (postseason league baseline for that year), matching
+how every other postseason OPS+ figure on the site is computed.
+
+One gap found in testing, not a crash but a bad user experience: a series
+with no matched box scores (2017-era games, before per-game logging) was
+silently bouncing the click back to Standings with zero explanation. Fixed
+by keeping the user on the series page and showing what the bracket data
+*does* know — both teams, who won — with a note that no box scores exist
+for that era, matching the "show what we know, say what we don't" pattern
+used for the Postseason tab's own empty state.
+
+Verified exhaustively: all 10 years × 3 round keys (30 series) render with
+zero errors, including the no-box-score 2017 case landing on its new
+fallback message instead of redirecting away. Clicked through for real
+(not just programmatically) from the Panthers' 2025 "WON WS 2-1" cell —
+landed on a page showing the correct 3 games (3–0, 0–5, 1–0 over the
+Kraken), which also lines up with a no-hitter already on record this
+session (TJ Ciafone's Game 2 shutout "to force Game 3").
+
+## Playoff series pages: game boxes instead of linked lines
+
+User shared a baseball-reference-style game-result card (team names, score,
+W/L/S pitchers) and asked for that instead of the plain linked-line list the
+series pages launched with — scoped explicitly to the playoff series pages
+only, not the Beavers page's own separate game cards or anything else.
+
+Each game is now its own `.pb-match` card (reusing the exact classes the
+playoff bracket already uses, so it's visually consistent with the rest of
+the site rather than a one-off style): a header with game number and date,
+a `.pb-row` per team with logo, name, and that game's own run total —
+highlighted via the bracket's existing `.pb-row.win` treatment — then a
+decisions section listing **W**/**L**/**S** with the actual pitcher(s) who
+recorded them that game, and a "Box score →" link. Cards lay out in a
+wrapping flex row (new `.game-cards` class) so a 2-or-3-game series reads
+as a short row of cards rather than a tall stack.
+
+Decisions come straight off each game's own pitching lines — whichever
+pitcher(s), from either side, actually carry `w>0`/`l>0`/`sv>0` for that
+specific game (`decisionsFor(g)`); skipped the "(1-0)" running-record
+parenthetical real box scores show next to each name, since computing a
+pitcher's correct record as-of that exact date would need its own
+chronological pass — noting it here in case it's wanted later, but out of
+scope for "show it as boxes."
+
+Verified: all 10 years × 3 round keys re-render with zero errors after the
+change; spot-checked the 2025 World Series (Panthers over Kraken, 2-1) —
+each card's teams, scores, win highlight, and W/L pitcher both link and
+match the actual box score; confirmed the Beavers page (which has its own
+separate, unrelated game-card renderer) was untouched.
+
+## Running (W-L)/SV record next to each decision
+
+Follow-up to the game-box cards: added the "(1-0)" running record real box
+scores show next to each W/L, and a plain save count like "(4)" next to SV
+— the piece explicitly skipped last time as needing its own chronological
+pass. `pitcherPostseasonTally(name)` builds exactly that pass: every one of
+that pitcher's Playoffs-phase games *for that year* (via the same
+`collectPlayerGames` used everywhere else on the site), sorted
+chronologically, walked once to build a `gid → {w,l,sv}` running-total map.
+Scoped to that single year's postseason, not regular season or career —
+matches how a real postseason record actually resets each October, and how
+a team's own two rounds (round-1 + potentially the Final) share one running
+tally, not two independent ones. Cached per pitcher per page since the same
+starter/closer often appears in multiple games in the same series.
+
+Verified by hand against the raw game data, not just re-reading my own
+output: pulled every one of Peter Fraioli's and TJ Ciafone's 2025 Playoffs
+pitching lines directly from `players.json` in date order and recomputed
+their running W-L myself — matched the page exactly at every step,
+including a case where the record entering a series' Game 1 already
+reflected 2 decisions from an earlier round-1 series that same postseason
+(Fraioli: "(3-0)" after Game 1, not "(1-0)", because he'd already picked up
+2 wins in the round before it). Also found and confirmed a real save case
+(Evan Wilkins, 2020 World Series Game 2) renders "S Evan Wilkins (1)"
+correctly. Full 30-series sweep still zero errors after the change.
+
+## Game card formatting fixes
+
+User caught two real layout bugs after the running-record change.
+
+**Score misalignment**: the winning team's score wasn't lining up with the
+losing team's, because the winning row's `.pb-row.win::after` arrow
+(inherited from the original bracket styling, where it means "advanced")
+sits *after* the score and also claims `margin-left:auto` — competing with
+the score's own auto margin and shoving it left of where the loser's score
+sits. Since the user also said the arrow wasn't wanted here, removed it with
+a scoped override (`.game-cards .pb-row.win::after{content:none}`) rather
+than touching `.pb-row.win` globally — the original bracket display
+(Standings/home page) still gets its arrow, confirmed unaffected.
+
+**Decision rows wrapping onto 3 lines**: "W", the pitcher's name, and their
+"(3-0)" record were each landing on their own line instead of reading as
+one line. Root cause: `.pb-score button.pname{display:block}`, written for
+the *previous* single-link-per-game design (back when the whole card was
+one clickable line) and never scoped down when the cards gained multiple
+buttons per card (box score link + a linked name per decision). Fixed by
+moving `display:block` to a new `.pb-boxlink` class applied only to the
+"Box score →" button, and giving `.pb-score-row` its own
+`display:flex;align-items:baseline;gap:5px` so W/L/S rows lay out inline
+correctly by construction rather than by accident.
+
+Verified visually this time, not just via DOM queries — screenshotted the
+2025 World Series page before and after: scores now sit flush on the same
+right edge on both the winning and losing row in every card, no arrow, and
+every decision reads as one line ("W Peter Fraioli (3-0)"). Re-ran the full
+30-series sweep (zero errors) and confirmed the original bracket's own win
+arrow on Standings/home still renders exactly as before.
+
+## Playoff bracket links to the series pages too
+
+The series pages were only reachable from a team's own Season by Season
+Playoffs column. User asked for the bracket itself (shown on the home page
+snapshot and the Standings page) to link there too.
+
+Added a "Full series →" row inside each bracket match's existing `.pb-score`
+box (`pbScore()` gained an optional `seriesKey` param that appends this row
+using the same `data-series` pattern the team-page link already uses) —
+`'brookside'`/`'brentwood'` for each semi, `'final'` for the World Series
+box, matching `renderSeries()`'s own routing exactly. Since `playoffBracket()`
+itself is shared by two different pages (`renderHome()` and
+`renderStandings()`), the `.pname[data-series]` click handler had to be
+added to both pages' own listener blocks, not just one.
+
+Verified: both the home page snapshot and Standings show all three "Full
+series →" links per year with the correct year/round encoded; clicked one
+through end-to-end to the right series page; re-ran the full bracket ×
+series sweep across all 10 years with zero errors.
+
+## Percentile Rankings: faded estimate below qualification
+
+Previously a player under the qualification bar (9+ G batting, 12+ IP
+pitching) got nothing at all for that season — "No qualified regular
+season." User wanted an estimate shown anyway down to a much lower floor
+(3+ G batting, 3+ IP pitching), visually marked as unofficial, and — the
+important constraint — without that player joining the comparison pool
+itself and skewing everyone else's percentile.
+
+That constraint fell out almost for free from how the pool was already
+built: `qb`/`qp` are filtered by the real `SV_MING`/`SV_MINOUTS` bar, which
+an unqualified subject by definition doesn't clear — so plotting their
+percentile *against* `qb`/`qp` unchanged, without adding them to it, was
+just a matter of calling `svPct()`/`svPanel()` on a subject that isn't part
+of the array it's being measured against. Added `SV_MIN_SHOW_G = 3` /
+`SV_MIN_SHOW_OUTS = 9` (3 innings) as the new floor just for *displaying*
+an estimate; `svPanel()` takes an `unqualified` flag that tags the panel
+title ("est. · unqualified") and every row with a new `.svunq` class.
+Verified directly: pulled the qualified pool for Alex Homem's 2020 season
+(3 games, well under the 9-game bar) and confirmed his own row was not a
+member of the 13-player pool his estimate was plotted against.
+
+Faded/patterned per the user's own suggestion: `.svrow.svunq{opacity:.5}`
+for the fade, a dashed 2px border on the percentile dot, and a diagonal
+hatch pattern layered onto the bar track's existing color gradient (multiple
+`background` layers, hatch on top) — all scoped so a fully-qualified
+player's panel (checked Peter Fraioli) picks up none of it. A season below
+even the 3/3 floor still shows nothing, with the "not enough of a line to
+estimate" message adjusted to reference the new, lower floor instead of the
+qualification bar.
+
+Verified across the whole roster: every player × every one of their
+regular-season years (96 players) rendered with zero errors.
+
+## Fixed: unqualified percentile bar line wasn't actually faded
+
+Follow-up ask ("add faded lines too") turned out to be pointing at a real
+bug in the first pass, not a missing feature. `.svrow.svunq .svbar::before`
+set `background-image` directly to just the hatch pattern — since the base
+bar's blue-grey-red scale was *also* set via the `background` shorthand (on
+the plain, lower-specificity `.svbar::before` rule), the unqualified
+override's higher-specificity `background-image` replaced it outright
+instead of layering on top. The line for an unqualified row was rendering
+as a bare white hatch with no color scale underneath at all — not faded,
+just wrong.
+
+Fixed by listing both background layers together in the override (hatch
+pattern first, base gradient second — first-listed paints on top) and
+adding an explicit `opacity:.55` on the bar itself, on top of the row's
+existing `opacity:.5` fade, plus a small opacity reduction on the dot
+(`.85`) for consistency. Verified via computed styles (not just re-reading
+the CSS) that the fixed rule now resolves to both the hatch pattern *and*
+the original gradient stacked together, and separately confirmed a
+qualified player's bar (Peter Fraioli) still resolves to the plain,
+full-strength gradient with no hatch and no extra opacity — the fix is
+additive for unqualified rows only, nothing about the normal case changed.
+Full 96-player sweep still zero errors.
+
+## Records page split into tabs
+
+The four sections (Single-Season, Single-Game, Streaks, No-Hitters &
+Perfect Games) used to all render at once, stacked in one long scroll.
+Split into tabs — same `subtabs`/`data-XX`/`aria-pressed` pattern already
+used on the Awards page and player profiles — while keeping the era chips
+working exactly as before.
+
+New `recordsTab` state (alongside the existing `recordsEra`), a `tabs` array
+of `[key, buttonLabel, heading, contentHTML]` built from the same
+computations as before (nothing about *how* each section is computed
+changed, only how much of the final markup gets shown), and a `data-rt`
+click handler that swaps tabs without touching era state. Each section's
+own content generation still runs on every render regardless of which tab
+is active — the dataset is small enough that this costs nothing measurable,
+and keeping it unconditional means the era chip's existing behavior (already
+correct per-section, including No-Hitters staying deliberately unaffected
+by era) needed no changes to keep working under tabs.
+
+Verified: all 4 tabs show distinct, correctly-labeled content; switching
+the era chip while on the Streaks tab stays on Streaks and actually changes
+the numbers; the No-Hitters tab's content is provably identical between
+"All Years" and "2022–2026 Era" (byte-identical length), confirming it's
+still exempt from the era filter as intended. Swept all 12 tab × era
+combinations programmatically — zero errors.
+
+## New feature: Player Comparison tool
+
+Added a head-to-head player comparison — pick two players, see their career
+lines side by side, at `#/compare` (picker) and `#/compare/<A>/<B>` (the
+actual comparison). Entry point is a "Compare Players →" button on the
+Players directory's controls bar rather than a new top-level nav item (nav
+already has 10 entries; this reads as a Players sub-feature, not a whole new
+section).
+
+**Picker**: two text inputs backed by a shared `<datalist>` of every player
+name (same pattern already used for the team-name input in the season-row
+editor), a "Compare →" button, and Enter-to-submit on either field. An
+unrecognized name doesn't silently fail — shows "Couldn't find '{name}' —
+pick a name from the list" and leaves the picker up so it's a one-character
+fix, not a dead end.
+
+**Comparison view**: Career Hitting (full slash line plus counting stats,
+OPS+ injected as an extra row via `careerWeights`/`opsPlusFor` since it needs
+each player's own year-by-year weighting, not just their raw career totals)
+and Career Pitching — the latter only rendered if *either* player has any
+IPouts at all, so a pure-hitter-vs-pure-hitter comparison doesn't show an
+empty pitching table. An Accolades block (World Series rings, awards,
+All-Star selections, All-Star Game MVP, HR Derby titles, no-hitters) reuses
+the same lookups (`HRD_BY_PLAYER`, `ASGMVP_BY_PLAYER`, `NOHIT_BY_PITCHER`)
+built earlier this session for the individual player-page accolades, so
+nothing needed to be recomputed. Every row highlights whichever side is
+better, with a `lowerBetter` flag per stat — batting K is fewer-is-better,
+pitching K is more-is-better, same row label, opposite direction, both
+correct in the same table.
+
+Verified: cross-checked the actual highlighted winner and value against
+known career lines (Fraioli vs Gibbons) for both the fewer-is-better and
+more-is-better cases, including the two K rows landing on opposite winners
+for exactly the reason they should; confirmed a real `IPouts=0`-but-
+`G_pit>0` edge case (a token relief appearance with zero outs recorded)
+renders ERA as "—" instead of a divide-by-zero artifact; swept all 96
+players in sequential pairs (and a full run pairing every player against
+the next one in the roster) with zero errors. Noted one minor rough edge
+for later, not fixed: Enter-to-submit in a `<input list>` field can get
+swallowed by the browser's own datalist-suggestion UI in some cases — the
+"Compare →" button is unaffected and remains the reliable path.
+
+## 2026-09-18 — Fixed stray gray values on Standings and other directory tables
+
+Reported: "why are some values in the standings faded gray, make sure
+they are all the same navy color."
+
+Root cause: `.dir tbody td:nth-child(2){color:var(--muted)}` — a blanket
+rule that muted the *second column* of every `.dir`-classed table purely
+by position, added for the Players/Leaderboards tables where column 2 is
+the "Tm" (team abbreviation) column. But several other tables share the
+`.dir` class with a totally different column 2: Standings' `W` column,
+the Division page's "Member Teams" table's `Seasons` column, and the
+Games list's away-team-name column — all three were being greyed out
+with no relation to what they actually contain.
+
+The Players/Leaderboards "Tm" column already had its own dedicated,
+correctly-scoped rule — `.dir td.tm{color:var(--muted)}` — applied via
+an explicit `tm` class on those cells specifically. The position-based
+rule was pure redundant dead weight for its one legitimate use case and
+an active bug everywhere else. Deleted it outright; no replacement rule
+needed since `.dir td.tm` already covers the intended case.
+
+Verified via computed `color` styles (not just re-reading the CSS):
+Standings' W/L/PCT cells, the Division member table, and the Games list
+now all resolve to the standard ink color; the Players directory's `Tm`
+column is still muted as intended. Swept Standings, Players, Games,
+both Division pages, Teams, Records, and Compare with zero console
+errors.
+
+Follow-up: user reported still seeing gray values on Standings and
+Games after that fix. Turned out to be two more, unrelated `var(--muted)`
+rules, not the same bug — `.stand .rk` (the small "1"/"2"/"3" rank
+number in front of each team name on Standings) and `.gtag` (the
+playoff-round badge, e.g. "World Series"/"Divisional Series", shown
+next to the season on Games, Home's recent-games list, and player Game
+Logs). Both were deliberately muted by earlier design choices, but per
+this feedback the user wants Standings and Games fully navy with no
+gray text at all, so switched both to `var(--ink)`. Verified via
+computed styles that `.rk` and `.gtag` now render the same navy as
+their surrounding row text, with zero console errors.
+
+## 2026-09-18 — Fixed 2023 WS game order; added a postseason overview page per year
+
+**2023 World Series game order**: reported "game 1 and 3 for the 2023 WS
+are flipped." All three games shared the same recorded date
+(2023-08-06) with no `dt` timestamp, so `seriesGids`' sort fell back to
+insertion order (ascending gid) for the tie — which put Bananas 2–0
+Gladiators first and Bananas 3–4 Gladiators last, backwards from the
+real order. Added explicit `dt` timestamps an hour apart to the three
+`GAMES` entries (29918520, 29918519, 29918518) so the true order sorts
+correctly: Game 1 Bananas 3–4 Gladiators, Game 2 Bananas 5–12
+Gladiators, Game 3 Bananas 2–0 Gladiators — a sweep, matching the
+recorded champion. Since `renderSeries`' game numbering and each
+pitcher's running postseason record both derive from this same sort,
+fixing the timestamps fixed both in one place rather than patching the
+display layer.
+
+**Postseason overview page**: new `renderPostseason(year)` at
+`#/postseason/<year>` — reuses the existing `playoffBracket(year)` (the
+same bracket with round-1/WS game-score boxes already shown inline on
+Standings and Home) as a first-class destination of its own, with year
+chips across every postseason on record so it doubles as a browsable
+archive. The bracket's own "Full series →" links already went into the
+round pages built earlier this session (`renderSeries`); this page is
+just a proper home for the bracket to live at, so those links needed no
+changes.
+
+Wired up three entry points: the "{year} Playoffs" heading on both
+Standings and Home is now a button into this page instead of static
+text, and every round page's "← Standings" back button now reads
+"← {year} Postseason" and returns here instead — since a round page is
+always reached either from this overview or from a team's Playoffs
+column, Standings was never really its logical parent.
+
+Verified: swept all 10 postseason years, clicking every round's "Full
+series →" link and back button, with zero console errors; confirmed
+the year chips, and both the Standings and Home entry buttons, land on
+the right year.
+
+## 2026-09-18 — Added a Postseason tab to Records
+
+New `Postseason` tab on the Records page, between Single-Game and
+Streaks, with two subsections:
+
+**Single Postseason** — one player's whole playoff run in a given year,
+combined across every round (Wild Card/Divisional Series plus World
+Series). The `Playoffs`-type season row already *is* that combined
+line — checked first that no player has more than one Playoffs row for
+the same year, so no extra aggregation was needed, just reusing the
+existing `catS`-style top-10 machinery pointed at `type==='Playoffs'`
+rows instead of `'Regular'`. Rate stats (AVG/OPS/OPS+/ERA/WHIP) need
+only 3+ games batting or 3+ IP (9 outs) pitching to qualify, well under
+the regular season's 9-G/12-IP bar — a full postseason is at most a
+single-game round plus a best-of-3 World Series, so the season-level
+minimums would exclude nearly everyone. OPS+ compares against that
+year's postseason league average (`post:true`), matching how the
+series pages already compute it.
+
+**Single Game** — the same box-score categories as the existing
+Single-Game tab (HR/H/RBI/R/2B/3B batting, K/IP pitching), just the
+existing game pools filtered down to `phase==='Playoffs'` before
+ranking, so a regular-season outlier can't show up in a "postseason"
+record.
+
+Verified: spot-checked the top "Home Runs in a Game" postseason line
+(Evan Wilkins, 2019-09-03) against the raw game data to confirm it's
+actually tagged `Playoffs`, not regular season; swept every
+tab × era combination with zero console errors; confirmed the era
+filter still applies to the new tab and player-name links still route
+to the right player page.
+
+## 2026-09-18 — Removed the postseason overview page
+
+User feedback after using it: "we can remove those full postseason
+pages since it's just the bracket on them" — the `#/postseason/<year>`
+page added earlier this session added nothing beyond what the bracket
+already shows inline on Standings and Home (chips to flip years being
+the only real addition, and Standings' own year chips already cover
+that for the bracket in context).
+
+Removed `renderPostseason` entirely, its two dispatch routes, the
+`data-po` click wiring on Home and Standings, and reverted the
+"{year} Playoffs" headings on both pages back to plain text (no longer
+a button to nowhere). The individual round pages
+(`renderSeries`, `#/series/<year>/<brookside|brentwood|final>`) stay —
+per explicit instruction to keep those — with their back buttons
+pointed back at "← Standings" as they were before this page existed.
+
+Verified: the Playoffs headings on Home and Standings are plain text
+again; a round page's back button returns to Standings; an old
+`#/postseason/<year>` link now falls back to the Home page rather than
+breaking; swept series pages across several years with zero console
+errors.
+
+## 2026-09-19 — Added the BWB Grid game
+
+New "Grid" nav entry (`#/grid`) — an original 9-square trivia game built
+from scratch against this site's own data: every square needs a player
+who fits both its row and column category, one guess per square. Not
+copied from any other site's specific categories, text, layout or
+branding — only the general "3×3 grid, guess a name matching the row
+and column" idea (a format with many independent implementations) was
+kept, everything else (categories, wording, scoring, visuals) is native
+to this register.
+
+**Category pool** (`gridTeamCats`/`gridDivCats`/`gridAwardCats`/
+`gridStatCats`, built once and cached in `GRID_CATS`):
+- Franchises — only clubs with 5+ all-time players (11 of the 14
+  qualify), so no team category is a two-name gimme
+- Division (Brookside/Brentwood, unified across old North/South names
+  via `canonicalDivision`)
+- Awards and honors — MVP, Cy Young, Postseason MVP, All-Star Game MVP,
+  Rookie of the Year, Silver Slugger, Golden Hands, Batting Title, Home
+  Run King, Home Run Derby Champion, Reliever of the Year, Comeback
+  Player, Manager of the Year, World Series Champion, All-Star
+  selection, and threw a no-hitter — any type with fewer than 3
+  distinct winners is dropped from the pool
+- Career statistical thresholds off `pl.careerReg` (100+ HR, 300+ RBI,
+  200+ R, 300+ H, 150+ BB, 100+ games played, .400+ AVG/1.500+ OPS at
+  150+ PA, 30+ wins, 150+ K pitching, 50+ IP, 5+ saves) — every cutoff
+  was checked against this league's actual leaderboards first so each
+  lands with roughly 3–15 qualifiers, never 0 or "everyone"
+
+**Puzzle generation** (`pickGrid`): shuffles the category pool and
+takes 3 rows + 3 columns, but only accepts the shuffle if all 9
+row×column intersections are actually non-empty (checked via
+`gridIntersection`, retried up to 300 times) — a generated grid is
+always completable, never a guessed-at layout. "Today's Grid" seeds a
+small PRNG (`mulberry32`) off the calendar date so everyone sees the
+same puzzle on a given day with no backend; "Practice Grid" reshuffles
+with `Math.random()` on demand and isn't persisted. Progress on today's
+grid is saved to `localStorage` per calendar day and restored on
+reload.
+
+No fabricated crowd/rarity stats — landing a square shows the real,
+computed count of how many players in league history qualify for it
+("3 players qualify"), not an invented pick-frequency percentage.
+
+**Bug caught during testing**: `pickGrid()` returns `{rows, cols}` with
+no `answers` field; `getDailyGrid()` wrapped it correctly but the three
+places that built a practice grid didn't, so opening Practice Grid
+threw immediately (`Cannot read properties of undefined`). Fixed by
+adding a `newPracticeGrid()` helper that always attaches `answers:{}`,
+and pointing all three call sites at it — caught via a real console
+error during testing, not by inspection.
+
+Verified: a full 9-cell practice grid solved end-to-end with real
+answers; a deliberately wrong guess locks the cell red without
+revealing the answer; an unrecognized name shows an inline error
+without consuming the guess; today's grid progress survives a full
+page reload; switching Daily ↔ Practice preserves each mode's own
+state; zero console errors across repeated mode switches and shuffles.
+
+## 2026-09-19 — Added the BWB Stat Pad game
+
+New "Stat Pad" nav entry (`#/statpad`) — a second original game, distinct
+from the Grid: instead of "find any right answer," this one is "find
+the *best* answer." Not copied from any other site's specific
+requirements, wording, layout or branding — only the general
+constrained-optimization shape (submit a player+year meeting stated
+requirements; your score is their real stat total that year) was kept
+as a starting idea, and every requirement, stat cutoff, and word of
+copy was built fresh from this site's own data.
+
+**How it plays**: one target counting stat for the whole puzzle (Home
+Runs, RBI, Runs, Hits, Walks, Wins, Strikeouts-pitching, or Saves).
+Five rows, each with 1–2 requirements drawn from the same category
+families as the Grid — franchise (5+ all-time players only), division,
+award/honor, career stat threshold — but split into two flavors this
+game actually needs: a "that season" requirement (team/division) must
+hold in the specific year you submit; a "career" requirement
+(award/honor, career stat threshold) only needs to be true at some
+point in the player's career. Submitting a valid player+year locks in
+that row's real single-season total for the target stat that year — so
+the game rewards finding the *highest-scoring* valid year, not just a
+valid one. A locked row can be reopened ("Try a different player →")
+to take another shot at a higher score; every submission, valid or
+not, counts toward a running guess total.
+
+**Solvability**: `pickStatpad` retries row generation (up to 30 shuffles
+per row) until real players can actually satisfy each row's
+requirements combination — checked via `statpadRowEligible`, not
+assumed. "Today's Pad" seeds off the calendar date (reusing the Grid's
+`mulberry32`/`gridDailyKey` seeding, with its own key prefix so the two
+games' daily puzzles don't correlate) so everyone gets the same pad
+each day, with progress saved to `localStorage`; "Practice Pad"
+reshuffles freely and isn't persisted.
+
+**Reuse**: award and career-stat-threshold requirements are literally
+the Grid's own category sets (`gridAwardCats()`/`gridStatCats()`, just
+tagged `sameSeason:false`) — "true anytime in career" already meant
+exactly that for the Grid, so no logic needed duplicating. Team and
+division requirements needed new year-by-year rosters (`statpadTeamCats`/
+`statpadDivCats`) since the Grid's versions only tracked "ever played
+for," not which specific years.
+
+Verified: a full 5-row practice pad solved end-to-end using genuinely
+eligible player/year combinations for each row's actual requirements;
+an invalid player name shows a specific inline reason (not found /
+missing a career requirement / wrong team-year / no season that year)
+without consuming the row; a locked row's "Try a different player"
+and "Cancel" flow works; the guess counter tracks every submission
+including invalid ones; today's pad progress survives a full page
+reload; zero console errors across mode switches, shuffles, and a full
+completion sweep.
+
+## 2026-09-19 — Color-coded Stat Pad answers by real quality
+
+Reused the site's existing percentile color system (`svColor`/`svPct`,
+built earlier this session for the Savant panels — blue → gray → red)
+so a locked Stat Pad row's score is colored by how it actually ranks,
+not just shown as a bare number.
+
+`statpadRowValues(quals, meta)` computes the target stat's real value
+for *every* (name, year) combination that legally satisfies that row's
+exact requirements — the true field a submitted answer is judged
+against. `svPct` places the submitted value in that field (0 = weakest
+valid answer on record, 100 = strongest), `svColor` turns that into the
+same blue/gray/red scale already used elsewhere on the site, and it's
+applied directly to the `.spscore` number. Computed once per puzzle and
+cached on `puzzle.rowValues` (deterministic from `rows`+`statKey`, so
+it doesn't need persisting to `localStorage` — a reload just
+recomputes it from the same seed). A row with only one possible valid
+answer colors neutral gray (its only option is by definition
+"average"), which `svPct`'s existing tie-handling produces without any
+special-casing.
+
+Verified: submitted the actual worst (3 HR) and best (72 HR) real
+answers for one row and confirmed they render at the blue and red
+ends of the scale respectively, with mid-range answers landing
+in between; zero console errors across a full 5-row practice pad.
+
+## 2026-09-19 — Stat Pad: tiered scoring and a post-completion answer reveal
+
+Two follow-up requests on Stat Pad: show the percentile itself (not
+just a color), turn the whole answer box's color by a black/bronze/
+silver/gold/platinum tier instead of the continuous blue-gray-red
+gradient, and reveal the top 5 real possible answers per row once the
+whole pad is filled.
+
+**Tiers**: `statpadTier(pct)` — an original 5-band read on the same
+percentile the color-coding already used, in ascending order Black
+(0–19) → Bronze (20–39) → Silver (40–59) → Gold (60–79, reusing the
+site's own `--gold` token) → Platinum (80–100). Applied as a CSS
+custom property (`--tier`) on the row itself via a new `.tiered` class,
+tinting the row's background and border, plus a text badge naming the
+tier — color is never the only signal. The percentile itself is spelled
+out next to it ("79th percentile of every valid answer").
+
+**Answer reveal**: `statpadRevealHTML(puzzle)` — once all 5 rows are
+filled, a new section lists each row's top 5 real (player, year, value)
+combinations, sourced from the same `rowCombos` already computed for
+tiering (just sorted and sliced instead of a fresh query). The player's
+own pick is marked inline with a "your pick" tag when it actually
+lands in the top 5; when it doesn't, a separate line shows their
+answer for direct comparison instead of silently omitting it.
+
+Verified: filled a full practice pad and confirmed the reported tier
+name, percentile, and row-background color all agree with each other
+row by row; confirmed the reveal correctly tags an in-top-5 pick inline
+and falls back to the separate comparison line for the rows that
+weren't in the top 5; zero console errors.
+
+## 2026-09-19 — Consolidated Grid and Stat Pad into one Arcade nav tab
+
+Grid and Stat Pad had their own top-level nav buttons; merged them
+under a single "Arcade" entry with a sub-tab bar (`arcadeTabBar`,
+reusing the site's existing `.subtabs` component from Records/player
+profiles) to switch between the two games.
+
+Kept the refactor deliberately small: each game still owns its full
+render/wire cycle exactly as before (`renderGrid`/`renderStatpad`
+still build their own `app.innerHTML` and call their own `wireGrid`/
+`wireStatpad`) — the only changes were swapping `setNav('grid')` /
+`setNav('statpad')` for `setNav('arcade')`, heading each page "Arcade"
+with the sub-tab bar underneath, and having the sub-tab buttons just
+change `location.hash` between `#/grid` and `#/statpad` so the existing
+router does the actual switching. No new shared state between the two
+games, so nothing about how either one plays changed. `#/arcade` itself
+routes to Grid by default; `#/grid` and `#/statpad` still work as
+direct deep links and correctly show Arcade active with the right
+sub-tab selected.
+
+Verified: nav shows one "Arcade" button (highlighted for both games);
+clicking the Stat Pad sub-tab from Grid navigates and re-renders
+correctly with the tab state flipped; both old direct-link routes
+(`#/grid`, `#/statpad`) still land correctly; zero console errors.
+
+## 2026-09-19 — Grid: no reusing the same player twice
+
+Reported: "you can't use the same person in the grid twice" — until
+now, the same name could legally fill more than one of the 9 squares.
+`gridUsedNames(puzzle)` collects every name already locked in as a
+correct answer elsewhere in the grid; a new submission is refused
+(inline error, cell stays open, doesn't consume the one-guess rule)
+if it would otherwise be correct but the player's already been used.
+A guess that's simply wrong for the square still locks in as wrong
+regardless of reuse — the check only fires on what would've been a
+correct-but-repeated answer.
+
+Verified: locked in a real name for one square, then confirmed
+guessing that same name again on a different square where it would
+otherwise have qualified was refused with a clear message and left
+the square open; a genuinely different valid name for that same square
+then locked in correctly. Zero console errors.
+
+## 2026-09-19 — Stat Pad: dropdown player picker, Platinum reserved for the best, no repeat combos
+
+Three follow-up requests on Stat Pad:
+
+**Dropdowns**: the free-text player field (backed by a datalist) is now
+a real `<select class="spplayer">` listing every player, with a
+disabled "Choose a player…" placeholder as the default option. Removed
+the now-unused `statpadNames` datalist and its CSS. Since a `<select>`
+can only ever hold a real name, the "couldn't find" branch of
+`statpadFailureReason` is effectively unreachable through the UI now
+but left in place as a harmless guard. Also gave the year select its
+own `spyear` class — with two selects in one form, the old bare
+`f.querySelector('select')` would have silently grabbed the wrong one.
+
+**Platinum, only for the single best answer**: `statpadTier` now takes
+an explicit `isBest` flag instead of inferring "best" from the top of
+the percentile band — checked directly as `ans.value === Math.max(...
+rowValues)`, since `svPct`'s tie-averaging means a percentile of 100
+isn't guaranteed even for a true max when other entries tie near it.
+Black/Bronze/Silver/Gold still split the remaining percentile range
+below that.
+
+**No repeat player+year combos**: `statpadUsedCombos(puzzle, excludeRow)`
+collects every other row's exact (name, year) pair; a submission that
+would otherwise be valid is now refused if that exact combo already
+answers a different row, with the current row excluded so re-submitting
+your own existing answer during a retry isn't blocked. The same player
+in a *different* year is still allowed across rows — only the identical
+pair is blocked.
+
+Verified: dropdowns list every player and the correct year set;
+submitted the actual best real (player, year) for a row and confirmed
+Platinum, then the second-best and confirmed Gold instead; found a real
+(player, year) that legally satisfied two different rows in one
+generated pad, locked it into the first, and confirmed the second was
+refused with a clear message while staying open for another guess;
+zero console errors.
+
+## 2026-09-19 — Added the BWB 15-0 game (third Arcade tab)
+
+New "15-0" tab alongside Grid and Stat Pad — a draft game: you're
+dealt one BWB franchise's entire hitting history (every player who's
+ever batted for that club, career totals with that club only) and
+draft any 9 of them into a roster, then see how close the combined
+lineup projects toward a perfect 15-0 (a full BWB regular season).
+Only the general shape — deal a themed player pool, draft a fixed
+roster, project a season record from it — is a generic, widely-cloned
+format; the pool logic, the projection math, and all the wording and
+visuals are original and built from this site's own numbers.
+
+**Pool**: `b0Pool()` sums each player's own Regular-season batting
+lines *for one specific franchise* (so a split-team season only counts
+the games actually played for that club), keeping only franchises with
+12+ career hitters — enough for a real draft decision, not just
+"pick the only 9 that exist."
+
+**Projection**: deliberately simple and labeled as an estimate on the
+page, not dressed up as a real simulation. `b0League()` computes two
+real numbers once — league-average OPS across every regular-season
+batting line ever recorded, and league-average runs per team-game
+straight off real box scores. `b0Simulate` scales the drafted roster's
+combined OPS against league-average OPS to project a per-game run
+rate, then estimates a win percentage as that rate's share of the
+combined projected-plus-league-average scoring (`projRPG / (projRPG +
+avgRPG)`) and applies it across 15 games.
+
+**Modes**: Today's Team (daily-seeded, shared, progress saved to
+`localStorage`) vs. Practice Team (reshuffle anytime); independently,
+Draft (stats shown per pool hitter) vs. Blind (names only). Draft/
+remove is unlimited before locking; locking is final and computes the
+projected record, matching the "one real shot at your final nine"
+spirit of the other Arcade games.
+
+Verified: drafted a full 9-hitter roster and confirmed the locked
+record's win/loss math against the roster's own OPS and the league
+averages shown alongside it; confirmed Blind mode actually hides every
+stat span and Draft mode shows all of them; confirmed a daily pick
+survives a full page reload; zero console errors.
+
+## 2026-09-19 — Rebuilt BWB 15-0 as a 5-round draft, added a real game-by-game simulation
+
+Two follow-up requests replaced the original design entirely:
+
+**5-round draft**: instead of drafting 9 hitters from one franchise's
+whole career history, the game now deals a *different real team-and-
+year* each round — that club's actual single-season roster — and you
+draft exactly one player from it before the next round's pool appears.
+`b0RoundPool()` builds every (team, year) with a real, ≥5-player roster
+from `TEAMS[t].seasons[y].roster` (using each entry's own `.regular`
+line, so a pick's stats are that specific season, not a career total);
+`b0Rounds(rng)` deals 5 distinct pairs per draft. A finished 5-player
+team needs at least 2 who actually pitched in their drafted season
+(`b0PitcherCount`) — the Lock button is replaced by an inline
+requirement notice until that's true, and an "Undo" on the most recent
+pick lets you go back and draft a pitcher instead without restarting.
+
+**Real simulation**: the record is no longer `Math.round(winPct*15)`.
+`b0Simulate` now runs an actual 15-game loop, drawing a random runs-
+scored and runs-allowed for each individual game from Poisson
+distributions centered on the team's projected rates (`b0PoissonDraw`,
+Knuth's textbook sampling method) and tallying real per-game
+win/loss outcomes — shown as a 15-game log alongside the final record,
+not just a single number. The daily version seeds its "luck" off the
+calendar day alone (not the drafted roster), so everyone comparing
+that day's results is being compared on team-building, not on who
+drew a friendlier random sequence; Practice mode just uses fresh
+randomness each run.
+
+**Bug fixed during testing**: `renderB0()` unconditionally read
+`puzzle.rounds[puzzle.picks.length]` to show "the current round," which
+is `undefined` once all 5 picks are made but before locking — threw
+immediately and blanked the page. Fixed by only rendering the round
+pool when a round actually exists at that index. Also hit stale
+`localStorage` from the *original* 9-hitter design (picks stored as
+plain name strings, not `{name,team,year,line}` objects) crashing the
+new code on load — fixed by versioning the storage key (`bwb-b0v2-`)
+and validating the shape of anything loaded before trusting it.
+
+Verified: drafted a full 5-round team favoring pitchers and confirmed
+the pitcher-count gate correctly blocked/allowed locking; locked in and
+confirmed the 15-entry game log's win/loss tally matches the displayed
+record; reproduced and fixed both crashes above in a clean tab with
+zero console errors afterward.
+
+## 2026-09-19 — Added D00B, a fourth Arcade game (photo blend, guess both)
+
+New "D00B" tab alongside Grid, Stat Pad and 15-0. Two players who have
+a photo on file (43 of 96) are dealt, their own uploaded photos are
+layered on top of each other with a CSS `mix-blend-mode: lighten` (the
+standard no-canvas way to fade two photos into one ghostly double
+exposure — no external image processing needed), and you guess both
+names from the blend in one lock-in, order doesn't matter.
+
+`b1Score` matches the two guesses against the two real names as sets
+(so guessing the same name twice only ever counts once, and guessing
+both correctly in either order both count) — partial credit for one of
+two. The reveal shows both real photos side by side with a hit/miss
+tag on each.
+
+Today's D00B is dealt once daily (seeded off the date like the other
+three games) and its result persists to `localStorage`; Practice D00B
+deals a fresh pair on demand and keeps a running session tally
+(correct guesses out of 2 per blend, across however many blends played)
+that resets on reload — deliberately not persisted, since practice mode
+elsewhere in Arcade doesn't persist either.
+
+Verified: a fully-correct guess scores 2/2 with both reveal cards
+marked "guessed"; a one-right-one-wrong guess scores 1/2 with the
+correct card marked and the wrong one marked "missed"; guessing the
+same name in both slots is refused with an inline message instead of
+submitting; today's result survives a full page reload; zero console
+errors.
+
+## 2026-09-19 — Removed D00B; real roster rules and sample-size regression for 15-0
+
+Removed the D00B (photo blend guessing) game entirely — nav tab,
+routes, all `b1*`/`B1_*` code and CSS. Arcade is back to three games:
+Grid, Stat Pad, 15-0.
+
+Three follow-up requests reshaped 15-0 into a more rigorous draft game:
+
+**No repeat players**: the same player could previously be drafted
+twice under two different (team, year) deals — e.g., a Kraken 2020
+season and a Kraken 2023 season both dealing the same person. The
+draft pool now shows "Already on your team" with no Draft button for
+anyone already picked in an earlier round, and the click handler
+itself refuses the pick as a second guard.
+
+**Explicit pitching staff ("make your lineup")**: instead of just
+counting anyone who happened to have pitched that season, there's now
+a real lineup step after all 5 picks are in — designate at least 2 of
+them as your pitching staff (only players with real innings pitched
+that season are eligible; everyone still hits regardless). `b0Simulate`
+now sums *all 5* players' batting lines for team offense but only the
+*designated* pitchers' lines for team pitching, so a spot-innings
+appearance from a non-designated player no longer silently counts
+toward the team's run prevention.
+
+**Sample-size regression**: "season sample size for a player should
+factor in like games played" — a 2-game hot streak and a 15-game
+season were being trusted equally. `b0RegressLine` now shrinks each
+player-season's rate-driving fields (H/BB/HBP/TB for batting, ER for
+pitching) toward league average, weighted by how far that season's own
+games-played or innings-pitched falls short of this site's existing
+qualification bar (`SV_MING`/`SV_MINOUTS` — the same 9 games / 12 IP
+already used for percentile rankings elsewhere, reused here instead of
+inventing a new number). Real at-bats, plate appearances and innings
+are never touched, only the outcome rates built from them. Applied
+once in `b0RoundPool()` so the draft pool's own displayed stats already
+match what the simulation will use — no discrepancy between what you
+see while drafting and what actually gets simulated.
+
+Storage key bumped to `bwb-b0v3-` (adds the `pitchers` array to the
+saved shape) so a browser with `v2` state from before this change is
+ignored rather than misread.
+
+Verified: found a real (team,year) pair overlap across two rounds in a
+generated draft, drafted the shared player in the earlier round, and
+confirmed the later round correctly blocked it; completed a full draft
+with a deliberately weak pitching staff (11.18 ERA) and got an 0-15
+result — confirmed by the numbers this is a legitimately unlucky but
+valid outcome (~0.2% likely at a .344 win rate), not a bug; confirmed
+daily picks and an empty pitcher list survive a full page reload; zero
+console errors throughout.
+
+## 2026-09-20 — 15-0: bootstrap-resampled simulation and a real salary cap
+
+Two follow-up requests, discussed first before building:
+
+**Bootstrap-resampled game simulation** — asked "how can we make the
+simulation better," recommended and got a yes on replacing the Poisson
+run model with real data: `b0RunsPool()` collects every real BWB
+team-game run total ever recorded (each game counted for both sides),
+filtering out forfeit-batch dates using the same signature the Records
+page's streak-building already flags (4+ games on one date, one score
+pair accounting for a strict majority). `b0BootstrapDraw` now draws an
+actual real run total from that pool and scales it to the team's own
+projected rate, instead of `b0PoissonDraw`'s idealized bell curve —
+this league's real scoring is far more bursty than Poisson assumes
+(real box scores here include 30+ run games), so sampling from what's
+actually happened produces realistic blowouts and shutouts at their
+real frequency.
+
+**Real salary cap** — "the game is too easy... a budget system where
+each player has a money value and you have to stay under a cap."
+`b0Value(line)` scores each drafted player-season as OPS-above-league-
+average times plate appearances, plus ERA-below-league-average times
+innings pitched for anyone who pitched — a transparent "value above
+average, weighted by how much of it you got," not a rigorous linear-
+weights model but honest about what it's doing. `b0RoundPool()` maps
+every real player-season's value onto a $1-$50 price (linear, off this
+site's own actual min/max, not an arbitrary curve) and picks now cost
+real money against a $100 team cap. Checked the real distribution
+first (min -132/max 165 in value terms, mean price $23) before picking
+$100 as the cap specifically because it sits *below* what 5
+average-priced players would cost — an average team runs over budget,
+so affording even one star requires real bargain-hunting elsewhere.
+
+**Bug caught during testing**: greedily drafting the most expensive
+affordable player each round could burn through the budget early and
+leave a later round with *no* affordable option at all — a real
+dead-end, not a strategy mistake. Fixed with `b0RemainingFloor`, which
+sums each remaining round's own actual cheapest price (not a flat $1
+guess) and caps every pick at (what's left) minus that floor — a
+mathematical guarantee the draft can never get stuck, shown to the
+player as "at least $X needed for the rest of the draft" alongside the
+running budget.
+
+Verified: reproduced the dead-end bug with a deliberate worst-case
+greedy draft before the fix, confirmed it can no longer happen after;
+re-ran the same worst-case draft post-fix and it completed cleanly at
+exactly $0 remaining; confirmed prices, the running budget, and the
+"needed for the rest" hint all track correctly through a real draft;
+confirmed a daily pick's price survives a full page reload; zero
+console errors throughout.
+
+## 2026-09-20 — Optional salary cap, full-stat player valuation, and a real 2023 WS fix
+
+**2023 World Series order, corrected again**: the earlier `dt`-based
+fix (2026-09-18) had games 1 and 3 backwards. Confirmed against the
+real scores this time — Game 1 is Bananas 2–0, Game 2 Gladiators
+12–5, Game 3 Gladiators 4–3 — and updated the three games' `dt`
+timestamps accordingly. Both the series page and the bracket read
+game order off the same `seriesGids` sort, so fixing the underlying
+data fixed both places at once, matching what was reported.
+
+**Salary Cap is now an option, not the only mode**: Today's Draft
+stays Salary Cap always (one well-defined shared daily challenge), but
+Practice Draft now has its own Salary Cap / Free Draft toggle. Free
+Draft still shows every price for reference but drops the budget
+constraint entirely — draft whoever you want. `capMode` is stored per
+puzzle so a mid-draft mode never gets stale mid-flight; storage key
+bumped to `bwb-b0v4-`.
+
+**Valuation now uses every batting and pitching counting stat this
+site tracks**, not just OPS and ERA. `b0BatPoints`/`b0PitPoints` are an
+original linear-weights point system — singles through home runs,
+walks, HBP, steals and caught stealing for batting; earned runs,
+strikeouts, walks and hits allowed for pitching — each compared to
+what a league-average player produces in the same playing time
+(`b0Value`). The same per-stat league rates now also drive sample-size
+regression (`b0RegressLine`), extended from just H/BB/HBP/TB/ER to
+cover every field the valuation formula reads, so a small-sample
+season's 1B/2B/3B/HR/SB/CS/K/BB-allowed/H-allowed all get shrunk
+consistently with everything else. Fielding stats are deliberately
+left out of both — tracked far more sparsely and unevenly across
+seasons than batting/pitching, so including them would add noise
+rather than signal.
+
+**Bug caught during testing**: dealing 5 random rounds with zero
+regard for price could hand out a set whose combined *cheapest
+possible* team already exceeded the $100 cap — not a mid-draft dead
+end but an unsolvable draft from round 1, discovered when a fresh
+daily deal showed every player in the very first round marked "Over
+budget" at full $100 budget. Fixed by having `b0Rounds` retry the
+whole deal (in Salary Cap mode only) until the sum of every round's
+own real cheapest option actually fits under the cap — the same
+"verify solvability, don't assume it" discipline already used
+elsewhere on this site (Grid's `pickGrid`, Stat Pad's row generator).
+
+Verified: reproduced the round-1 unsolvable-deal bug, confirmed the
+fix (round minimums now sum to $96, all of round 1 affordable);
+completed a full cap-mode draft end to end through lock-in and
+simulation; confirmed Free Draft actually ignores the cap (spent $179
+of a nominal $100); confirmed the 2023 WS series page now shows the
+corrected game order; zero console errors throughout.
+
+## 2026-09-20 — Site-wide consistency pass: fixed a real character-encoding bug
+
+Asked to "go through the whole site and make sure the headers and font
+and everything is consistent and looks good." Audited the typography
+system (every heading rule uses the same Oswald/Arial Narrow stack,
+consistently sized by level — page title, section, subsection) and
+visually swept Home, Players, a player profile, Standings, Records,
+Teams, a team page, and all three Arcade games.
+
+The one real, high-impact bug: **no `<meta charset="utf-8">`
+declaration anywhere in the document**. Without one, a browser served
+this file without an explicit charset header (confirmed locally with
+Python's `http.server`, which doesn't set one) has to guess the
+encoding — and guessed wrong, misreading this file's UTF-8 em-dashes,
+en-dashes and middle dots (used constantly in headers, subtitles and
+notes across every page) as a different encoding, mangling every one
+of them into "â€"'"/"Â·"-style garbage. Confirmed directly against the
+DOM's own `textContent` (not just the screenshot) before and after —
+added `<meta charset="utf-8">` as the very first line of `<head>`, the
+standard fix, and every dash and middle dot checked came back correct
+site-wide with no other code changes needed.
+
+Everything else checked out: consistent heading hierarchy, consistent
+color tokens, no console errors across a 15-page sweep (Home, Players,
+Teams, Standings, Leaders, Records, Games, Champs, Awards, Beavers,
+Grid, Stat Pad, 15-0, a player profile, a team page).
+
+## 2026-09-20 — 15-0: fixed fractional stat display and a real budget-solvability gap
+
+Two follow-up reports, both real bugs:
+
+**"Stats aren't reading correctly" / "should be regular season stats
+only"**: the pool was showing the *regressed* (shrunk-toward-average)
+version of a player's line instead of their real season totals — a
+player's card could read "1.38 HR" instead of a real integer, because
+`b0RoundPool()` overwrote `line` with the output of `b0RegressLine`
+entirely. Fixed by keeping both: `line` is now always the player's
+real, unmodified regular-season totals (what's displayed everywhere —
+the pool, the roster, the lineup step), and `regLine` is the shrunk
+version, used only internally for `b0Value` (pricing) and `b0Simulate`
+(the team-projection math). The underlying data was already
+regular-season-only the whole time (`e.regular`, verified directly
+against `players.json` — Brentwood Gladiators 2023 shows separate
+`regular`/`playoffs` blocks per player, never merged); the bug was
+never about mixing in playoff stats, it was about showing the
+statistically-adjusted number instead of the real one.
+
+**"Players aren't pickable from the start"**: real, but not where the
+last investigation looked (round 1 tested fine in isolation, in every
+mode, across 400 simulated dates). The actual gap: `b0RemainingFloor`
+summed each remaining round's own cheapest price as if independently
+achievable — but two different rounds' cheapest option can be the
+*same real player* dealt in two different years, and the no-repeat-
+player rule means only one of those rounds can actually have them.
+Treating both floors as achievable at once could quietly overestimate
+how much budget was actually safe to spend, letting a draft paint
+itself into a corner a couple of rounds in. Replaced with
+`b0MinDistinctCost`, a small brute-force search for the true cheapest
+way to fill the remaining rounds with distinct players, and made
+affordability a genuinely per-candidate check (drafting a specific
+player now excludes them from their own floor calculation) instead of
+one shared number for the whole round. Storage bumped to `bwb-b0v5-`
+for the updated pick shape (`regLine` added).
+
+Verified: confirmed every displayed HR/RBI/K count is now a clean
+integer; ran 25 trials of the exact adversarial strategy that
+originally got stuck (always draft the most expensive affordable
+option each round) with zero failures; confirmed daily mode unaffected;
+zero console errors.
+
+## 2026-09-20 — 15-0: fixed massive price clustering (rank-based pricing)
+
+Reported: "so many players have the same value." Confirmed directly
+against the real data — the previous linear min-max price scaling had
+**136 of 294 player-seasons (46%) all priced at the exact same $29**,
+with the rest thinly spread across the other 37 price points. Root
+cause: this pool's value distribution is heavily right-skewed (a
+handful of real standout seasons pulling the max way up, a big cluster
+of everyone else sitting close to replacement level) — a straight
+linear scale compresses that whole cluster into a narrow slice of the
+$1-$50 range regardless of how many players are in it.
+
+Fixed by pricing off each player-season's RANK in the value
+distribution instead of the raw value itself: sort all eligible
+entries by value, map each one's position in that order linearly onto
+$1-$50. Since rank is by construction evenly distributed, this
+guarantees a spread across every dollar amount no matter how skewed
+the underlying values are — checked against the same real pool: all
+50 price points now get used, and the worst tie is 5 players (the
+unavoidable minimum for splitting ~225 eligible entries across 50
+prices). This also likely explains why the budget-floor numbers felt
+"off" in the previous report — with nearly half the pool priced
+identically, a floor calculation referencing genuinely different
+per-round minimums wouldn't have matched what was visibly on screen.
+
+Verified: confirmed the real price distribution now uses all 50 points
+with a max 5-way tie (was a single 136-way tie at $29); re-ran the
+25-trial adversarial worst-case draft strategy (always draft the most
+expensive affordable option) against the new pricing — 40/40 trials
+completed with zero stuck drafts; spot-checked that the "$X needed for
+the rest of the draft" figure now tracks sensibly against the visibly
+varied prices on screen; zero console errors.
+
+## 2026-09-20 — Compare Players now shows percentile bars
+
+Added a "Percentile Comparison" section to the Compare page, reusing
+the same Savant-style bars, colors and math already built for a single
+player's own Percentile Rankings — `SV_BAT`/`SV_PIT` metric list,
+`svColor`/`svPct`, and the same qualification bar (`SV_MING`/
+`SV_MINOUTS`, with the same `SV_MIN_SHOW_G`/`SV_MIN_SHOW_OUTS`
+faded-estimate floor for a short career) — just against a career-totals
+pool (`CMP_POOL_BAT`/`CMP_POOL_PIT`, every qualified player's own
+career line) instead of one season's, and with both players sharing
+one track per row instead of one dot per row.
+
+Each metric's two dots sit on the same 0-100 bar so you can see at a
+glance who ranks higher and by how much, labeled A/B matching the
+names above; qualification is checked per player per category (a
+mostly-pitcher and a mostly-hitter can each show a real ranking on
+their own side and a faded estimate on the other, in the same row) —
+reusing `cmpCareerQual`, the career-scoped version of the same
+qualification check the single-player page already used.
+
+Verified: both dots render at distinct, correct percentile positions
+with correct colors and tooltips (checked directly against the DOM,
+not just the screenshot); the section correctly hides when neither
+player has enough of a career to estimate anything; zero console
+errors.
+
+## 2026-09-20 — 15-0: fixed the real remaining cause of round-1 lockouts
+
+Reported again: "there are still some cases where you can't even draft
+a player on round 1 because of their budget." The previous fix
+(`b0MinDistinctCost`, a brute-force search for the true cheapest way to
+fill the remaining rounds with distinct players) trimmed each round to
+its cheapest 8 candidates before searching, for speed. That trim was
+the bug: if the *true* minimum-cost combination needs a round's 9th-
+cheapest option or later — which heavy cross-round overlap can force —
+the trimmed search comes back with no valid combination at all, even
+though a real one exists, which is exactly what made every round-1
+option look unaffordable.
+
+Fixed by trying the fast trimmed search first, and only falling back
+to an exact, untrimmed search on the rare occasions the trim comes up
+empty — correct in every case (the untrimmed search can't miss a
+combination that exists), fast in the common case (the trim almost
+always succeeds on the first try). Measured directly: 300 full deal
+generations plus a full round of per-candidate floor checks each,
+completed in 39ms total — the fallback path costs nothing in practice.
+
+Verified: 60 more adversarial trials (always draft the most expensive
+affordable option, the same worst-case strategy used before) with zero
+stuck drafts; confirmed no performance regression; zero console errors.
+
+## 2026-09-20 — Shareable daily results for all three Arcade games
+
+Added a Wordle-style "Share result →" button to Grid, Stat Pad, and 15-0,
+shown only once that day's puzzle is complete (and only in each game's
+daily mode, not practice — sharing a private practice run isn't
+meaningful). It builds a spoiler-free text summary — an emoji grid/strip
+plus the headline number — and copies it to the clipboard:
+
+- Grid: 3x3 emoji grid (🟩 correct / 🟥 wrong / ⬜ unattempted) + "N/9 correct".
+- Stat Pad: one tier emoji per row (⬛ Black · 🟫 Bronze · ⬜ Silver · 🟨 Gold ·
+  💎 Platinum) + the total stat headline.
+- 15-0: one 🟩/🟥 per simulated game + the final win-loss record and cap mode.
+
+Since this whole site runs inside a sandboxed Artifact iframe, a blocked
+`navigator.clipboard` call can't fall back to `window.prompt()` either —
+tested directly and confirmed it throws `prompt() is not supported.` in
+that context. Replaced that fallback with a plain read-only `<textarea>`
+that appears pre-selected next to the button, so the result is always
+copyable by hand even when the Clipboard API is unavailable.
+
+## 2026-09-20 — Consistent headers across a player's Stats/Splits/Game Log tabs
+
+Reported: "the headers on the site aren't consistent... stats, splits, and
+game logs all have different header looks when you click into them on a
+player profile." Confirmed — the three subviews under each phase tab
+used three unrelated header styles: Stats' top header (the phase name,
+e.g. "Regular Season") was a bold 1.35rem `<h3>`; Splits' top header
+("Splits") was a bigger 1.4rem `<h3 class="hsub">` (the site's generic
+sitewide subsection style, unrelated to the phase header); Game Log's
+top header ("Game Log") was a tiny uppercase `<h4>` — the same small,
+muted style used for the nested "Batting"/"Pitching" table headers one
+level down, so it read as a sub-heading, not the top of its own section.
+
+Introduced a shared `.viewhead` class carrying the Stats phase header's
+exact styling, and applied it to all three: Splits' and Game Log's
+headers are now `<h3 class="viewhead">`, matching Stats' `<h3>` (which
+already gets the same rule via `.phase>h3`). Verified on both a regular
+phase and the NWLA Tournament phase (which has its own Splits/Game Log
+builders) that all three headers now render pixel-identical in font,
+size, weight and color — only the label text differs, same as
+"Batting"/"Pitching" already did one level down. Zero console errors.
+
+## 2026-09-20 — Career team history, a fixed franchise logo, and clearer Compare dots
+
+Four small fixes from one round of feedback:
+
+**Daniel Brady's 2026 logo.** Reported wrong on Leaders/Full Stats. Root
+cause: his 2026 regular season is a two-team split (Brentwood Gladiators,
+then Silver Lake Snapping Turtles — he played the postseason with the
+Gladiators, so that's genuinely the team he finished the year on).
+`build.py` stores a two-team season as `"A / B"` ordered by games played,
+not chronologically, and the display code has always shown whichever
+team comes *second* in that string as the primary logo — a real,
+site-wide mismatch between what the data encodes and what the renderer
+assumes, not unique to Brady. Rather than change that renderer for all 6
+split-season players on a guess, corrected the one entry that was
+actually wrong: swapped Brady's stored order to
+`"Silver Lake Snapping Turtles / Brentwood Gladiators"` in `players.json`,
+so the Gladiators — his real end-of-season team — is what shows.
+
+**Players directory now shows a player's whole team history.** The
+Stats table and A–Z view previously showed only the player's *latest*
+club. Added `careerTeams(pl)`, which walks `teamsByYear` into per-team
+stints (splitting a player's return to an old team from an uninterrupted
+run — a real case: Victor Cottini's Braves stint is 2017 and, separately,
+2024–2025, not one continuous span), and `teamHistoryChips(pl)`, a row
+of small clickable team-logo icons for the Stats table (tooltipped with
+the franchise name and every year range) with the A–Z view getting the
+same list as plain nicknames.
+
+**Compare page's percentile dots now say which player is which.** The
+"Percentile Comparison" section already explained "A = Player 1, B =
+Player 2" once in the intro text, but each individual dot only showed
+its percentile number — nothing tied a specific dot back to A or B
+without cross-referencing position against the legend. Added a small
+"A"/"B" tag above each dot, and the player's actual name into its
+tooltip alongside the percentile (also fixed to a real ordinal — "92nd",
+not "92th").
+
+## 2026-09-20 — 15-0: dropped the salary cap for forced Pitcher Rounds
+
+The salary cap kept causing real problems — three separate round-1
+solvability bugs, a price-clustering bug, and a standing complaint that
+the valuations still didn't feel right even after fixing all of those.
+Underneath it all was one structural problem: turning a wiffleball
+season into a single fair dollar figure is inherently squishy, and no
+formula tweak was going to make that feel right. Discussed it and agreed
+to drop pricing and the cap entirely rather than keep patching it.
+
+That made the game too easy on its own (the earlier salary cap existed
+specifically because a totally free draft meant just taking the best
+player every round), so the difficulty moved somewhere else: **Rounds 4
+and 5 are now forced Pitcher Rounds.** Their pool is trimmed to only
+players who actually pitched in that dealt season, and whoever you draft
+there joins your pitching staff automatically — no more separate "Set
+Your Lineup" step at the end. Team offense still comes from all 5 picks;
+team pitching now comes specifically from those 2 forced picks.
+
+Removed entirely: `b0BatPoints`/`b0PitPoints`/`b0Value` (the whole
+valuation formula), rank-based pricing, the Salary Cap/Free Draft toggle,
+and the `b0MinDistinctCost`/`b0RemainingFloor` solvability-search
+machinery that existed only to keep the cap from locking someone out of
+round 1. `b0RegressLine`'s sample-size regression stays — that's still
+doing real work for the simulation, independent of pricing.
+
+Dealing now draws the 2 Pitcher Round slots from a separate pool (any
+team-year with 2+ players who pitched that season), then checks the two
+dealt seasons can actually supply 2 *different* real pitchers before
+accepting the deal — the same "verify, don't assume" approach as the old
+solvability checks, just against a much smaller, cheaper problem now
+that there's no budget to solve for. Verified with 300 adversarial deal
+generations (zero failures, ~9ms total) and a full draft-through-lock
+run via real button clicks, including that Undo correctly un-assigns a
+pitcher when you take back a Pitcher Round pick. Storage bumped to
+`bwb-b0v6-` for the shape change.
+
+## 2026-09-20 — 15-0: random Pitcher Rounds; No-Hitters table cleanup
+
+**15-0: which 2 rounds are Pitcher Rounds is now random**, not fixed at
+4 and 5 — a partial Fisher-Yates shuffle of the 5 round indices drawn
+from the same seeded rng as the rest of the deal, so the daily draft
+stays reproducible/shareable and practice drafts get a fresh pair every
+time. Verified all 10 possible pitcher-round pairs actually occur across
+300 seeded trials, with zero solvability failures. Storage bumped to
+`bwb-b0v7-` since this shifts the whole rng sequence a deal draws from —
+an in-progress draft saved under the old fixed-4-and-5 shape would no
+longer line up with newly-regenerated rounds.
+
+**No-Hitters & Perfect Games table**: dropped the free-text "Notes"
+column (hand-typed trivia like "Ended on crazy peg at first" — fun, but
+not a stat, and it was the widest column on the page) and added each
+team's real logo next to its name in the Team and Opponent columns,
+matching how logos already appear everywhere else stats are listed.
+
+## 2026-09-20 — Two new pitching streaks: Scoreless Innings and Complete Games
+
+The Records > Streaks tab only ever covered team win/loss streaks and
+three batting streaks — no pitching. Added a `pitcherStreaks(cond,
+valueFn)` builder, the pitching mirror of the existing batting-streak
+logic (consecutive regular-season appearances meeting a condition, reset
+at a season boundary, restricted to games with a recorded individual
+line, 2020 on):
+
+- **Longest Scoreless Innings Streaks** — consecutive appearances with 0
+  runs allowed, measured in real innings pitched summed across the whole
+  streak (the traditional way a scoreless streak is reported), not just
+  a count of outings.
+- **Longest Complete-Game Streaks** — consecutive starts that were each a
+  full complete game. There's no stored per-game "complete game" flag in
+  the box scores (only a season total), so this is derived straight from
+  two numbers that ARE recorded: a pitcher's own IP for that game equals
+  the game's full length in outs — which can only be true if nobody else
+  on their side recorded an out that game either.
+
+The "Player" streak header split into "Batting" and "Pitching" to make
+room. Verified both new lists directly against raw per-game data (e.g.
+Parker Gibbons' reported 11.2-inning scoreless streak sums exactly to
+five real games' outs; Zach Lieberman's reported 10-game complete-game
+streak checks out as ip === game length across all 10 real appearances).
+
+## 2026-09-20 — "Perfect Game" instead of just "Perfect"
+
+Small copy fix: the perfect-game tag in the Records No-Hitters table and
+a player's own Accolades card just said "Perfect", ambiguous next to a
+"No-Hitter" list. Both now read "Perfect Game".
+
+## 2026-09-20 — Team logos on the Games tab and box scores
+
+Added team logos to the two places that were still text-only: the Games
+tab's list (a small icon next to each Away/Home team, matching the same
+`.tmcell` treatment used on the No-Hitters table and Players directory)
+and each box score's matchup header (a larger logo flanking each team
+name around the score, a new `.llogo-lg`/`.muteam` pairing). Verified on
+both a modern game and a 2017 thin-box-score game (single team-total
+line, no per-player rows) — the header logos render the same either way
+since they only depend on the team/year, not on box score detail level.
+
+## 2026-09-20 — Fixed two defunct franchise names: Devils and Downtown Angels
+
+Reported: the "Gleason Diablos" and "Parsons Angels" franchise entries
+(2013–2014, before individual box scores) had the wrong identity. The
+Diablos franchise was always actually the **Gleason Devils** — its own
+`FRANCHISE_TIMELINE` era already correctly said "Devils", it was only
+the top-level franchise name/nickname that wrongly said "Diablos".
+Confirmed independently: a real 2013 no-hitter record in the league's
+own log names the opponent "Downtown Angels", not "Parsons Angels" —
+so that franchise's real name is **Downtown Angels**, not Parsons.
+
+Renamed both consistently everywhere a franchise identity string is
+used: `FRANCHISE_COLORS`, `FRANCHISE_SUMMARY`, `FRANCHISE_TIMELINE` in
+generate.py, plus the matching keys in `players.json`'s `leadership`
+(captain/co-captain records) and `franchiseLogos` (the Diablos logo is
+now keyed "Devils" — Angels' key was already right). Verified the
+Franchise Name History timeline, the Franchise Summary table, and each
+team's own detail page (logo, record, and captain) all resolve under
+the corrected names with zero leftover references to the old ones.
+
+## 2026-09-20 — Added ERA+, the pitching mirror of OPS+
+
+Requested: "add other stats like ERA+." Built `eraPlusFor(d, weights)` and
+`careerWeightsPit(pl, post)` as the pitching-side twins of the existing
+`opsPlusFor`/`careerWeights` — same math shape (100 × league rate ÷
+player rate, blended across whichever year(s) contributed, weighted by
+playing time), just weighted by innings (outs) instead of plate
+appearances, and inverted since ERA is lower-is-better while ERA+ stays
+higher-is-better like OPS+. League ERA per year already existed in the
+same `LEAGUE_BY_YEAR` tables OPS+ uses, so no new league data had to be
+built.
+
+Added everywhere OPS+ already appears, mirroring each site exactly:
+Players directory (Pitching mode), a player's own Pitching stat table
+and Splits (all 3 split dimensions), Leaders (Top 10, Full Stats, and
+Single-Season/Postseason Records), Standings' Team Pitching table, the
+Teams directory, a team's own season roster and "Franchise Roster ·
+Pitching" (all-years) tables, and a playoff series' per-team pitching
+lines. Left it out everywhere OPS+ is also deliberately left out for the
+same reason (the ASG roster and Beavers/NWLA tournament pages, which
+combine games with no sound single-year league baseline to normalize
+against) and skipped single-game leaderboards, which already have no
+ERA category since a 3-inning game's ERA is too noisy/often-infinite to
+rank meaningfully. Verified the formula directly against raw data and
+swept every touched page for console errors.
+
+## 2026-09-20 — New League Office page; Daniel Brady renamed to Dan Brady
+
+Added a **League Office** page (nav: Beavers → League Office → Arcade),
+listing who actually runs BWB off the field — hand-kept in a new
+`LEAGUE_OFFICE_LEAD`/`LEAGUE_OFFICE_OPS` list, not derived from any game
+data. Three larger cards for Parker Gibbons (Founder/Commissioner/Head
+of Operations), Peter Fraioli (Co-Commissioner/Head of Content
+Management and Design/League Operations Lead), and Trevor Meyler
+(Assistant Commissioner/Operations Lead), then a "League Operations"
+row for TJ Ciafone, Peter Sposato, Victor Cottini, Dan Brady, Austin
+Corvino, and Vinny Spoto. Each card reuses that player's own profile
+photo and links to their player page.
+
+**Renamed Daniel Brady to Dan Brady** everywhere — the player dict key,
+every game box score line, honors, leadership, ASG appearances, the
+no-hitter log, all of it, via a global string replace across
+`players.json` (107 occurrences) rather than just the display name, so
+there's no longer a mismatch between how he's shown and how he's
+actually stored. This also let two now-obsolete name-alias corrections
+in `generate.py` get deleted — `plink()`/`normASG()` used to map a raw
+"Dan Brady" mention back to the old canonical "Daniel Brady" key
+specifically because some raw ASG data already called him Dan Brady;
+now that the canonical name matches, that alias is dead code.
+
+## 2026-09-20 — Added Griffin Krueger to the League Office; title fixes
+
+Fixed Trevor Meyler's title (went through "Operations Lead" →
+"Lead Operations Lead" → the intended **"League Operations Lead"**,
+matching Peter Fraioli's own "League Operations Lead" title).
+
+Added **Griffin Krueger** to the League Office page as **League
+Columnist**, in a new "Columnist" section of its own below League
+Operations (`LEAGUE_OFFICE_OTHER`). He didn't have a profile photo on
+record — added the headshot supplied for this, resized to the site's
+existing 240×240 JPEG convention (matching every other player photo's
+format and roughly its file size) and saved to his player record, so it
+now shows both on his League Office card and his own player page.
+
+## 2026-09-20 — A page per Beavers tournament; "Champs" renamed to "Champions"
+
+**Beavers tournaments now each get their own page.** The overview
+(`#/beavers`) used to dump every game from every tournament inline,
+which wouldn't have scaled past one trip. Split it: the overview keeps
+only the combined, all-tournament record and batting/pitching tables
+(exactly as requested), plus a new "Tournaments" grid of cards — one per
+trip, each linking to `#/beavers/t/<start-date>` (dates are the one
+field guaranteed unique per tournament, so the URL survives more trips
+being added later, even out of order). That new page shows the roster's
+batting/pitching for just that tournament (not merged with any other)
+and every one of its games, grouped by phase, exactly like the overview
+used to show inline.
+
+Deep links into a specific game (from a player's own NWLA Game Log tab)
+used to open the overview and auto-expand that game's box score; since
+the game listing moved off the overview, added `bvTournamentForGame(gid)`
+so that link now lands on the correct tournament's own page with the
+right game expanded and scrolled to, instead of silently landing
+nowhere.
+
+**Renamed the "Champs" nav tab to "Champions"** (the page's own heading
+already said "Champions of BWB Wiffleball" — only the tab label was
+inconsistent).
+
+## 2026-09-20 — Fixed missing OBP on a Beavers tournament page
+
+Reported: OBP wasn't showing on the 2026 NWLA page. Root cause: the new
+tournament page's team-total line built `bTot` with `sumBox(bat,
+BV_BAT_KEYS)`, and `BV_BAT_KEYS` doesn't include `HBP`/`SF` — so
+`bTot.HBP`/`bTot.SF` came back `undefined` rather than `0`, and
+`obp()`'s denominator (`AB+BB+HBP+SF`) evaluated to `NaN`, which renders
+as "—". Each individual player's own row was already fine (those get
+`HBP:0, SF:0` set explicitly), so only the team-total "Team Batting"
+line was affected. Fixed by summing `HBP`/`SF` into the team total too.
+The all-tournament overview page never had this bug — it already built
+its team total with those two fields seeded to 0 from the start.
+
+## 2026-09-20 — Header cleanup: "Established in 2012"; anniversary badge moved up
+
+Replaced the header subtitle "Career Register · 2017–2026" (the
+2017–2026 span is the *stat database's* coverage, not the league's own
+history) with **"Established in 2012"**, the league's actual founding
+year. Also dropped the home page's redundant intro paragraph ("The
+career register for BWB Wiffleball, 2017–2026 — batting, pitching and
+fielding for every player...") — the site demonstrates all of that by
+existing, and it repeated the same 2017–2026 framing being removed from
+the header.
+
+Moved the **15th Anniversary badge** out of that now-removed paragraph's
+row (where it would've been left oddly alone) and into the header itself,
+between the brand and the theme toggle — a permanent, prominent spot
+that fits a season-long anniversary mark far better than a one-time
+callout on the home page body. Verified on both desktop and mobile
+widths.
+
+## 2026-09-20 — Moved the 15th Anniversary badge out of the header
+
+Reported: the anniversary badge looked terrible sitting alone in the
+header's open space between the brand and the theme toggle. Pulled it
+out of the header entirely and replaced it with a reusable `annivBadge()`
+helper — a small inline pin meant to sit directly beside a heading's own
+text, never floating alone in empty space. Placed it next to:
+
+- the home page's "The [Team] are [Year] BWB Champions!" banner heading
+  (both the photo and no-photo variants),
+- the home page's "[Year] Standings" section heading, and
+- the actual Standings page's own "Standings" heading (requested by name).
+
+## 2026-09-20 — Anniversary badge: down to one spot, the Standings page
+
+Trimmed further per follow-up: the badge should live in exactly one
+place, not the header and not the home page's champion banner or its
+"2026 Standings" preview section. Removed those three; it now shows only
+next to the "Standings" heading on the actual Standings page.
+
+## 2026-09-20 — Anniversary badge: moved to the home page's Standings preview
+
+Corrected: "the 2026 standings" meant the home page's own "2026
+Standings" preview section, not the full `/standings` page. Moved the
+badge there and removed it from the full Standings page — it now shows
+in exactly one place, next to "2026 Standings" on the home page.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
