@@ -967,7 +967,13 @@ const ops = d => obp(d)+slg(d);
 const era = d => d.IPouts ? 3*d.ER/(d.IPouts/3) : NaN;
 const whip= d => d.IPouts ? (d.pBB+d.pH)/(d.IPouts/3) : NaN;
 const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
-const fld = d => d.TC ? (d.PO+d.A)/d.TC : NaN;
+/* Chances handled = PO+A+E, not the separately-recorded TC field — checked
+   against the real data and found 8 real season rows (out of 122) where TC
+   didn't actually equal PO+A+E, which let fielding % come out above 1.000
+   (Parker Gibbons' 2025: 37 PO + 16 A over a recorded TC of 51, i.e. 53/51).
+   Deriving the denominator from PO+A+E instead makes a >1.000 percentage
+   mathematically impossible, regardless of what TC itself was recorded as. */
+const fld = d => (d.PO+d.A+d.E) ? (d.PO+d.A)/(d.PO+d.A+d.E) : NaN;
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TROPHY = '<svg class="trophy" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M6 3h12v2h2a1 1 0 0 1 1 1c0 3.3-2.2 5.6-5 5.95A5.5 5.5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5.5 5.5 0 0 1 8 11.95C5.2 11.6 3 9.3 3 6a1 1 0 0 1 1-1h2V3Zm0 4H4.6c.3 1.7 1.6 3 3.2 3.4A7.4 7.4 0 0 1 6 7Zm12 0a7.4 7.4 0 0 1-1.8 3.4c1.6-.4 2.9-1.7 3.2-3.4H18Z"/></svg>';
 const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p;

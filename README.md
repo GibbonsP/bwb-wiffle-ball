@@ -4819,6 +4819,20 @@ are missing for 2017–2021 and 2026) — 2026 correctly shows "No fielding
 qualifiers" rather than an error, and will populate on its own as 2026
 fielding lines get added game by game.
 
+## 2026-09-20 — Fixed fielding % that could read over 1.000
+
+Reported: Parker Gibbons showed a fielding percentage above 1.000 in
+2025. Root cause: `fld()` divided by the separately-recorded `TC`
+(total chances) field, but checked against the real data and found 8
+of 122 real season rows (across 7 different players) where `TC` didn't
+actually equal `PO+A+E` — Parker's 2025 was 37 PO + 16 A over a recorded
+TC of 51 (53/51 = 1.039), when a real chances total can't be lower than
+putouts plus assists alone. Fixed by deriving the denominator from
+`PO+A+E` directly instead of trusting the independently-recorded TC
+value, which makes a fielding percentage over 1.000 mathematically
+impossible regardless of how TC itself was entered. Verified zero
+season rows exceed 1.000 after the fix, across every player.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
