@@ -5488,6 +5488,20 @@ instead of hash routing, a much bigger change than what was asked for
 here. This is the site's homepage becoming properly indexable and
 sharing well, not deep-link search results.
 
+## 2026-09-21 — Bigger tab icon, decoupled from the header logo this time
+
+Last attempt at "bigger tab icon" cropped `anniversaryLogo` itself,
+which also changed the header logo (shared field) — reverted that
+because it made the header too big. This time added a separate
+`faviconLogo` field: the same anniversary logo cropped to its real
+bounding box on a tight square canvas (58%/89% fill, up from 49%/74%),
+used only by `LEAGUE_LOGO` in `generate.py` for the `<link rel="icon">`
+/ `apple-touch-icon` tags. The header's own logo code still reads
+`DB.anniversaryLogo` directly and is untouched — verified the header
+screenshot is pixel-identical to before, and that the favicon and
+header logo are now two distinct images (`same: false`) rather than the
+same shared one.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

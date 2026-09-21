@@ -2,7 +2,7 @@ import json
 
 data = open('players.json').read()
 _db = json.loads(data)
-LEAGUE_LOGO = _db.get('anniversaryLogo') or _db.get('leagueLogo', '')
+LEAGUE_LOGO = _db.get('faviconLogo') or _db.get('anniversaryLogo') or _db.get('leagueLogo', '')
 
 HTML = r'''<meta charset="utf-8">
 <title>BWB Wiffleball</title>
