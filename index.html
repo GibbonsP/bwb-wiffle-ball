@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>BWB Wiffleball Career Register</title>
+<title>BWB Wiffleball</title>
 <meta name="description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026 — regular season and postseason kept separate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2042,20 +2042,6 @@ function playerSparks(pl){
   const p = card('ERA by season', pit, two(era(pl.careerReg)), 'var(--clay)');
   return (b||p) ? `<div class="sparks">${b||''}${p||''}</div>` : '';
 }
-function teamSpark(t){
-  const pts = t.years.slice().sort((a,b)=>a-b).map(y=>{
-    const r = t.seasons[y] && t.seasons[y].record && t.seasons[y].record.Regular;
-    if(!r) return null; const g = r.W+r.L+r.T;
-    return g ? {x:y, y:r.W/g} : null;
-  }).filter(Boolean);
-  if(pts.length < 2) return '';
-  const cg = t.record.W + t.record.L;
-  return `<div class="sparks"><div class="sparkcard">
-    <h4>Win % by season</h4>
-    <div class="spv">${cg?rate(t.record.W/cg):'—'}<small>career</small></div>
-    ${sparkline(pts, 'var(--tc,var(--accent))')}</div></div>`;
-}
-
 function accolades(pl){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const nh = (typeof NOHIT_BY_PITCHER!=='undefined' && NOHIT_BY_PITCHER[pl.name]) || [];
@@ -3990,11 +3976,10 @@ function teamDetail(name){
     ${editBtn('Edit logo','editLogoBtn')}
     ${teamLogoHistory(t)}
     ${teamAccolades(name)}
-    ${teamSpark(t)}
     ${teamRecordTable(t)}
-    ${teamH2H(t)}
     ${chips}
     ${teamYear==='all' ? teamStatsBySeason(t) + teamAllYears(t, name) : teamOneYear(t, teamYear)}
+    ${teamH2H(t)}
     <p class="note">Records and game logs come from official results; All-Star games excluded.
     Franchises are unified across name changes (see "also played as"); the season table shows the name used that year.
     Roster lines are the stats each player recorded for this club that year — a player who changed clubs mid-year

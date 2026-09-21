@@ -4906,6 +4906,16 @@ Three follow-ups to the fielding work above:
   the selected year, matching the "Total" row convention box scores already
   use.
 
+## 2026-09-20 — Team page cleanup; browser tab title shortened
+
+Dropped the "Win % by season" sparkline from team pages (and the now-unused
+`teamSpark()` function) and moved "All-Time Head-to-Head" from above the
+year chips to below the season content — after Game Log on a specific
+year, after Franchise Roster on "All years". Also shortened the
+`<title>` tag from "BWB Wiffleball Career Register" to "BWB Wiffleball",
+since that's what shows up as the name when someone bookmarks the site or
+adds it to a phone's home screen.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
