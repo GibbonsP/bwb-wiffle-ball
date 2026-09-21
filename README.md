@@ -5351,6 +5351,20 @@ source exactly the same as the older Kraken logos already do, so no CSS
 or display-container changes were needed. Only this one era's logo was
 touched.
 
+## 2026-09-21 — Cropped the anniversary logo tighter; Peter Fraioli's title
+
+- **Browser tab icon "bigger."** A browser renders its own tab favicon at
+  a small, fixed size — there's no HTML/CSS lever to make that bigger.
+  What *is* controllable is how much of the source image's own canvas the
+  artwork fills, same issue as the Kraken logo above: the 15th Anniversary
+  logo (used for both the favicon and the header logo, since they share
+  the same image) only filled about 49%/74% of its 320×320 canvas.
+  Cropped to its bounding box and rebuilt on a snug canvas (~90% fill,
+  172×259) the same way — bigger-looking wherever it's used, tab icon
+  included, without changing any CSS.
+- Changed Peter Fraioli's League Office title from "Head of Content
+  Management and Design" to "Director of Social and Digital Content."
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

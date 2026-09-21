@@ -5192,7 +5192,7 @@ function renderAwards(){
    Operations shares one row of equal-weight cards below it. */
 const LEAGUE_OFFICE_LEAD = [
   {name:'Parker Gibbons', titles:['Founder','Commissioner','Head of League Operations']},
-  {name:'Peter Fraioli', titles:['Co-Commissioner','Head of Content Management and Design','League Operations Lead']},
+  {name:'Peter Fraioli', titles:['Co-Commissioner','Director of Social and Digital Content','League Operations Lead']},
   {name:'Trevor Meyler', titles:['Assistant Commissioner','League Operations Lead']},
 ];
 const LEAGUE_OFFICE_OPS = ['TJ Ciafone','Peter Sposato','Victor Cottini','Dan Brady','Austin Corvino','Vinny Spoto'];
