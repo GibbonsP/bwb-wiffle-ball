@@ -7,6 +7,16 @@ LEAGUE_LOGO = _db.get('anniversaryLogo') or _db.get('leagueLogo', '')
 HTML = r'''<meta charset="utf-8">
 <title>BWB Wiffleball</title>
 <meta name="description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026 — regular season and postseason kept separate.">
+<link rel="canonical" href="https://bwbwiffleball.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BWB Wiffleball">
+<meta property="og:description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026.">
+<meta property="og:url" content="https://bwbwiffleball.com/">
+<meta property="og:image" content="https://bwbwiffleball.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BWB Wiffleball">
+<meta name="twitter:description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026.">
+<meta name="twitter:image" content="https://bwbwiffleball.com/og-image.png">
 <link rel="icon" href="__FAVICON__">
 <link rel="apple-touch-icon" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">

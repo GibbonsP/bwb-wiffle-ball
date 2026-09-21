@@ -5462,6 +5462,32 @@ several award cards sit side by side instead of one full-width table
 per award stacked vertically. Verified at both desktop and mobile
 widths — the grid reflows to as many columns as fit.
 
+## 2026-09-21 — Basic SEO: sitemap, robots.txt, Open Graph/Twitter cards
+
+The low-risk SEO pieces discussed earlier: added `robots.txt` (allow
+all, points at the sitemap) and `sitemap.xml` at the repo root. The
+sitemap lists only the root URL — this is a hash-routed single-page app
+(`#/players`, `#/t/...`, etc.), and Google doesn't treat a hash fragment
+as a separate crawlable page, so listing fake "pages" for every route
+wouldn't do anything; the whole site is realistically indexed as one
+page regardless of what's in the sitemap. Also added `<link
+rel="canonical">`, Open Graph tags, and Twitter Card tags to the page
+head so shared links get a proper preview card instead of a bare URL.
+
+Open Graph images have to be a real fetchable URL — a `data:` URI (how
+every other image on this site is stored, since there's no separate
+asset host) doesn't work for `og:image`/`twitter:image` on any major
+platform. Extracted the 15th Anniversary logo out to a real static file,
+`og-image.png` (1200×630, centered on the header's navy brand color —
+the standard OG image size, so it isn't cropped oddly), committed
+alongside `index.html`, `CNAME`, etc.
+
+None of this gets individual pages (a specific player, a specific team)
+showing up in search on their own — that would need real per-page URLs
+instead of hash routing, a much bigger change than what was asked for
+here. This is the site's homepage becoming properly indexable and
+sharing well, not deep-link search results.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
