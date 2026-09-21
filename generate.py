@@ -1875,33 +1875,39 @@ function phaseBlock(pl, type){
   const awCol = type==='Regular'
     ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year)}] : [];
 
+  /* OPS+/ERA+ compare a season against that year's BWB league average —
+     meaningless for NWLA, an outside national tournament with no BWB
+     league games of its own to average against, so those columns are
+     dropped for that one phase. */
+  const opsPlusCol = type==='NWLA' ? [] : [{l:'OPS+',m:1,f:d=>{
+    const v = d.year!=null
+      ? opsPlusFor(d, [{year:d.year, pa:d.PA, post:type==='Playoffs'}])
+      : opsPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'})));
+    return isFinite(v)?String(v):'—';
+  }}];
   const batCols = [...seasonCols,
     {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
     {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},
     {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},{l:'HBP',f:d=>d.HBP},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
-    {l:'OPS+',m:1,f:d=>{
-      const v = d.year!=null
-        ? opsPlusFor(d, [{year:d.year, pa:d.PA, post:type==='Playoffs'}])
-        : opsPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'})));
-      return isFinite(v)?String(v):'—';
-    }}, ...awCol];
+    ...opsPlusCol, ...awCol];
   const bat = statTable('Batting', batCols, rows, career, meta.tot, meta.cls);
 
   let pit='';
   if(career.IPouts>0){
+    const eraPlusCol = type==='NWLA' ? [] : [{l:'ERA+',m:1,f:d=>{
+      const v = d.year!=null
+        ? eraPlusFor(d, [{year:d.year, outs:d.IPouts, post:type==='Playoffs'}])
+        : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
+      return isFinite(v)?String(v):'—';
+    }}];
     const pitCols = [...seasonCols,
       {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
-      {l:'ERA+',m:1,f:d=>{
-        const v = d.year!=null
-          ? eraPlusFor(d, [{year:d.year, outs:d.IPouts, post:type==='Playoffs'}])
-          : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
-        return isFinite(v)?String(v):'—';
-      }}, ...awCol];
+      ...eraPlusCol, ...awCol];
     pit = statTable('Pitching', pitCols, rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls);
   }
 
@@ -4914,6 +4920,9 @@ const splitByUsage = (a,b) => (b.G_bat+b.G_pit) - (a.G_bat+a.G_pit);
 /* a function rather than a static array — the OPS+ column needs the year
    weights for whichever games feed this particular split table, which vary
    per call (see playerSplits) */
+/* weights is omitted for NWLA splits (no BWB league average to compare a
+   national-tournament game against), so OPS+/ERA+ are dropped there
+   entirely rather than rendering a column of dashes */
 const splitBatCols = weights => [
   {l:'Split',lft:1,f:d=>d.label},
   {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
@@ -4921,14 +4930,14 @@ const splitBatCols = weights => [
   {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
   {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
   {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
-  {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
+  ...(weights ? [{l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d,weights);return isFinite(v)?String(v):'—';}}] : [])];
 const splitPitCols = weights => [
   {l:'Split',lft:1,f:d=>d.label},
   {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
   {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
   {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
   {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
-  {l:'ERA+',m:1,f:d=>{const v=weights?eraPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
+  ...(weights ? [{l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d,weights);return isFinite(v)?String(v):'—';}}] : [])];
 function splitDim(title, rows, weights, pitWeights){
   if(!rows.length) return '';
   const total = sumRows(rows);

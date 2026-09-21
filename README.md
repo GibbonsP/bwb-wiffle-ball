@@ -5567,6 +5567,19 @@ a square, mostly-transparent canvas (94% fill by height, letterboxed
 left/right) rather than cropped, so `object-fit:cover` in the `.tlogo`
 box displays it whole.
 
+## 2026-09-21 — Drop OPS+/ERA+ from NWLA Tournament stats
+
+OPS+/ERA+ compare a season against that year's BWB league average —
+meaningless for the NWLA Tournament, an outside national event with no
+BWB league games of its own to average against (Victor Cottini's NWLA
+line was showing a nonsense "OPS+ 66" derived from the regular BWB
+league's 2026 average). Dropped the column from `phaseBlock()`'s NWLA
+batting/pitching tables and from `splitBatCols()`/`splitPitCols()`
+(used by the NWLA Splits tab), rather than just hiding OPS+ and leaving
+the equally-meaningless ERA+ in place. Regular-season/postseason/other
+phases are untouched — verified Victor Cottini's own Regular Season
+splits still show OPS+ normally.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
