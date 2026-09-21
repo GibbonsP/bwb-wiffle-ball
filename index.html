@@ -3863,7 +3863,11 @@ function teamStatsBySeason(t){
   const tfCols=[yr0,
     {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
     {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-  const teamFld = byYear.some(d=>d.TC>0) ? statTable('Team Fielding by Season', tfCols, byYear, grand, 'All', '') : '';
+  /* fielding wasn't tracked league-wide until 2022 — every earlier season
+     is a real zero, not a missing one, so it's dropped from the row list
+     entirely rather than shown as a season with no fielding recorded */
+  const fldYears = byYear.filter(d=>d.TC>0);
+  const teamFld = fldYears.length ? statTable('Team Fielding by Season', tfCols, fldYears, grand, 'All', '') : '';
   return teamBat + teamPit + teamFld;
 }
 

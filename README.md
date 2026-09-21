@@ -5308,6 +5308,15 @@ Pitching versions already had. Fielding omits itself entirely for a
 franchise with no fielding data on record at all (e.g. Purchase PawSox),
 same as before.
 
+## 2026-09-21 — Dropped pre-2022 rows from Team Fielding by Season
+
+Fielding wasn't tracked league-wide until 2022, confirmed against the
+data itself (zero player-seasons have any recorded TC before then) — so
+every earlier year in "Team Fielding by Season" was a real zero, not
+just a missing one, cluttering the table with a decade of empty rows.
+Filtered to only years with `TC>0`, same idea already used correctly on
+a player's own Fielding tab (which already excluded these).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
