@@ -222,6 +222,13 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .accolades{margin:0 0 34px}
 .acc-block{margin:0 0 16px}
 .acc-block h4{font-size:.72rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.pa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-bottom:20px}
+.pa-block{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:12px 13px 6px;box-shadow:var(--shadow)}
+.pa-block h4{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.pa-list{list-style:none;margin:0;padding:0;font-size:.85rem}
+.pa-list li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:baseline}
+.pa-list li:last-child{border-bottom:0}
+.pa-yr{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:.76rem;flex:none;width:2.4em}
 .rings{display:flex;flex-wrap:wrap;gap:8px}
 .ring{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);
   border-radius:999px;padding:4px 12px;font-size:.84rem;font-variant-numeric:tabular-nums}
@@ -5224,21 +5231,16 @@ function renderTeamAwards(name){
     return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
   });
   const blocks = gkeys.map(k=>{
-    const rows = grouped[k].map(e=>`<tr>
-      <td class="lft">${e.year}</td>
-      <td class="lft">${plink(e.winner)}</td>
-      <td class="lft am">${esc(e.note||'')}</td></tr>`).join('');
-    return `<div class="acc-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
-      <div class="tscroll"><table class="detail"><thead><tr>
-      <th class="lft">Year</th><th class="lft">Player</th><th class="lft">Notes</th>
-      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const items = grouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${plink(e.winner)}</li>`).join('');
+    return `<div class="pa-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
+      <ul class="pa-list">${items}</ul></div>`;
   }).join('');
   const logo = teamLogoForYear(name, new Date().getFullYear());
   const logoImg = logo ? `<img class="tlogo" src="${logo}" alt="">` : '';
   app.innerHTML = `
     <button class="back" id="back">← ${esc(name)}</button>
     <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Player Awards</h2></div></div>
-    ${blocks || '<p class="empty">No individual player awards on record for this franchise.</p>'}
+    ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No individual player awards on record for this franchise.</p>'}
     <p class="note">Every individual award a ${esc(name)} player has won, grouped by award. Team-level honors
     (Team of the Year, Sox Trophy, Game of the Year) aren't shown here — see the franchise's own accolades
     for titles and pennants.</p>`;

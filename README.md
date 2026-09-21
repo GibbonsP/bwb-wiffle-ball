@@ -5453,6 +5453,15 @@ uses the same `franchiseIsLinkable()` / `teamLogoForYear()` fallbacks
 already built for defunct-team support elsewhere, rather than assuming
 every team has a live `TEAMS[]` entry.
 
+**Follow-up same day**: reworked the layout per feedback — dropped the
+Notes column and swapped the per-award `<table>` (Year/Player/Notes)
+for a compact card (`.pa-block`/`.pa-list`, new CSS) just listing
+"YYYY — Player" per line, laid out in a `.pa-grid` (the same responsive
+`auto-fit` grid pattern the Leaders page's `.llgrid` already uses) so
+several award cards sit side by side instead of one full-width table
+per award stacked vertically. Verified at both desktop and mobile
+widths — the grid reflows to as many columns as fit.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
