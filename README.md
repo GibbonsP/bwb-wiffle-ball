@@ -4770,6 +4770,23 @@ Standings" preview section, not the full `/standings` page. Moved the
 badge there and removed it from the full Standings page — it now shows
 in exactly one place, next to "2026 Standings" on the home page.
 
+## 2026-09-20 — Added a global player/team search bar to the header
+
+Added a search box to the top-right of the header (next to the theme
+toggle), available on every page since it's wired once outside the
+router, not per-page. Type a few letters of a player or team name and
+get a live dropdown of matches — each with their photo/logo, a subtitle
+(a player's current team, or the team's full name), and a Player/Team
+tag — ranked so a name that *starts with* the query beats one that just
+contains it. Click, or arrow keys + Enter, jumps straight to that
+player's or team's page. Escape or clicking outside closes it.
+
+While testing this at an emulated mobile width, found the site has no
+`<meta name="viewport">` tag at all (a pre-existing, unrelated issue —
+mobile browsers were falling back to a ~980px desktop layout and
+scaling it down instead of laying out at the real device width).
+Flagged as a separate follow-up rather than fixing it inline here.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

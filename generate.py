@@ -57,6 +57,25 @@ header.mast{background:var(--brandbar)}
   border-radius:999px;padding:7px 14px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;
   display:inline-flex;gap:7px;align-items:center;}
 .tog:hover{border-color:var(--clay)}
+.mast-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gsearch{position:relative;width:220px}
+.gsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.6;
+  color:var(--brandbar-ink);pointer-events:none}
+.gsearch input{width:100%;padding:8px 12px 8px 34px;border:1px solid rgba(255,255,255,.4);
+  border-radius:999px;background:rgba(255,255,255,.08);color:var(--brandbar-ink);font-size:.82rem}
+.gsearch input::placeholder{color:rgba(255,255,255,.55)}
+.gsearch input:focus{outline:none;border-color:var(--clay);background:rgba(255,255,255,.14)}
+.gsearch-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);
+  border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;
+  z-index:50;max-height:340px;overflow-y:auto}
+.gsr-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;background:none;
+  border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);cursor:pointer;font-size:.85rem}
+.gsr-item:last-child{border-bottom:0}
+.gsr-item:hover,.gsr-item.active{background:var(--accent-soft)}
+.gsr-item img{width:20px;height:20px;object-fit:contain;flex:none;border-radius:4px}
+.gsr-item .gsr-dot{width:20px;height:20px;border-radius:50%;flex:none;background:var(--line-strong)}
+.gsr-tag{margin-left:auto;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gsr-empty{padding:12px;font-size:.82rem;color:var(--muted)}
 .perf{max-width:1180px;margin:0 auto 22px;padding:0 20px}
 .perf i{display:block;height:3px;background:var(--pa,var(--clay));margin-top:3px}
 
@@ -746,9 +765,16 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
       </div>
       <p id="subtitle">Established in 2012</p>
     </div>
-    <button class="tog" id="tog" aria-label="Toggle colour theme">
-      <span id="togi">◐</span><span id="togt">Theme</span>
-    </button>
+    <div class="mast-tools">
+      <div class="gsearch">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="gsearch" type="search" placeholder="Search players & teams…" autocomplete="off" aria-label="Search players and teams">
+        <div class="gsearch-results" id="gsearchResults" hidden></div>
+      </div>
+      <button class="tog" id="tog" aria-label="Toggle colour theme">
+        <span id="togi">◐</span><span id="togt">Theme</span>
+      </button>
+    </div>
   </div>
 </header>
 <div class="perf"><i></i></div>
@@ -818,6 +844,73 @@ tog.addEventListener('click',()=>{
   const dark = cur ? cur==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
   applyTheme(dark?'light':'dark');
 });
+
+/* global header search — players and teams, available on every page (lives
+   outside the router-controlled #app, wired once here). Substring match,
+   ranked so a name/team that STARTS WITH the query beats one that merely
+   contains it; each list capped so one category can't crowd out the other. */
+function gsMatches(qRaw){
+  const q = qRaw.trim().toLowerCase();
+  if(!q) return [];
+  const rank = s => { const i = s.toLowerCase().indexOf(q); return i<0 ? 99 : i===0 ? 0 : 1; };
+  const players = NAMES.filter(n=>n.toLowerCase().includes(q))
+    .sort((a,b)=>rank(a)-rank(b) || a.localeCompare(b)).slice(0,6)
+    .map(n=>({type:'player', key:n, label:n, sub:(TEAMS[latestTeam(P[n])]||{}).nick || '', photo:P[n].photo}));
+  const teams = TEAMNAMES.filter(t=>t.toLowerCase().includes(q))
+    .sort((a,b)=>rank(a)-rank(b) || a.localeCompare(b)).slice(0,5)
+    .map(t=>({type:'team', key:t, label:TEAMS[t].nick||t, sub:t, logo:TEAMS[t].logo}));
+  return [...players, ...teams];
+}
+function gsRender(items){
+  const box = document.getElementById('gsearchResults');
+  if(!items.length){
+    box.innerHTML = '<div class="gsr-empty">No players or teams match.</div>';
+    box.hidden = false;
+    return;
+  }
+  box.innerHTML = items.map((it,i)=>{
+    const mark = it.type==='player'
+      ? (it.photo?`<img src="${it.photo}" alt="">`:'<span class="gsr-dot"></span>')
+      : (it.logo?`<img src="${it.logo}" alt="">`:'<span class="gsr-dot"></span>');
+    return `<button type="button" class="gsr-item${i===0?' active':''}" data-i="${i}">
+      ${mark}<span>${esc(it.label)}${it.sub?`<br><small style="color:var(--muted)">${esc(it.sub)}</small>`:''}</span>
+      <span class="gsr-tag">${it.type}</span></button>`;
+  }).join('');
+  box.hidden = false;
+}
+(function wireGlobalSearch(){
+  const input = document.getElementById('gsearch');
+  const box = document.getElementById('gsearchResults');
+  let items = [], activeIdx = 0;
+  const go = it => {
+    if(!it) return;
+    location.hash = it.type==='player' ? '#/p/'+encodeURIComponent(it.key) : '#/t/'+encodeURIComponent(it.key);
+    input.value = ''; box.hidden = true; items = [];
+  };
+  const setActive = idx => {
+    activeIdx = Math.max(0, Math.min(items.length-1, idx));
+    box.querySelectorAll('.gsr-item').forEach((el,i)=>el.classList.toggle('active', i===activeIdx));
+  };
+  input.addEventListener('input', ()=>{
+    items = gsMatches(input.value);
+    activeIdx = 0;
+    if(input.value.trim()) gsRender(items); else box.hidden = true;
+  });
+  input.addEventListener('keydown', e=>{
+    if(box.hidden || !items.length) return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); setActive(activeIdx+1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); setActive(activeIdx-1); }
+    else if(e.key==='Enter'){ e.preventDefault(); go(items[activeIdx]); }
+    else if(e.key==='Escape'){ box.hidden = true; }
+  });
+  box.addEventListener('click', e=>{
+    const btn = e.target.closest('.gsr-item'); if(!btn) return;
+    go(items[+btn.dataset.i]);
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.gsearch')) box.hidden = true;
+  });
+})();
 
 /* ---------------- franchise colours (from the club wordmark sheet) ------- */
 const FRANCHISE_COLORS = {
