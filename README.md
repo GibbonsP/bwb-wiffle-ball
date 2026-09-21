@@ -4925,6 +4925,29 @@ Whenever the league logo is updated through the site's own editor, the
 next `python3 generate.py` picks up the new image for the favicon
 automatically — no separate favicon file to keep in sync.
 
+## 2026-09-20 — Fielding % qualifier, fresh-season defaults, logo/directory tweaks
+
+Several smaller fixes and requests together:
+
+- **Fielding % qualifier changed to innings, not games** — Single-Season Fielding %
+  (Leaders and Records) now needs 30+ innings fielded to qualify, replacing the old
+  9-games bar (which let very short, small-sample fielding stints post an inflated
+  percentage). Leaders' career-mode Fielding % and the Records Postseason tab are
+  unchanged. Both pages' qualifier text updated to say so.
+- **Team/Player/Leaders pages now always open on the most recent season** — the
+  year (`teamYear`, `logYear`/`splitYear`, `leadYear`) is reset on every fresh
+  hash navigation into these pages, not just on first load. Previously the site
+  could carry over a stale year from whatever you'd last looked at — e.g. viewing
+  Team A's 2017 season, then clicking into Team B, used to keep showing 2017 for
+  Team B too (or "All years" if that had been selected) instead of Team B's own
+  most recent season.
+- **Header logo and favicon switched to the 15th Anniversary logo** — both now
+  read `DB.anniversaryLogo` first, falling back to `DB.leagueLogo` if it's ever
+  unset.
+- **Players directory "Tm" column renamed to "Teams"** (directory only — the
+  Leaders page's own Tm column is untouched) and its team logo chips enlarged
+  from 18px to 24px.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

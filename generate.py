@@ -1,7 +1,8 @@
 import json
 
 data = open('players.json').read()
-LEAGUE_LOGO = json.loads(data).get('leagueLogo', '')
+_db = json.loads(data)
+LEAGUE_LOGO = _db.get('anniversaryLogo') or _db.get('leagueLogo', '')
 
 HTML = r'''<meta charset="utf-8">
 <title>BWB Wiffleball</title>
@@ -640,7 +641,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist button.pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
-.llogo-sm{width:18px;height:18px;object-fit:contain;flex:none;border-radius:4px}
+.llogo-sm{width:24px;height:24px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-lg{width:38px;height:38px;object-fit:contain;flex:none;border-radius:7px;vertical-align:middle}
 .muteam{display:inline-flex;align-items:center;gap:10px}
 .tmchips{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
@@ -809,8 +810,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 <script id="data" type="application/json">__DATA__</script>
 <script>
 const DB = JSON.parse(document.getElementById('data').textContent);
-if(DB.leagueLogo){
-  document.getElementById('brandLogo').innerHTML = `<img src="${DB.leagueLogo}" alt="BWB Wiffleball">`;
+if(DB.anniversaryLogo || DB.leagueLogo){
+  document.getElementById('brandLogo').innerHTML = `<img src="${DB.anniversaryLogo || DB.leagueLogo}" alt="BWB Wiffleball">`;
 }
 /* the 15th-anniversary mark — a small inline pin next to a section's own
    heading text wherever it's shown, never floating alone in open space */
@@ -1313,7 +1314,8 @@ function renderDir(){
   });
   const th = cols.map(([k,label,t])=>{
     const on = k===sortKey;
-    return `<th class="${on?'sorted':''} ${t==='r'?'mono':''} ${t==='s'?'lft':''}" data-k="${k}">${label}${on?`<span class="ar">${sortDir<0?'▼':'▲'}</span>`:''}</th>`;
+    const lbl = k==='team' ? 'Teams' : label;
+    return `<th class="${on?'sorted':''} ${t==='r'?'mono':''} ${t==='s'?'lft':''}" data-k="${k}">${lbl}${on?`<span class="ar">${sortDir<0?'▼':'▲'}</span>`:''}</th>`;
   }).join('');
   const body = rows.map(r=>'<tr>'+cols.map(([k,label,t],i)=>{
     if(i===0) return `<td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td>`;
@@ -3413,7 +3415,7 @@ function renderLeaders(){
     if(o.min==='ab') a = a.filter(x=>isCareer ? x.s.AB>=minAB : x.s.G_bat>=minG);
     else if(o.min==='pa') a = a.filter(x=>isCareer ? x.s.PA>=minPA : x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
-    else if(o.min==='fldg') a = a.filter(x=>x.s.G_fld>=minG);
+    else if(o.min==='fldg') a = a.filter(x=> isCareer ? x.s.G_fld>=minG : x.s.INN>=(isPost?0:30));
     const dir = o.dir||1;
     const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, logo:ti.logo, logo2:ti.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -3477,7 +3479,7 @@ function renderLeaders(){
       ? `Every player who ${leadMode==='bat'?'batted':'pitched'} in this scope, no minimum — click a header to sort.`
       : `Top 10 per category, ${isPost?'postseason':'regular season'}.${isPost
         ? ' No minimum AB/PA/IP — small postseason samples all qualify.'
-        : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP':'9+ games played and 12+ IP'};`}
+        : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP (fielding % needs 9+ games fielded)':'9+ games played and 12+ IP (fielding % needs 30+ innings fielded)'};`}
     ERA and WHIP list the lowest.`} Career covers ${RANGE}. Names link to player pages.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{
     leadYear = b.dataset.ly==='career' ? 'career' : +b.dataset.ly; renderLeaders();
@@ -4110,7 +4112,7 @@ function renderRecords(){
     let a = seasonPool;
     if(o.min==='g') a = a.filter(x=>x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
-    else if(o.min==='fldg') a = a.filter(x=>x.s.G_fld>=minG);
+    else if(o.min==='fldg') a = a.filter(x=>x.s.INN>=30);
     const dir = o.dir||1;
     const items = a.map(x=>{ const lg=sLogo(x); return {n:x.n, v:f(x.s), tm:ySub(x), logo:lg.logo, logo2:lg.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -4453,7 +4455,8 @@ function renderRecords(){
   const tabs = [
     ['season', 'Single-Season', 'Single-Season Records', `<div class="phase">
       <p class="pmeta">Best individual regular seasons in league history, ${eraLabel} — one row per player-season
-      (a player split across two clubs counts once, combined). Rate stats need 9+ games batting or 12+ IP pitching.</p>
+      (a player split across two clubs counts once, combined). Rate stats need 9+ games batting, 12+ IP pitching,
+      or 30+ innings fielded.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${seasonBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${seasonPit}</div>
       <h4 class="hsub">Fielding</h4><div class="llgrid">${seasonFld}</div>
@@ -6349,7 +6352,7 @@ function dispatch(h){
   if(h === '#/standings') return renderStandings();
   if((m = h.match(/^#\/div\/(.+)$/))) return renderDivision(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/series\/(\d+)\/(\w+)$/))) return renderSeries(+m[1], m[2]);
-  if(h === '#/leaders') return renderLeaders();
+  if(h === '#/leaders'){ leadYear = null; return renderLeaders(); }
   if(h === '#/records') return renderRecords();
   if(h === '#/champs') return renderChampsPage();
   if(h === '#/awards') return renderAwards();
@@ -6362,9 +6365,9 @@ function dispatch(h){
   }
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games') return renderGames();
-  if((m = h.match(/^#\/t\/(.+)$/))) return teamDetail(decodeURIComponent(m[1]));
+  if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
-  if((m = h.match(/^#\/p\/(.+)$/))) return detail(decodeURIComponent(m[1]));
+  if((m = h.match(/^#\/p\/(.+)$/))){ logYear = null; splitYear = 'all'; return detail(decodeURIComponent(m[1])); }
   if(h === '#/players') return renderDir();
   if(h === '#/compare') return renderCompare(null, null);
   if((m = h.match(/^#\/compare\/([^/]+)\/([^/]+)$/)))
