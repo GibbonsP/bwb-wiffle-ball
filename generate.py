@@ -5383,9 +5383,11 @@ function bvBox(name, batRows, pitRows){
 /* player cards for a tournament's roster, headshot only — reuses the
    League Office page's own card/photo styling (.officecard/.officephoto)
    rather than inventing a new look. Captain/co-captains lead the grid
-   so they land on the top row. */
-function bvRosterGrid(bat, pit){
-  const names = [...new Set([...bat.map(r=>r.name), ...pit.map(r=>r.name)])];
+   so they land on the top row. `extra` is for rostered players who
+   didn't record any stats (didn't play), so they'd otherwise be
+   invisible here — added with no stats to derive from anyway. */
+function bvRosterGrid(bat, pit, extra){
+  const names = [...new Set([...bat.map(r=>r.name), ...pit.map(r=>r.name), ...(extra||[])])];
   const ld = LEADERSHIP['Brookside Beavers'];
   const leaders = ld ? [ld.captain, ...(ld.coCaptains||[]).map(c=>c.name)] : [];
   const ordered = [...leaders.filter(n=>names.includes(n)), ...names.filter(n=>!leaders.includes(n))];
@@ -5582,7 +5584,7 @@ function renderBeaverTournament(dateKey){
     ${hero}
     ${overview}
     <h3 class="hsub">Roster</h3>
-    ${bvRosterGrid(bat, pit)}
+    ${bvRosterGrid(bat, pit, t.extraRoster)}
     <h3 class="hsub">Batting</h3>
     ${statTable('', bvBatCols(), bat, {...bTot, name:'Total'}, 'Total', '', true)}
     <h3 class="hsub">Pitching</h3>

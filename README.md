@@ -5580,6 +5580,15 @@ the equally-meaningless ERA+ in place. Regular-season/postseason/other
 phases are untouched — verified Victor Cottini's own Regular Season
 splits still show OPS+ normally.
 
+## 2026-09-21 — Add non-playing roster members to the NWLA Tournament page
+
+Griffin Krueger and Tommy Peck were on the 2026 NWLA Tournament roster
+but didn't record any stats, so they were invisible to `bvRosterGrid()`
+(it only ever derived names from the batting/pitching rows). Added a
+new `extraRoster` field to the tournament data for names to show with
+no stats to derive from, and added both to `inRegister` too so their
+cards link to their player pages like everyone else's.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
