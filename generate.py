@@ -1120,7 +1120,7 @@ function rowVals(name){
   const isPost = phase==='post';
   const c = isPost ? pl.careerPO : pl.careerReg;
   return {
-    name, team: latestTeam(pl) || '—',
+    name, team: latestTeam(pl) || '—', teamCount: careerTeams(pl).length,
     yrs: yearsOf(pl, isPost?'Playoffs':'Regular').length,
     G: mode==='bat'? c.G_bat : c.G_pit,
     PA:c.PA, AB:c.AB, R:c.R, H:c.H, HR:c.HR, RBI:c.RBI, BB:c.BB, K:c.K,
@@ -1286,7 +1286,7 @@ function renderDir(){
   rows.sort((a,b)=>{
     let x=a[sortKey], y=b[sortKey];
     if(sortKey==='name') return sortDir*nameLast(x).localeCompare(nameLast(y));
-    if(sortKey==='team') return sortDir*String(x).localeCompare(String(y));
+    if(sortKey==='team') return sortDir*(a.teamCount-b.teamCount) || String(x).localeCompare(String(y));
     if(!isFinite(x)) x=-Infinity; if(!isFinite(y)) y=-Infinity;
     return sortDir*(x-y);
   });

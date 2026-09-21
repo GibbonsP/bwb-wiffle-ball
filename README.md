@@ -4787,6 +4787,17 @@ mobile browsers were falling back to a ~980px desktop layout and
 scaling it down instead of laying out at the real device width).
 Flagged as a separate follow-up rather than fixing it inline here.
 
+## 2026-09-20 — Players directory: "Tm" column now sorts by team count
+
+The Players page's "Tm" column shows every career team as logo chips
+(added earlier this session), but clicking the header still sorted by
+the player's *latest* team name alphabetically — a leftover from before
+that column showed the full history. Added `teamCount` (from the
+existing `careerTeams()` helper) to each row and switched the sort to
+rank by number of distinct franchises played for, ties broken
+alphabetically by latest team. Verified in both Batting and Pitching
+modes, ascending and descending.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
