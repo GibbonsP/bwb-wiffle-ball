@@ -5292,6 +5292,22 @@ page and confirming a header click still reorders rows afterward.
 
 Changed "Established in 2012" to "Est. 2012" under the header logo.
 
+## 2026-09-21 — Team Hitting/Pitching/Fielding now by-season, always shown
+
+Follow-up to yesterday's Team Hitting/Pitching/Fielding tables: moved them
+out of the single-year view (where they showed one row, only for whichever
+year was selected) and merged them into `teamStatsBySeason()` as one row
+per year — "Team Batting by Season" and "Team Pitching by Season" already
+worked this way; added a matching "Team Fielding by Season" table using
+the same year-by-year aggregate. All three now render once, right after
+"Season by Season" and before the year chips, so they show every year
+regardless of which one is selected — same idea as "Season by Season"
+itself, rather than changing with the chips. Each year links to that
+year's own detail view, reusing the click-to-jump wiring the Batting/
+Pitching versions already had. Fielding omits itself entirely for a
+franchise with no fielding data on record at all (e.g. Purchase PawSox),
+same as before.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

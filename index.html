@@ -3674,7 +3674,6 @@ function teamOneYear(t, y){
   const s = t.seasons[y] || {roster:[], games:[], record:{}};
   const phKey = teamPhase==='post' ? 'playoffs' : 'regular';
   const roster = s.roster.filter(e=>e[phKey]);
-  const T = sumRows(roster.map(e=>e[phKey]));
   const recCards = ['Regular','Playoffs'].map(ph=>{
     const r=(s.record||{})[ph]; if(!r) return '';
     const diff=r.RF-r.RA;
@@ -3682,29 +3681,12 @@ function teamOneYear(t, y){
       <div class="big">${recWL(r)}</div>
       <div class="sub">${r.RF} RF · ${r.RA} RA · ${diff>0?'+':''}${diff}</div></div>`;
   }).join('');
-  const teamName = histName(t.name, y);
-  const teamHittingHTML = roster.length ? statTable('Team Hitting', [
-    {l:'Team',lft:1}, {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
-    {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
-    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
-    {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},{l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))}],
-    [], T, teamName, '') : '';
-  const teamPitchingHTML = (roster.length && T.IPouts) ? statTable('Team Pitching', [
-    {l:'Team',lft:1}, {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},{l:'H',f:d=>d.pH},
-    {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}],
-    [], T, teamName, '') : '';
-  const teamFieldingHTML = (roster.length && T.TC) ? statTable('Team Fielding', [
-    {l:'Team',lft:1}, {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
-    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}],
-    [], T, teamName, '') : '';
   const rosterHTML = roster.length
     ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}])
       + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}])
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
-    ${teamHittingHTML}${teamPitchingHTML}${teamFieldingHTML}
     ${rosterHTML}
     ${gameLog(s.games, y)}`;
 }
@@ -3878,7 +3860,11 @@ function teamStatsBySeason(t){
       return isFinite(v)?String(v):'—';
     }}];
   const teamPit = statTable('Team Pitching by Season', tpCols, byYear, grand, 'All', '');
-  return teamBat + teamPit;
+  const tfCols=[yr0,
+    {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
+  const teamFld = byYear.some(d=>d.TC>0) ? statTable('Team Fielding by Season', tfCols, byYear, grand, 'All', '') : '';
+  return teamBat + teamPit + teamFld;
 }
 
 function teamAllYears(t, name){
@@ -4108,8 +4094,9 @@ function teamDetail(name){
     ${teamLogoHistory(t)}
     ${teamAccolades(name)}
     ${teamRecordTable(t)}
+    ${teamStatsBySeason(t)}
     ${chips}
-    ${teamYear==='all' ? teamStatsBySeason(t) + teamAllYears(t, name) : teamOneYear(t, teamYear)}
+    ${teamYear==='all' ? teamAllYears(t, name) : teamOneYear(t, teamYear)}
     ${teamH2H(t)}
     <p class="note">Records and game logs come from official results; All-Star games excluded.
     Franchises are unified across name changes (see "also played as"); the season table shows the name used that year.
