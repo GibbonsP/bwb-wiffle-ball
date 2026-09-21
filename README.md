@@ -5046,6 +5046,44 @@ to account for either way. Checked at desktop and mobile widths.
 Changed both ProWiffleball footer/social links from
 `prowiffleball.com/leagues/5` to `prowiffleball.com/`.
 
+## 2026-09-21 — Sox World Series accolade; text cleanup; fixed rate-stat sorting
+
+- **Added the Davenport Sox's 2012 World Series to their team page.** Root
+  cause: `playoffs['2012'].championFull` was `null` instead of
+  `"Davenport Sox"` (every other historical champion's `championFull`
+  correctly points to that franchise's *current* name so old titles
+  attribute to today's team page — e.g. 2013/2015 point to "Brookside
+  Kraken" — but the Sox folded and have no current-day successor, so it
+  should have pointed at the franchise's own name instead of being left
+  null). Fixed the data, and also added a `teamAccolades()` call to
+  `renderHistoricalTeam()` — the page for folded pre-2017 franchises
+  never rendered a Team Accolades section at all before this, for any
+  team, so this also makes any future defunct-team title show up the
+  same way a live franchise's does. The Sox's page now shows both their
+  World Series trophy and their 2012 division pennant.
+- Removed "Leaders use regular-season totals. Generated ... from the BWB
+  League Lineup export." from the bottom of the home page, and the
+  "N games. Box scores are built from the recorded player lines — 2017–19
+  games were usually logged as a single line per team..." note from the
+  Games page (shown regardless of which year was selected).
+- Replaced the site footer's "@bwbwiffleball · BWB Wiffleball Career
+  Register" with "BWB Wiffleball Est. 2012".
+- **Fixed OPS (and every other sub-1.000 rate stat) sorting wrong on
+  sortable tables** — team roster pages, Records, anywhere a column uses
+  the generic click-to-sort `makeSortable()` helper. Root cause: its
+  numeric parser regex (`-?\d+\.?\d*`) required a digit *before* the
+  decimal point, so a value like `.847` (this site drops the leading
+  zero on rate stats, standard baseball convention) matched starting
+  from the digits after the dot, parsing as `847` instead of `0.847` —
+  meaning anything under 1.000 sorted as if it were an 800+ value,
+  while anything 1.000 or over (OPS+, multi-homer games, etc.) sorted
+  correctly, so the two groups interleaved randomly instead of sorting
+  as one continuous range. Changed the regex to `-?\d*\.?\d+` (digits
+  before the dot now optional, at least one required after), verified
+  against a real Brentwood Braves roster (`.397` now correctly sorts
+  below `.955`/`.975`, both correctly below `1.359`+), and confirmed
+  plain integer and text columns still sort exactly as before.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

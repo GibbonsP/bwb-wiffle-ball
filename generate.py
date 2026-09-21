@@ -814,7 +814,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
           font-style="italic" font-size="14" fill="#fff">PRO</text></svg>
     </a>
   </div>
-  <p class="footnote">@bwbwiffleball · BWB Wiffleball Career Register</p>
+  <p class="footnote">BWB Wiffleball Est. 2012</p>
 </footer>
 
 <script id="data" type="application/json">__DATA__</script>
@@ -1323,8 +1323,7 @@ function renderHome(){
             font-style="italic" font-size="14" fill="#fff">PRO</text></svg></span>
         <span><b>ProWiffleball</b><span>Live stats &amp; box scores</span></span>
       </a>
-    </div>
-    <p class="note">Leaders use regular-season totals. Generated ${esc(DB.generated)} from the BWB League Lineup export.</p>`;
+    </div>`;
   app.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/'+b.dataset.go; }));
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
@@ -1792,7 +1791,7 @@ function makeSortable(tbl){
       const dir = th.dataset.dir === 'desc' ? 'asc' : 'desc';
       heads.forEach(h=>{ h.removeAttribute('data-dir'); const a=h.querySelector('.ar'); if(a) a.remove(); });
       th.dataset.dir = dir;
-      const num = t => { const m = String(t).replace(/[,–—%]/g,'').match(/-?\d+\.?\d*/); return m?parseFloat(m[0]):NaN; };
+      const num = t => { const m = String(t).replace(/[,–—%]/g,'').match(/-?\d*\.?\d+/); return m?parseFloat(m[0]):NaN; };
       const rows = [...body.rows];
       rows.sort((r1,r2)=>{
         const a=(r1.cells[ci]||{}).textContent||'', b=(r2.cells[ci]||{}).textContent||'';
@@ -4109,10 +4108,13 @@ function renderHistoricalTeam(d){
     ${hero}
     ${erasHtml}
     ${teamLeadershipHtml(name)}
+    ${teamAccolades(name)}
     <p class="note">This franchise folded before the stat database begins in 2017, so no rosters or
     box scores are on record for it here — only the league's win-loss and title record from the
     Franchise Summary.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/teams'; });
+  app.querySelectorAll('[data-div]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/div/'+encodeURIComponent(b.dataset.div); }));
   wirePlayerLinks();
 }
 
@@ -4596,9 +4598,7 @@ function renderGames(){
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
-  app.innerHTML=`<p class="lead">${list.length} games. Box scores are built from the recorded player lines —
-    2017–19 games were usually logged as a single line per team, so those boxes are thin.</p>
-    ${chips}
+  app.innerHTML=`${chips}
     <div class="tscroll"><table class="dir"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>`;
