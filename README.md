@@ -5288,6 +5288,10 @@ page and confirming a header click still reorders rows afterward.
     navigates properly, at both desktop and mobile widths, with the full
     605-row "All" list scrolling smoothly.
 
+## 2026-09-21 — Shortened header subtitle
+
+Changed "Established in 2012" to "Est. 2012" under the header logo.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
