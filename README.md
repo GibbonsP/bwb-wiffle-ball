@@ -5167,6 +5167,28 @@ lookup method, 2017 first-name matching, generation date) from the
 bottom of the Players directory, along with its now-unused `footnote()`
 function and placeholder element.
 
+## 2026-09-21 — Fixed sortable tables losing their wiring on in-page re-renders
+
+The Standings page's Team Batting/Pitching/Fielding tables (and, it turns
+out, a team page's own roster tables) stopped being sortable the moment
+you switched years or toggled Regular/Playoffs — sorting only ever worked
+on the very first load. Root cause: `makeSortable()` needs to run again
+every time a `table.sortable` gets freshly rendered, and `route()` already
+does this once after every hash-based navigation — but year chips and
+phase toggles call `renderStandings()`/`teamDetail()` directly, without
+touching the hash, so they never go through `route()` and their new
+tables never got re-wired. Some render functions (`renderDir`,
+`renderTeams`, `renderLeaders`, others) happened to already call
+`makeSortable` themselves after their own re-renders; `renderStandings`
+and `teamDetail` never did. Rather than patch those two (and risk the
+same bug resurfacing wherever the next render function forgets it),
+folded the fix into the `MutationObserver` added for the open-in-new-tab
+work — it already re-runs after every render anywhere on the site, so it
+now also re-applies `makeSortable()` to any `table.sortable` it finds
+(cheap and safe, since `makeSortable` already skips a table it's already
+wired). Verified by switching years on both the Standings and a team
+page and confirming a header click still reorders rows afterward.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

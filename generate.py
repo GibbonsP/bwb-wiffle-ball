@@ -6464,7 +6464,16 @@ addEventListener('hashchange', route);
    render, including in-page re-renders (year chips, tabs) that never touch
    location.hash and so never run through route() at all. The element swap
    itself only ever touches nodes nested inside app's children, which this
-   observer config doesn't listen for, so it can't retrigger itself. */
+   observer config doesn't listen for, so it can't retrigger itself.
+
+   The same observer also re-applies makeSortable() to any table.sortable
+   on the page — several render functions (renderStandings, teamDetail)
+   never called it themselves after an in-page re-render (a year chip, a
+   phase toggle), so their sortable tables silently lost their click-to-sort
+   wiring the moment you switched years, even though the very first render
+   of that same page worked fine (it goes through route(), which already
+   ran this once). makeSortable() itself is idempotent (skips a table it's
+   already wired), so re-running it here on every mutation is free. */
 const NAV_HREF = {
   p: v => '#/p/'+encodeURIComponent(v),
   t: v => '#/t/'+encodeURIComponent(v),
@@ -6476,7 +6485,7 @@ const NAV_HREF = {
   beavers: () => '#/beavers',
   ag: v => ARCADE_ROUTES[v],
 };
-function upgradeNavLinks(){
+function upgradeAppRender(){
   Object.keys(NAV_HREF).forEach(key=>{
     app.querySelectorAll(`button[data-${key}]`).forEach(btn=>{
       const href = NAV_HREF[key](btn.dataset[key]);
@@ -6488,9 +6497,10 @@ function upgradeNavLinks(){
       btn.replaceWith(a);
     });
   });
+  app.querySelectorAll('table.sortable').forEach(makeSortable);
 }
-new MutationObserver(upgradeNavLinks).observe(app, {childList:true});
-upgradeNavLinks();
+new MutationObserver(upgradeAppRender).observe(app, {childList:true});
+upgradeAppRender();
 
 (function(){ const rc = CHAMPS[0] && FRANCHISE_COLORS[CHAMPS[0].tm]; const el = document.querySelector('.perf i');
   if(rc && el){ el.style.setProperty('--pa', rc.p); el.style.setProperty('--pb', rc.s); } })();
