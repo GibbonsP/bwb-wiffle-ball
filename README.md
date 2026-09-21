@@ -5673,6 +5673,17 @@ Two names needed correcting against the player database during import:
 he has no player page, same as several other pre-2017 award-only
 names elsewhere on the site).
 
+## 2026-09-21 — Flatten the All-NWLA-Team tables
+
+The four All-NWLA-Team tables (Hitting/Pitching/Rookie/Fielding) on
+the new NWLA Awards tab started as a Year × First/Second/Third-Team
+grid, matching the source spreadsheet's own layout. In practice a tie
+(several honorees in the same tier the same year) stacked multiple
+names inside one grid cell, so rows ended up uneven heights next to
+plain "—" cells — read as convoluted next to the clean row-per-entry
+Wiffy/Team Awards tables above it. Flattened each into a Year / Tier /
+Player / Team table, one row per honoree, matching that same style.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

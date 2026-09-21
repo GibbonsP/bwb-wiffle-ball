@@ -5219,22 +5219,21 @@ function nwlaAwardsSection(){
     <th class="lft">Year</th><th class="lft">Team</th><th class="lft">Notes</th>
     </tr></thead><tbody>${teamRows}</tbody></table></div>` : '';
 
+  /* one row per honoree (year, tier, player, team) rather than a Year×Tier
+     grid — a tie (several names in the same tier the same year) used to
+     stack unevenly inside one grid cell; flattened, it reads the same way
+     the Wiffy/Team Awards tables above it do. */
+  const TIER_LABEL = {First:'1st', Second:'2nd', Third:'3rd'};
   const allTeamTable = (title, catKey) => {
     const data = NWLA_AWARDS[catKey] || {};
     const years = Object.keys(data).sort((a,b)=>b-a);
     if(!years.length) return '';
-    const cell = (list,y) => (list&&list.length)
-      ? list.map(e=>`${plink(e.name)} <span class="azm">${tnick(e.team,y)}</span>`).join('<br>')
-      : '—';
-    const rows = years.map(y=>{
-      const tiers = data[y];
-      return `<tr><td class="lft">${y}</td>
-        <td class="lft">${cell(tiers.First,+y)}</td>
-        <td class="lft">${cell(tiers.Second,+y)}</td>
-        <td class="lft">${cell(tiers.Third,+y)}</td></tr>`;
-    }).join('');
+    const rows = years.flatMap(y=>['First','Second','Third'].flatMap(tier =>
+      (data[y][tier]||[]).map(e=>`<tr><td class="lft">${y}</td><td class="lft">${TIER_LABEL[tier]}</td>
+        <td class="lft">${plink(e.name)}</td><td class="lft">${tnick(e.team,+y)}</td></tr>`)
+    )).join('');
     return `<h4>${esc(title)}</h4><div class="tscroll"><table class="detail"><thead><tr>
-      <th class="lft">Year</th><th class="lft">First Team</th><th class="lft">Second Team</th><th class="lft">Third Team</th>
+      <th class="lft">Year</th><th class="lft">Tier</th><th class="lft">Player</th><th class="lft">Team</th>
       </tr></thead><tbody>${rows}</tbody></table></div>`;
   };
   return `<h3 class="hsub" id="h-nwla">NWLA Awards</h3>
