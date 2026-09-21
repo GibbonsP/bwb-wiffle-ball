@@ -5365,6 +5365,15 @@ touched.
 - Changed Peter Fraioli's League Office title from "Head of Content
   Management and Design" to "Director of Social and Digital Content."
 
+## 2026-09-21 — Reverted the anniversary logo crop
+
+The tighter crop from the previous entry made the header logo and tab
+icon look too big. Reverted `anniversaryLogo` back to its original,
+more-padded image; the header logo's own 150px display size and the
+favicon setup are unchanged, so this is a straight revert of the image
+data only. The Kraken team logo crop from earlier today is unaffected —
+this only touched the anniversary logo shared by the header and favicon.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
