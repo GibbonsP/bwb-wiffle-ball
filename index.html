@@ -1833,6 +1833,9 @@ const AW_ABBR = {
   'Silver Slugger':'SS', 'Reliever of the Year':'RoR', 'Manager of the Year':'MgrY',
   'Postseason MVP':'PoMVP',
 };
+const AW_ORDER = ['MVP','CY Young','Postseason MVP','All-Star Game MVP','Rookie of the Year','Silver Slugger',
+  'Golden Hands','Batting Title','Home Run King','Home Run Derby Champion','Reliever of the Year',
+  'Comeback Player of the Year','Manager of the Year'];
 function yearAwards(pl, y){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const out = [];
@@ -2121,9 +2124,6 @@ function accolades(pl){
     <h4>${h.rings.length}× World Series</h4>
     <div class="rings">${h.rings.map(r=>`<span class="ring">${TROPHY} ${r.year} <span class="rt">${histNickLink(r.team, r.year)}</span></span>`).join('')}</div>
   </div>` : '';
-  const AW_ORDER = ['MVP','CY Young','Postseason MVP','All-Star Game MVP','Rookie of the Year','Silver Slugger',
-    'Golden Hands','Batting Title','Home Run King','Home Run Derby Champion','Reliever of the Year',
-    'Comeback Player of the Year','Manager of the Year'];
   const grp = {};
   h.awards.forEach(a=>{ (grp[a.award] = grp[a.award] || []).push(a.year); });
   if(hrdYears.length) grp['Home Run Derby Champion'] = hrdYears.slice();
@@ -4036,7 +4036,8 @@ function teamAccolades(name){
       if(entry && entry[1]==='^') titleEntries.push({year:+y, div:dn});
     });
   });
-  if(!wsYears.length && !pennantEntries.length && !titleEntries.length) return '';
+  const hasAwards = teamAwardEntries(name).length > 0;
+  if(!wsYears.length && !pennantEntries.length && !titleEntries.length && !hasAwards) return '';
   /* a classic 3-column trophy — a wiffleball finial, star, tapering neck,
      a disc on three gold pillars around a center medallion, a base with a
      nameplate — rather than the plain cup icon (TROPHY) used elsewhere
@@ -4077,6 +4078,7 @@ function teamAccolades(name){
     ${block('World Series', wsYears, trophies(wsYears))}
     ${block('Division Titles', titleEntries, pennants(titleEntries, 'title'))}
     ${block('Division Pennants', pennantEntries, pennants(pennantEntries, 'pennant'))}
+    ${hasAwards ? `<button class="pname" data-tawards="${esc(name)}">Player Awards →</button>` : ''}
   </section>`;
 }
 function teamDetail(name){
@@ -5178,6 +5180,64 @@ function renderAwards(){
   app.querySelectorAll('[data-at]').forEach(b=>b.addEventListener('click',()=>{
     awardsTab = b.dataset.at; renderAwards();
   }));
+}
+
+const NON_PLAYER_AWARDS = new Set(['Team of the Year', 'Game Of The Year', 'Sox Trophy']);
+/* every individual-player award a franchise's players have won, resolved
+   through the same team-abbreviation machinery tnick() uses on the main
+   Awards page — paired positionally with the winner list on the old
+   (2012-2017) multi-team/multi-winner Golden Hands/Silver Slugger rows,
+   falling back to the raw winner string if the two lists don't line up
+   1:1 (a few of those old rows have mismatched counts) */
+function teamAwardEntries(fullName){
+  const out = [];
+  Object.keys(AWARDS).forEach(y=>{
+    AWARDS[y].forEach(r=>{
+      if(!r.team || NON_PLAYER_AWARDS.has(r.award)) return;
+      const teamParts = r.team.split(/\s*[/,]\s*/);
+      const winnerParts = (r.winner||'').split(/\s*[/,]\s*/);
+      teamParts.forEach((tp,i)=>{
+        const nick = AWARD_TEAM_ALIAS[tp]||tp;
+        const full = NICK2FULL[nick];
+        if(full===fullName){
+          out.push({year:+y, award:r.award, winner: winnerParts[i]||r.winner, note:r.note});
+        }
+      });
+    });
+  });
+  return out.sort((a,b)=>b.year-a.year);
+}
+function renderTeamAwards(name){
+  setNav('teams');
+  if(!franchiseIsLinkable(name)){ location.hash='#/t/'+encodeURIComponent(name); return; }
+  const entries = teamAwardEntries(name);
+  const grouped = {};
+  entries.forEach(e=>{ (grouped[e.award] = grouped[e.award] || []).push(e); });
+  const gkeys = Object.keys(grouped).sort((a,b)=>{
+    const ia=AW_ORDER.indexOf(a), ib=AW_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
+  });
+  const blocks = gkeys.map(k=>{
+    const rows = grouped[k].map(e=>`<tr>
+      <td class="lft">${e.year}</td>
+      <td class="lft">${plink(e.winner)}</td>
+      <td class="lft am">${esc(e.note||'')}</td></tr>`).join('');
+    return `<div class="acc-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
+      <div class="tscroll"><table class="detail"><thead><tr>
+      <th class="lft">Year</th><th class="lft">Player</th><th class="lft">Notes</th>
+      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+  const logo = teamLogoForYear(name, new Date().getFullYear());
+  const logoImg = logo ? `<img class="tlogo" src="${logo}" alt="">` : '';
+  app.innerHTML = `
+    <button class="back" id="back">← ${esc(name)}</button>
+    <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Player Awards</h2></div></div>
+    ${blocks || '<p class="empty">No individual player awards on record for this franchise.</p>'}
+    <p class="note">Every individual award a ${esc(name)} player has won, grouped by award. Team-level honors
+    (Team of the Year, Sox Trophy, Game of the Year) aren't shown here — see the franchise's own accolades
+    for titles and pennants.</p>`;
+  document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
+  wireHonors();
 }
 
 /* League Office: who actually runs BWB — hand-kept, not derived from any
@@ -6520,6 +6580,7 @@ function dispatch(h){
   if((m = h.match(/^#\/beavers\/(.+)$/))) return bvBoxScore(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games'){ gYear = null; return renderGames(); }
+  if((m = h.match(/^#\/t\/(.+)\/awards$/))) return renderTeamAwards(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){ logYear = null; splitYear = 'all'; return detail(decodeURIComponent(m[1])); }
@@ -6574,6 +6635,7 @@ addEventListener('hashchange', route);
 const NAV_HREF = {
   p: v => '#/p/'+encodeURIComponent(v),
   t: v => '#/t/'+encodeURIComponent(v),
+  tawards: v => '#/t/'+encodeURIComponent(v)+'/awards',
   g: v => '#/g/'+v,
   bv: v => '#/beavers/'+encodeURIComponent(v),
   div: v => '#/div/'+encodeURIComponent(v),

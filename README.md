@@ -5426,6 +5426,33 @@ small "aka Harris Kings" subtitle that used to sit next to the score,
 since the heading itself now carries that information directly instead
 of showing it twice.
 
+## 2026-09-21 — New "Player Awards" page per team, grouped by award
+
+New page (`#/t/<team>/awards`) showing every individual award a
+franchise's players have won, grouped by award type (MVP, CY Young,
+Golden Hands, etc.) rather than by year like the main Awards page —
+linked from a small "Player Awards →" button in the Team Accolades
+section, per the user's own placement call, rather than embedded in the
+team page itself.
+
+Awards are resolved to a franchise the same way the main Awards page's
+`tnick()` already does (`AWARD_TEAM_ALIAS` → `NICK2FULL`), pulled into a
+new shared `teamAwardEntries(fullName)` — multi-team/multi-winner rows
+from the 2012–2017 Golden Hands/Silver Slugger co-winner era are paired
+positionally (team #2 in the list with winner #2), falling back to the
+raw winner string on the handful of old rows where the two lists don't
+line up 1:1. Team-level honors (Team of the Year, Sox Trophy, Game of
+the Year) are excluded, since their "winner" is a team or a game, not a
+player. Hoisted the award-type ordering list (`AW_ORDER`) that already
+existed inside a player page's own accolades function up to a shared
+top-level const, rather than duplicating it.
+
+Works for folded pre-2017 franchises too (checked against `Davenport
+Sox`, `Brentwood Aces`, etc. — all have individual awards on record) —
+uses the same `franchiseIsLinkable()` / `teamLogoForYear()` fallbacks
+already built for defunct-team support elsewhere, rather than assuming
+every team has a live `TEAMS[]` entry.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
