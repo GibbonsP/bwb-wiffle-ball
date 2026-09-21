@@ -5229,6 +5229,28 @@ page and confirming a header click still reorders rows afterward.
   and that the "All years" view (a different code path, franchise-wide
   roster tables) is unaffected.
 
+## 2026-09-21 — More award abbreviations, a 2014 data fix, Team of the Year links
+
+- Added the last 3 confirmed team-abbreviation codes: `Dev`→Devils,
+  `Eag`→Kraken (Eagles era), `Wia`→Aces.
+- **Fixed a real data error in the 2014 awards**: three entries (Comeback
+  Player of the Year, Manager of the Year, Team of the Year) had
+  `team: 'Kings'` and one had `winner: 'Brookside Kings'` — but "Harris
+  Kings" didn't exist until 2018; in 2014 the Brookside franchise
+  playing under that division was the Royals (per its own
+  `FRANCHISE_TIMELINE` entry, nicknamed "Royals" 2013–2014). Corrected
+  all four to "Royals" / "Brookside Royals."
+- **"Team of the Year" winners now link to the team's own page** instead
+  of being run through the player-name linker (which never matched,
+  since the winner is a team, not a person) — resolved via the same
+  `tnick()` team-abbreviation machinery already used for the Team
+  column, with the now-redundant Team column left blank on those rows
+  specifically.
+- Scanned every award winner for first-name-only entries (no confirmed
+  last name, not a player already on file) — found exactly 4, all from
+  2012: Golden Hands ("Peter, Kento") and Silver Slugger ("Kento,
+  Parker"). Flagged to the user for confirmation rather than guessed at.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

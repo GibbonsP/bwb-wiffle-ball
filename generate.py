@@ -4962,14 +4962,12 @@ const AWARD_TEAM_ALIAS = {
   'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Avondale Dashers':'Braves',
   /* 3-letter (or otherwise abbreviated) team codes used on some pre-2018
      multi-winner award rows (Golden Hands / Silver Slugger co-winners),
-     confirmed against the league's own records rather than guessed —
-     "Wia" (one 2015 Silver Slugger co-winner's team) has no confirmed
-     match and is deliberately left unmapped, so it renders as plain text
-     instead of guessing wrong. */
+     confirmed against the league's own records rather than guessed. */
   'Pan':'Panthers', 'PAN':'Panthers', 'Hot':'Lavahogs', 'Hod':'Lavahogs',
   'Ace':'Aces', 'Kra':'Kraken', 'Sql':'Squirrels', 'Kin':'Royals', 'Kig':'Royals',
   'Buf':'Kraken', 'Das':'Braves', 'Mus':'Mustangs', 'GLA':'Gladiators', 'SHK':'Shock',
   'Wicked':'Aces', 'Wic':'Aces', 'Man':'Lavahogs', 'Bul':'Mustangs',
+  'Dev':'Devils', 'Eag':'Kraken', 'Wia':'Aces',
 };
 /* link a player name that may carry "(C)", periods (A.J.), or be a "/"/"," list */
 function plink(raw){
@@ -5075,8 +5073,8 @@ function awardsSection(){
     <th class="lft">Award</th><th class="lft">Winner</th><th class="lft">Team</th><th class="lft">Notes</th>
     </tr></thead><tbody>${rows.map(r=>`<tr>
       <td class="lft">${esc(r.award)}</td>
-      <td class="lft">${plink(r.winner)}</td>
-      <td class="lft">${tnick(r.team, y)}</td>
+      <td class="lft">${r.award==='Team of the Year' ? tnick(r.team, y) : plink(r.winner)}</td>
+      <td class="lft">${r.award==='Team of the Year' ? '' : tnick(r.team, y)}</td>
       <td class="lft am">${esc(r.note||'')}</td></tr>`).join('')}</tbody></table></div>`;
   const blocks=yrs.map(y=>{
     const list=AWARDS[y], divs=[...new Set(list.map(r=>r.div).filter(Boolean))];
