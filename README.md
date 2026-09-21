@@ -5330,6 +5330,20 @@ still only appears as a toggle option when the franchise has any (2022
 on); if it was showing and you land on a team with none, it falls back
 to Hitting automatically instead of showing an empty toggle state.
 
+## 2026-09-21 — Cropped the 2026 Kraken logo tighter
+
+The Brookside Kraken's current (2026-on) logo had a lot of transparent
+padding baked into its 320×320 canvas — the actual artwork only filled
+about 54% of the width and 71% of the height, compared to 65-95% for
+other teams' logos — so it rendered visibly smaller than other teams'
+logos everywhere on the site (team page, box scores, Games list,
+Standings, leaders, etc.) even though every logo uses the exact same
+CSS size. Cropped to the artwork's real bounding box and re-centered on
+a new transparent canvas with a small, consistent margin (~6% per side),
+same 320×320 output size so nothing else about how it's referenced
+changes. Only this one era's logo was touched — the 2012–2022 and
+2023–2025 Kraken logos, and every other team's, are untouched.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
