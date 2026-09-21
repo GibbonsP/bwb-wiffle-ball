@@ -5330,19 +5330,26 @@ still only appears as a toggle option when the franchise has any (2022
 on); if it was showing and you land on a team with none, it falls back
 to Hitting automatically instead of showing an empty toggle state.
 
-## 2026-09-21 — Cropped the 2026 Kraken logo tighter
+## 2026-09-21 — Cropped the 2026 Kraken logo tighter, matched to the older eras' size
 
 The Brookside Kraken's current (2026-on) logo had a lot of transparent
 padding baked into its 320×320 canvas — the actual artwork only filled
-about 54% of the width and 71% of the height, compared to 65-95% for
-other teams' logos — so it rendered visibly smaller than other teams'
-logos everywhere on the site (team page, box scores, Games list,
-Standings, leaders, etc.) even though every logo uses the exact same
-CSS size. Cropped to the artwork's real bounding box and re-centered on
-a new transparent canvas with a small, consistent margin (~6% per side),
-same 320×320 output size so nothing else about how it's referenced
-changes. Only this one era's logo was touched — the 2012–2022 and
-2023–2025 Kraken logos, and every other team's, are untouched.
+about 54% of the width and 71% of the height — so it rendered visibly
+smaller everywhere on the site (team page, box scores, Games list,
+Standings, leaders, etc.) than the franchise's own 2012–2022 and
+2023–2025 logos, which fill roughly 85–92% of their own (non-square,
+238×320) canvas. First pass cropped to the artwork's bounding box but
+kept a square 320×320 canvas, landing at 66%/87% fill — closer, but
+still not matching the older logos' scale. Redid it properly: cropped to
+the bounding box (173×228, almost the same aspect ratio as the older
+logos' own canvas) and built a new canvas sized to that content plus a
+small 5% margin per side — 192×253, non-square like the older ones —
+landing at 88%/88% fill on both axes, matching them directly rather than
+approximating a fixed square. `object-fit: contain` / `background-size:
+contain` (used everywhere a logo is displayed) handle a non-square
+source exactly the same as the older Kraken logos already do, so no CSS
+or display-container changes were needed. Only this one era's logo was
+touched.
 
 ## Outstanding work
 
