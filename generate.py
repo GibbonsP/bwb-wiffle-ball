@@ -2145,7 +2145,8 @@ function accolades(pl){
   const nh = (typeof NOHIT_BY_PITCHER!=='undefined' && NOHIT_BY_PITCHER[pl.name]) || [];
   const hrdYears = (typeof HRD_BY_PLAYER!=='undefined' && HRD_BY_PLAYER[pl.name]) || [];
   const asgMvpYears = (typeof ASGMVP_BY_PLAYER!=='undefined' && ASGMVP_BY_PLAYER[pl.name]) || [];
-  if(!(h.rings.length || h.awards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length)) return '';
+  const nwHonors = (typeof NWLA_BY_PLAYER!=='undefined' && NWLA_BY_PLAYER[pl.name]) || [];
+  if(!(h.rings.length || h.awards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length || nwHonors.length)) return '';
   const rings = h.rings.length ? `<div class="acc-block">
     <h4>${h.rings.length}× World Series</h4>
     <div class="rings">${h.rings.map(r=>`<span class="ring">${TROPHY} ${r.year} <span class="rt">${histNickLink(r.team, r.year)}</span></span>`).join('')}</div>
@@ -2164,6 +2165,16 @@ function accolades(pl){
     <dl class="awroll">${gkeys.map(k=>`<div><dt>${esc(k)}${grp[k].length>1?` <b>×${grp[k].length}</b>`:''}</dt>
       <dd>${grp[k].slice().sort((x,y)=>y-x).join(', ')}</dd></div>`).join('')}</dl>
   </div>` : '';
+  const nwGrp = {};
+  nwHonors.forEach(e=>{ (nwGrp[e.label] = nwGrp[e.label] || []).push(e); });
+  const nw = nwHonors.length ? `<div class="acc-block">
+    <h4>${nwHonors.length} NWLA Award${nwHonors.length>1?'s':''}</h4>
+    <dl class="awroll">${Object.keys(nwGrp).map(k=>{
+      const items = nwGrp[k].slice().sort((a,b)=>b.year-a.year)
+        .map(e=> e.tier ? `${e.year} (${({First:'1st',Second:'2nd',Third:'3rd'})[e.tier]})` : `${e.year}`).join(', ');
+      return `<div><dt>${esc(k)}${nwGrp[k].length>1?` <b>×${nwGrp[k].length}</b>`:''}</dt><dd>${items}</dd></div>`;
+    }).join('')}</dl>
+  </div>` : '';
   const caps = h.asg.filter(s=>s.cap).length;
   const asg = h.asg.length ? `<div class="acc-block">
     <h4>${h.asg.length}× All-Star${caps?` · ${caps}× captain`:''}</h4>
@@ -2174,7 +2185,7 @@ function accolades(pl){
     <h4>${nh.length} No-Hitter${nh.length>1?'s':''}${nhPerf?` · ${nhPerf} Perfect Game${nhPerf>1?'s':''}`:''}</h4>
     <p class="acc-years">${nh.map(x=>`${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)} vs ${histNickLink(x.opp, +x.date.slice(0,4))}${x.perfect?' <span class="estd">Perfect Game</span>':''}`).join('<br>')}</p>
   </div>` : '';
-  return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${asg}${noHit}
+  return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${nw}${asg}${noHit}
     <p class="acc-leg">In the season tables below, the <b>Awards</b> column marks that year:
     WS champion · MVP · CYA Cy Young · RoY Rookie of the Year · SS Silver Slugger · GH Golden Hands ·
     BT Batting Title · HRK Home Run King · RoR Reliever · CPoY Comeback · MgrY Manager · PoMVP Postseason MVP ·
@@ -5037,11 +5048,32 @@ Object.entries(ASG).forEach(([y,a])=>{
     (ASGMVP_BY_PLAYER[n] = ASGMVP_BY_PLAYER[n] || []).push(+y);
   });
 });
+/* NWLA (national tournament) individual/team placements, from the league's
+   own hand-kept award history — separate from AWARDS (BWB's own annual
+   league awards) and from the newer per-tournament Beavers roster/stat
+   data, which only starts in 2026. Flattened into a per-player array so a
+   player's own Accolades card can list these the same way it lists BWB
+   awards, grouped by award/team label with a year (and tier, for the
+   three All-NWLA-Team categories) per entry. */
+const NWLA_AWARDS = DB.nwlaAwards || {};
+const NWLA_TEAM_LABELS = {allHitting:'All-Hitting Team', allPitching:'All-Pitching Team',
+  allRookie:'All-Rookie Team', allFielding:'All-Fielding Team'};
+const NWLA_BY_PLAYER = {};
+const addNwla = (name, label, year, tier) => (NWLA_BY_PLAYER[name] = NWLA_BY_PLAYER[name] || []).push({label, year, tier});
+(NWLA_AWARDS.wiffy||[]).forEach(w=> addNwla(w.name, w.award, w.year));
+Object.entries(NWLA_TEAM_LABELS).forEach(([key,label])=>{
+  Object.entries(NWLA_AWARDS[key]||{}).forEach(([y,tiers])=>{
+    Object.entries(tiers).forEach(([tier,list])=>{
+      list.forEach(e=> addNwla(e.name, label, +y, tier));
+    });
+  });
+});
 const NICK2FULL = DB.nick2full || {};
 const AWARD_TEAM_ALIAS = {
   "Special K's":'Kings', 'The Process':'Process', 'Wildcats':'Process', 'Dashers':'Braves',
   'Hotdoggers':'Lavahogs', 'Hogriders':'Lavahogs', 'Soxs':'Sox', 'Bulldogs':'Mustangs',
   'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Brentwood Dashers':'Braves',
+  'Sea Thieves':'Lavahogs', 'Pawsox':'PawSox', 'Dra':'Dragons', 'Shk':'Shock',
   /* 3-letter (or otherwise abbreviated) team codes used on some pre-2018
      multi-winner award rows (Golden Hands / Silver Slugger co-winners),
      confirmed against the league's own records rather than guessed. */
@@ -5178,6 +5210,48 @@ function awardsSection(){
     were voted by division. 2026 is a preview ballot.</p>${blocks}`;
 }
 
+function nwlaAwardsSection(){
+  const wiffyRows = (NWLA_AWARDS.wiffy||[]).slice().sort((a,b)=>b.year-a.year).map(w=>`<tr>
+    <td class="lft">${w.year}</td><td class="lft">${esc(w.award)}</td>
+    <td class="lft">${plink(w.name)}</td><td class="lft">${tnick(w.team, w.year)}</td></tr>`).join('');
+  const wiffyTbl = wiffyRows ? `<div class="tscroll"><table class="detail"><thead><tr>
+    <th class="lft">Year</th><th class="lft">Award</th><th class="lft">Winner</th><th class="lft">Team</th>
+    </tr></thead><tbody>${wiffyRows}</tbody></table></div>` : '<p class="empty">None on record.</p>';
+
+  const teamRows = (NWLA_AWARDS.teamAwards||[]).slice().sort((a,b)=>b.year-a.year).map(t=>`<tr>
+    <td class="lft">${t.year}</td><td class="lft">${tnick(t.team, t.year)}</td>
+    <td class="lft am">${esc(t.note||'')}</td></tr>`).join('');
+  const teamTbl = teamRows ? `<h4>Team Awards</h4><div class="tscroll"><table class="detail"><thead><tr>
+    <th class="lft">Year</th><th class="lft">Team</th><th class="lft">Notes</th>
+    </tr></thead><tbody>${teamRows}</tbody></table></div>` : '';
+
+  const allTeamTable = (title, catKey) => {
+    const data = NWLA_AWARDS[catKey] || {};
+    const years = Object.keys(data).sort((a,b)=>b-a);
+    if(!years.length) return '';
+    const cell = (list,y) => (list&&list.length)
+      ? list.map(e=>`${plink(e.name)} <span class="azm">${tnick(e.team,y)}</span>`).join('<br>')
+      : '—';
+    const rows = years.map(y=>{
+      const tiers = data[y];
+      return `<tr><td class="lft">${y}</td>
+        <td class="lft">${cell(tiers.First,+y)}</td>
+        <td class="lft">${cell(tiers.Second,+y)}</td>
+        <td class="lft">${cell(tiers.Third,+y)}</td></tr>`;
+    }).join('');
+    return `<h4>${esc(title)}</h4><div class="tscroll"><table class="detail"><thead><tr>
+      <th class="lft">Year</th><th class="lft">First Team</th><th class="lft">Second Team</th><th class="lft">Third Team</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  };
+  return `<h3 class="hsub" id="h-nwla">NWLA Awards</h3>
+    <h4>Wiffy Awards</h4>${wiffyTbl}
+    ${teamTbl}
+    ${allTeamTable('All-Hitting Team', 'allHitting')}
+    ${allTeamTable('All-Pitching Team', 'allPitching')}
+    ${allTeamTable('All-Rookie Team', 'allRookie')}
+    ${allTeamTable('All-Fielding Team', 'allFielding')}`;
+}
+
 function renderChampsPage(){
   setNav('champs');
   app.innerHTML = `
@@ -5197,17 +5271,23 @@ function renderAwards(){
   const tabBar = `<div class="subtabs" role="group" aria-label="Section">
     <button data-at="awards" aria-pressed="${awardsTab==='awards'}">Awards</button>
     <button data-at="asg" aria-pressed="${awardsTab==='asg'}">All-Star Games</button>
+    <button data-at="nwla" aria-pressed="${awardsTab==='nwla'}">NWLA Awards</button>
   </div>`;
   const note = awardsTab==='asg'
     ? `<p class="note">All-Star history from the league's own ASG records. Names link to a player or
        franchise page where one exists in the database (2017 on). <span class="cap">C</span> marks an
        All-Star captain.</p>`
+    : awardsTab==='nwla'
+    ? `<p class="note">BWB's placements at the NWLA national tournament, from the league's own record —
+       separate from the Brookside Beavers' own tournament trips. Names link to a player or franchise
+       page where one exists in the database (2017 on).</p>`
     : `<p class="note">Annual awards from the league's own award records. Names link to a player or
        franchise page where one exists in the database (2017 on). World Series champions have their own tab.</p>`;
+  const body = awardsTab==='asg' ? asgSection() : awardsTab==='nwla' ? nwlaAwardsSection() : awardsSection();
   app.innerHTML = `
     <div class="phead"><h2>Awards &amp; All-Star</h2></div>
     ${tabBar}
-    ${awardsTab==='asg' ? asgSection() : awardsSection()}
+    ${body}
     ${note}`;
   wireHonors();
   app.querySelectorAll('[data-at]').forEach(b=>b.addEventListener('click',()=>{

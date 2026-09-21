@@ -5645,6 +5645,34 @@ was a Royals; also moved the 2014 Silver Slugger (South) row's Kodai
 Tachimoto from Brookside Royals to Brookside Squirrels, per the user's
 confirmation, matching the site's own Leadership data.
 
+## 2026-09-21 — NWLA Awards: new Awards tab + player accolades
+
+Imported the league's NWLA (national tournament) award history from a
+hand-kept spreadsheet — Wiffy Awards (individual national honors), a
+Team Award (national/regional team ranking), and four "All-NWLA-Team"
+categories (Hitting, Pitching, Rookie, Fielding), each with First/
+Second/Third-team selections per year back to 2015. This is a
+separate, longer-running record from the Brookside Beavers' own
+per-tournament roster/stat tracking (which only starts in 2026) — the
+new tab's note says so explicitly to avoid confusion.
+
+Added a third "NWLA Awards" tab on the Awards page (next to Awards and
+All-Star Games), and a new accolades block on each honored player's
+own page, placed directly under their league Awards block (`accolades()`
+in `generate.py`), grouped by category the same way league awards are
+(e.g. "All-Hitting Team ×7 — 2022 (3rd), 2021 (2nd), ..."). Reused the
+existing `tnick()`/`AWARD_TEAM_ALIAS` machinery for team-name
+resolution rather than building a new one; had to add a handful of new
+aliases the old awards data never needed: `Sea Thieves` → Lavahogs
+(its 2018 era name), `Pawsox` → PawSox (case mismatch), and `Dra`/`Shk`
+for the one mid-season-trade entry ("David Pizzutello - Dra/Shk"),
+which now correctly shows both team badges.
+
+Two names needed correcting against the player database during import:
+"Daniel Brady" → Dan Brady, "TJ Fuerst" → T.J. Fuerst (kept unlinked —
+he has no player page, same as several other pre-2017 award-only
+names elsewhere on the site).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
