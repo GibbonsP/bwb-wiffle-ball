@@ -5101,6 +5101,61 @@ page. The inline `*`/`†` markers themselves (estimated team, 2016
 extrapolated stats) still appear in their tables; the Players directory
 page keeps its own separate legend explaining `*`.
 
+## 2026-09-21 — Franchise header color, phantom "Shraken" team, Beavers box score pages, open-in-new-tab links
+
+- **Teams page**: the "Franchise" header cell in the Franchise Name History
+  grid had white text on a white background — invisible. Root cause: it
+  carries both `.tlg-head` (navy bg, white text) and `.tlg-name` (light
+  card bg, for the sticky name column in body rows) classes, and
+  `.tlg-name`'s `background` rule came later in the stylesheet with equal
+  specificity, silently winning over `.tlg-head`'s navy background while
+  the white text stayed. Added `background`/`color` directly to the
+  existing `.tlg-head.tlg-name` combined-selector rule (higher specificity,
+  wins regardless of source order) so it now matches the year columns
+  exactly, in both themes.
+- **Removed a phantom team, "Shraken."** A 2023 Spring exhibition game
+  between the Panthers and (really) the Brookside Kraken had the Kraken's
+  name misspelled "Shraken" in the source data, which created an entirely
+  separate fake franchise entry — its own team page, its own line in
+  All-Time Team Batting/Pitching, with Parker Gibbons and TJ Ciafone (both
+  real Kraken players) on its "roster." Merged that game and record into
+  Brookside Kraken's real 2023 season, corrected both players' season rows
+  and the Panthers' own game log to reference "Brookside Kraken," fixed the
+  box score itself, and deleted the fake team entry and its bogus
+  `nick2full` mapping entirely.
+- **Beavers tournament box scores are now their own pages** instead of
+  inline `<details>` dropdowns — click a game and it opens on its own URL
+  (`#/beavers/<gid>`) with a back button to the tournament, matching how
+  the main league's box scores already work. The tournament page now lists
+  games as clickable summary cards instead of expandable rows. A player's
+  NWLA Game Log date link lands directly on the game's own page now too.
+- **Champions page**: removed "N title games ·" from the header, keeping
+  just the year range.
+- **Internal links now support "open in new tab."** Every internal link
+  on the site was a `<button data-p="...">`-style element with its own
+  click handler — buttons never get the browser's native middle-click /
+  ctrl-or-cmd-click / right-click "open in new tab," only real `<a href>`
+  elements do. Rather than rewrite each of the ~70 button templates (and
+  every render function that wires them) by hand, added a generic
+  `upgradeNavLinks()` pass that swaps any `button[data-p|t|g|bv|div|series|go|beavers|ag]`
+  for a real `<a>` with the matching hash as `href`, keeping every other
+  attribute the same. It runs once via a `MutationObserver` on `#app`'s
+  own child list — not a full subtree, since a single `innerHTML` swap
+  already reports one childList change no matter how deep the new markup
+  is — so it catches every render, including in-page re-renders (year
+  chips, tabs) that change nothing about the hash and so never go through
+  `route()` at all; the element-swap itself only touches nodes nested
+  inside those children, which this observer configuration doesn't listen
+  for, so it can't retrigger itself. Also found and fixed 8 CSS rules
+  (`button.pname` in various contexts — division links, box-score links,
+  the champion banner, leaders lists, the "15-0" game) that only matched
+  actual `<button>` elements and would have silently lost their styling
+  once those elements became anchors; changed them to plain `.pname` so
+  they apply to both. Verified styling and click-through on the home page,
+  Standings' division links, box scores, the Awards/Division all-star
+  list, and an in-page tab switch (confirmed zero un-upgraded buttons
+  remained afterward).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

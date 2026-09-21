@@ -115,7 +115,7 @@ tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
 .pname{background:none;border:0;padding:0;font-weight:600;color:var(--accent);
-  font-size:.9rem;text-align:left}
+  font-size:.9rem;text-align:left;text-decoration:none;cursor:pointer}
 .pname:hover{text-decoration:underline}
 td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 
@@ -160,7 +160,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .tlg-cell{display:flex;align-items:center;font-size:.72rem}
 .tlg-head{background:var(--accent);color:var(--accent-ink);font-family:"Oswald","Arial Narrow",sans-serif;
   font-size:.68rem;letter-spacing:.04em;justify-content:center;padding:8px 2px}
-.tlg-head.tlg-name{justify-content:flex-start;padding-left:12px;text-transform:uppercase;letter-spacing:.08em}
+.tlg-head.tlg-name{justify-content:flex-start;padding-left:12px;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--accent);color:var(--accent-ink)}
 .tlg-band{border-bottom:1px solid var(--line)}
 .tlg-band.even{background:color-mix(in srgb, var(--muted) 5%, transparent)}
 .tlg-name{grid-column:1;padding:0 10px;gap:7px;font-weight:600;font-size:.78rem;
@@ -261,7 +262,7 @@ button.acc-pennant:hover{filter:brightness(1.12)}
 .divh{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;margin:22px 0 6px;
   color:var(--accent);letter-spacing:.02em;display:flex;align-items:center;gap:9px}
 .divh:first-of-type{margin-top:6px}
-.divh button.pname.divlink{font:inherit;color:inherit;letter-spacing:inherit}
+.divh .pname.divlink{font:inherit;color:inherit;letter-spacing:inherit}
 .divlogo{height:48px;width:auto}
 sup.seed{font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:top}
 sup.seed.z{color:var(--accent)}
@@ -290,14 +291,14 @@ sup.seed.x{color:var(--clay)}
 .pb-score{padding:5px 11px;font-size:.72rem;color:var(--muted);border-top:1px solid var(--line);
   font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--muted) 7%,transparent)}
 .pb-score-row{padding:2px 0;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
-.pb-score button.pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px}
+.pb-score .pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px}
 .pb-score button.pb-boxlink{display:block;text-align:left}
 .pb-row{display:flex;align-items:center;gap:9px;padding:9px 11px;font-size:.85rem;white-space:nowrap}
 .pb-row+.pb-row{border-top:1px solid var(--line)}
 .pb-row .sd{color:var(--muted);font-size:.7rem;min-width:1em;font-variant-numeric:tabular-nums}
 .pb-row .dot{width:9px;height:9px;border-radius:2px;background:var(--cd,var(--line-strong));flex:none}
 .pblogo{width:22px;height:22px;object-fit:contain;flex:none}
-.pb-row button.pname,.pb-row span.nm{font:inherit;color:inherit;text-align:left}
+.pb-row .pname,.pb-row span.nm{font:inherit;color:inherit;text-align:left}
 .pb-row.win{font-weight:700;background:color-mix(in srgb,var(--cd,var(--accent)) 12%,transparent)}
 .pb-row.win::after{content:"›";margin-left:auto;padding-left:8px;color:var(--cd,var(--accent));font-weight:700}
 .gscore{margin-left:auto;font-variant-numeric:tabular-nums}
@@ -415,7 +416,7 @@ sup.seed.x{color:var(--clay)}
 .pb-champrow{display:flex;align-items:center;gap:14px}
 .pbtrophylogo{width:64px;height:64px;object-fit:contain;flex:none}
 .pb-trophy .tn{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.9rem;font-weight:700;line-height:1.1}
-.pb-trophy button.pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px}
+.pb-trophy .pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px}
 .capdot{font-size:.56rem;font-weight:700;background:var(--accent);color:var(--accent-ink);
   border-radius:3px;padding:0 3px;margin-left:2px;vertical-align:middle}
 .phase{margin:34px 0 0}
@@ -592,7 +593,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .champbar .ring{font-size:1.3rem;line-height:1}
 .champbar b{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.15rem;letter-spacing:.02em}
 .champbar .cy{opacity:.85;font-size:.82rem;letter-spacing:.04em;margin-left:auto}
-.champbar button.pname{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.champbar .pname{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700}
 .herofeature{border-radius:8px;overflow:hidden;margin:0 0 24px;box-shadow:var(--shadow);background:var(--brandbar)}
 .herophoto{display:block;width:100%;aspect-ratio:16/9;max-height:480px;object-fit:cover;object-position:center 22%}
 .herocap{background:var(--brandbar);color:var(--brandbar-ink);padding:18px 22px 20px}
@@ -629,7 +630,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .asglist .asgr{margin-left:auto;display:flex;align-items:center;gap:10px}
 .asglist .res-W{color:var(--accent);font-weight:700;font-size:.82rem}
 .asglist .res-L{color:var(--clay);font-weight:700;font-size:.82rem}
-.asglist button.pname[data-g]{font-size:.8rem}
+.asglist .pname[data-g]{font-size:.8rem}
 .hsub{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.4rem;margin:36px 0 15px;
   text-transform:uppercase;letter-spacing:.02em;color:var(--accent);
   padding-left:12px;border-left:5px solid var(--clay)}
@@ -647,8 +648,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist li b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);flex:none}
 .llist .ln{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
 .llist .lt{color:var(--muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.llist .lt button.pname{display:inline;font-size:inherit;font-weight:600}
-.llist button.pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
+.llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
 .llogo-sm{width:24px;height:24px;object-fit:contain;flex:none;border-radius:5px}
@@ -684,6 +685,12 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .recent li{padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
 .recent li>span{color:var(--muted)}
 .recent li b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.bvgamecard{display:flex;width:100%;gap:14px;flex-wrap:wrap;align-items:baseline;text-align:left;
+  font:inherit;font-size:.88rem;padding:10px 14px;margin-bottom:8px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);color:inherit}
+.bvgamecard:hover{border-color:var(--line-strong);background:var(--accent-soft)}
+.bvgamecard b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.bvgamecard .bvg-time{margin-left:auto;color:var(--muted)}
 
 @media (prefers-reduced-motion:no-preference){
   main{animation:f .16s ease-out}
@@ -5060,7 +5067,7 @@ function renderChampsPage(){
   setNav('champs');
   app.innerHTML = `
     <div class="phead"><h2>Champions of BWB Wiffleball</h2>
-      <span class="yrs">${CHAMPS.length} title games · ${CHAMPS[CHAMPS.length-1].y}–${CHAMPS[0].y}</span></div>
+      <span class="yrs">${CHAMPS[CHAMPS.length-1].y}–${CHAMPS[0].y}</span></div>
     ${champsSection()}
     <p class="note">Compiled from the league's championship page
       (<a href="${CHAMP_SRC}" target="_blank" rel="noopener">bwbwiffleball.blogspot.com</a>).
@@ -5210,16 +5217,40 @@ function bvBox(name, batRows, pitRows){
   return out;
 }
 function bvGameCard(g){
+  const tag = `${g.ha==='H'?'vs':'@'} ${esc(g.opp)}`;
+  return `<button type="button" class="bvgamecard" data-bv="${esc(g.gid)}">
+    <span>Game ${g.g} · ${tag}</span>
+    <b class="${g.res==='W'?'wteam':''}">${g.res} ${g.rf}–${g.ra}</b>
+    <span class="bvg-time">${g.time} ET</span>
+  </button>`;
+}
+/* dedicated box score page for one Beavers game — mirrors the main
+   league's own boxScore() page instead of expanding inline on the
+   tournament roster page */
+function bvBoxScore(gid){
+  const t = bvTournamentForGame(gid);
+  const g = t && t.games.find(x=>String(x.gid)===String(gid));
+  if(!t || !g){ location.hash = '#/beavers'; return; }
+  setNav('beavers');
   const bea = ['Brookside Beavers', g.bat, g.pit];
   const opp = [g.opp, g.opp_bat||[], g.opp_pit||[]];
   const [away, home] = g.ha==='H' ? [opp, bea] : [bea, opp];
   const tag = `${g.ha==='H'?'vs':'@'} ${esc(g.opp)}`;
   const note = g.opp_note ? `<p class="note">${esc(g.opp_note)}</p>` : '';
-  return `<details id="bvg-${esc(g.gid)}"><summary>Game ${g.g} · ${tag} · <b class="${g.res==='W'?'wteam':''}">${g.res} ${g.rf}–${g.ra}</b> <span class="tk-d">${g.time} ET</span></summary>
+  app.innerHTML = `
+    <button class="back" id="back">← ${esc(bvTournamentLabel(t))}</button>
+    <div class="phead"><h2>Brookside Beavers ${tag}<span class="vs">${g.rf}–${g.ra}</span></h2></div>
+    <p class="pmeta">Game ${g.g} · ${esc(g.phase)} · ${g.date} · ${g.time} ET</p>
     ${bvLineScore(g)}
     ${bvBox(away[0], away[1], away[2])}
     ${bvBox(home[0], home[1], home[2])}
-    ${note}</details>`;
+    ${note}
+    <p class="note">Two-sided box score from the team's GameChanger books. Beavers lines reconcile to
+      the printed team totals; opponent batting is best-effort from the same screenshots (cells that
+      could not be pinned are noted above). Games run 3–5 innings, so <b>ERA</b> and <b>K/3</b>
+      are per 3 IP; every run is booked earned. Source: web.gc.com/teams/ohCbq6OU84HI.</p>`;
+  document.getElementById('back').addEventListener('click',()=>{ location.hash = bvTournamentHref(t); });
+  wirePlayerLinks();
 }
 
 /* career (all-tournament) per-player totals — merges a player's rows across
@@ -5322,7 +5353,7 @@ function renderBeavers(){
    trip (not merged with any other tournament) plus every game it played,
    grouped by phase (pool play, bracket, etc.) same as the overview used
    to show inline for all of them at once */
-function renderBeaverTournament(dateKey, focusGid){
+function renderBeaverTournament(dateKey){
   setNav('beavers');
   const t = BV_LIST.find(x=>x.meta.date===dateKey);
   if(!t){ location.hash = '#/beavers'; return; }
@@ -5358,16 +5389,12 @@ function renderBeaverTournament(dateKey, focusGid){
     <h3 class="hsub">Roster — Pitching</h3>
     ${statTable('', bvPitCols(), pit, {...pTot, name:'Total'}, 'Total', '', true)}
     ${phases.map(p=>`<h3 class="hsub">${esc(p.name)}</h3>${p.gs.map(bvGameCard).join('')}`).join('')}
-    <p class="note">Two-sided box scores from the team's GameChanger books. Beavers lines reconcile to
-      the printed team totals; opponent batting is best-effort from the same screenshots (cells that
-      could not be pinned are noted on the game). Games run 3–5 innings, so <b>ERA</b> and <b>K/3</b>
-      are per 3 IP; every run is booked earned. Source: web.gc.com/teams/ohCbq6OU84HI.</p>`;
+    <p class="note">Click a game for its full two-sided box score. Games run 3–5 innings, so team
+      <b>ERA</b> and <b>K/3</b> above are per 3 IP; every run is booked earned.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash = '#/beavers'; });
+  app.querySelectorAll('[data-bv]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/beavers/'+encodeURIComponent(b.dataset.bv); }));
   wirePlayerLinks();
-  if(focusGid){
-    const el = document.getElementById('bvg-'+focusGid);
-    if(el){ el.open = true; el.scrollIntoView({block:'start'}); }
-  }
 }
 
 /* ============================== BWB GRID ==============================
@@ -6410,11 +6437,7 @@ function dispatch(h){
   if(h === '#/awards') return renderAwards();
   if(h === '#/beavers') return renderBeavers();
   if((m = h.match(/^#\/beavers\/t\/(.+)$/))) return renderBeaverTournament(decodeURIComponent(m[1]));
-  if((m = h.match(/^#\/beavers\/(.+)$/))){
-    const gid = decodeURIComponent(m[1]);
-    const t = bvTournamentForGame(gid);
-    return t ? renderBeaverTournament(t.meta.date, gid) : renderBeavers();
-  }
+  if((m = h.match(/^#\/beavers\/(.+)$/))) return bvBoxScore(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games') return renderGames();
   if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; return teamDetail(decodeURIComponent(m[1])); }
@@ -6444,6 +6467,48 @@ function route(){
   if(h === raw) scrollTo(0,0);
 }
 addEventListener('hashchange', route);
+
+/* Every internal "link" on this site is a <button data-X="…"> wired up with
+   its own click handler, not a real <a href> — so none of them support the
+   browser's native middle-click / ctrl-or-cmd-click / right-click "open in
+   new tab", since only anchors get that behavior. Rather than rewrite every
+   one of the ~70 button templates across the file (and every render
+   function that wires them), upgrade them to real anchors once, generically,
+   after the fact: swap in the matching hash as href and keep everything
+   else about the element the same. A MutationObserver on #app's own child
+   list (not a full subtree — a single innerHTML swap already reports one
+   childList change no matter how deep the new markup is) catches every
+   render, including in-page re-renders (year chips, tabs) that never touch
+   location.hash and so never run through route() at all. The element swap
+   itself only ever touches nodes nested inside app's children, which this
+   observer config doesn't listen for, so it can't retrigger itself. */
+const NAV_HREF = {
+  p: v => '#/p/'+encodeURIComponent(v),
+  t: v => '#/t/'+encodeURIComponent(v),
+  g: v => '#/g/'+v,
+  bv: v => '#/beavers/'+encodeURIComponent(v),
+  div: v => '#/div/'+encodeURIComponent(v),
+  series: v => { const [y,rk] = v.split('|'); return '#/series/'+y+'/'+rk; },
+  go: v => '#/'+v,
+  beavers: () => '#/beavers',
+  ag: v => ARCADE_ROUTES[v],
+};
+function upgradeNavLinks(){
+  Object.keys(NAV_HREF).forEach(key=>{
+    app.querySelectorAll(`button[data-${key}]`).forEach(btn=>{
+      const href = NAV_HREF[key](btn.dataset[key]);
+      if(!href) return;
+      const a = document.createElement('a');
+      for(const attr of btn.attributes) a.setAttribute(attr.name, attr.value);
+      a.setAttribute('href', href);
+      a.innerHTML = btn.innerHTML;
+      btn.replaceWith(a);
+    });
+  });
+}
+new MutationObserver(upgradeNavLinks).observe(app, {childList:true});
+upgradeNavLinks();
+
 (function(){ const rc = CHAMPS[0] && FRANCHISE_COLORS[CHAMPS[0].tm]; const el = document.querySelector('.perf i');
   if(rc && el){ el.style.setProperty('--pa', rc.p); el.style.setProperty('--pb', rc.s); } })();
 buildTicker();
