@@ -276,6 +276,13 @@ td.awc{font-size:.76rem;font-weight:600;color:var(--accent);letter-spacing:.02em
 .acc-divlogo{width:22px;height:22px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
 .stand .rk{display:inline-block;min-width:1.6em;color:var(--ink);font-variant-numeric:tabular-nums;
   font-size:.8rem;margin-right:2px}
+/* fixed layout so every division's table sizes its columns the same way —
+   left to auto (content-based) sizing, a table with only short team names
+   ends up with a narrower Team column than one sharing the page with
+   "Silver Lake Snapping Turtles", throwing every column after it out of
+   alignment between the two division tables */
+table.stand{table-layout:fixed}
+.stand th:first-child,.stand td:first-child{width:34%}
 .divh{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;margin:22px 0 6px;
   color:var(--accent);letter-spacing:.02em;display:flex;align-items:center;gap:9px}
 .divh:first-of-type{margin-top:6px}

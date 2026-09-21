@@ -5699,6 +5699,17 @@ and Shelton Shock's Awards pages. Also fixed `teamAccolades()`'s
 all) to count NWLA-only honors too, so a franchise with NWLA awards but
 no BWB league awards still gets a reachable Awards page.
 
+## 2026-09-21 — Align the two division standings tables' columns
+
+Each division's standings table sized its own "Team" column based on
+that table's own team-name lengths (default `table-layout:auto`), so
+a division with "Silver Lake Snapping Turtles" ended up with a wider
+Team column — and every column after it shifted out of alignment —
+than a division whose longest name was shorter. Set `table-layout:fixed`
+on `.stand` with an explicit 34% width on the Team column, so both
+tables split their columns identically regardless of content. Checked
+2018 (longer names, 3 teams/division) and 2026, desktop and mobile.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
