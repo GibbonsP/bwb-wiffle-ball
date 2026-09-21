@@ -2227,10 +2227,7 @@ function detail(name){
     </div>
     ${overviewHTML}
     ${tabBar}
-    ${activeHTML}
-    <p class="note">Each phase — regular season, postseason, the exhibition sets (All-Star, spring training, fall ball, the Brookside Field Finale) and the NWLA Tournament (national-team play, from GameChanger) — is tallied in its own block, one row per year plus a phase total; nothing is pooled across phases. Team is from the league roster (<span class="pt">*</span> = estimated from game appearances).
-    <span class="estd">†</span> 2016: cumulative totals only — 2B, 3B and hits/walks allowed are extrapolated from
-    the player's later rates, and Runs are unavailable. Spans ${RANGE}.</p>`;
+    ${activeHTML}`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
   app.querySelectorAll('[data-pt]').forEach(b=>b.addEventListener('click',()=>{
     playerTab = b.dataset.pt; logYear = null; splitYear = 'all'; detail(name);
@@ -5117,7 +5114,6 @@ function renderOffice(){
   setNav('office');
   app.innerHTML = `
     <div class="phead"><h2>League Office</h2></div>
-    <p class="lead">The people who run BWB Wiffleball off the field.</p>
     <div class="officegrid officegrid-lead">${LEAGUE_OFFICE_LEAD.map(o=>officeCard(o.name, o.titles, true)).join('')}</div>
     <h3 class="hsub">League Operations</h3>
     <div class="officegrid">${LEAGUE_OFFICE_OPS.map(n=>officeCard(n, ['League Operations'], false)).join('')}</div>
