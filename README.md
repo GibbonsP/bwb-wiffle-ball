@@ -5251,6 +5251,43 @@ page and confirming a header click still reorders rows afterward.
   2012: Golden Hands ("Peter, Kento") and Silver Slugger ("Kento,
   Parker"). Flagged to the user for confirmation rather than guessed at.
 
+## 2026-09-21 — Fixed the Games page's slow load; confirmed the only other 2012 first-name winners
+
+- **Confirmed the 4 first-name-only award winners from 2012**: Golden
+  Hands → Peter Fraioli, Kento Kamezaki; Silver Slugger → Kento Kamezaki,
+  Parker Gibbons. Fixed in the raw award data (Kento Kamezaki isn't in
+  the player database, so his name still won't link to a page — same as
+  any other name with no matching player record — but it now reads in
+  full instead of just "Kento").
+- **Fixed the Games page taking noticeably long to load.** Measured
+  before touching anything: the default "All" view rendered 605 rows in
+  **1078ms** and produced a **75MB** block of HTML with **1244** `<img>`
+  tags — because only ~29 distinct team logos actually exist, but each
+  one (a base64 string, tens of KB) was being copy-pasted directly into
+  every row that used it, sometimes hundreds of times over, instead of
+  being stored once. Two fixes:
+  - Registered each of the ~29 distinct logos (every team's current logo,
+    every entry in its `logoHistory`, every defunct-franchise logo) as
+    its own CSS class in one `<style>` block injected at boot — the logo
+    data itself now appears exactly once in the page regardless of how
+    many rows reference it. Added `logoIcon()` as a drop-in replacement
+    for `<img class="…" src="…">` that uses the registered class (a
+    `<span>` with a CSS background-image) when one exists, and only
+    falls back to a real `<img>` otherwise. Applied it to the Games
+    page's team cells specifically, since that's the page with by far
+    the most repeated logos on one screen; other pages show far fewer
+    rows at once and weren't measured as a problem.
+  - The Games page also defaulted to showing every year at once ("All")
+    on first load rather than the most recent year, same class of bug as
+    the Team/Player/Leaders pages fixed earlier this session — now
+    resets to the latest year on a fresh visit, with "All" still
+    available as an explicit choice.
+  - Result: the same "All" view now renders in **~22ms** (roughly 50×
+    faster) and produces **367KB** of HTML (roughly 200× smaller) instead
+    of 75MB. Verified logos still display correctly and every link still
+    navigates properly, at both desktop and mobile widths, with the full
+    605-row "All" list scrolling smoothly.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -651,6 +651,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
+.llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
 .llogo-sm{width:24px;height:24px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-lg{width:38px;height:38px;object-fit:contain;flex:none;border-radius:7px;vertical-align:middle}
@@ -2449,6 +2450,54 @@ const TEAMS = DB.teams || {};
 const TEAMNAMES = Object.keys(TEAMS).sort((a,b)=>a.localeCompare(b));
 let teamYear=null, teamPhase='reg';
 
+/* Team logos are stored as base64 data URIs (there's no server to host real
+   image files, so this whole site is one static HTML page) — fine for the
+   handful of places a logo appears once per page, but a page with many
+   repeated logos (e.g. every row of the Games list showing two team logos
+   each) was embedding the SAME ~30-100KB string over and over, once per
+   <img> tag: the "All" Games view alone produced 1200+ <img> tags and a
+   75MB block of HTML. Registering each of the ~29 distinct logos once as
+   its own CSS class (one `<style>` rule per logo, injected once at boot)
+   and referencing it by class name everywhere it repeats cuts that same
+   view down to a couple MB of markup, all covered by ~1.8MB of CSS instead
+   of duplicated per row. logoIcon() falls back to a normal <img> for any
+   logo that isn't pre-registered (there shouldn't be one, since every logo
+   in the data is looped over below, but a page must never break just
+   because a fallback wasn't reachable). */
+const LOGO_CLASS = new Map();
+(function buildLogoClasses(){
+  const rules = [];
+  const register = uri => {
+    if(!uri || LOGO_CLASS.has(uri)) return;
+    const cls = 'lg'+LOGO_CLASS.size;
+    LOGO_CLASS.set(uri, cls);
+    rules.push(`.${cls}{background-image:url("${uri}")}`);
+  };
+  TEAMNAMES.forEach(n=>{
+    const t = TEAMS[n];
+    register(t.logo);
+    (t.logoHistory||[]).forEach(h=>register(h.logo));
+  });
+  Object.values(DB.franchiseLogos||{}).forEach(register);
+  Object.values(DB.divisionLogos||{}).forEach(register);
+  if(rules.length){
+    const style = document.createElement('style');
+    style.textContent = rules.join('\n');
+    document.head.appendChild(style);
+  }
+})();
+/* drop-in replacement for `<img class="${cls}" src="${uri}">` wherever a
+   logo might repeat many times on one page; identical markup/behavior
+   (same class list, same alt text via aria-label) for anything that reads
+   the class off the element, just backed by CSS instead of a raw src. */
+function logoIcon(uri, alt, cls){
+  if(!uri) return '';
+  cls = cls || 'llogo';
+  const lc = LOGO_CLASS.get(uri);
+  return lc ? `<span class="${cls} llogo-bg ${lc}" role="img" aria-label="${esc(alt||'')}"></span>`
+    : `<img class="${cls}" src="${uri}" alt="${esc(alt||'')}">`;
+}
+
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
 const wirePlayerLinks = () => app.querySelectorAll('.pname[data-p]').forEach(b=>
   b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
@@ -4146,7 +4195,7 @@ function renderHistoricalTeam(d){
 const GAMES = DB.games || {};
 const gkey = g => (GAMES[g].dt || GAMES[g].date) + '|' + g;
 const GIDS = Object.keys(GAMES).sort((a,b)=>gkey(b).localeCompare(gkey(a)));
-let gYear='all';
+let gYear=null;
 let recordsEra='all';
 let recordsTab='season';
 
@@ -4605,12 +4654,13 @@ function renderRecords(){
 function renderGames(){
   setNav('games');
   const yrs=[...new Set(GIDS.map(id=>GAMES[id].date.slice(0,4)))].sort();
+  if(gYear==null) gYear = yrs[yrs.length-1];
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
   const gamesTeamCell = (team, y) => {
-    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
-    return `<span class="tmcell">${logo?`<img class="llogo" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+    const logo = teamLogoForYear(team, y);
+    return `<span class="tmcell">${logoIcon(logo)}${histTeamLink(team, y)}</span>`;
   };
   const body=list.map(id=>{
     const g=GAMES[id], a=g.away.R, hh=g.home.R, yr=+g.date.slice(0,4);
@@ -6467,7 +6517,7 @@ function dispatch(h){
   if((m = h.match(/^#\/beavers\/t\/(.+)$/))) return renderBeaverTournament(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/beavers\/(.+)$/))) return bvBoxScore(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
-  if(h === '#/games') return renderGames();
+  if(h === '#/games'){ gYear = null; return renderGames(); }
   if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){ logYear = null; splitYear = 'all'; return detail(decodeURIComponent(m[1])); }
