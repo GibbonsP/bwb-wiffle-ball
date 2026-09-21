@@ -4950,9 +4950,10 @@ Several smaller fixes and requests together:
 
 ## 2026-09-20 — Bigger header logo
 
-Bumped the header logo (currently the 15th Anniversary logo) from 80px to
-108px tall. Checked at both desktop and mobile widths — the header row
-still wraps cleanly.
+Bumped the header logo (currently the 15th Anniversary logo) from 80px,
+to 108px, to 150px tall after a follow-up ask for even bigger. Checked
+at both desktop and mobile widths each time — the header row still wraps
+cleanly.
 
 ## Outstanding work
 
