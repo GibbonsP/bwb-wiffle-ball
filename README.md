@@ -5160,6 +5160,13 @@ page keeps its own separate legend explaining `*`.
   list, and an in-page tab switch (confirmed zero un-upgraded buttons
   remained afterward).
 
+## 2026-09-21 — Removed the "About this register" note from Players page
+
+Dropped the whole explanatory footnote (rate-stat definitions, team
+lookup method, 2017 first-name matching, generation date) from the
+bottom of the Players directory, along with its now-unused `footnote()`
+function and placeholder element.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

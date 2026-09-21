@@ -1411,8 +1411,7 @@ function renderDir(){
       <thead><tr>${th}</tr></thead>
       <tbody>${body || '<tr><td colspan="'+cols.length+'" class="empty">No players match.</td></tr>'}</tbody>
     </table></div>`}
-    <p class="note" id="footnote"></p>`;
-  footnote();
+  `;
   document.getElementById('cmpLink').addEventListener('click',()=>{ location.hash='#/compare'; });
   const qi = document.getElementById('q');
   qi.addEventListener('input',e=>{ query=e.target.value; const p=qi.selectionStart; renderDir();
@@ -1446,22 +1445,6 @@ function renderDir(){
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = '#/t/'+encodeURIComponent(b.dataset.t);
   }));
-}
-
-function footnote(){
-  const fn = document.getElementById('footnote'); if(!fn) return;
-  fn.innerHTML = `<b>About this register.</b> Regular season and postseason are kept separate throughout — the
-  toggle above switches the leaderboard between them, and every player page carries each phase, plus the
-  exhibition sets (All-Star, spring training, fall ball), as its own block. Spans ${RANGE}.
-  Rates: AVG / OBP / SLG standard, OPS = OBP + SLG. BWB games run 3 innings, so <b>ERA</b> is earned runs
-  per 3 IP — a full game — and <b>K/3</b> is strikeouts on the same basis; WHIP is baserunners per inning.
-  IP is shown as whole.thirds (.1 = ⅓, .2 = ⅔); rate stats use exact thirds, not the printed decimal.
-  Fielding % = (PO + A) / TC.
-  <br><b>Team</b> comes from the league's player-roster lookup, matched per registration; a season with two
-  entries shows both clubs (Team A / Team B). <span class="pt">*</span> marks the handful of early
-  registrations with no roster row, where the club is estimated from game appearances. The 2017 season was
-  logged with first names only; those records have been matched to the right player by the league.
-  <br>Generated ${esc(DB.generated)} from the BWB League Lineup export.`;
 }
 
 /* ---------------- player detail ---------------- */
