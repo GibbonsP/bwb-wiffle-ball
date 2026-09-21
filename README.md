@@ -4916,6 +4916,15 @@ year, after Franchise Roster on "All years". Also shortened the
 since that's what shows up as the name when someone bookmarks the site or
 adds it to a phone's home screen.
 
+## 2026-09-20 — Browser tab favicon set to the league logo
+
+Added `<link rel="icon">` and `<link rel="apple-touch-icon">` tags using
+`leagueLogo` from `players.json` (the same logo already shown in the
+header) as a base64 data URI, embedded at build time by `generate.py`.
+Whenever the league logo is updated through the site's own editor, the
+next `python3 generate.py` picks up the new image for the favicon
+automatically — no separate favicon file to keep in sync.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

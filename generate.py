@@ -1,10 +1,13 @@
 import json
 
 data = open('players.json').read()
+LEAGUE_LOGO = json.loads(data).get('leagueLogo', '')
 
 HTML = r'''<meta charset="utf-8">
 <title>BWB Wiffleball</title>
 <meta name="description" content="Career batting, pitching, and fielding records for every player in BWB Wiffleball, 2017 through 2026 — regular season and postseason kept separate.">
+<link rel="icon" href="__FAVICON__">
+<link rel="apple-touch-icon" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -6392,5 +6395,5 @@ route();
 </script>
 '''
 
-open('index.html','w').write(HTML.replace('__DATA__', data))
+open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', LEAGUE_LOGO))
 print('wrote index.html')
