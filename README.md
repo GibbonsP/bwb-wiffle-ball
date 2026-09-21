@@ -5345,11 +5345,24 @@ the bounding box (173×228, almost the same aspect ratio as the older
 logos' own canvas) and built a new canvas sized to that content plus a
 small 5% margin per side — 192×253, non-square like the older ones —
 landing at 88%/88% fill on both axes, matching them directly rather than
-approximating a fixed square. `object-fit: contain` / `background-size:
-contain` (used everywhere a logo is displayed) handle a non-square
-source exactly the same as the older Kraken logos already do, so no CSS
-or display-container changes were needed. Only this one era's logo was
-touched.
+approximating a fixed square.
+
+That non-square version turned out to be wrong for one specific spot:
+the team page's own hero logo (`.tlogo`, a 92×92 box) uses `object-fit:
+cover`, not `contain` — `cover` fills the box completely by cropping
+whatever doesn't fit, rather than letterboxing. A 192×253 portrait image
+inside a 92×92 square `cover` box gets scaled to match on width, which
+pushes its rendered height well past 92px — the box then clips the
+excess off the top and bottom, cutting into the actual logo mark (the
+top of the tentacles, part of the team-name banner), not just empty
+margin. Every other team's logo is already stored on a square canvas,
+which is exactly why this never came up for them. Redid the crop as a
+square canvas (259×259) instead, sized to the artwork's longer dimension
+plus a 6% margin — 65%/86% fill (lower on width than the portrait
+version, since the mark itself is taller than it is wide and that's not
+croppable away without cutting content), but critically no longer clips
+anything in the `.tlogo` box, since a square source in a square `cover`
+box needs no cropping at all. Only this one era's logo was touched.
 
 ## 2026-09-21 — Cropped the anniversary logo tighter; Peter Fraioli's title
 
