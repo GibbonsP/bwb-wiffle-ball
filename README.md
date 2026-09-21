@@ -5317,6 +5317,19 @@ just a missing one, cluttering the table with a decade of empty rows.
 Filtered to only years with `TC>0`, same idea already used correctly on
 a player's own Fielding tab (which already excluded these).
 
+## 2026-09-21 — Team Stats moved below player stats, with a Hitting/Pitching/Fielding toggle
+
+Follow-up to the by-season Team Hitting/Pitching/Fielding tables added
+earlier today: moved them below the individual player Batting/Pitching
+tables (and, for the single-year view, above the Game Log), and replaced
+showing all three stacked with a segmented toggle (`Hitting`/`Pitching`/
+`Fielding`, matching the `.segs` pattern used elsewhere) that shows one
+at a time — `teamStatMode`, persisted across year switches within the
+same team, reset to Hitting on a fresh visit to any team page. Fielding
+still only appears as a toggle option when the franchise has any (2022
+on); if it was showing and you land on a team with none, it falls back
+to Hitting automatically instead of showing an empty toggle state.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

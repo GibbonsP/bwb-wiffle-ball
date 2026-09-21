@@ -3694,6 +3694,7 @@ function teamOneYear(t, y){
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
     ${rosterHTML}
+    ${teamStatsBySeason(t)}
     ${gameLog(s.games, y)}`;
 }
 
@@ -3834,6 +3835,7 @@ function teamRecordTable(t){
 
 /* yearly batting/pitching breakdown — lives under the "All years" chip, alongside the
    all-time roster and head-to-head, so the chip genuinely controls everything below it */
+let teamStatMode = 'bat';
 function teamStatsBySeason(t){
   const yrs = t.years.slice().sort((a,b)=>a-b);
   const byYear = yrs.map(y=>{
@@ -3842,39 +3844,52 @@ function teamStatsBySeason(t){
   });
   const grand = sumRows(byYear);
   const yr0 = {l:'Season',f:d=>`<button class="pname" data-yv="${d.year}">${d.year}</button>`};
-  const tbCols=[yr0,
-    {l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
-    {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
-    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
-    {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
-    {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
-    {l:'OPS+',m:1,f:d=>{
-      const v = d.year!=null
-        ? opsPlusFor(d, [{year:d.year, pa:d.PA}])
-        : opsPlusFor(d, byYear.map(r=>({year:r.year, pa:r.PA})));
-      return isFinite(v)?String(v):'—';
-    }}];
-  const teamBat = statTable('Team Batting by Season', tbCols, byYear, grand, 'All', '');
-  const tpCols=[yr0,
-    {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
-    {l:'H',f:d=>d.pH},{l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
-    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
-    {l:'ERA+',m:1,f:d=>{
-      const v = d.year!=null
-        ? eraPlusFor(d, [{year:d.year, outs:d.IPouts}])
-        : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts})));
-      return isFinite(v)?String(v):'—';
-    }}];
-  const teamPit = statTable('Team Pitching by Season', tpCols, byYear, grand, 'All', '');
-  const tfCols=[yr0,
-    {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
-    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
   /* fielding wasn't tracked league-wide until 2022 — every earlier season
      is a real zero, not a missing one, so it's dropped from the row list
      entirely rather than shown as a season with no fielding recorded */
   const fldYears = byYear.filter(d=>d.TC>0);
-  const teamFld = fldYears.length ? statTable('Team Fielding by Season', tfCols, fldYears, grand, 'All', '') : '';
-  return teamBat + teamPit + teamFld;
+  if(teamStatMode==='fld' && !fldYears.length) teamStatMode='bat';
+
+  const toggle = `<div class="segs" role="group" aria-label="Team stat group">
+    <button data-tsm="bat" aria-pressed="${teamStatMode==='bat'}">Hitting</button>
+    <button data-tsm="pit" aria-pressed="${teamStatMode==='pit'}">Pitching</button>
+    ${fldYears.length ? `<button data-tsm="fld" aria-pressed="${teamStatMode==='fld'}">Fielding</button>` : ''}
+  </div>`;
+
+  let table;
+  if(teamStatMode==='pit'){
+    const tpCols=[yr0,
+      {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
+      {l:'H',f:d=>d.pH},{l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+      {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
+      {l:'ERA+',m:1,f:d=>{
+        const v = d.year!=null
+          ? eraPlusFor(d, [{year:d.year, outs:d.IPouts}])
+          : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts})));
+        return isFinite(v)?String(v):'—';
+      }}];
+    table = statTable('Team Pitching by Season', tpCols, byYear, grand, 'All', '');
+  } else if(teamStatMode==='fld'){
+    const tfCols=[yr0,
+      {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+      {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
+    table = statTable('Team Fielding by Season', tfCols, fldYears, grand, 'All', '');
+  } else {
+    const tbCols=[yr0,
+      {l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
+      {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
+      {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
+      {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
+      {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
+      {l:'OPS+',m:1,f:d=>{
+        const v = d.year!=null
+          ? opsPlusFor(d, [{year:d.year, pa:d.PA}])
+          : opsPlusFor(d, byYear.map(r=>({year:r.year, pa:r.PA})));
+        return isFinite(v)?String(v):'—';
+      }}];
+    table = statTable('Team Hitting by Season', tbCols, byYear, grand, 'All', '');
+  }
+  return `<h3 class="hsub">Team Stats</h3>${toggle}${table}`;
 }
 
 function teamAllYears(t, name){
@@ -4104,9 +4119,8 @@ function teamDetail(name){
     ${teamLogoHistory(t)}
     ${teamAccolades(name)}
     ${teamRecordTable(t)}
-    ${teamStatsBySeason(t)}
     ${chips}
-    ${teamYear==='all' ? teamAllYears(t, name) : teamOneYear(t, teamYear)}
+    ${teamYear==='all' ? teamAllYears(t, name) + teamStatsBySeason(t) : teamOneYear(t, teamYear)}
     ${teamH2H(t)}
     <p class="note">Records and game logs come from official results; All-Star games excluded.
     Franchises are unified across name changes (see "also played as"); the season table shows the name used that year.
@@ -4124,6 +4138,9 @@ function teamDetail(name){
   }));
   app.querySelectorAll('[data-tp]').forEach(b=>b.addEventListener('click',()=>{
     teamPhase=b.dataset.tp; teamDetail(name);
+  }));
+  app.querySelectorAll('[data-tsm]').forEach(b=>b.addEventListener('click',()=>{
+    teamStatMode=b.dataset.tsm; teamDetail(name);
   }));
   app.querySelectorAll('.pname[data-yv]').forEach(b=>b.addEventListener('click',()=>{
     teamYear = +b.dataset.yv; teamDetail(name);
@@ -6509,7 +6526,7 @@ function dispatch(h){
   if((m = h.match(/^#\/beavers\/(.+)$/))) return bvBoxScore(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games'){ gYear = null; return renderGames(); }
-  if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; return teamDetail(decodeURIComponent(m[1])); }
+  if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){ logYear = null; splitYear = 'all'; return detail(decodeURIComponent(m[1])); }
   if(h === '#/players') return renderDir();
