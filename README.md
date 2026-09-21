@@ -5637,15 +5637,13 @@ Data corrections to the hand-kept award records, per user review:
   pages, player history), so `FRANCHISE_TIMELINE`'s stray `loc:'Avondale'`
   was the only place still showing the wrong location.
 
-**Still open** — the 2013 and 2014 Golden Hands (South) rows have the
-same "3 team codes for 4 winners" problem as the Silver Slugger row
-above, but I don't have confirmed teams for Davis Kim (2013), or
-Shintaro Sakurari / Masayuki Yamada (2014), so I didn't touch those
-rows. The 2014 Silver Slugger (South) row currently credits Kodai
-Tachimoto's award to Brookside Royals via the "Kig" code, but the
-league's own Leadership data lists him as a Brookside Squirrels
-co-captain for 2013–2014 — flagged for confirmation rather than
-changed outright.
+**Follow-up, same day** — got the missing teams from the user and
+finished both rows: 2013 Golden Hands (South) — Davis Kim was on the
+Kraken; 2014 Golden Hands (South) — Shintaro Sakurai (corrected from
+"Sakurari") and Joey Cardascia were both Squirrels, Masayuki Yamada
+was a Royals; also moved the 2014 Silver Slugger (South) row's Kodai
+Tachimoto from Brookside Royals to Brookside Squirrels, per the user's
+confirmation, matching the site's own Leadership data.
 
 ## Outstanding work
 
