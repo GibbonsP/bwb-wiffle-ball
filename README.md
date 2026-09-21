@@ -5502,6 +5502,33 @@ screenshot is pixel-identical to before, and that the favicon and
 header logo are now two distinct images (`same: false`) rather than the
 same shared one.
 
+## 2026-09-21 — Beavers roster cards, boxed game cards, team leadership, NWLA rename
+
+Added a "Roster" section to each Beavers tournament page: one player card
+per roster member (headshot + name + a one-line batting/pitching stat
+summary), reusing the League Office page's existing `.officecard` styling
+rather than inventing a new look. Redesigned the tournament's "Box score"
+links from bare text into boxed game cards matching the postseason
+series page's `.pb-match` style (team names, scores, win highlighting,
+game time, boxed "Box score →" link), replacing the old ad hoc
+`.bvgamecard` styling (removed as dead code). Found and fixed two more
+instances of the anchor-upgrade CSS bug hit earlier this session
+(`button.X` selectors that silently stop matching once the anchor-
+upgrade system converts a `<button>` to a real `<a>`): `.pb-score
+button.pb-boxlink` → `.pb-score .pb-boxlink`, and `button.acc-pennant` /
+`:hover` → `.acc-pennant[href]` / `:hover`.
+
+Also added a "Leadership" block to the Beavers overview page (Parker
+Gibbons as captain, Peter Fraioli and Trevor Meyler as co-captains),
+reusing the existing franchise `LEADERSHIP`/`teamLeadershipHtml()`
+system rather than a bespoke display — made the co-captain `(years)`
+suffix optional since the Beavers entry has no year ranges, unlike the
+BWB franchise entries.
+
+Renamed the NWLA event from "NWLA National Tournament" to "NWLA
+Tournament" (the `event` field in `players.json`) since the "National"
+qualifier wasn't wanted.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

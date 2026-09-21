@@ -267,8 +267,8 @@ td.awc{font-size:.76rem;font-weight:600;color:var(--accent);letter-spacing:.02em
 .acc-pennant{width:70px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   gap:2px;padding-top:9px;clip-path:polygon(0 0,100% 0,100% 55%,50% 100%,0 55%);box-shadow:0 2px 6px rgba(0,0,0,.28);
   border:0;font:inherit;cursor:default}
-button.acc-pennant{cursor:pointer}
-button.acc-pennant:hover{filter:brightness(1.12)}
+.acc-pennant[href]{cursor:pointer}
+.acc-pennant[href]:hover{filter:brightness(1.12)}
 .acc-pennant.title{background:linear-gradient(165deg,var(--tc,var(--accent)),color-mix(in srgb,var(--tc,var(--accent)) 62%,#000))}
 .acc-pennant.pennant{background:linear-gradient(165deg,var(--tp,var(--tc,var(--accent))),var(--ts,color-mix(in srgb,var(--tc,var(--accent)) 55%,#000)))}
 .acc-pennant .acc-yr{color:#fff}
@@ -309,7 +309,7 @@ sup.seed.x{color:var(--clay)}
   font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--muted) 7%,transparent)}
 .pb-score-row{padding:2px 0;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
 .pb-score .pname{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px}
-.pb-score button.pb-boxlink{display:block;text-align:left}
+.pb-score .pb-boxlink{display:block;text-align:left}
 .pb-row{display:flex;align-items:center;gap:9px;padding:9px 11px;font-size:.85rem;white-space:nowrap}
 .pb-row+.pb-row{border-top:1px solid var(--line)}
 .pb-row .sd{color:var(--muted);font-size:.7rem;min-width:1em;font-variant-numeric:tabular-nums}
@@ -703,12 +703,6 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .recent li{padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
 .recent li>span{color:var(--muted)}
 .recent li b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
-.bvgamecard{display:flex;width:100%;gap:14px;flex-wrap:wrap;align-items:baseline;text-align:left;
-  font:inherit;font-size:.88rem;padding:10px 14px;margin-bottom:8px;border:1px solid var(--line);
-  border-radius:8px;background:var(--card);color:inherit}
-.bvgamecard:hover{border-color:var(--line-strong);background:var(--accent-soft)}
-.bvgamecard b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
-.bvgamecard .bvg-time{margin-left:auto;color:var(--muted)}
 
 @media (prefers-reduced-motion:no-preference){
   main{animation:f .16s ease-out}
@@ -2661,7 +2655,7 @@ function teamLeadershipHtml(full){
   const ld = LEADERSHIP[full];
   if(!ld) return '';
   const co = ld.coCaptains && ld.coCaptains.length
-    ? `<p><b>Co-Captains:</b> ${ld.coCaptains.map(c=>`${leaderName(c.name)} <span class="azm">(${esc(c.years)})</span>`).join(', ')}</p>`
+    ? `<p><b>Co-Captains:</b> ${ld.coCaptains.map(c=>`${leaderName(c.name)}${c.years?` <span class="azm">(${esc(c.years)})</span>`:''}`).join(', ')}</p>`
     : '';
   return `<div class="leadership"><h4>Leadership</h4>
     <p><b>Captain:</b> ${leaderName(ld.captain)}</p>
@@ -5374,13 +5368,41 @@ function bvBox(name, batRows, pitRows){
   }
   return out;
 }
+/* player cards for a tournament's roster, headshot + a one-line stat
+   summary — reuses the League Office page's own card/photo styling
+   (.officecard/.officephoto) rather than inventing a new look */
+function bvRosterGrid(bat, pit){
+  const names = [...new Set([...bat.map(r=>r.name), ...pit.map(r=>r.name)])];
+  const cards = names.map(name=>{
+    const pl = P[name];
+    const photo = pl && pl.photo
+      ? `<img class="officephoto" src="${pl.photo}" alt="">`
+      : `<span class="officephoto officephoto-blank"></span>`;
+    const b = bat.find(r=>r.name===name);
+    const p = pit.find(r=>r.name===name);
+    const lines = [];
+    if(b && b.PA>0) lines.push(`${rate(avg(b))} AVG · ${b.HR} HR · ${b.RBI} RBI`);
+    if(p && p.IPouts>0) lines.push(`${ipStr(p.IPouts)} IP · ${p.pK} K`);
+    return `<div class="officecard">
+      ${photo}
+      ${bvName(name)}
+      <ul class="officetitles">${lines.map(l=>`<li>${l}</li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+  return `<div class="officegrid">${cards}</div>`;
+}
 function bvGameCard(g){
   const tag = `${g.ha==='H'?'vs':'@'} ${esc(g.opp)}`;
-  return `<button type="button" class="bvgamecard" data-bv="${esc(g.gid)}">
-    <span>Game ${g.g} · ${tag}</span>
-    <b class="${g.res==='W'?'wteam':''}">${g.res} ${g.rf}–${g.ra}</b>
-    <span class="bvg-time">${g.time} ET</span>
-  </button>`;
+  const beaWin = g.rf > g.ra;
+  return `<div class="pb-match">
+    <h5>Game ${g.g} · ${tag}</h5>
+    <div class="pb-row${beaWin?' win':''}"><span class="dot"></span>Brookside Beavers<b class="gscore">${g.rf}</b></div>
+    <div class="pb-row${!beaWin?' win':''}"><span class="dot"></span>${esc(g.opp)}<b class="gscore">${g.ra}</b></div>
+    <div class="pb-score">
+      ${g.time?`<div class="pb-score-row">${esc(g.time)} ET</div>`:''}
+      <div class="pb-score-row"><button class="pname pb-boxlink" data-bv="${esc(g.gid)}">Box score →</button></div>
+    </div>
+  </div>`;
 }
 /* dedicated box score page for one Beavers game — mirrors the main
    league's own boxScore() page instead of expanding inline on the
@@ -5493,6 +5515,7 @@ function renderBeavers(){
 
   app.innerHTML = `
     ${hero}
+    ${teamLeadershipHtml('Brookside Beavers')}
     ${overview}
     <h3 class="hsub">Tournaments</h3>
     <div class="bvtgrid">${tournamentsHtml}</div>
@@ -5542,11 +5565,13 @@ function renderBeaverTournament(dateKey){
     <button class="back" id="back">← Brookside Beavers</button>
     ${hero}
     ${overview}
-    <h3 class="hsub">Roster — Batting</h3>
+    <h3 class="hsub">Roster</h3>
+    ${bvRosterGrid(bat, pit)}
+    <h3 class="hsub">Batting</h3>
     ${statTable('', bvBatCols(), bat, {...bTot, name:'Total'}, 'Total', '', true)}
-    <h3 class="hsub">Roster — Pitching</h3>
+    <h3 class="hsub">Pitching</h3>
     ${statTable('', bvPitCols(), pit, {...pTot, name:'Total'}, 'Total', '', true)}
-    ${phases.map(p=>`<h3 class="hsub">${esc(p.name)}</h3>${p.gs.map(bvGameCard).join('')}`).join('')}
+    ${phases.map(p=>`<h3 class="hsub">${esc(p.name)}</h3><div class="game-cards">${p.gs.map(bvGameCard).join('')}</div>`).join('')}
     <p class="note">Click a game for its full two-sided box score. Games run 3–5 innings, so team
       <b>ERA</b> and <b>K/3</b> above are per 3 IP; every run is booked earned.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash = '#/beavers'; });
