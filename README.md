@@ -4982,6 +4982,31 @@ was needed). Only populated for years with per-game fielding data
 imported (2020 on) — earlier years show zeros, same as the batting/
 pitching tables already did before fielding stats existed.
 
+## 2026-09-20 — Home page hero photo turned into a ticker
+
+The single champion photo+caption card on the home page is now a
+`DB.homeTicker` array of slides (`photo`, `tag`, `title`, `caption`,
+`link`, `linkText`) — each slide's caption links wherever `link` points
+(any in-site hash route, e.g. a team, player, or standings page), with
+prev/next arrows and dot indicators once there's more than one slide.
+Seeded with a single entry replicating the exact champion card that was
+there before (converted from `CHAMPS[0]`), so nothing changed visually
+yet — verified pixel-for-pixel against the old output, and that a fresh
+Home visit always resets to slide 1 the same way Team/Player/Leaders
+pages reset to the latest season.
+
+There's no in-page "add a slide" editor — the old edit buttons across the
+site (banner, logos, photos, seasons) all depend on `ARTIFACT_CAP`
+(`window.claude.use('artifact')`), which only exists inside a Claude
+Artifact iframe. On the real bwbwiffleball.com deployment (plain GitHub
+Pages, no `window.claude`), `ARTIFACT_CAP` is always null and every one
+of those edit buttons just shows "Editing isn't available in this view."
+They've been silently dead since the move off Claude Artifact hosting
+earlier this project — worth knowing if any of them are still expected
+to work. New ticker slides get added the same way the rest of this
+session's content changes have: ask for one to be added to
+`homeTicker` in `players.json`, with a photo, caption, and a link.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

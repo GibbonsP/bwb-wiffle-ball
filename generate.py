@@ -605,7 +605,17 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .herocap h2{margin:0 0 6px;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;
   font-size:clamp(1.3rem,3.2vw,1.9rem);line-height:1.15}
 .herocap p{margin:0;font-size:.85rem;color:rgba(255,255,255,.75)}
-.herocap button.pname{color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.herocap .pname{color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.hometicker{position:relative}
+.tickerarrow{position:absolute;top:calc(50% - 25px);transform:translateY(-50%);width:34px;height:34px;
+  border-radius:50%;background:rgba(4,30,66,.55);color:#fff;border:1px solid rgba(255,255,255,.35);
+  font-size:1.2rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.tickerarrow:hover{background:rgba(4,30,66,.8)}
+.tickerarrow.prev{left:10px}
+.tickerarrow.next{right:10px}
+.tickerdots{position:absolute;bottom:14px;right:16px;display:flex;gap:6px}
+.tickerdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);border:0;padding:0}
+.tickerdot.on{background:#fff}
 .snapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px;margin-bottom:12px}
 .snapdiv{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:13px 16px;
   box-shadow:var(--shadow)}
@@ -1164,6 +1174,7 @@ function cell(v,type,key){
   return isFinite(v)? String(v) : '—';
 }
 
+let tickerIdx = 0;
 function renderHome(){
   setNav('home');
   const ll=(t,items,fmt,low)=>{
@@ -1214,18 +1225,49 @@ function renderHome(){
       <span>${teamLink(g.away.team)} <b>${g.away.R}–${g.home.R}</b> ${teamLink(g.home.team)}
       ${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</span></li>`; }).join('');
   const rc = CHAMPS[0], rcColor = FRANCHISE_COLORS[rc.tm];
-  const champbar = !rc ? '' : rc.photo ? `<div class="herofeature">
+  /* homeTicker: an editable array of {photo, tag, title, caption, link, linkText}
+     slides — falls back to the old single auto-generated champion card (photo
+     hero, or a plain text pill if there's no champion photo) when empty, so
+     nothing regresses before any slides are added. Add slides by asking for
+     one; there's no in-page editor (the old ones relied on the Claude Artifact
+     publish capability, which doesn't exist on this GitHub Pages deployment). */
+  const slides = DB.homeTicker || [];
+  let champbar;
+  if(slides.length){
+    if(tickerIdx>=slides.length) tickerIdx = 0;
+    if(tickerIdx<0) tickerIdx = slides.length-1;
+    const s = slides[tickerIdx];
+    const dots = slides.length>1 ? `<div class="tickerdots">${slides.map((_,i)=>
+      `<button class="tickerdot${i===tickerIdx?' on':''}" data-tix="${i}" aria-label="Slide ${i+1}"></button>`).join('')}</div>` : '';
+    const arrows = slides.length>1 ? `<button class="tickerarrow prev" data-tnav="-1" aria-label="Previous">‹</button>
+      <button class="tickerarrow next" data-tnav="1" aria-label="Next">›</button>` : '';
+    champbar = `<div class="herofeature hometicker">
+      ${s.photo?`<img class="herophoto" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
+      <div class="herocap">
+        ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
+        ${s.title?`<h2>${esc(s.title)}</h2>`:''}
+        <p>${s.caption?`${esc(s.caption)} `:''}${s.link?`<a class="pname" href="${esc(s.link)}">${esc(s.linkText||'See more →')}</a>`:''}</p>
+      </div>
+      ${arrows}${dots}
+    </div>`;
+  } else if(!rc){
+    champbar = '';
+  } else if(rc.photo){
+    champbar = `<div class="herofeature">
       <img class="herophoto" src="${rc.photo}" alt="${esc(rc.full)} — ${rc.y} champions">
       <div class="herocap">
         <span class="herotag">${rc.y} World Series</span>
         <h2>The ${esc(rc.tm)} are ${rc.y} BWB Champions!</h2>
         <p>${rc.score?`${esc(rc.score)} overall on the year, regular season and playoffs combined. `:''}<button class="pname" data-t="${esc(rc.full)}">See the ${esc(rc.tm)} franchise page →</button></p>
       </div>
-    </div>` : `<div class="champbar"${rcColor?` style="--tp:${rcColor.p};--ts:${rcColor.s}"`:''}>
+    </div>`;
+  } else {
+    champbar = `<div class="champbar"${rcColor?` style="--tp:${rcColor.p};--ts:${rcColor.s}"`:''}>
       <span class="ring">${TROPHY}</span>
       <span>Reigning champions — <button class="pname" data-t="${esc(rc.full)}">${esc(rc.tm)}</button>${rc.score?` · ${esc(rc.score)} overall`:''}</span>
       <span class="cy">${rc.y} World Series</span>
     </div>`;
+  }
 
   // ---- standings snapshot: top of each division, most recent year with division data ----
   const snapYears = ALL_YEARS.filter(y=>(DB.divisions||{})[y]);
@@ -1293,6 +1335,14 @@ function renderHome(){
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
     const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
+  app.querySelectorAll('[data-tnav]').forEach(b=>b.addEventListener('click',()=>{
+    const n = slides.length;
+    tickerIdx = ((tickerIdx + +b.dataset.tnav) % n + n) % n;
+    renderHome();
+  }));
+  app.querySelectorAll('[data-tix]').forEach(b=>b.addEventListener('click',()=>{
+    tickerIdx = +b.dataset.tix; renderHome();
+  }));
   document.getElementById('editBannerBtn').addEventListener('click', ()=>{
     openImageEditor('Home Banner', DB.banner, 900, async url=>{
       const before = DB.banner;
@@ -6387,6 +6437,7 @@ function dispatch(h){
   if(h === '#/statpad') return renderStatpad();
   if(h === '#/15-0') return renderB0();
   if(h === '#/office') return renderOffice();
+  tickerIdx = 0;
   return renderHome();
 }
 function route(){
