@@ -155,8 +155,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .fdotlogo{width:26px;height:26px;object-fit:contain;margin-right:8px;vertical-align:middle}
 .tl-wrap{margin-bottom:34px}
 .tlg-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow)}
-.tlg-grid{display:grid;grid-template-columns:238px repeat(15,minmax(58px,1fr));grid-auto-rows:32px;
-  min-width:1160px;background:var(--card)}
+.tlg-grid{display:grid;grid-template-columns:238px repeat(15,minmax(76px,1fr));grid-auto-rows:32px;
+  min-width:1378px;background:var(--card)}
 .tlg-cell{display:flex;align-items:center;font-size:.72rem}
 .tlg-head{background:var(--accent);color:var(--accent-ink);font-family:"Oswald","Arial Narrow",sans-serif;
   font-size:.68rem;letter-spacing:.04em;justify-content:center;padding:8px 2px}
@@ -2676,7 +2676,7 @@ function franchiseTimeline(){
     return band + nameCell + bars;
   }).join('');
   return `<div class="tl-wrap"><h3 class="hsub">Franchise Name History</h3>
-    <p class="lead">Every name each franchise has played under since the league began in 2012. Hover a bar for the full name.</p>
+    <p class="lead">Every name each franchise has played under since the league began in 2012.</p>
     <div class="tlg-scroll"><div class="tlg-grid">${head}${rows}</div></div></div>`;
 }
 

@@ -5387,6 +5387,19 @@ favicon setup are unchanged, so this is a straight revert of the image
 data only. The Kraken team logo crop from earlier today is unaffected —
 this only touched the anniversary logo shared by the header and favicon.
 
+## 2026-09-21 — Fixed truncated era names in the Franchise Name History timeline
+
+The cut-off names weren't in the "Franchise" column (measured — nothing
+there was actually overflowing) but in the era-nickname bars themselves:
+a franchise's single-year eras only got one ~58px-wide grid column, too
+narrow for longer nicknames like "Sea Thieves" or "Hotdoggers" — both
+were losing their last letter to `text-overflow: ellipsis` without it
+even being visually obvious at that size. Widened each year column from
+58px to 76px (enough for "Sea Thieves," the longest single-year
+nickname, measured directly rather than estimated) and bumped the grid's
+own min-width to match, so the horizontal scroll area is sized correctly.
+Also removed "Hover a bar for the full name" from the caption underneath.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
