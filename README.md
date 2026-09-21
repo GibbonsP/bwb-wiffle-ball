@@ -5710,6 +5710,20 @@ on `.stand` with an explicit 34% width on the Team column, so both
 tables split their columns identically regardless of content. Checked
 2018 (longer names, 3 teams/division) and 2026, desktop and mobile.
 
+## 2026-09-21 — Fix wrapping total row on team Season by Season, rename to All-Time
+
+The Home/Away/vs-Brookside/vs-Brentwood cells (`fmtSplit()`, "W–L
+(PCT)") were wrapping the "(PCT)" part onto a second line only in the
+Season by Season table's total row — every season row above it stayed
+on one line. Root cause: `tbody td` already had `white-space:nowrap`
+site-wide, but the equivalent `tfoot td` rule didn't, and this total
+row is the only `<tfoot>` on the page that uses `fmtSplit()`'s inline
+format. Added `white-space:nowrap` to `tfoot td` (benefits every other
+total row on the site the same way, none of which had this problem
+visibly since they don't use fmtSplit's parenthetical format). Also
+renamed the row from "Career" to "All-Time", matching the team-level
+(not player-level) framing of the table.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

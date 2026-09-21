@@ -451,7 +451,7 @@ sup.seed.x{color:var(--clay)}
 section.stat{margin:0 0 22px}
 section.stat h4{font-size:.72rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
   margin:0 0 8px}
-tfoot td{text-align:right;padding:10px;font-weight:700;font-size:.84rem;
+tfoot td{text-align:right;padding:10px;font-weight:700;font-size:.84rem;white-space:nowrap;
   border-top:2px solid var(--line-strong);background:var(--accent-soft)}
 .phase.post tfoot td{background:var(--clay-soft)}
 .phase.exh tfoot td{background:var(--line)}
@@ -3855,7 +3855,7 @@ function teamRecordTable(t){
     if(R){ cR.W+=R.W; cR.L+=R.L; cR.T+=R.T||0; cR.RF+=R.RF; cR.RA+=R.RA; }
   });
   const cGp = cR.W+cR.L, cDiff = cR.RF-cR.RA;
-  const totalRow = `<tr><td class="lft">Career</td><td class="lft"></td><td class="lft"></td>
+  const totalRow = `<tr><td class="lft">All-Time</td><td class="lft"></td><td class="lft"></td>
     <td>${cR.W}</td><td>${cR.L}</td><td class="mono">${cGp?rate(cR.W/cGp):'—'}</td>
     <td class="lft"></td><td class="lft"></td>
     <td>${cR.RF}</td><td>${cR.RA}</td><td>${cDiff>0?'+':''}${cDiff}</td>
