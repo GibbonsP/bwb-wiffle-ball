@@ -5007,6 +5007,32 @@ to work. New ticker slides get added the same way the rest of this
 session's content changes have: ask for one to be added to
 `homeTicker` in `players.json`, with a photo, caption, and a link.
 
+## 2026-09-20 — Actually fixed the header logo (wrong root cause earlier)
+
+The previous "same header bar size" fix used an absolute-positioning
+overflow hack: `#brandLogo`'s wrapper was pinned to its original 80×150
+footprint so it wouldn't affect the header row's height, while the real
+150px image overflowed past that box. That created a bug this fix
+report missed at the time — the overflowing image spilled *down* past
+its own wrapper and into "Established in 2012," because that subtitle
+sat in the very same column, directly below the logo+title row, with no
+gap. It looked fine in the screenshots taken then only because the
+overlap didn't happen to obscure legible text at that viewport.
+
+Real fix: restructured the header markup so the logo is a sibling of the
+*entire* text block (title + subtitle stacked together, `.brandtext`)
+rather than just the title — `<span id="brandLogo">` and
+`<div class="brandtext">` are now both direct flex children of
+`.brand`, centered against each other. This puts the logo back in
+normal document flow (no absolute positioning, no overflow trickery),
+sized to whatever looks proportionate against the *two-line* text block
+next to it, with zero overlap risk since they now sit in separate flex
+columns rather than stacked in the same one. Landed on 150px after
+comparing 110/130/150 side by side — all read clean at that width, and
+150px best matches the size actually asked for earlier. Verified at both
+desktop and mobile widths, measuring actual rendered box positions
+rather than trusting a screenshot alone this time.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

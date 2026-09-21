@@ -48,12 +48,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 header.mast{background:var(--brandbar)}
 .mast-inner{max-width:1180px;margin:0 auto;padding:20px 20px;
   display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.brandrow{display:flex;align-items:center;gap:12px}
-/* wrapper is pinned to the original logo height so it doesn't stretch the
-   header bar's own height — the actual image is taller and overflows below
-   the wrapper (and the header bar), rather than growing the bar itself */
-#brandLogo{height:80px;width:150px;position:relative;display:block;flex:none}
-#brandLogo img{height:150px;width:auto;display:block;position:absolute;top:0;left:0}
+.brand{display:flex;align-items:center;gap:12px}
+#brandLogo img{height:150px;width:auto;display:block}
 .brand h1{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;
   font-size:clamp(1.7rem,4.4vw,2.7rem);letter-spacing:.03em;margin:0;line-height:1;
   text-transform:uppercase;text-wrap:balance;}
@@ -777,11 +773,11 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 <header class="mast">
   <div class="mast-inner">
     <div class="brand">
-      <div class="brandrow">
-        <span id="brandLogo"></span>
+      <span id="brandLogo"></span>
+      <div class="brandtext">
         <h1><span class="b1">BWB</span> <span class="b2">Wiffleball</span></h1>
+        <p id="subtitle">Established in 2012</p>
       </div>
-      <p id="subtitle">Established in 2012</p>
     </div>
     <div class="mast-tools">
       <div class="gsearch">
