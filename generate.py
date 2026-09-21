@@ -543,6 +543,9 @@ td.res-L{color:var(--clay);font-weight:700}
 .bvtlogo img{max-width:100%;max-height:100%;object-fit:contain}
 .officegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:0 0 28px}
 .officegrid-lead{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.officegrid-6{grid-template-columns:repeat(6,1fr)}
+@media (max-width:640px){.officegrid-6{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:420px){.officegrid-6{grid-template-columns:repeat(2,1fr)}}
 .officecard{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:18px 14px 16px;
   box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
 .officecard.big{padding:24px 18px 20px;border-top:3px solid var(--accent)}
@@ -5368,28 +5371,26 @@ function bvBox(name, batRows, pitRows){
   }
   return out;
 }
-/* player cards for a tournament's roster, headshot + a one-line stat
-   summary — reuses the League Office page's own card/photo styling
-   (.officecard/.officephoto) rather than inventing a new look */
+/* player cards for a tournament's roster, headshot only — reuses the
+   League Office page's own card/photo styling (.officecard/.officephoto)
+   rather than inventing a new look. Captain/co-captains lead the grid
+   so they land on the top row. */
 function bvRosterGrid(bat, pit){
   const names = [...new Set([...bat.map(r=>r.name), ...pit.map(r=>r.name)])];
-  const cards = names.map(name=>{
+  const ld = LEADERSHIP['Brookside Beavers'];
+  const leaders = ld ? [ld.captain, ...(ld.coCaptains||[]).map(c=>c.name)] : [];
+  const ordered = [...leaders.filter(n=>names.includes(n)), ...names.filter(n=>!leaders.includes(n))];
+  const cards = ordered.map(name=>{
     const pl = P[name];
     const photo = pl && pl.photo
       ? `<img class="officephoto" src="${pl.photo}" alt="">`
       : `<span class="officephoto officephoto-blank"></span>`;
-    const b = bat.find(r=>r.name===name);
-    const p = pit.find(r=>r.name===name);
-    const lines = [];
-    if(b && b.PA>0) lines.push(`${rate(avg(b))} AVG · ${b.HR} HR · ${b.RBI} RBI`);
-    if(p && p.IPouts>0) lines.push(`${ipStr(p.IPouts)} IP · ${p.pK} K`);
     return `<div class="officecard">
       ${photo}
       ${bvName(name)}
-      <ul class="officetitles">${lines.map(l=>`<li>${l}</li>`).join('')}</ul>
     </div>`;
   }).join('');
-  return `<div class="officegrid">${cards}</div>`;
+  return `<div class="officegrid officegrid-6">${cards}</div>`;
 }
 function bvGameCard(g){
   const tag = `${g.ha==='H'?'vs':'@'} ${esc(g.opp)}`;
@@ -5468,6 +5469,9 @@ const bvPitCols = () => [
    out of chronological order later */
 const bvTournamentHref = t => '#/beavers/t/'+encodeURIComponent(t.meta.date);
 function bvTournamentLabel(t){ return `${(t.meta.date||'').slice(0,4)} ${t.meta.event||t.meta.season}`; }
+function bvMvpLine(t){
+  return t.meta.mvp ? `<p class="tsub">${TROPHY} Tournament MVP: ${bvName(t.meta.mvp)}</p>` : '';
+}
 /* which tournament a given game id belongs to — a game-focused deep link
    (e.g. from a player's own NWLA Game Log tab) needs to land on that
    tournament's own page now that games no longer show on the overview */
@@ -5492,10 +5496,11 @@ function renderBeavers(){
   const tournamentsHtml = BV_LIST.slice().sort((a,b)=>(b.meta.date||'').localeCompare(a.meta.date||''))
     .map(t=>{
       const tw = t.meta.record.W, tl = t.meta.record.L, tgp = tw+tl;
+      const cardLogo = t.eventLogo || t.logo;
       return `<a class="bvtcard" href="${bvTournamentHref(t)}">
-        <div class="bvtlogo">${t.logo?`<img src="${t.logo}" alt="">`:''}</div>
+        <div class="bvtlogo">${cardLogo?`<img src="${cardLogo}" alt="">`:''}</div>
         <div><h4>${esc(bvTournamentLabel(t))}</h4>
-        <span class="pmeta">${tw}–${tl} · ${esc(t.meta.location)} · ${tgp} game${tgp===1?'':'s'}</span></div>
+        <span class="pmeta">${tw}–${tl} · ${esc(t.meta.location)} · ${tgp} game${tgp===1?'':'s'}${t.meta.mvp?` · ${TROPHY} MVP: ${esc(t.meta.mvp)}`:''}</span></div>
       </a>`;
     }).join('');
 
@@ -5549,9 +5554,11 @@ function renderBeaverTournament(dateKey){
     p.gs.push(g);
   });
   const tw = t.meta.record.W, tl = t.meta.record.L, tgp = tw+tl;
+  const heroLogo = t.eventLogo || t.logo;
   const hero = `<div class="thero" style="--tp:#c99a2e;--ts:#fff">
-      <div class="hero-row">${t.logo?`<img class="tlogo" src="${t.logo}" alt="">`:''}<h2>${esc(bvTournamentLabel(t))}</h2></div>
-      <p class="tsub"><b>${tw}–${tl}</b> · ${esc(t.meta.location)} · ${esc(t.meta.date)}${t.meta.level?` · ${esc(t.meta.level)}`:''}</p>
+      <div class="hero-row">${heroLogo?`<img class="tlogo" src="${heroLogo}" alt="">`:''}<h2>${esc(bvTournamentLabel(t))}</h2></div>
+      <p class="tsub"><b>${tw}–${tl}</b> · ${esc(t.meta.location)} · ${esc(t.meta.dateLabel||t.meta.date)}</p>
+      ${bvMvpLine(t)}
     </div>`;
   const overview = `<div class="recgrid">
       <div class="rec"><h4>Record</h4><div class="big">${tw}–${tl}</div>

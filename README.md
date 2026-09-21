@@ -5529,6 +5529,44 @@ Renamed the NWLA event from "NWLA National Tournament" to "NWLA
 Tournament" (the `event` field in `players.json`) since the "National"
 qualifier wasn't wanted.
 
+## 2026-09-21 — Beavers roster grid polish, tournament dates/MVP, real event logo
+
+Follow-up pass on the same day's Beavers work. Roster cards: switched
+to a fixed 6-column grid (`.officegrid-6`, collapsing to 3/2 columns on
+narrow screens) instead of auto-fill, dropped the per-player stat line
+(headshot + name only), and put the captain/co-captains first so they
+land on the top row — reuses the existing `LEADERSHIP` data rather than
+hardcoding names.
+
+Fixed the tournament date display: the "2026-08-15" field is a single
+day used as the routing key (`bvTournamentHref`) and had to stay as-is,
+so added a separate `dateLabel` ("Aug 14–16, 2026") shown instead of
+the raw date on the tournament page. Also dropped the age-division code
+("18O") from that same line — it was `meta.level`, not something the
+user wanted surfaced.
+
+Added a "Team Tournament MVP" award for Victor Cottini (2026 NWLA
+Tournament): added to his existing `honors.awards` array so it shows
+on his own player page's Accolades card for free, and surfaced it as a
+new `bvMvpLine()`/`meta.mvp` field on both the Beavers overview page's
+tournament card and the tournament's own hero. Kept it out of
+`honors.awards`'s usual `AW_ABBR` map on purpose, since it's a
+tournament honor, not a BWB league award, so it doesn't show up in the
+season-table Awards column or count toward league award leaderboards —
+only in the player's own Accolades list, where the year was changed to
+`"2026 NWLA Tournament"` so it reads as that specific event, not a bare
+year.
+
+Added the tournament's own event logo (provided by the user, an NWLA/
+St. Louis badge) as a new `eventLogo` field, separate from the
+Beavers' `logo` (the beaver mascot, still used for the franchise-level
+hero at the top of the Beavers overview page). `eventLogo` is portrait-
+shaped (825×1000) with content bleeding to every edge — no negative
+space to crop, unlike the earlier Kraken logo fix — so it was placed on
+a square, mostly-transparent canvas (94% fill by height, letterboxed
+left/right) rather than cropped, so `object-fit:cover` in the `.tlogo`
+box displays it whole.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
