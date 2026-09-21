@@ -5084,9 +5084,13 @@ Changed both ProWiffleball footer/social links from
   below `.955`/`.975`, both correctly below `1.359`+), and confirmed
   plain integer and text columns still sort exactly as before.
 
-## Outstanding work
+## 2026-09-21 — Fixed Trevor Meyler's 2019 jersey number
 
-**2016 integration** — blocked on a name+team mapping from the user for these
+His 2019 Regular season row with the Brookside Panthers had `num: "5"`;
+every other year 2020–2026 has him at #20. Corrected 2019 to `"20"` per
+confirmation he wore #20 that year too. His Team History ring now shows
+one continuous #20 stint with the Panthers (2019–2026) instead of
+splitting into a separate 2019 ring. — blocked on a name+team mapping from the user for these
 first-name-only players: BOB, Will, Darien, Chris, Ava, Jake, Tristan, James,
 Donne, Tochi, Michael, Daniel, Dean, Landon, Mike, Vito.
 When received: add lines to `MAP_2016` in `data_2016.py`, flip `INCLUDE_2016 = True`
