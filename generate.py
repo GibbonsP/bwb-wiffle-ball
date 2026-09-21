@@ -1114,6 +1114,10 @@ const PIT_COLS = [
   ['SV','SV','n'],['pH','H','n'],['ER','ER','n'],['pBB','BB','n'],['pK','K','n'],
   ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r'],['ERA+','ERA+','n']
 ];
+const FLD_COLS = [
+  ['name','Player','s'],['team','Tm','s'],['G','G','n'],['INN','INN','n'],['TC','TC','n'],
+  ['PO','PO','n'],['A','A','n'],['E','E','n'],['DP','DP','n'],['FLD%','FLD%','r']
+];
 
 function rowVals(name){
   const pl = P[name];
@@ -2376,7 +2380,7 @@ function renderCompare(nameA, nameB){
 /* ================================ TEAMS ================================ */
 const TEAMS = DB.teams || {};
 const TEAMNAMES = Object.keys(TEAMS).sort((a,b)=>a.localeCompare(b));
-let tMode='bat', tSort='HR', tDir=-1, tQuery='', teamYear=null, teamPhase='reg';
+let teamYear=null, teamPhase='reg';
 
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
 const wirePlayerLinks = () => app.querySelectorAll('.pname[data-p]').forEach(b=>
@@ -2570,11 +2574,7 @@ function teamStatTable(cols, rows){
 }
 function renderTeams(){
   setNav('teams');
-  const q = tQuery.toLowerCase();
-  const match = (...s) => !q || s.some(x=>String(x||'').toLowerCase().includes(q));
-
-  const sum = FRANCHISE_SUMMARY.filter(d=>match(d.t, d.f, d.full));
-  const sumRows = sum.map(d=>{
+  const sumRows = FRANCHISE_SUMMARY.map(d=>{
     const dispName = d.f || d.full || d.t;
     const key = d.f || d.full;
     const link = key
@@ -2595,18 +2595,10 @@ function renderTeams(){
     <th class="mono" title="All-time playoff record">PO Rec</th>
   </tr></thead><tbody>${sumRows}</tbody></table></div>`;
 
-  let statRows = TEAMNAMES.map(teamRowVals);
-  if(q) statRows = statRows.filter(r=>match(r.name));
-  statRows.sort((a,b)=>b.W-a.W);
+  const statRows = TEAMNAMES.map(teamRowVals).sort((a,b)=>b.W-a.W);
 
   app.innerHTML = `
     ${franchiseTimeline()}
-    <div class="controls">
-      <div class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="tq" type="search" placeholder="Search franchises…" value="${esc(tQuery)}">
-      </div>
-    </div>
     <h3 class="hsub">Franchise Summary</h3>
     ${summaryTable}
     <p class="note">Full franchise history from the league's records (2012–present), including seasons
@@ -2620,9 +2612,6 @@ function renderTeams(){
     <p class="note">Batting and pitching are the sum of every season's roster lines, regular season,
     ${RANGE} — so the totals cover the stat-database era only and won't match the pre-2017 win totals above.
     Open a team for year-by-year detail.</p>`;
-  const qi=document.getElementById('tq');
-  qi.addEventListener('input',e=>{ tQuery=e.target.value; const p=qi.selectionStart; renderTeams();
-    const n=document.getElementById('tq'); n.focus(); n.setSelectionRange(p,p); });
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     teamYear=null; location.hash='#/t/'+encodeURIComponent(b.dataset.t);
   }));
@@ -3366,22 +3355,23 @@ function renderLeaders(){
     <button data-lv="full" aria-pressed="${leadView==='full'}">Full Stats</button>
   </div>`;
   const fullStatsHTML = () => {
-    const cols = (leadMode==='bat'?BAT_COLS:PIT_COLS).filter(([k])=>k!=='yrs');
+    const cols = (leadMode==='bat'?BAT_COLS:leadMode==='pit'?PIT_COLS:FLD_COLS).filter(([k])=>k!=='yrs');
     let rows = pool.map(x=>{
       const s = x.s, ti = teamOf(x);
       return {
         name:x.n, teamLabel:ti.label, logo:ti.logo, logo2:ti.logo2,
-        G: leadMode==='bat'? s.G_bat : s.G_pit,
+        G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : s.G_fld,
         PA:s.PA, AB:s.AB, R:s.R, H:s.H, HR:s.HR, RBI:s.RBI, BB:s.BB, K:s.K,
         AVG:avg(s), OBP:obp(s), SLG:slg(s), OPS:ops(s),
         'OPS+': opsPlusFor(s, isCareer ? careerWeights(P[x.n], isPost) : [{year:leadYear, pa:s.PA, post:isPost}]),
         IP:s.IPouts/3, W:s.W, L:s.L, SV:s.SV, pH:s.pH, ER:s.ER, pBB:s.pBB, pK:s.pK,
         ERA:era(s), WHIP:whip(s), K9:k9(s),
         'ERA+': eraPlusFor(s, isCareer ? careerWeightsPit(P[x.n], isPost) : [{year:leadYear, outs:s.IPouts, post:isPost}]),
-        _ipouts:s.IPouts, _bat:s.G_bat,
+        INN:s.INN, TC:s.TC, PO:s.PO, A:s.A, E:s.E, DP:s.DP, 'FLD%':fld(s),
+        _ipouts:s.IPouts, _bat:s.G_bat, _tc:s.TC,
       };
     });
-    rows = rows.filter(r => leadMode==='pit' ? r._ipouts>0 : r._bat>0);
+    rows = rows.filter(r => leadMode==='pit' ? r._ipouts>0 : leadMode==='fld' ? r._tc>0 : r._bat>0);
     rows.sort((a,b)=>{
       let x = leadSortKey==='team' ? a.teamLabel : a[leadSortKey];
       let y = leadSortKey==='team' ? b.teamLabel : b[leadSortKey];
@@ -3407,6 +3397,7 @@ function renderLeaders(){
     return `<div class="segs" role="group" aria-label="Stat group">
       <button data-lm="bat" aria-pressed="${leadMode==='bat'}">Batting</button>
       <button data-lm="pit" aria-pressed="${leadMode==='pit'}">Pitching</button>
+      <button data-lm="fld" aria-pressed="${leadMode==='fld'}">Fielding</button>
     </div>
     <div class="tscroll"><table class="dir">
       <thead><tr>${th}</tr></thead>
@@ -3419,6 +3410,7 @@ function renderLeaders(){
     if(o.min==='ab') a = a.filter(x=>isCareer ? x.s.AB>=minAB : x.s.G_bat>=minG);
     else if(o.min==='pa') a = a.filter(x=>isCareer ? x.s.PA>=minPA : x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
+    else if(o.min==='fldg') a = a.filter(x=>x.s.G_fld>=minG);
     const dir = o.dir||1;
     const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, logo:ti.logo, logo2:ti.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -3461,6 +3453,12 @@ function renderLeaders(){
     cat('Innings Pitched', s=>s.IPouts/3, ipfmt),
     cat('Complete Games', s=>s.CG, v=>v),
   ].join('');
+  const fldLdrs = [
+    cat('Fielding %', s=>fld(s), rate, {min:'fldg'}),
+    cat('Putouts', s=>s.PO, v=>v),
+    cat('Assists', s=>s.A, v=>v),
+    cat('Double Plays', s=>s.DP, v=>v),
+  ].join('');
 
   app.innerHTML = `
     <div class="phead"><h2>League Leaders</h2>
@@ -3470,7 +3468,8 @@ function renderLeaders(){
     ${fullViewToggle}
     ${leadView==='full' ? fullStatsHTML() : `
     <h3 class="hsub">Batting</h3><div class="llgrid">${bat||'<p class="lead">No qualifiers.</p>'}</div>
-    <h3 class="hsub">Pitching</h3><div class="llgrid">${pit||'<p class="lead">No pitching qualifiers.</p>'}</div>`}
+    <h3 class="hsub">Pitching</h3><div class="llgrid">${pit||'<p class="lead">No pitching qualifiers.</p>'}</div>
+    <h3 class="hsub">Fielding</h3><div class="llgrid">${fldLdrs||'<p class="lead">No fielding qualifiers.</p>'}</div>`}
     <p class="note">${leadView==='full'
       ? `Every player who ${leadMode==='bat'?'batted':'pitched'} in this scope, no minimum — click a header to sort.`
       : `Top 10 per category, ${isPost?'postseason':'regular season'}.${isPost
@@ -3489,10 +3488,13 @@ function renderLeaders(){
   app.querySelectorAll('[data-lm]').forEach(b=>b.addEventListener('click',()=>{
     if(leadMode===b.dataset.lm) return;
     leadMode=b.dataset.lm;
-    const batKeys=['PA','AB','H','HR','RBI','AVG','OBP','SLG','OPS','OPS+'];
-    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9','ERA+'];
-    if(leadMode==='pit' && batKeys.includes(leadSortKey)) leadSortKey='W';
-    if(leadMode==='bat' && pitKeys.includes(leadSortKey)) leadSortKey='HR';
+    const defaultKey = {bat:'HR', pit:'W', fld:'TC'};
+    const ownKeys = {
+      bat:['PA','AB','H','HR','RBI','AVG','OBP','SLG','OPS','OPS+'],
+      pit:['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9','ERA+'],
+      fld:['INN','TC','PO','A','E','DP','FLD%'],
+    };
+    if(!ownKeys[leadMode].includes(leadSortKey)) leadSortKey = defaultKey[leadMode];
     leadSortDir=-1; renderLeaders();
   }));
   app.querySelectorAll('thead th[data-k]').forEach(h=>h.addEventListener('click',()=>{

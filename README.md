@@ -4798,6 +4798,27 @@ rank by number of distinct franchises played for, ties broken
 alphabetically by latest team. Verified in both Batting and Pitching
 modes, ascending and descending.
 
+## 2026-09-20 — Fielding added to Leaders; dropped the redundant Teams search
+
+**Teams page**: removed the "Search franchises…" box and its dead
+`tQuery`/`tMode`/`tSort`/`tDir` state — the new global header search
+already covers finding a team by name from anywhere on the site, so this
+in-page filter was pure duplication.
+
+**Leaders now covers Fielding**, matching Batting/Pitching in both
+views:
+- Top 10: Fielding %, Putouts, Assists, Double Plays. Fielding %
+  qualifies at the same 9-games bar batting rate stats already use
+  (`G_fld>=9`), reusing the existing qualification convention rather
+  than inventing a new one.
+- Full Stats: a third "Fielding" toggle alongside Batting/Pitching,
+  sortable by any column (G, INN, TC, PO, A, E, DP, FLD%).
+
+Fielding data is currently only recorded for 2022–2025 (per-year totals
+are missing for 2017–2021 and 2026) — 2026 correctly shows "No fielding
+qualifiers" rather than an error, and will populate on its own as 2026
+fielding lines get added game by game.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
