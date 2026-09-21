@@ -4950,14 +4950,27 @@ Several smaller fixes and requests together:
 
 ## 2026-09-20 — Bigger header logo, same header bar size
 
-Bumped the header logo (currently the 15th Anniversary logo) from 80px,
-to 108px, to 150px tall after a follow-up ask for even bigger — but that
-also grew the navy header bar itself, which the user then asked to keep
-at its original size. Landed on 100px logo with the header's vertical
-padding trimmed from 20px to 10px top/bottom, so the bar's total height
-matches the original 80px-logo/20px-padding version (120px) exactly,
-while the logo is still 25% larger than where it started. Checked at
-both desktop and mobile widths.
+Went through a few rounds trying to grow the header logo (now the 15th
+Anniversary logo) without also growing the navy header bar itself:
+
+- 80px → 108px → 150px tall (still contained in normal flow) — each step
+  grew the bar's total height along with it, since the header row's
+  height is driven by its tallest item.
+- 100px logo with padding trimmed 20px → 10px, aiming to keep the *math*
+  (padding + logo) equal to the original 120px total — still read as
+  too big, because the true original height was never just padding +
+  logo; the "Established in 2012" subtitle stacked underneath the logo
+  row was always the taller, height-driving element (~107.67px), not
+  the logo itself.
+- Landed on: restore the original 20px padding, and give `#brandLogo`'s
+  wrapper a fixed 80px/150px box (matching the original logo's footprint
+  exactly) so it no longer drives the row's height at all, while the
+  actual `<img>` inside renders at 150px, absolutely positioned so it
+  overflows *outside* that box (bleeding down past the header's bottom
+  edge). Verified by measuring the live header's rendered height against
+  the pre-session original — identical (147.67px) — and confirmed the
+  overflow lands in the gap before the games ticker, not on top of it,
+  on both desktop and mobile widths.
 
 ## 2026-09-20 — Team Fielding added to Standings
 
