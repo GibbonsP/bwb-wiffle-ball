@@ -4122,6 +4122,7 @@ function renderRecords(){
     let a = seasonPool;
     if(o.min==='g') a = a.filter(x=>x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
+    else if(o.min==='fldg') a = a.filter(x=>x.s.G_fld>=minG);
     const dir = o.dir||1;
     const items = a.map(x=>{ const lg=sLogo(x); return {n:x.n, v:f(x.s), tm:ySub(x), logo:lg.logo, logo2:lg.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -4147,9 +4148,15 @@ function renderRecords(){
     catS('Saves', s=>s.SV, v=>v),
     catS('Innings Pitched', s=>s.IPouts/3, ipfmt),
   ].join('');
+  const seasonFld = [
+    catS('Fielding %', s=>fld(s), rate, {min:'fldg'}),
+    catS('Putouts', s=>s.PO, v=>v),
+    catS('Assists', s=>s.A, v=>v),
+    catS('Double Plays', s=>s.DP, v=>v),
+  ].join('');
 
   // ---- single-game records (regular season + playoffs, from recorded box scores) ----
-  const batPool = [], pitPool = [];
+  const batPool = [], pitPool = [], fldPool = [];
   GIDS.forEach(gid=>{
     const g = GAMES[gid];
     if(g.phase!=='Regular' && g.phase!=='Playoffs') return;
@@ -4158,6 +4165,7 @@ function renderRecords(){
       const s = g[sk], opp = g[sk==='away'?'home':'away'].team;
       s.bat.forEach(b=>{ if(b.n) batPool.push({n:b.n, s:b, gid, y:g.date.slice(0,4), opp, team:s.team}); });
       s.pit.forEach(p=>{ if(p.n) pitPool.push({n:p.n, s:p, gid, y:g.date.slice(0,4), opp, team:s.team}); });
+      (s.fld||[]).forEach(fl=>{ if(fl.n) fldPool.push({n:fl.n, s:fl, gid, y:g.date.slice(0,4), opp, team:s.team}); });
     });
   });
   const gSub = x => {
@@ -4183,6 +4191,11 @@ function renderRecords(){
     catG(pitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
     catG(pitPool, 'Innings Pitched in a Game', s=>s.ip/3, ipfmt),
   ].join('');
+  const gameFld = [
+    catG(fldPool, 'Putouts in a Game', s=>s.po, v=>v),
+    catG(fldPool, 'Assists in a Game', s=>s.a, v=>v),
+    catG(fldPool, 'Double Plays in a Game', s=>s.dp, v=>v),
+  ].join('');
 
   // ---- postseason records: "single postseason" = one player's whole playoff run in a
   //      year, combined across every round they appeared in (the Playoffs-type season
@@ -4203,6 +4216,7 @@ function renderRecords(){
     let a = poPool;
     if(o.min==='g') a = a.filter(x=>x.s.G_bat>=poMinG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=poMinO);
+    else if(o.min==='fldg') a = a.filter(x=>x.s.G_fld>=poMinG);
     const dir = o.dir||1;
     const items = a.map(x=>({n:x.n, v:f(x.s), tm:poSub(x), logo:poLogo(x)}))
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -4228,8 +4242,15 @@ function renderRecords(){
     catPO('Saves', s=>s.SV, v=>v),
     catPO('Innings Pitched', s=>s.IPouts/3, ipfmt),
   ].join('');
+  const poFld = [
+    catPO('Fielding %', s=>fld(s), rate, {min:'fldg'}),
+    catPO('Putouts', s=>s.PO, v=>v),
+    catPO('Assists', s=>s.A, v=>v),
+    catPO('Double Plays', s=>s.DP, v=>v),
+  ].join('');
   const poBatPool = batPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
   const poPitPool = pitPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
+  const poFldPool = fldPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
   const poGameBat = [
     catG(poBatPool, 'Home Runs in a Game', s=>s.hr, v=>v),
     catG(poBatPool, 'Hits in a Game', s=>s.h, v=>v),
@@ -4241,6 +4262,11 @@ function renderRecords(){
   const poGamePit = [
     catG(poPitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
     catG(poPitPool, 'Innings Pitched in a Game', s=>s.ip/3, ipfmt),
+  ].join('');
+  const poGameFld = [
+    catG(poFldPool, 'Putouts in a Game', s=>s.po, v=>v),
+    catG(poFldPool, 'Assists in a Game', s=>s.a, v=>v),
+    catG(poFldPool, 'Double Plays in a Game', s=>s.dp, v=>v),
   ].join('');
 
   // ---- streaks (era-filtered, like the rest of the page) ----
@@ -4442,11 +4468,13 @@ function renderRecords(){
       (a player split across two clubs counts once, combined). Rate stats need 9+ games batting or 12+ IP pitching.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${seasonBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${seasonPit}</div>
+      <h4 class="hsub">Fielding</h4><div class="llgrid">${seasonFld}</div>
     </div>`],
     ['game', 'Single-Game', 'Single-Game Records', `<div class="phase">
       <p class="pmeta">Best individual game lines from recorded box scores, ${eraLabel}, regular season and playoffs.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${gameBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${gamePit}</div>
+      <h4 class="hsub">Fielding</h4><div class="llgrid">${gameFld}</div>
     </div>`],
     ['postseason', 'Postseason', 'Postseason Records', `<div class="phase">
       <p class="pmeta">Best individual postseason performances, ${eraLabel}. Single Postseason combines every
@@ -4455,8 +4483,10 @@ function renderRecords(){
       since a full postseason run rarely offers more than that. Single Game is drawn from playoff box scores only.</p>
       <h4 class="hsub">Single Postseason · Batting</h4><div class="llgrid">${poBat}</div>
       <h4 class="hsub">Single Postseason · Pitching</h4><div class="llgrid">${poPit}</div>
+      <h4 class="hsub">Single Postseason · Fielding</h4><div class="llgrid">${poFld}</div>
       <h4 class="hsub">Single Game · Batting</h4><div class="llgrid">${poGameBat}</div>
       <h4 class="hsub">Single Game · Pitching</h4><div class="llgrid">${poGamePit}</div>
+      <h4 class="hsub">Single Game · Fielding</h4><div class="llgrid">${poGameFld}</div>
     </div>`],
     ['streaks', 'Streaks', 'Streaks', `<div class="phase">
       <p class="pmeta">Longest runs in the selected era, regular season. Team win/loss streaks are unified
@@ -4636,6 +4666,9 @@ function playerGameLog(pl, type, selYear){
   const rows = byYr[y];
   const oppCell = (g,side,opp) => `<td class="lft"><button class="pname" data-g="${g.gid}">${g.date.slice(5)}</button></td>
     <td class="lft">${side==='away'?'@':'vs'} ${histTeamLink(opp, +g.date.slice(0,4))}${type==='Playoffs'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>`;
+  const batRows = rows.filter(r=>r.bat).map(r=>r.bat);
+  const pitRows = rows.filter(r=>r.pit).map(r=>r.pit);
+  const fldRows = rows.filter(r=>r.fldLine).map(r=>r.fldLine);
   const batBody = rows.filter(r=>r.bat).map(({g,side,bat,opp})=>`<tr>${oppCell(g,side,opp)}
     <td>${bat.ab}</td><td>${bat.r}</td><td>${bat.h}</td><td>${bat['2b']}</td><td>${bat['3b']}</td><td>${bat.hr}</td>
     <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td><td>${bat.hbp}</td></tr>`).join('');
@@ -4647,15 +4680,27 @@ function playerGameLog(pl, type, selYear){
     <td>${fldLine.a}</td><td>${fldLine.e}</td><td>${fldLine.dp}</td></tr>`).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
-  const tbl = (title, th, body) => body ? `<section class="stat"><h4>${title}</h4>
+  const tbl = (title, th, body, foot) => body ? `<section class="stat"><h4>${title}</h4>
     <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Date</th><th class="lft">Opp</th>${th}
-    </tr></thead><tbody>${body}</tbody></table></div></section>` : '';
+    </tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div></section>` : '';
+  const batTot = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
+  const pitTot = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
+  const fldTot = sumBox(fldRows,['inn','tc','po','a','e','dp']);
+  const batFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
+    <td>${batTot.ab}</td><td>${batTot.r}</td><td>${batTot.h}</td><td>${batTot['2b']}</td><td>${batTot['3b']}</td><td>${batTot.hr}</td>
+    <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td><td>${batTot.hbp}</td></tr>`;
+  const pitFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
+    <td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
+    <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td></tr>`;
+  const fldFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
+    <td class="mono">${fldTot.inn}</td><td>${fldTot.tc}</td><td>${fldTot.po}</td>
+    <td>${fldTot.a}</td><td>${fldTot.e}</td><td>${fldTot.dp}</td></tr>`;
   return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
-    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>HBP</th>', batBody)}
-    ${tbl('Pitching', '<th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody)}
-    ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody)}
+    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>HBP</th>', batBody, batFoot)}
+    ${tbl('Pitching', '<th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
+    ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody, fldFoot)}
   </section>`;
 }
 

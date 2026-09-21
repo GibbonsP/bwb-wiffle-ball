@@ -4886,6 +4886,26 @@ mismatch in those cases is a per-game-level source-data inconsistency
 individually traced to a specific offending game the way Parker's was,
 since that requires the player's own real-world confirmation.
 
+## 2026-09-20 — Fielding records, Game Log totals, and the other 7 TC fixes
+
+Three follow-ups to the fielding work above:
+
+- **Fixed the other 7 players' `TC != PO+A+E` season rows** (Daniel Cochrane
+  2022, David Pizzutello 2023, Jack Leary 2022, Michael Sullivan 2024, Peter
+  Sposato 2022, Vinny Spoto 2024, Vinny Spoto 2025) the pragmatic way this
+  time, since none of them could be traced to one specific bad game the way
+  Parker's could: set each season's stored `TC` to `PO+A+E` directly. This
+  matches what `fld()` already assumes for every percentage shown on the
+  site, so the stored field and the displayed number now agree everywhere.
+- **Fielding added to the Records page** — Single-Season (Fielding %,
+  Putouts, Assists, Double Plays), Single-Game (Putouts/Assists/Double Plays
+  in a Game), and Postseason (both of the above, playoff-only), alongside
+  the existing Batting/Pitching sections in each tab.
+- **Total row added to each Game Log table** — Hitting, Pitching and
+  Fielding game logs each get a footer summing that table's columns across
+  the selected year, matching the "Total" row convention box scores already
+  use.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
