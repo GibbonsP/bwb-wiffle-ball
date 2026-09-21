@@ -5684,6 +5684,21 @@ plain "—" cells — read as convoluted next to the clean row-per-entry
 Wiffy/Team Awards tables above it. Flattened each into a Year / Tier /
 Player / Team table, one row per honoree, matching that same style.
 
+## 2026-09-21 — NWLA Awards on the per-team Awards page
+
+Added a new `teamNwlaEntries()` (mirrors `teamAwardEntries()`, but over
+`NWLA_AWARDS` instead of `AWARDS`) and a "NWLA Awards" section on each
+franchise's own Awards page, right under its BWB league awards —
+grouped the same way (award/category, years, tier where relevant).
+A team code that's a "/"-joined pair (a player traded mid-season, e.g.
+"Dra/Shk") now correctly credits BOTH franchises, same as a traded
+player's stat lines do elsewhere on the site — verified David
+Pizzutello's 2022 All-Rookie Team nod shows on both Purchase Dragons'
+and Shelton Shock's Awards pages. Also fixed `teamAccolades()`'s
+`hasAwards` check (which gates whether the "Awards →" button shows at
+all) to count NWLA-only honors too, so a franchise with NWLA awards but
+no BWB league awards still gets a reachable Awards page.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

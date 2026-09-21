@@ -2171,7 +2171,7 @@ function accolades(pl){
     <h4>${nwHonors.length} NWLA Award${nwHonors.length>1?'s':''}</h4>
     <dl class="awroll">${Object.keys(nwGrp).map(k=>{
       const items = nwGrp[k].slice().sort((a,b)=>b.year-a.year)
-        .map(e=> e.tier ? `${e.year} (${({First:'1st',Second:'2nd',Third:'3rd'})[e.tier]})` : `${e.year}`).join(', ');
+        .map(e=> e.tier ? `${e.year} (${NWLA_TIER_LABEL[e.tier]})` : `${e.year}`).join(', ');
       return `<div><dt>${esc(k)}${nwGrp[k].length>1?` <b>×${nwGrp[k].length}</b>`:''}</dt><dd>${items}</dd></div>`;
     }).join('')}</dl>
   </div>` : '';
@@ -4072,7 +4072,7 @@ function teamAccolades(name){
       if(entry && entry[1]==='^') titleEntries.push({year:+y, div:dn});
     });
   });
-  const hasAwards = teamAwardEntries(name).length > 0;
+  const hasAwards = teamAwardEntries(name).length > 0 || teamNwlaEntries(name).length > 0;
   if(!wsYears.length && !pennantEntries.length && !titleEntries.length && !hasAwards) return '';
   /* a classic 3-column trophy — a wiffleball finial, star, tapering neck,
      a disc on three gold pillars around a center medallion, a base with a
@@ -5058,6 +5058,7 @@ Object.entries(ASG).forEach(([y,a])=>{
 const NWLA_AWARDS = DB.nwlaAwards || {};
 const NWLA_TEAM_LABELS = {allHitting:'All-Hitting Team', allPitching:'All-Pitching Team',
   allRookie:'All-Rookie Team', allFielding:'All-Fielding Team'};
+const NWLA_TIER_LABEL = {First:'1st', Second:'2nd', Third:'3rd'};
 const NWLA_BY_PLAYER = {};
 const addNwla = (name, label, year, tier) => (NWLA_BY_PLAYER[name] = NWLA_BY_PLAYER[name] || []).push({label, year, tier});
 (NWLA_AWARDS.wiffy||[]).forEach(w=> addNwla(w.name, w.award, w.year));
@@ -5229,13 +5230,12 @@ function nwlaAwardsSection(){
      grid — a tie (several names in the same tier the same year) used to
      stack unevenly inside one grid cell; flattened, it reads the same way
      the Wiffy/Team Awards tables above it do. */
-  const TIER_LABEL = {First:'1st', Second:'2nd', Third:'3rd'};
   const allTeamTable = (title, catKey) => {
     const data = NWLA_AWARDS[catKey] || {};
     const years = Object.keys(data).sort((a,b)=>b-a);
     if(!years.length) return '';
     const rows = years.flatMap(y=>['First','Second','Third'].flatMap(tier =>
-      (data[y][tier]||[]).map(e=>`<tr><td class="lft">${y}</td><td class="lft">${TIER_LABEL[tier]}</td>
+      (data[y][tier]||[]).map(e=>`<tr><td class="lft">${y}</td><td class="lft">${NWLA_TIER_LABEL[tier]}</td>
         <td class="lft">${plink(e.name)}</td><td class="lft">${tnick(e.team,+y)}</td></tr>`)
     )).join('');
     return `<h4>${esc(title)}</h4><div class="tscroll"><table class="detail"><thead><tr>
@@ -5323,6 +5323,30 @@ function teamAwardEntries(fullName){
   });
   return out.sort((a,b)=>b.year-a.year);
 }
+/* same idea as teamAwardEntries() but over NWLA_AWARDS — a team code can be
+   a "/"-joined pair (a player traded mid-season, e.g. "Dra/Shk"), so a
+   single honoree can legitimately show up on two franchises' pages, same
+   as a traded player's stat lines do elsewhere on the site. */
+function teamNwlaEntries(fullName){
+  const codeMatches = code => code.split(/\s*[/,]\s*/).some(p=>{
+    const nick = AWARD_TEAM_ALIAS[p]||p;
+    return NICK2FULL[nick]===fullName;
+  });
+  const out = [];
+  (NWLA_AWARDS.wiffy||[]).forEach(w=>{
+    if(w.team && codeMatches(w.team)) out.push({year:w.year, label:w.award, name:w.name});
+  });
+  Object.entries(NWLA_TEAM_LABELS).forEach(([key,label])=>{
+    Object.entries(NWLA_AWARDS[key]||{}).forEach(([y,tiers])=>{
+      Object.entries(tiers).forEach(([tier,list])=>{
+        list.forEach(e=>{
+          if(e.team && codeMatches(e.team)) out.push({year:+y, label, name:e.name, tier});
+        });
+      });
+    });
+  });
+  return out.sort((a,b)=>b.year-a.year);
+}
 function renderTeamAwards(name){
   setNav('teams');
   if(!franchiseIsLinkable(name)){ location.hash='#/t/'+encodeURIComponent(name); return; }
@@ -5341,12 +5365,21 @@ function renderTeamAwards(name){
     return `<div class="pa-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
       <ul class="pa-list">${items}</ul></div>`;
   }).join('');
+  const nwlaEntries = teamNwlaEntries(name);
+  const nwlaGrouped = {};
+  nwlaEntries.forEach(e=>{ (nwlaGrouped[e.label] = nwlaGrouped[e.label] || []).push(e); });
+  const nwlaBlocks = Object.keys(nwlaGrouped).map(k=>{
+    const items = nwlaGrouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${plink(e.name)}${e.tier?` <span class="azm">(${NWLA_TIER_LABEL[e.tier]})</span>`:''}</li>`).join('');
+    return `<div class="pa-block"><h4>${nwlaGrouped[k].length}× ${esc(k)}</h4>
+      <ul class="pa-list">${items}</ul></div>`;
+  }).join('');
   const logo = teamLogoForYear(name, new Date().getFullYear());
   const logoImg = logo ? `<img class="tlogo" src="${logo}" alt="">` : '';
   app.innerHTML = `
     <button class="back" id="back">← ${esc(name)}</button>
     <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Awards</h2></div></div>
     ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No awards on record for this franchise.</p>'}
+    ${nwlaBlocks ? `<h3 class="hsub">NWLA Awards</h3><div class="pa-grid">${nwlaBlocks}</div>` : ''}
     <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
     The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
     accolades for titles and pennants.</p>`;
