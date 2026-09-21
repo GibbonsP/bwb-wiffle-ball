@@ -5041,6 +5041,11 @@ shrinking the header bar from 190px to 174px, without touching the logo
 and title/subtitle are laid out as normal flex siblings, no overlap risk
 to account for either way. Checked at desktop and mobile widths.
 
+## 2026-09-20 — Updated ProWiffleball link
+
+Changed both ProWiffleball footer/social links from
+`prowiffleball.com/leagues/5` to `prowiffleball.com/`.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
