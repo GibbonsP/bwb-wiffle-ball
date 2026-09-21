@@ -40,10 +40,10 @@ a{color:inherit}
 button{font:inherit;color:inherit;cursor:pointer}
 
 header.mast{background:var(--brandbar)}
-.mast-inner{max-width:1180px;margin:0 auto;padding:20px 20px;
+.mast-inner{max-width:1180px;margin:0 auto;padding:10px 20px;
   display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .brandrow{display:flex;align-items:center;gap:12px}
-#brandLogo img{height:150px;width:auto;display:block}
+#brandLogo img{height:100px;width:auto;display:block}
 .brand h1{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;
   font-size:clamp(1.7rem,4.4vw,2.7rem);letter-spacing:.03em;margin:0;line-height:1;
   text-transform:uppercase;text-wrap:balance;}
@@ -3033,6 +3033,11 @@ function renderStandings(){
     {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
     {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, [{year:standYear, outs:d.IPouts, post:standPhase==='post'}]);return isFinite(v)?String(v):'—';}}],
     agg, league, 'League', '', true);
+  const fldT = statTable('Team Fielding · '+standYear+' · '+phaseLabel, [
+    {l:'Team',lft:1,f:d=>nk(d.name)},
+    {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}],
+    agg, league, 'League', '', true);
 
   app.innerHTML = `
     <div class="phead"><h2>Standings</h2><span class="yrs">Regular season · ${standYear}</span></div>
@@ -3042,11 +3047,12 @@ function renderStandings(){
     ${PLAYOFFS[String(standYear)]?`<h3 class="divh">${standYear} Playoffs</h3>${playoffBracket(standYear)}`:''}
     <h3 class="hsub">Team Stats</h3>
     ${teamPhaseToggle}
-    ${batT}${pitT}
+    ${batT}${pitT}${fldT}
     <p class="note">Regular-season standings from official game results. GB is games behind the division leader;
     RF / RA are runs for and against; Diff is their difference; Home and Away are the split records;
     the trailing columns are the club's record against each division. Division ties are broken by head-to-head.
-    Team Batting and Team Pitching are the sum of that season's roster lines for the selected phase above;
+    Team Batting, Team Pitching and Team Fielding are the sum of that season's roster lines for the selected phase
+    above (fielding only where per-game data has been recorded — 2020 on);
     the Playoffs view only lists teams that made the postseason that year.
     Clubs are shown by the name they used that season; the link opens the current franchise page.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ standYear=+b.dataset.sy; renderStandings(); }));

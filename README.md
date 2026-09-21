@@ -4948,12 +4948,26 @@ Several smaller fixes and requests together:
   Leaders page's own Tm column is untouched) and its team logo chips enlarged
   from 18px to 24px.
 
-## 2026-09-20 — Bigger header logo
+## 2026-09-20 — Bigger header logo, same header bar size
 
 Bumped the header logo (currently the 15th Anniversary logo) from 80px,
-to 108px, to 150px tall after a follow-up ask for even bigger. Checked
-at both desktop and mobile widths each time — the header row still wraps
-cleanly.
+to 108px, to 150px tall after a follow-up ask for even bigger — but that
+also grew the navy header bar itself, which the user then asked to keep
+at its original size. Landed on 100px logo with the header's vertical
+padding trimmed from 20px to 10px top/bottom, so the bar's total height
+matches the original 80px-logo/20px-padding version (120px) exactly,
+while the logo is still 25% larger than where it started. Checked at
+both desktop and mobile widths.
+
+## 2026-09-20 — Team Fielding added to Standings
+
+Added a "Team Fielding" table next to Team Batting and Team Pitching on
+the Standings page's Team Stats section — INN/TC/PO/A/E/DP/FLD%, same
+Regular/Playoffs toggle, summed from the same per-team roster rows
+(`ZERO_KEYS` already carried the fielding fields, so no new aggregation
+was needed). Only populated for years with per-game fielding data
+imported (2020 on) — earlier years show zeros, same as the batting/
+pitching tables already did before fielding stats existed.
 
 ## Outstanding work
 
