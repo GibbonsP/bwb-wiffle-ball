@@ -5113,16 +5113,20 @@ page keeps its own separate legend explaining `*`.
   existing `.tlg-head.tlg-name` combined-selector rule (higher specificity,
   wins regardless of source order) so it now matches the year columns
   exactly, in both themes.
-- **Removed a phantom team, "Shraken."** A 2023 Spring exhibition game
-  between the Panthers and (really) the Brookside Kraken had the Kraken's
-  name misspelled "Shraken" in the source data, which created an entirely
-  separate fake franchise entry — its own team page, its own line in
-  All-Time Team Batting/Pitching, with Parker Gibbons and TJ Ciafone (both
-  real Kraken players) on its "roster." Merged that game and record into
-  Brookside Kraken's real 2023 season, corrected both players' season rows
-  and the Panthers' own game log to reference "Brookside Kraken," fixed the
-  box score itself, and deleted the fake team entry and its bogus
-  `nick2full` mapping entirely.
+- **"Shraken" was never a typo — corrected course after initially treating
+  it as one.** Parker Gibbons and TJ Ciafone played a single 2023 Spring
+  exhibition game (vs. the Panthers) as a one-off team called "Shraken,"
+  already documented as exactly that further up this file. First pass at
+  this got it wrong: assumed "Shraken" was a misspelling of "Kraken" and
+  merged that game into Brookside Kraken's real 2023 season — undone.
+  The game, both players' season rows, the Panthers' own game log, and the
+  box score all say "Shraken" again, and the `nick2full` mapping is back.
+  The one real fix that stays: `teams['Shraken']` — a full team object with
+  its own page and its own line in All-Time Team Batting/Pitching, as if
+  it were a real franchise — is deleted. A team name with no `TEAMS[]`
+  entry already renders everywhere else on the site as plain, unlinked
+  text (the same pattern used for "North/South Division" All-Star teams),
+  so the name and box score stay intact without it needing a page.
 - **Beavers tournament box scores are now their own pages** instead of
   inline `<details>` dropdowns — click a game and it opens on its own URL
   (`#/beavers/<gid>`) with a back button to the tournament, matching how
