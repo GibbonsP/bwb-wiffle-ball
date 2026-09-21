@@ -5414,6 +5414,18 @@ first, per the actual order confirmed by the user. Verified on both the
 series page and the Standings page's playoff bracket, which independently
 reconstruct game order the same way.
 
+## 2026-09-21 — Champions page shows era-accurate team names
+
+Each championship year's heading now shows the franchise's name as it
+actually was that season (e.g. "2018 — Harris Special K's," "2020 —
+Harris Special K's") instead of the current name ("Harris Kings")
+applied retroactively — using `histTeamLink()`, the same era-aware
+helper already used elsewhere on the site, so the link target is
+unaffected: it still points at the current franchise page. Removed the
+small "aka Harris Kings" subtitle that used to sit next to the score,
+since the heading itself now carries that information directly instead
+of showing it twice.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

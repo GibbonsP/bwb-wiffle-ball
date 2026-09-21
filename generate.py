@@ -5085,8 +5085,8 @@ function champsSection(){
       <div class="champhead">
         ${logo?`<img class="champlogo" src="${logo}" alt="">`:''}
         <div class="champtext">
-          <h4>${c.y} — ${c.tm&&TEAMS[c.tm]?teamLink(c.tm):esc(c.full)}</h4>
-          <span class="cscore">${esc(c.score)}${c.tm&&TEAMS[c.tm]&&c.full!==c.tm?` · <span class="aka2">${esc(c.full)}</span>`:''}</span>
+          <h4>${c.y} — ${c.tm&&TEAMS[c.tm]?histTeamLink(c.tm,c.y):esc(c.full)}</h4>
+          <span class="cscore">${esc(c.score)}</span>
         </div>
         ${badges}
       </div>
