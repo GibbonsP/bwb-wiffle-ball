@@ -5400,6 +5400,20 @@ nickname, measured directly rather than estimated) and bumped the grid's
 own min-width to match, so the horizontal scroll area is sized correctly.
 Also removed "Hover a bar for the full name" from the caption underneath.
 
+## 2026-09-21 — Fixed 2018 World Series game order
+
+Games 1 and 2 of the 2018 World Series (Brookside Kraken vs. Harris
+Special K's) were showing reversed — the 6–3 game as Game 1, the 16–14
+game as Game 2. Root cause: both games are recorded with the identical
+date (`2018-08-17`) and neither had a `dt` timestamp to break the tie,
+so the series page's date-based sort fell back to gid order, which
+happened to land backwards for this pair. Added `dt` values to both
+games (`08:00` and `10:00`) — the same mechanism already used for every
+other same-day doubleheader on the site — so the 16–14 game now sorts
+first, per the actual order confirmed by the user. Verified on both the
+series page and the Standings page's playoff bracket, which independently
+reconstruct game order the same way.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
