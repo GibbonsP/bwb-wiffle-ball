@@ -859,7 +859,15 @@ function gsMatches(qRaw){
   const teams = TEAMNAMES.filter(t=>t.toLowerCase().includes(q))
     .sort((a,b)=>rank(a)-rank(b) || a.localeCompare(b)).slice(0,5)
     .map(t=>({type:'team', key:t, label:TEAMS[t].nick||t, sub:t, logo:TEAMS[t].logo}));
-  return [...players, ...teams];
+  /* defunct/pre-2017 franchises have no TEAMS[] roster entry (so they're
+     absent from TEAMNAMES) but still have their own page via
+     FRANCHISE_SUMMARY's f===null "historical record only" rows — search
+     those too so the whole league's history is actually findable, not
+     just the 15 franchises with full stat databases */
+  const oldTeams = FRANCHISE_SUMMARY.filter(d=>!d.f && (d.full.toLowerCase().includes(q) || (d.t||'').toLowerCase().includes(q)))
+    .sort((a,b)=>rank(a.t||a.full)-rank(b.t||b.full) || a.full.localeCompare(b.full)).slice(0,3)
+    .map(d=>({type:'team', key:d.full, label:d.t||d.full, sub:d.full, logo:(DB.franchiseLogos||{})[d.t]}));
+  return [...players, ...teams, ...oldTeams];
 }
 function gsRender(items){
   const box = document.getElementById('gsearchResults');
@@ -4530,6 +4538,13 @@ const BOX_PIT=[
   {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
   {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'W',f:d=>d.w},{l:'L',f:d=>d.l},{l:'SV',f:d=>d.sv}];
+/* fld entries are per-game (from the league's own lineup export, matched to
+   each existing game by player name) — only present for games this has
+   actually been imported for, so every caller guards with (s.fld||[]) */
+const BOX_FLD=[
+  {l:'Fielding',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
+  {l:'INN',m:1,f:d=>d.inn},{l:'TC',f:d=>d.tc},{l:'PO',f:d=>d.po},{l:'A',f:d=>d.a},
+  {l:'E',f:d=>d.e},{l:'DP',f:d=>d.dp}];
 const sumBox=(rows,keys)=>{ const t={}; keys.forEach(k=>t[k]=0); rows.forEach(r=>keys.forEach(k=>t[k]+=(r[k]||0))); return t; };
 
 function boxSide(g, sk, yr){
@@ -4541,6 +4556,10 @@ function boxSide(g, sk, yr){
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
     out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, s.pit, tot, 'Total', '');
+  }
+  if((s.fld||[]).length){
+    const tot=sumBox(s.fld,['inn','tc','po','a','e','dp']);
+    out+=statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', '');
   }
   return out;
 }
@@ -4587,18 +4606,25 @@ function collectPlayerGames(pl, type){
   const out=[];
   pl.gids.forEach(gid=>{
     const g=GAMES[gid]; if(!g || g.phase!==type) return;
-    let side=null, bat=null, pit=null;
+    let side=null, bat=null, pit=null, fldLine=null;
     for(const sk of ['away','home']){
-      const bb=g[sk].bat.find(x=>x.n===pl.name), pp=g[sk].pit.find(x=>x.n===pl.name);
-      if(bb||pp){ side=sk; bat=bb||null; pit=pp||null; break; }
+      const bb=g[sk].bat.find(x=>x.n===pl.name), pp=g[sk].pit.find(x=>x.n===pl.name),
+        ff=(g[sk].fld||[]).find(x=>x.n===pl.name);
+      if(bb||pp||ff){ side=sk; bat=bb||null; pit=pp||null; fldLine=ff||null; break; }
     }
     if(!side) return;
     const opp = side==='away'? g.home.team : g.away.team;
-    out.push({g,side,bat,pit,opp});
+    out.push({g,side,bat,pit,fldLine,opp});
   });
   return out;
 }
 
+/* Hitting, Pitching and Fielding used to be one combined row per game
+   (with blank cells wherever a category didn't apply) — split into three
+   separate tables instead, each only listing the games where that
+   category actually happened, same as how the Stats tab's own
+   Batting/Pitching/Fielding are already three separate tables rather
+   than one merged one. */
 function playerGameLog(pl, type, selYear){
   const games = collectPlayerGames(pl, type);
   if(!games.length) return '';
@@ -4607,21 +4633,30 @@ function playerGameLog(pl, type, selYear){
   const yrs=Object.keys(byYr).sort();
   if(!yrs.length) return '';
   const y = yrs.includes(String(selYear)) ? String(selYear) : yrs[yrs.length-1];
-  const rows=byYr[y].map(({g,side,bat,pit,opp})=>`<tr>
-    <td class="lft"><button class="pname" data-g="${g.gid}">${g.date.slice(5)}</button></td>
-    <td class="lft">${side==='away'?'@':'vs'} ${histTeamLink(opp, +g.date.slice(0,4))}${type==='Playoffs'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>
-    <td>${bat?bat.ab:''}</td><td>${bat?bat.r:''}</td><td>${bat?bat.h:''}</td><td>${bat?bat.hr:''}</td>
-    <td>${bat?bat.rbi:''}</td><td>${bat?bat.bb:''}</td><td>${bat?bat.k:''}</td>
-    <td class="mono">${pit?ipStr(pit.ip):''}</td><td>${pit?pit.h:''}</td><td>${pit?pit.r:''}</td>
-    <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td></tr>`).join('');
+  const rows = byYr[y];
+  const oppCell = (g,side,opp) => `<td class="lft"><button class="pname" data-g="${g.gid}">${g.date.slice(5)}</button></td>
+    <td class="lft">${side==='away'?'@':'vs'} ${histTeamLink(opp, +g.date.slice(0,4))}${type==='Playoffs'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>`;
+  const batBody = rows.filter(r=>r.bat).map(({g,side,bat,opp})=>`<tr>${oppCell(g,side,opp)}
+    <td>${bat.ab}</td><td>${bat.r}</td><td>${bat.h}</td><td>${bat['2b']}</td><td>${bat['3b']}</td><td>${bat.hr}</td>
+    <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td><td>${bat.hbp}</td></tr>`).join('');
+  const pitBody = rows.filter(r=>r.pit).map(({g,side,pit,opp})=>`<tr>${oppCell(g,side,opp)}
+    <td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
+    <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td></tr>`).join('');
+  const fldBody = rows.filter(r=>r.fldLine).map(({g,side,fldLine,opp})=>`<tr>${oppCell(g,side,opp)}
+    <td class="mono">${fldLine.inn}</td><td>${fldLine.tc}</td><td>${fldLine.po}</td>
+    <td>${fldLine.a}</td><td>${fldLine.e}</td><td>${fldLine.dp}</td></tr>`).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
+  const tbl = (title, th, body) => body ? `<section class="stat"><h4>${title}</h4>
+    <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Date</th><th class="lft">Opp</th>${th}
+    </tr></thead><tbody>${body}</tbody></table></div></section>` : '';
   return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
-    <div class="tscroll"><table class="detail"><thead><tr>
-    <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>
-    <th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>HBP</th>', batBody)}
+    ${tbl('Pitching', '<th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody)}
+    ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody)}
+  </section>`;
 }
 
 /* NWLA per-game lines live in the separate Beavers box-score set (BV_ALL_GAMES,
@@ -4974,7 +5009,7 @@ function renderAwards(){
    the first group (Commissioner-level) gets a larger card, League
    Operations shares one row of equal-weight cards below it. */
 const LEAGUE_OFFICE_LEAD = [
-  {name:'Parker Gibbons', titles:['Founder','Commissioner','Head of Operations']},
+  {name:'Parker Gibbons', titles:['Founder','Commissioner','Head of League Operations']},
   {name:'Peter Fraioli', titles:['Co-Commissioner','Head of Content Management and Design','League Operations Lead']},
   {name:'Trevor Meyler', titles:['Assistant Commissioner','League Operations Lead']},
 ];

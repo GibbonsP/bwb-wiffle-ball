@@ -4850,6 +4850,42 @@ fix from the previous entry stays either way (it doesn't trust TC), but
 now the season's own recorded TC is also actually right, not just
 inert.
 
+## 2026-09-20 — Real per-game fielding data; box score and Game Log fielding tables
+
+Imported 1150 real per-game fielding lines from `source/BWB League Lineup
+Export.xlsx` (`Player_Stats_with_Game_Info`, header row 2) into each game's
+`away`/`home` side as a new `fld` array (`n, inn, tc, po, a, e, dp` per
+player), filtered to `G>0`, phase-matched against each game's own stored
+`phase` (the export mixes Regular and Playoffs with no phase column),
+deduplicated against a known duplicate-row artifact in the export (Victor
+Cottini, GameID 29053877), and reconciled through 3 name aliases (Daniel
+Brady → Dan Brady, Nick Sabino → Nikolas Sabino, Tommy Giandomenico → Tom
+Giandomenico). Each side's `fld` array sorts by TC descending, same
+convention as pitching sorted by IP.
+
+Used that data for two new features:
+- **Box scores** — a third Fielding table per team, alongside Batting and
+  Pitching, guarded so older/un-imported games without `fld` data don't
+  render an empty table.
+- **Player Game Logs** — split the old single combined batting+pitching
+  table into three independent Hitting / Pitching / Fielding tables (each
+  omitted when a player/year has no rows for it), matching the same
+  separation the Stats tab already uses. Also expanded the Hitting and
+  Pitching column sets (added 2B/3B/HBP and BB/W/L/SV) now that each table
+  has its own row instead of sharing space.
+
+Also checked the 7 other players previously flagged with `TC != PO+A+E`
+in their stored season totals (Daniel Cochrane 2022, David Pizzutello
+2023, Jack Leary 2022, Michael Sullivan 2024, Peter Sposato 2022, Vinny
+Spoto 2024 and 2025). Re-verified each one directly against the
+phase-matched, deduplicated, alias-corrected per-game export: all 7
+season totals are already correct as stored. The remaining TC/PO+A+E
+mismatch in those cases is a per-game-level source-data inconsistency
+(the same category as Parker's, one row above), not a season-total error
+— already neutralized display-side by the `fld()` formula fix, and not
+individually traced to a specific offending game the way Parker's was,
+since that requires the player's own real-world confirmation.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
