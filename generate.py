@@ -1023,9 +1023,28 @@ function teamLink(nm){
     ? `<button class="pname" data-t="${esc(nm)}">${esc(nm)}</button>` : esc(nm);
 }
 /* name a franchise went by in a given season (with its location prefix kept) */
+/* a franchise that folded before 2017 has no TEAMS[] entry (no roster/game
+   data survives for it), but it still has a page (renderHistoricalTeam, via
+   its FRANCHISE_SUMMARY row) and, for most of them, a logo filed under its
+   short nickname in DB.franchiseLogos and an era-by-era name history in
+   FRANCHISE_TIMELINE — so year-specific name/logo can still resolve the
+   same way a live franchise's does, just from different tables. */
+function defunctEra(full, y){
+  const tl = (typeof FRANCHISE_TIMELINE!=='undefined') && FRANCHISE_TIMELINE.find(fr=>fr.full===full);
+  if(!tl) return null;
+  return (y!=null && tl.eras.find(e=>y>=e.from && y<=e.to)) || tl.eras[tl.eras.length-1];
+}
+function franchiseIsLinkable(full){
+  return (typeof TEAMS!=='undefined' && !!TEAMS[full]) ||
+    (typeof FRANCHISE_SUMMARY!=='undefined' && FRANCHISE_SUMMARY.some(d=>d.f===null && d.full===full));
+}
 function histName(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
-  if(!t) return full;
+  if(!t){
+    const era = defunctEra(full, y);
+    if(!era) return full;
+    return (era.loc && !era.nick.startsWith(era.loc)) ? era.loc+' '+era.nick : era.nick;
+  }
   const nm = (t.nameByYear||{})[y];
   if(!nm || nm===t.nick) return full;
   return (t.loc && !nm.startsWith(t.loc)) ? t.loc+' '+nm : nm;
@@ -1033,7 +1052,10 @@ function histName(full, y){
 /* the logo a franchise used in a given season, falling back to its current logo */
 function teamLogoForYear(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
-  if(!t) return null;
+  if(!t){
+    const summary = (typeof FRANCHISE_SUMMARY!=='undefined') && FRANCHISE_SUMMARY.find(d=>d.f===null && d.full===full);
+    return summary ? (DB.franchiseLogos||{})[summary.t] || null : null;
+  }
   const hist = t.logoHistory;
   if(hist) for(const h of hist){
     if(y>=h.from && (h.to==null || y<=h.to)) return h.logo;
@@ -1044,19 +1066,23 @@ function teamLogoForYear(full, y){
    without the location prefix, for narrow game/box-score contexts ("vs X") */
 function histNick(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
-  if(!t) return full;
+  if(!t){
+    const era = defunctEra(full, y);
+    return era ? era.nick : full;
+  }
   return (t.nameByYear||{})[y] || t.nick;
 }
 /* clickable team reference that DISPLAYS the era-accurate name for year y but
    still LINKS to the current franchise page (data-t stays the live key) —
    the full-name and nickname variants used wherever a game/record is tied to
-   one specific year, so a page never claims a modern name existed back then */
+   one specific year, so a page never claims a modern name existed back then.
+   A folded pre-2017 franchise still links, to its own historical-team page. */
 function histTeamLink(full, y){
-  return (typeof TEAMS!=='undefined' && TEAMS[full])
+  return franchiseIsLinkable(full)
     ? `<button class="pname" data-t="${esc(full)}">${esc(histName(full, y))}</button>` : esc(full);
 }
 function histNickLink(full, y){
-  return (typeof TEAMS!=='undefined' && TEAMS[full])
+  return franchiseIsLinkable(full)
     ? `<button class="pname" data-t="${esc(full)}">${esc(histNick(full, y))}</button>` : esc(full);
 }
 /* full franchise name for a single-team player-season (or the latest team
@@ -3612,19 +3638,30 @@ function teamOneYear(t, y){
     return `<div class="rec ${ph==='Playoffs'?'po':''}"><h4>${ph} Record</h4>
       <div class="big">${recWL(r)}</div>
       <div class="sub">${r.RF} RF · ${r.RA} RA · ${diff>0?'+':''}${diff}</div></div>`;
-  }).join('')
-  + (roster.length ? `<div class="rec"><h4>Team Batting</h4>
-      <div class="big">${rate(avg(T))}/${rate(obp(T))}/${rate(slg(T))}</div>
-      <div class="sub">${T.HR} HR · ${T.RBI} RBI · ${T.R} R in ${T.G_bat} G</div></div>`
-    + (T.IPouts ? `<div class="rec"><h4>Team Pitching</h4>
-      <div class="big">${two(era(T))} ERA</div>
-      <div class="sub">${two(whip(T))} WHIP · ${T.pK} K · ${ipStr(T.IPouts)} IP</div></div>` : '') : '');
+  }).join('');
+  const teamName = histName(t.name, y);
+  const teamHittingHTML = roster.length ? statTable('Team Hitting', [
+    {l:'Team',lft:1}, {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
+    {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
+    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
+    {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},{l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))}],
+    [], T, teamName, '') : '';
+  const teamPitchingHTML = (roster.length && T.IPouts) ? statTable('Team Pitching', [
+    {l:'Team',lft:1}, {l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},{l:'H',f:d=>d.pH},
+    {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+    {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}],
+    [], T, teamName, '') : '';
+  const teamFieldingHTML = (roster.length && T.TC) ? statTable('Team Fielding', [
+    {l:'Team',lft:1}, {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}],
+    [], T, teamName, '') : '';
   const rosterHTML = roster.length
     ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}])
       + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}])
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
+    ${teamHittingHTML}${teamPitchingHTML}${teamFieldingHTML}
     ${rosterHTML}
     ${gameLog(s.games, y)}`;
 }
@@ -4474,7 +4511,7 @@ function renderRecords(){
   //      record regardless of which era the rest of the page is showing) ----
   const nPerf = NOHIT.filter(x=>x.perfect).length;
   const nhTeamCell = (team, y) => {
-    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
+    const logo = teamLogoForYear(team, y);
     return `<span class="tmcell">${logo?`<img class="llogo" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
   };
   const nhRows = NOHIT.slice().reverse().map(x=>{
@@ -4923,6 +4960,16 @@ const AWARD_TEAM_ALIAS = {
   "Special K's":'Kings', 'The Process':'Process', 'Wildcats':'Process', 'Dashers':'Braves',
   'Hotdoggers':'Lavahogs', 'Hogriders':'Lavahogs', 'Soxs':'Sox', 'Bulldogs':'Mustangs',
   'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Avondale Dashers':'Braves',
+  /* 3-letter (or otherwise abbreviated) team codes used on some pre-2018
+     multi-winner award rows (Golden Hands / Silver Slugger co-winners),
+     confirmed against the league's own records rather than guessed —
+     "Wia" (one 2015 Silver Slugger co-winner's team) has no confirmed
+     match and is deliberately left unmapped, so it renders as plain text
+     instead of guessing wrong. */
+  'Pan':'Panthers', 'PAN':'Panthers', 'Hot':'Lavahogs', 'Hod':'Lavahogs',
+  'Ace':'Aces', 'Kra':'Kraken', 'Sql':'Squirrels', 'Kin':'Royals', 'Kig':'Royals',
+  'Buf':'Kraken', 'Das':'Braves', 'Mus':'Mustangs', 'GLA':'Gladiators', 'SHK':'Shock',
+  'Wicked':'Aces', 'Wic':'Aces', 'Man':'Lavahogs', 'Bul':'Mustangs',
 };
 /* link a player name that may carry "(C)", periods (A.J.), or be a "/"/"," list */
 function plink(raw){
@@ -4939,11 +4986,11 @@ function plink(raw){
 }
 function tnick(raw, year){
   if(!raw) return '';
-  return raw.split('/').map(part=>{
+  return raw.split(/[/,]/).map(part=>{
     const p=part.trim(), nick=AWARD_TEAM_ALIAS[p]||p, full=NICK2FULL[nick];
     if(!full) return esc(p);
-    const label = year!=null ? histNick(full, year) : TEAMS[full].nick;
-    const logo = year!=null ? teamLogoForYear(full, year) : null;
+    const label = histNick(full, year);
+    const logo = teamLogoForYear(full, year);
     return `<button class="pname" data-t="${esc(full)}">${logo?`<img class="tlogo-mini" src="${logo}" alt="">`:''}${esc(label)}</button>`;
   }).join(' / ');
 }

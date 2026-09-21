@@ -5189,6 +5189,46 @@ now also re-applies `makeSortable()` to any `table.sortable` it finds
 wired). Verified by switching years on both the Standings and a team
 page and confirming a header click still reorders rows afterward.
 
+## 2026-09-21 — Defunct franchises get year-specific names/logos everywhere; team pages get Team Hitting/Pitching/Fielding tables
+
+- **No-Hitters/Perfect Games and Awards now show real names and logos for
+  folded pre-2017 franchises**, not just live ones. Root cause: `histName`,
+  `histNick`, `teamLogoForYear`, `histTeamLink` and `histNickLink` only ever
+  checked `TEAMS[full]` — a franchise with no surviving roster/game data
+  (Brentwood Aces, Downtown Angels, Gleason Devils, Brookside Squirrels,
+  Brookside Royals, Davenport Sox) has no such entry, so they silently fell
+  back to plain, unlinked, logo-less text everywhere. All five functions now
+  fall back to `FRANCHISE_TIMELINE` (era-accurate historical name) and
+  `FRANCHISE_SUMMARY` + `DB.franchiseLogos` (the logo, filed under the
+  franchise's short nickname) when there's no live entry, and link to the
+  franchise's own historical-team page (`renderHistoricalTeam`) instead of
+  rendering plain text. Also added the 6 missing `nick2full` entries these
+  franchises never had (Aces, Royals, Squirrels, Devils, Angels, Sox).
+- **Extended the Awards page's team-abbreviation table** with confirmed
+  3-letter/short codes used on pre-2018 multi-winner award rows (Golden
+  Hands, Silver Slugger): Pan/PAN→Panthers, Hot/Hod→Lavahogs (Hotdoggers
+  era), Ace→Aces, Kra→Kraken, Sql→Squirrels, Kin/Kig→Royals, Buf→Kraken
+  (Bluefish era), Das→Braves (Dashers era), Mus/Bul→Mustangs (Bulldogs
+  era), GLA→Gladiators, SHK→Shock, Wicked/Wic→Aces, Man→Lavahogs (Manatees
+  era) — checked against the league's own records rather than guessed, and
+  confirmed by the user. `tnick()` now also splits on commas (previously
+  only "/"), since some of these rows list co-winners' teams comma-
+  separated rather than slash-separated. One code, "Wia" (a 2015 Silver
+  Slugger co-winner's team), has no confirmed match and is deliberately
+  left unmapped — renders as plain text rather than guessing wrong.
+- **Team pages: added Team Hitting, Team Pitching and Team Fielding
+  tables**, positioned above the individual player roster tables on a
+  team's single-year view — same column sets as the equivalent Standings
+  page tables, built from the same season/phase roster aggregate already
+  computed for that page's record cards. Replaces the old compact "Team
+  Batting"/"Team Pitching" one-line summary cards, which are now redundant
+  with the fuller tables. Each table is single-row (just that team's
+  total, labeled with its era-accurate name for the selected year) and
+  omits itself when there's no relevant data (no roster, no innings
+  pitched, no fielding chances) — verified this still happens correctly,
+  and that the "All years" view (a different code path, franchise-wide
+  roster tables) is unaffected.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
