@@ -4833,6 +4833,23 @@ value, which makes a fielding percentage over 1.000 mathematically
 impossible regardless of how TC itself was entered. Verified zero
 season rows exceed 1.000 after the fix, across every player.
 
+## 2026-09-20 — Found and fixed the actual source of Parker's fielding error
+
+Follow-up to the fielding % fix above: traced the real cause instead of
+just papering over it with a formula change. Pulled Parker Gibbons'
+2025 fielding lines game-by-game from `source/BWB League Lineup
+Export.xlsx` (`Player_Stats_with_Game_Info`, the actual per-game sheet
+`build.py` reads) and checked every game's own TC against PO+A+E —
+every game reconciled except one: 7/30/25, Gladiators @ Kraken (the
+5-inning game that day), recorded as 4 TC against 2 PO + 4 A + 0 E
+(should total 6). Confirmed against the real game that the correct
+total was 6 chances, meaning TC was under-recorded that game, not PO
+over-recorded as first suspected. Corrected Parker's 2025 season row in
+`players.json`: TC 51 → 53, matching PO+A+E exactly. The `fld()` formula
+fix from the previous entry stays either way (it doesn't trust TC), but
+now the season's own recorded TC is also actually right, not just
+inert.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
