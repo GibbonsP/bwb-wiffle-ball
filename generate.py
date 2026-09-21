@@ -46,7 +46,7 @@ a{color:inherit}
 button{font:inherit;color:inherit;cursor:pointer}
 
 header.mast{background:var(--brandbar)}
-.mast-inner{max-width:1180px;margin:0 auto;padding:20px 20px;
+.mast-inner{max-width:1180px;margin:0 auto;padding:12px 20px;
   display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:12px}
 #brandLogo img{height:150px;width:auto;display:block}

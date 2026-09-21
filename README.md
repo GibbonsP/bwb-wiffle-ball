@@ -5033,6 +5033,14 @@ comparing 110/130/150 side by side — all read clean at that width, and
 desktop and mobile widths, measuring actual rendered box positions
 rather than trusting a screenshot alone this time.
 
+## 2026-09-20 — Trimmed header bar height
+
+Reduced `.mast-inner`'s vertical padding from 20px to 12px top/bottom,
+shrinking the header bar from 190px to 174px, without touching the logo
+(still 150px) or any text size — a plain padding trim now that the logo
+and title/subtitle are laid out as normal flex siblings, no overlap risk
+to account for either way. Checked at desktop and mobile widths.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
