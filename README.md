@@ -5604,6 +5604,49 @@ award. Verified on Davenport Sox (Team of the Year), Shelton Shock
 (4 Game of the Year entries), and Brookside Kraken (both, plus
 confirmed its 2025 Sox Trophy still doesn't show).
 
+## 2026-09-21 — Link Game of the Year to box scores, award data corrections
+
+Linked every "Game Of The Year" award (2022–2026, all confirmed as
+regular-season games, never postseason) to its actual box score, on
+both the main Awards page and each team's own Awards page. Matched
+each award's "Team A @ Team B Game N" label to the real `gid` by
+finding that day's head-to-head games and using chronological (gid)
+order for "Game N", cross-checked against each award's own note where
+one existed (inning count, score, described plays). Also normalized
+the older "Team A V Team B" wording to "Team A @ Team B" for
+consistency (2022, 2023, and the 2026 finalists list).
+
+Fixed a structural inconsistency on the main Awards page: "Team of the
+Year" was the only award type putting its team in the Winner column
+and leaving Team blank. Winner now always shows the raw record
+(plain text for Team of the Year, since the winner there already is a
+team, not a player) and Team always shows the linkable team badge,
+matching every other award row.
+
+Data corrections to the hand-kept award records, per user review:
+- 2012 CY Young (Darien Sharpe) was attributed to Harris Kings; he was
+  on the Brookside Royals — fixed the award's team field.
+- 2013 Silver Slugger (South) was missing a team for 2 of its 4
+  co-winners because the old row only listed 3 team codes for 4
+  names — added Tochi Onwuasoanya (Downtown Angels) and Darien Sharpe
+  (Brookside Royals) to the row so both now show up on the right
+  franchise's Awards page.
+- Renamed the one "Avondale Dashers" mention (a 2017 Team of the Year
+  winner) to "Brentwood Dashers" — `TEAMS['Brentwood Braves'].loc` is
+  already `'Brentwood'` for that era everywhere else on the site (team
+  pages, player history), so `FRANCHISE_TIMELINE`'s stray `loc:'Avondale'`
+  was the only place still showing the wrong location.
+
+**Still open** — the 2013 and 2014 Golden Hands (South) rows have the
+same "3 team codes for 4 winners" problem as the Silver Slugger row
+above, but I don't have confirmed teams for Davis Kim (2013), or
+Shintaro Sakurari / Masayuki Yamada (2014), so I didn't touch those
+rows. The 2014 Silver Slugger (South) row currently credits Kodai
+Tachimoto's award to Brookside Royals via the "Kig" code, but the
+league's own Leadership data lists him as a Brookside Squirrels
+co-captain for 2013–2014 — flagged for confirmation rather than
+changed outright.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -2590,9 +2590,8 @@ const FRANCHISE_SUMMARY = [
 
 /* full name each franchise played under, year by year, since the league's 2012 founding —
    collapsed into eras (consecutive years under one name); a name that already reads as a
-   complete place+nickname (e.g. the Dashers' Avondale years, before the franchise relocated
-   and became the Brentwood Braves) is stored as its own override rather than being built
-   from that franchise's current location prefix */
+   complete place+nickname is stored as its own override rather than being built from that
+   franchise's current location prefix */
 const FRANCHISE_TIMELINE = [
   {full:'Brookside Panthers', nick:'Panthers', eras:[
     {from:2012,to:2012,loc:'Brookside',nick:'Jackals'},
@@ -2629,7 +2628,7 @@ const FRANCHISE_TIMELINE = [
     {from:2016,to:2016,loc:'Brentwood',nick:'Bulldogs'},
     {from:2017,to:2018,loc:'Brentwood',nick:'Mustangs'}]},
   {full:'Brentwood Braves', nick:'Braves', eras:[
-    {from:2016,to:2017,loc:'Avondale',nick:'Dashers'},
+    {from:2016,to:2017,loc:'Brentwood',nick:'Dashers'},
     {from:2024,to:2025,loc:'Brentwood',nick:'Braves'}]},
   {full:'Glenwood Process', nick:'The Process', eras:[
     {from:2017,to:2017,loc:'Glenwood',nick:'Wildcats'},
@@ -5042,7 +5041,7 @@ const NICK2FULL = DB.nick2full || {};
 const AWARD_TEAM_ALIAS = {
   "Special K's":'Kings', 'The Process':'Process', 'Wildcats':'Process', 'Dashers':'Braves',
   'Hotdoggers':'Lavahogs', 'Hogriders':'Lavahogs', 'Soxs':'Sox', 'Bulldogs':'Mustangs',
-  'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Avondale Dashers':'Braves',
+  'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Brentwood Dashers':'Braves',
   /* 3-letter (or otherwise abbreviated) team codes used on some pre-2018
      multi-winner award rows (Golden Hands / Silver Slugger co-winners),
      confirmed against the league's own records rather than guessed. */
@@ -5152,12 +5151,17 @@ function asgSection(){
 
 function awardsSection(){
   const yrs=Object.keys(AWARDS).map(Number).sort((a,b)=>b-a);
+  const winnerCell = r => {
+    if(r.award==='Team of the Year') return esc(r.winner);
+    if(r.award==='Game Of The Year' && r.gid) return `<button class="pname" data-g="${r.gid}">${esc(r.winner)}</button>`;
+    return plink(r.winner);
+  };
   const tbl=(rows,y)=>`<div class="tscroll"><table class="detail"><thead><tr>
     <th class="lft">Award</th><th class="lft">Winner</th><th class="lft">Team</th><th class="lft">Notes</th>
     </tr></thead><tbody>${rows.map(r=>`<tr>
       <td class="lft">${esc(r.award)}</td>
-      <td class="lft">${r.award==='Team of the Year' ? tnick(r.team, y) : plink(r.winner)}</td>
-      <td class="lft">${r.award==='Team of the Year' ? '' : tnick(r.team, y)}</td>
+      <td class="lft">${winnerCell(r)}</td>
+      <td class="lft">${tnick(r.team, y)}</td>
       <td class="lft am">${esc(r.note||'')}</td></tr>`).join('')}</tbody></table></div>`;
   const blocks=yrs.map(y=>{
     const list=AWARDS[y], divs=[...new Set(list.map(r=>r.div).filter(Boolean))];
@@ -5233,7 +5237,7 @@ function teamAwardEntries(fullName){
         const nick = AWARD_TEAM_ALIAS[tp]||tp;
         const full = NICK2FULL[nick];
         if(full===fullName){
-          out.push({year:+y, award:r.award, winner: winnerParts[i]||r.winner, note:r.note});
+          out.push({year:+y, award:r.award, winner: winnerParts[i]||r.winner, note:r.note, gid:r.gid});
         }
       });
     });
@@ -5250,8 +5254,11 @@ function renderTeamAwards(name){
     const ia=AW_ORDER.indexOf(a), ib=AW_ORDER.indexOf(b);
     return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
   });
+  const awEntryHTML = e => e.award==='Game Of The Year' && e.gid
+    ? `<button class="pname" data-g="${e.gid}">${esc(e.winner)}</button>`
+    : plink(e.winner);
   const blocks = gkeys.map(k=>{
-    const items = grouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${plink(e.winner)}</li>`).join('');
+    const items = grouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${awEntryHTML(e)}</li>`).join('');
     return `<div class="pa-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
       <ul class="pa-list">${items}</ul></div>`;
   }).join('');
