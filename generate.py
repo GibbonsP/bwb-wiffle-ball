@@ -49,7 +49,7 @@ header.mast{background:var(--brandbar)}
 .mast-inner{max-width:1180px;margin:0 auto;padding:20px 20px;
   display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .brandrow{display:flex;align-items:center;gap:12px}
-#brandLogo img{height:80px;width:auto;display:block}
+#brandLogo img{height:108px;width:auto;display:block}
 .brand h1{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;
   font-size:clamp(1.7rem,4.4vw,2.7rem);letter-spacing:.03em;margin:0;line-height:1;
   text-transform:uppercase;text-wrap:balance;}

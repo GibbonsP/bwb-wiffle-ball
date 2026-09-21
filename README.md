@@ -4948,6 +4948,12 @@ Several smaller fixes and requests together:
   Leaders page's own Tm column is untouched) and its team logo chips enlarged
   from 18px to 24px.
 
+## 2026-09-20 — Bigger header logo
+
+Bumped the header logo (currently the 15th Anniversary logo) from 80px to
+108px tall. Checked at both desktop and mobile widths — the header row
+still wraps cleanly.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
