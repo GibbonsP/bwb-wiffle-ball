@@ -5589,6 +5589,21 @@ new `extraRoster` field to the tournament data for names to show with
 no stats to derive from, and added both to `inRegister` too so their
 cards link to their player pages like everyone else's.
 
+## 2026-09-21 — Rename per-team Player Awards page to Awards, add Team/Game of the Year
+
+Renamed the per-team "Player Awards" page and its link button to just
+"Awards" (`renderTeamAwards()`, the "Awards →" button on the team
+page). Team of the Year and Game of the Year were previously filtered
+out of `teamAwardEntries()` via `NON_PLAYER_AWARDS` on the assumption
+that page was individual-player awards only — now that it's just
+"Awards", both are included (their "winner" is a team name or a game
+description rather than a player, but `plink()` already displays a
+non-player string as plain text with no crash). Left the Sox Trophy
+filtered out since it's a regular-season tiebreaker, not a standalone
+award. Verified on Davenport Sox (Team of the Year), Shelton Shock
+(4 Game of the Year entries), and Brookside Kraken (both, plus
+confirmed its 2025 Sox Trophy still doesn't show).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -4098,7 +4098,7 @@ function teamAccolades(name){
     ${block('World Series', wsYears, trophies(wsYears))}
     ${block('Division Titles', titleEntries, pennants(titleEntries, 'title'))}
     ${block('Division Pennants', pennantEntries, pennants(pennantEntries, 'pennant'))}
-    ${hasAwards ? `<button class="pname" data-tawards="${esc(name)}">Player Awards →</button>` : ''}
+    ${hasAwards ? `<button class="pname" data-tawards="${esc(name)}">Awards →</button>` : ''}
   </section>`;
 }
 function teamDetail(name){
@@ -5205,13 +5205,17 @@ function renderAwards(){
   }));
 }
 
-const NON_PLAYER_AWARDS = new Set(['Team of the Year', 'Game Of The Year', 'Sox Trophy']);
-/* every individual-player award a franchise's players have won, resolved
-   through the same team-abbreviation machinery tnick() uses on the main
-   Awards page — paired positionally with the winner list on the old
+const NON_PLAYER_AWARDS = new Set(['Sox Trophy']);
+/* every award tied to a franchise, resolved through the same team-
+   abbreviation machinery tnick() uses on the main Awards page. Individual
+   player awards are paired positionally with the winner list on the old
    (2012-2017) multi-team/multi-winner Golden Hands/Silver Slugger rows,
    falling back to the raw winner string if the two lists don't line up
-   1:1 (a few of those old rows have mismatched counts) */
+   1:1 (a few of those old rows have mismatched counts). Team of the Year
+   and Game of the Year are team-level (their "winner" is a team name or a
+   game description, not a player) but are included here too — Sox Trophy
+   stays out since it's just a regular-season-record tiebreaker, not a
+   standalone honor. */
 function teamAwardEntries(fullName){
   const out = [];
   Object.keys(AWARDS).forEach(y=>{
@@ -5249,11 +5253,11 @@ function renderTeamAwards(name){
   const logoImg = logo ? `<img class="tlogo" src="${logo}" alt="">` : '';
   app.innerHTML = `
     <button class="back" id="back">← ${esc(name)}</button>
-    <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Player Awards</h2></div></div>
-    ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No individual player awards on record for this franchise.</p>'}
-    <p class="note">Every individual award a ${esc(name)} player has won, grouped by award. Team-level honors
-    (Team of the Year, Sox Trophy, Game of the Year) aren't shown here — see the franchise's own accolades
-    for titles and pennants.</p>`;
+    <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Awards</h2></div></div>
+    ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No awards on record for this franchise.</p>'}
+    <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
+    The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
+    accolades for titles and pennants.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
   wireHonors();
 }
