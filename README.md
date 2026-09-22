@@ -5768,6 +5768,28 @@ described this batch as "the old logos," I treated it as filling
 gaps rather than re-exporting things already on file, but can swap
 any of those in too if the new export is meant to replace them.
 
+## 2026-09-21 — Add Boulders/Bears logos to the Squirrels/Royals pages
+
+Extended the defunct-franchise logo system so it can be era-aware,
+the same way live franchises' `TEAMS[].logoHistory` already is.
+`DB.franchiseLogos[nick]` now supports either a single data URI (still
+true for most defunct franchises) or a `logoHistory`-shaped array of
+`{from,to,logo}` — new `franchiseLogoDefault()`/`franchiseLogoForYear()`
+helpers handle both shapes, and every call site that used to read
+`DB.franchiseLogos[...]` directly (search, the Teams directory, the
+Franchise Name History timeline row icon, the Champions page, and
+`teamLogoForYear()` itself) now goes through one of them.
+
+Converted Brookside Squirrels and Brookside Royals to the array form
+using the Boulders (2012) and Bears (2012) logos from the same batch,
+paired with each franchise's existing Squirrels/Royals-era logo for
+2013 on. Added `historicalLogoHistory()` — the defunct-team-page
+equivalent of live teams' `teamLogoHistory()` — so
+`renderHistoricalTeam()` now shows the same kind of Logo History
+gallery live franchise pages already have, gated the same way (a
+franchise with only one era, i.e. every other defunct franchise on
+the site, doesn't get an empty gallery).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

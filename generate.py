@@ -909,7 +909,7 @@ function gsMatches(qRaw){
      just the 15 franchises with full stat databases */
   const oldTeams = FRANCHISE_SUMMARY.filter(d=>!d.f && (d.full.toLowerCase().includes(q) || (d.t||'').toLowerCase().includes(q)))
     .sort((a,b)=>rank(a.t||a.full)-rank(b.t||b.full) || a.full.localeCompare(b.full)).slice(0,3)
-    .map(d=>({type:'team', key:d.full, label:d.t||d.full, sub:d.full, logo:(DB.franchiseLogos||{})[d.t]}));
+    .map(d=>({type:'team', key:d.full, label:d.t||d.full, sub:d.full, logo:franchiseLogoDefault(d.t)}));
   return [...players, ...teams, ...oldTeams];
 }
 function gsRender(items){
@@ -1071,12 +1071,30 @@ function histName(full, y){
   if(!nm || nm===t.nick) return full;
   return (t.loc && !nm.startsWith(t.loc)) ? t.loc+' '+nm : nm;
 }
+/* DB.franchiseLogos[nick] is a single data URI for most defunct
+   franchises, but one that changed its own name before ever appearing
+   in TEAMS[] (Boulders -> Squirrels, Bears -> Royals) needs a
+   logoHistory-shaped array instead — same {from,to,logo} shape live
+   franchises use, so franchiseLogoForYear can look one up the same way
+   teamLogoForYear does for a live team. */
+function franchiseLogoDefault(nick){
+  const v = (DB.franchiseLogos||{})[nick];
+  if(!v) return null;
+  return Array.isArray(v) ? v[v.length-1].logo : v;
+}
+function franchiseLogoForYear(nick, y){
+  const v = (DB.franchiseLogos||{})[nick];
+  if(!v) return null;
+  if(!Array.isArray(v)) return v;
+  for(const h of v){ if(y>=h.from && (h.to==null || y<=h.to)) return h.logo; }
+  return v[v.length-1].logo;
+}
 /* the logo a franchise used in a given season, falling back to its current logo */
 function teamLogoForYear(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
   if(!t){
     const summary = (typeof FRANCHISE_SUMMARY!=='undefined') && FRANCHISE_SUMMARY.find(d=>d.f===null && d.full===full);
-    return summary ? (DB.franchiseLogos||{})[summary.t] || null : null;
+    return summary ? franchiseLogoForYear(summary.t, y) : null;
   }
   const hist = t.logoHistory;
   if(hist) for(const h of hist){
@@ -2516,7 +2534,9 @@ const LOGO_CLASS = new Map();
     register(t.logo);
     (t.logoHistory||[]).forEach(h=>register(h.logo));
   });
-  Object.values(DB.franchiseLogos||{}).forEach(register);
+  Object.values(DB.franchiseLogos||{}).forEach(v=>{
+    if(Array.isArray(v)) v.forEach(h=>register(h.logo)); else register(v);
+  });
   Object.values(DB.divisionLogos||{}).forEach(register);
   if(rules.length){
     const style = document.createElement('style');
@@ -2697,7 +2717,7 @@ function franchiseTimeline(){
     const r = i+2;
     const isLive = !!TEAMS[fr.full];
     const hasPage = isLive || FRANCHISE_SUMMARY.some(d=>d.f===null && d.full===fr.full);
-    const logo = isLive ? TEAMS[fr.full].logo : (DB.franchiseLogos||{})[fr.nick];
+    const logo = isLive ? TEAMS[fr.full].logo : franchiseLogoDefault(fr.nick);
     const nameEl = hasPage
       ? `<button class="pname" data-t="${esc(fr.full)}">${esc(fr.full)}</button>`
       : `<span>${esc(fr.full)}</span>`;
@@ -2732,7 +2752,7 @@ function renderTeams(){
     const key = d.f || d.full;
     const link = key
       ? `<button class="pname" data-t="${esc(key)}">${esc(dispName)}</button>` : esc(dispName);
-    const logo = (d.f && TEAMS[d.f] && TEAMS[d.f].logo) || (DB.franchiseLogos||{})[d.t];
+    const logo = (d.f && TEAMS[d.f] && TEAMS[d.f].logo) || franchiseLogoDefault(d.t);
     return `<tr>
       <td class="lft">${logo?`<img class="fdotlogo" src="${logo}" alt="">`:''}${link}</td>
       <td>${d.w}</td><td>${d.l}</td><td class="mono">${rate(d.pct)}</td>
@@ -4040,6 +4060,21 @@ function teamLogoHistory(t){
   }).join('');
   return `<div class="logohist"><h4>Logo History</h4><div class="logohist-row">${items}</div></div>`;
 }
+/* same gallery as teamLogoHistory(), for a folded-before-2017 franchise
+   whose DB.franchiseLogos[nick] entry is a logoHistory-shaped array
+   (it changed its own name — Boulders -> Squirrels, Bears -> Royals —
+   before the stat database, and TEAMS[] pre no live entry to hang a
+   real logoHistory off of) rather than most defunct franchises' single
+   flat logo. */
+function historicalLogoHistory(d){
+  const hist = (DB.franchiseLogos||{})[d.t];
+  if(!Array.isArray(hist) || hist.length<2) return '';
+  const items = hist.slice().sort((a,b)=>a.from-b.from).map(h=>{
+    const range = h.to==null ? `${h.from}–Present` : (h.from===h.to ? `${h.from}` : `${h.from}–${h.to}`);
+    return `<div class="logohist-item"><img src="${h.logo}" alt="${esc(d.full)} logo, ${range}"><span>${range}</span></div>`;
+  }).join('');
+  return `<div class="logohist"><h4>Logo History</h4><div class="logohist-row">${items}</div></div>`;
+}
 
 /* World Series titles, division pennants (won their side's bracket and
    reached the World Series, whether or not they went on to win it) and
@@ -4214,7 +4249,7 @@ function renderHistoricalTeam(d){
   setNav('teams');
   const name = d.full;
   setTeamVars(name);
-  const logo = (DB.franchiseLogos||{})[d.t];
+  const logo = franchiseLogoDefault(d.t);
   const timeline = FRANCHISE_TIMELINE.find(fr=>fr.full===name);
   const gp = d.w+d.l;
   const hero = `<div class="thero">
@@ -4228,6 +4263,7 @@ function renderHistoricalTeam(d){
     ${hero}
     ${erasHtml}
     ${teamLeadershipHtml(name)}
+    ${historicalLogoHistory(d)}
     ${teamAccolades(name)}
     <p class="note">This franchise folded before the stat database begins in 2017, so no rosters or
     box scores are on record for it here — only the league's win-loss and title record from the
@@ -5138,7 +5174,7 @@ function champsSection(){
       : `<p class="lead">No roster on record.</p>`;
     const franchiseRow = !c.tm && FRANCHISE_SUMMARY.find(d=>d.full===c.full || d.f===c.full);
     const logo = c.tm ? teamLogoForYear(c.tm, c.y)
-      : franchiseRow && (DB.franchiseLogos||{})[franchiseRow.t];
+      : franchiseRow && franchiseLogoForYear(franchiseRow.t, c.y);
     const poLogo = (DB.postseasonLogos||{})[c.y];
     const wsLogo = (DB.worldSeriesLogos||{})[c.y];
     const badges = (poLogo||wsLogo) ? `<div class="champbadges">
