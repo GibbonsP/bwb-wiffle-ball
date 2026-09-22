@@ -5896,6 +5896,17 @@ because `min-height` on a table cell isn't honored the same way
 normal size, and a 15-name reveal still correctly grows its row
 (checked at 289px) without needing the min-height in the first place.
 
+## 2026-09-22 — Add team photo to the 2026 NWLA Tournament page
+
+Added the user's team photo (the roster at the stadium field) to the
+2026 NWLA Tournament entry as a new `photo` field, shown above the
+Roster section on `renderBeaverTournament()` — reused the Champions
+page's `.champphoto` treatment (centered, capped height, rounded
+corners, shadow) rather than inventing new styling. Resized from the
+original 2048×1536 to 1600×1200 and re-encoded as JPEG (quality 82,
+~380KB) to match the size/quality convention already used for the
+Champions page's own team photos.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

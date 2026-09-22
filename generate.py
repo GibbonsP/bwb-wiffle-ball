@@ -5756,6 +5756,7 @@ function renderBeaverTournament(dateKey){
     <button class="back" id="back">← Brookside Beavers</button>
     ${hero}
     ${overview}
+    ${t.photo?`<img class="champphoto" src="${t.photo}" alt="Brookside Beavers — ${esc(bvTournamentLabel(t))}">`:''}
     <h3 class="hsub">Roster</h3>
     ${bvRosterGrid(bat, pit, t.extraRoster)}
     <h3 class="hsub">Batting</h3>
