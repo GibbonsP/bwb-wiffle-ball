@@ -5850,6 +5850,23 @@ on one page. No visual change (the CSS classes render identically on
 a `<span>` background as they did on an `<img>`), confirmed via
 computed-style checks and a console-error sweep on every affected page.
 
+## 2026-09-22 — New History page, right after Home
+
+Added a new "History" nav tab, positioned right after Home, for the
+league's own written story (the user is writing the text and will add
+photos). `renderHistory()` reads a new `DB.history` array — same
+"data holds the content, generate.py just renders it" shape as
+everything else on the site — where each entry is one section:
+`{heading, photo, caption, paragraphs}`, all optional except
+`paragraphs`. Sections stack top to bottom, photo (if any) centered
+above its caption, reusing the Champions page's `.champphoto` sizing/
+shadow treatment for visual consistency. `players.json` now has an
+empty `"history":[]` array; the page shows "The story of BWB
+Wiffleball is coming soon." until sections are added. Tested the
+layout with placeholder heading/photo/caption/paragraphs (not
+committed) to confirm the page reads well before shipping the empty
+state.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

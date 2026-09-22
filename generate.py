@@ -588,6 +588,13 @@ a{color:var(--accent)}
 .champroster{margin:0;padding-left:1.3em;font-size:.87rem;columns:2;column-gap:20px}
 .champroster li{margin:2px 0;break-inside:avoid}
 @media (max-width:480px){.champroster{columns:1}}
+.histsection{margin:0 0 40px;max-width:70ch}
+.histsection h3{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.4rem;
+  margin:0 0 14px;color:var(--accent)}
+.histsection p{margin:0 0 16px;line-height:1.7;font-size:.96rem}
+.histphoto{display:block;max-width:100%;height:auto;max-height:480px;width:auto;
+  margin:18px auto 6px;border-radius:10px;box-shadow:var(--shadow);object-fit:contain}
+.histcap{text-align:center;color:var(--muted);font-size:.8rem;margin:0 0 20px;font-style:italic}
 .asgyear{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:14px 16px;
   margin-bottom:12px;box-shadow:var(--shadow)}
 .asgyear h4{margin:0 0 10px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem}
@@ -1003,7 +1010,7 @@ function setTeamVars(full){
 function setNav(v){
   const b=(k,l)=>`<button data-v="${k}" class="${v===k?'active':''}">${l}</button>`;
   document.getElementById('nav').innerHTML =
-    b('home','Home')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
+    b('home','Home')+b('history','History')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
     +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champions')
     +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('arcade','Arcade');
   document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>{
@@ -5468,6 +5475,27 @@ function renderOffice(){
   }));
 }
 
+/* the league's own story, hand-written — a simple ordered list of
+   sections (heading optional, one photo+caption optional, one or more
+   paragraphs), same "data holds the content, generate.py just renders
+   it" shape as everything else on the site. Empty until it's written. */
+function renderHistory(){
+  setNav('history');
+  const sections = DB.history || [];
+  const body = sections.length ? sections.map(s=>`
+    <div class="histsection">
+      ${s.heading ? `<h3>${esc(s.heading)}</h3>` : ''}
+      ${s.photo ? `<img class="histphoto" src="${s.photo}" alt="${esc(s.caption||s.heading||'BWB Wiffleball history photo')}">` : ''}
+      ${s.caption ? `<p class="histcap">${esc(s.caption)}</p>` : ''}
+      ${(s.paragraphs||[]).map(p=>`<p>${esc(p)}</p>`).join('')}
+    </div>`).join('')
+    : `<p class="empty">The story of BWB Wiffleball is coming soon.</p>`;
+  app.innerHTML = `
+    <div class="phead"><h2>History</h2></div>
+    ${body}`;
+  wirePlayerLinks();
+}
+
 function buildTicker(){
   const el = document.getElementById('ticker');
   if(!el || !GIDS.length) return;
@@ -6821,6 +6849,7 @@ function dispatch(h){
   if(h === '#/statpad') return renderStatpad();
   if(h === '#/15-0') return renderB0();
   if(h === '#/office') return renderOffice();
+  if(h === '#/history') return renderHistory();
   tickerIdx = 0;
   return renderHome();
 }
