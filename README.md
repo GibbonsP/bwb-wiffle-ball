@@ -5850,6 +5850,24 @@ on one page. No visual change (the CSS classes render identically on
 a `<span>` background as they did on an `<img>`), confirmed via
 computed-style checks and a console-error sweep on every affected page.
 
+## 2026-09-22 — 15-0 game: use OPS+/ERA+ instead of plain OPS/ERA
+
+The 15-0 draft-and-simulate game projects a drafted team's runs scored/
+allowed by comparing its combined OPS/ERA against a single flat
+all-time league average — but the draft pulls player-seasons from
+2017 through today, and this league's own scoring environment has
+shifted a lot over that span, so a season judged only against a flat
+all-time number was over- or under-rated purely by which year it
+happened to come from. `b0Simulate()` now computes team OPS+/ERA+ via
+the same `opsPlusFor()`/`eraPlusFor()` already used everywhere else on
+the site — weighted by each pick's own year's league average, not one
+blended number — and the run projection and result text both use those
+instead of raw OPS/ERA. Left the draft-pool stat line (what you see
+per player while picking, e.g. ".560/.703/1.289 · 9 HR") as real,
+unadjusted single-season numbers — that's a look at one real season in
+isolation, not a cross-era comparison, so it doesn't have the same
+problem. Verified in both Practice and Today's Draft modes.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -6535,14 +6535,24 @@ function b0BootstrapDraw(rate, avgRate, pool, rng){
    2 picks made in the Pitcher Rounds — a player who happened to pitch a
    little that season but wasn't drafted IN a Pitcher Round simply doesn't
    count toward the team's run prevention */
+/* teamOPS+/teamERA+ (not plain OPS/ERA) drive the run projection — the
+   draft pulls player-seasons from 2017 through today, and this league's
+   own scoring environment has shifted a lot over that span (more teams,
+   different competitive levels), so a season judged only against a flat
+   all-time average would over- or under-rate it depending purely on what
+   year it happened to come from. opsPlusFor()/eraPlusFor() already solve
+   this everywhere else on the site by weighting each contributing year's
+   own league average by that pick's PA/innings — reused as-is here. */
 function b0Simulate(picks, pitcherNames, rng){
   const teamBat = sumRows(picks.map(p=>p.regLine));
-  const teamPit = sumRows(picks.filter(p=>pitcherNames.includes(p.name)).map(p=>p.regLine));
-  const teamOPS = ops(teamBat), teamERA = era(teamPit);
+  const pitPicks = picks.filter(p=>pitcherNames.includes(p.name));
+  const teamPit = sumRows(pitPicks.map(p=>p.regLine));
+  const teamOPSPlus = opsPlusFor(teamBat, picks.map(p=>({year:p.year, pa:p.regLine.PA})));
+  const teamERAPlus = eraPlusFor(teamPit, pitPicks.map(p=>({year:p.year, outs:p.regLine.IPouts})));
   const lg = b0League();
   const pool = b0RunsPool();
-  const projRPG = lg.ops>0 ? lg.rpg*(teamOPS/lg.ops) : lg.rpg;
-  const projRA = (isFinite(teamERA) && lg.era>0) ? lg.rpg*(teamERA/lg.era) : lg.rpg;
+  const projRPG = isFinite(teamOPSPlus) ? lg.rpg*(teamOPSPlus/100) : lg.rpg;
+  const projRA = (isFinite(teamERAPlus) && teamERAPlus>0) ? lg.rpg*(100/teamERAPlus) : lg.rpg;
   const winPct = projRPG/(projRPG+projRA);
   const rand = rng || Math.random;
   const log = [];
@@ -6553,7 +6563,7 @@ function b0Simulate(picks, pitcherNames, rng){
     if(win) wins++;
     log.push({g, rs, ra, win});
   }
-  return {teamOPS, teamERA, projRPG, projRA, winPct, wins, losses: B0_GAMES-wins, log};
+  return {teamOPSPlus, teamERAPlus, projRPG, projRA, winPct, wins, losses: B0_GAMES-wins, log};
 }
 /* deal all 5 rounds at once: 2 randomly-chosen round indices (a fresh draw
    every deal — see b0PickPitcherRounds) come from the pitcher-only pool,
@@ -6691,13 +6701,17 @@ function renderB0(){
     bodyHTML = `<div class="b0result" style="--tier:${statpadTier(null, r.wins===B0_GAMES).color}">
       <div class="b0record">${r.wins}-${r.losses}</div>
       <p class="pmeta">A simulated ${B0_GAMES}-game season, one game at a time, chasing a perfect ${B0_GAMES}-0 —
-        this team's combined ${rate(r.teamOPS)} OPS (all 5) projects to about ${r.projRPG.toFixed(1)} runs a game
-        scored, and its two Pitcher Round picks' combined ${two(r.teamERA)} ERA projects to about
-        ${r.projRA.toFixed(1)} runs a game allowed, against a league that's averaged ${lg.rpg.toFixed(1)} runs a
-        game in real games — an expected win rate of ${rate(r.winPct)}. Each game's score is a real BWB team-game
-        run total pulled off the league's own board and scaled to this rate, not a textbook bell curve, so
-        blowouts and shutouts show up as often as they actually have around here. Every rate here is also already
-        regressed toward league average by how much each player actually played that season.</p>
+        this team's combined ${isFinite(r.teamOPSPlus)?r.teamOPSPlus:'—'} OPS+ (all 5) projects to about
+        ${r.projRPG.toFixed(1)} runs a game scored, and its two Pitcher Round picks' combined
+        ${isFinite(r.teamERAPlus)?r.teamERAPlus:'—'} ERA+ projects to about ${r.projRA.toFixed(1)} runs a game
+        allowed, against a league that's averaged ${lg.rpg.toFixed(1)} runs a game in real games — an expected
+        win rate of ${rate(r.winPct)}. OPS+ and ERA+ each measure a pick against that year's own league average
+        (100 = average that year), so a great season from an early, lower-scoring year and a great season from a
+        later, higher-scoring one count the same instead of the later one just looking better on paper. Each
+        game's score is a real BWB team-game run total pulled off the league's own board and scaled to this rate,
+        not a textbook bell curve, so blowouts and shutouts show up as often as they actually have around here.
+        Every rate here is also already regressed toward league average by how much each player actually played
+        that season.</p>
       <ul class="b0gamelog">${gameLogHTML}</ul>
       ${b0Mode==='daily' ? shareResultButton('b0Share') : ''}
     </div>`;
