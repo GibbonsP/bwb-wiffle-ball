@@ -5724,6 +5724,50 @@ visibly since they don't use fmtSplit's parenthetical format). Also
 renamed the row from "Career" to "All-Time", matching the team-level
 (not player-level) framing of the table.
 
+## 2026-09-21 — Fill in pre-2018 franchise logo history
+
+The user provided a batch of 53 exported team logo files, several of
+them dedicated art for a franchise's early, pre-rename identity that
+had never had its own logo on the site — those years were just
+showing whatever logo came later, since `logoHistory` had one entry
+spanning the whole gap. Added 12 new era-specific logos (all already
+square 1080×1080 art except one, letterboxed on a transparent square
+canvas the same way as the NWLA logo earlier) and split/adjusted the
+surrounding `logoHistory` ranges to match `FRANCHISE_TIMELINE` exactly:
+
+- Brookside Kraken: added Capitals (2012), Eagles (2013–2016),
+  Bluefish (2017); existing logo re-scoped from 2012–2022 to 2018–2022.
+- Beaver Brook Lavahogs: added Tornadoes (2012), Warriors (2013–2014),
+  Manatees (2015), Hotdoggers (2016), Hogriders (2017), Sea Thieves
+  (2018); existing logo re-scoped from 2012–2020 to 2019–2020.
+- Brookside Panthers: added Jackals (2012); existing logo re-scoped
+  from 2012–2020 to 2013–2020.
+- Brentwood Mustangs: added Bulldogs (2016), splitting the old
+  2015–2018 entry into 2015 and 2017–2018 (same logo, both sides of
+  the Bulldogs year).
+- Glenwood Process: added Wildcats (2017); existing logo re-scoped
+  from 2017–2021 to 2018–2021.
+
+**Not applied, needs a decision:** the batch also included Boulders
+(2012) and Bears (2012), the pre-rename identities of the fully-
+defunct Brookside Squirrels and Brookside Royals. Those two franchises
+have no `TEAMS[]` entry, so their logo comes from the flat
+`DB.franchiseLogos` map (one logo per franchise, not year-aware) —
+using these would need that map to support a `logoHistory`-style array
+the way live franchises' `TEAMS[].logoHistory` already does. Skipped
+for now rather than build that for two franchises without checking
+first.
+
+**Also not touched:** everything else in the batch either already had
+a dedicated logo covering that exact same span (current Kraken/
+Panthers/Shock/Braves/etc. eras, Special K's, the existing Sox/Royals/
+Aces/Squirrels/Angels/Devils defunct-franchise logos) or is a special
+asset that already exists (Postseason/World Series logos 2024–2026,
+the two division logos, the anniversary/league logo) — since the user
+described this batch as "the old logos," I treated it as filling
+gaps rather than re-exporting things already on file, but can swap
+any of those in too if the new export is meant to replace them.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
