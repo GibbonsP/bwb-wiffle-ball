@@ -5920,6 +5920,24 @@ own slot; Vinny Spoto's team for this specific row is still unresolved
 (no code for him at all) since I don't have a confirmed 2015 team for
 him to add without guessing.
 
+## 2026-09-22 — Player pages always open on Regular Season / Stats
+
+`playerTab` (Regular/Postseason/All-Star/etc.) and `playerSubView`
+(Stats/Splits/Game Log) are module-level state that persists across
+player pages by design — switching tabs while browsing one player's
+own page shouldn't need to re-pick anything. But navigating to a
+*different* player (via search, a team roster link, anywhere) reused
+whatever tab/sub-view was last active instead of resetting: view
+Player A's Postseason Game Log, click into Player B, and B opened
+straight to their Postseason Game Log too, not their Regular Season
+Stats. The route dispatcher already reset `logYear`/`splitYear` on
+every `#/p/<name>` navigation but missed `playerTab`/`playerSubView`
+— now resets both, so every fresh player-page visit starts on Regular
+Season Stats regardless of what was last viewed. Percentile Rankings'
+year selector is intentionally still sticky across players (its own
+long-standing comment: "sticky across player pages") — left that as
+is since it's a deliberate choice, not the reported bug.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

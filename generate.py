@@ -6843,7 +6843,10 @@ function dispatch(h){
   if((m = h.match(/^#\/t\/(.+)\/awards$/))) return renderTeamAwards(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
-  if((m = h.match(/^#\/p\/(.+)$/))){ logYear = null; splitYear = 'all'; return detail(decodeURIComponent(m[1])); }
+  if((m = h.match(/^#\/p\/(.+)$/))){
+    playerTab = 'Regular'; playerSubView = 'stats'; logYear = null; splitYear = 'all';
+    return detail(decodeURIComponent(m[1]));
+  }
   if(h === '#/players') return renderDir();
   if(h === '#/compare') return renderCompare(null, null);
   if((m = h.match(/^#\/compare\/([^/]+)\/([^/]+)$/)))
