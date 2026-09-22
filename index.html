@@ -1191,7 +1191,7 @@ function teamHistoryChips(pl){
     const label = TEAMS[t.team] ? histName(t.team, lastYr) : t.team;
     const yrs = t.stints.map(s=>s.from===s.to?String(s.from):`${s.from}–${s.to}`).join(', ');
     return `<button class="pname tmchip" data-t="${esc(t.team)}" title="${esc(label)} · ${yrs}">${logo
-      ? `<img class="llogo llogo-sm" src="${logo}" alt="${esc(label)}">` : esc(TEAMS[t.team]?TEAMS[t.team].nick:t.team)}</button>`;
+      ? logoIcon(logo, label, 'llogo llogo-sm') : esc(TEAMS[t.team]?TEAMS[t.team].nick:t.team)}</button>`;
   }).join('')}</span>`;
 }
 const yearsOf = (pl,type) => [...new Set(pl.seasons.filter(s=>s.type===type).map(s=>s.year))].sort();
@@ -1244,7 +1244,7 @@ function renderHome(){
   const ll=(t,items,fmt,low)=>{
     const w = svBarW(items, low);
     return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>{
-      const logo = it.logo2 ? `<img class="llogo" src="${it.logo2}" alt="">` : (it.logo?`<img class="llogo" src="${it.logo}" alt="">`:'');
+      const logo = logoIcon(it.logo2 || it.logo, '');
       return `<li style="--w:${w(it.v).toFixed(1)}%">${logo}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
         it.tm?`<span class="lt">${it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`;
     }).join('')}</ol></div>`;
@@ -2719,7 +2719,7 @@ function franchiseTimeline(){
     const color = teamAccent(fr.full) || '#8a90a0';
     const band = `<div class="tlg-band${i%2?' even':''}" style="grid-row:${r};grid-column:1/-1"></div>`;
     const nameCell = `<div class="tlg-cell tlg-name" style="grid-row:${r};grid-column:1">
-      ${logo?`<img class="tl-logo" src="${logo}" alt="">`:'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
+      ${logo?logoIcon(logo,'','tl-logo'):'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
     const bars = fr.eras.map(e=>{
       const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
       return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(e.from)}/${colOf(e.to)+1};--bc:${color}"
@@ -2749,7 +2749,7 @@ function renderTeams(){
       ? `<button class="pname" data-t="${esc(key)}">${esc(dispName)}</button>` : esc(dispName);
     const logo = (d.f && TEAMS[d.f] && TEAMS[d.f].logo) || franchiseLogoDefault(d.t);
     return `<tr>
-      <td class="lft">${logo?`<img class="fdotlogo" src="${logo}" alt="">`:''}${link}</td>
+      <td class="lft">${logoIcon(logo,'','fdotlogo')}${link}</td>
       <td>${d.w}</td><td>${d.l}</td><td class="mono">${rate(d.pct)}</td>
       <td class="lft">${esc(d.yr)}</td>
       <td>${d.ws}</td><td>${d.wsa}</td><td>${d.dv}</td><td>${d.po}</td><td>${d.wsz}</td><td>${d.as}</td>
@@ -3488,7 +3488,7 @@ const llist = (t, items, fmt, low) => {
      only the second (most recent) team's logo — one badge reads cleaner than
      two crammed into a narrow list row, and the second club is who they
      finished the year with */
-  const logos = it => it.logo2 ? `<img class="llogo" src="${it.logo2}" alt="">` : (it.logo?`<img class="llogo" src="${it.logo}" alt="">`:'');
+  const logos = it => logoIcon(it.logo2 || it.logo, '');
   return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>
   `<li style="--w:${w(it.v).toFixed(1)}%">${logos(it)}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
     it.tm?`<span class="lt">${it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`).join('')}</ol></div>`;
@@ -3554,7 +3554,7 @@ function renderLeaders(){
       return leadSortDir*(x-y);
     });
     const fullCell = (r,k,t) => {
-      if(k==='team') return `<span class="tmcell">${r.logo2?`<img class="llogo" src="${r.logo2}" alt="">`:(r.logo?`<img class="llogo" src="${r.logo}" alt="">`:'')}${r.teamLabel||''}</span>`;
+      if(k==='team') return `<span class="tmcell">${logoIcon(r.logo2 || r.logo, '')}${r.teamLabel||''}</span>`;
       const v = r[k];
       if(t==='r') return (k==='ERA'||k==='WHIP'||k==='K9') ? two(v) : rate(v);
       if(k==='IP') return ipStr(Math.round(v*3));
@@ -4531,7 +4531,7 @@ function renderRecords(){
     const w = svBarW(items, false);
     return `<div class="llist"><h4>${title}</h4><ol>${items.map(it=>{
       const logo = teamLogoForYear(it.full, it.endYear);
-      return `<li style="--w:${w(it.v).toFixed(1)}%">${logo?`<img class="llogo" src="${logo}" alt="">`:''}<span class="ln">${
+      return `<li style="--w:${w(it.v).toFixed(1)}%">${logoIcon(logo, '')}<span class="ln">${
         histTeamLink(it.full, it.endYear)}<span class="lt">${esc(it.range)}${it.ongoing?' · ongoing':''}</span></span><b>${it.v}</b></li>`;
     }).join('')}</ol></div>`;
   };
@@ -4639,7 +4639,7 @@ function renderRecords(){
   const nPerf = NOHIT.filter(x=>x.perfect).length;
   const nhTeamCell = (team, y) => {
     const logo = teamLogoForYear(team, y);
-    return `<span class="tmcell">${logo?`<img class="llogo" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+    return `<span class="tmcell">${logoIcon(logo, '')}${histTeamLink(team, y)}</span>`;
   };
   const nhRows = NOHIT.slice().reverse().map(x=>{
     const y = +x.date.slice(0,4);
@@ -4812,7 +4812,7 @@ function boxScore(gid){
   const untied = (g.away.bat.length && bs(g.away)!==a) || (g.home.bat.length && bs(g.home)!==hh);
   const muTeam = (team, y) => {
     const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
-    return `<span class="muteam">${logo?`<img class="llogo-lg" src="${logo}" alt="">`:''}${histTeamLink(team, y)}</span>`;
+    return `<span class="muteam">${logoIcon(logo, '', 'llogo-lg')}${histTeamLink(team, y)}</span>`;
   };
   app.innerHTML=`
     <button class="back" id="back">← All games</button>
@@ -5142,7 +5142,7 @@ function tnick(raw, year){
     if(!full) return esc(p);
     const label = histNick(full, year);
     const logo = teamLogoForYear(full, year);
-    return `<button class="pname" data-t="${esc(full)}">${logo?`<img class="tlogo-mini" src="${logo}" alt="">`:''}${esc(label)}</button>`;
+    return `<button class="pname" data-t="${esc(full)}">${logoIcon(logo, '', 'tlogo-mini')}${esc(label)}</button>`;
   }).join(' / ');
 }
 const wireHonors = () => {
@@ -5178,7 +5178,7 @@ function champsSection(){
       </div>` : '';
     return `<div class="champyear">
       <div class="champhead">
-        ${logo?`<img class="champlogo" src="${logo}" alt="">`:''}
+        ${logoIcon(logo,'','champlogo')}
         <div class="champtext">
           <h4>${c.y} — ${c.tm&&TEAMS[c.tm]?histTeamLink(c.tm,c.y):esc(c.full)}</h4>
           <span class="cscore">${esc(c.score)}</span>
@@ -5466,7 +5466,7 @@ function buildTicker(){
   const el = document.getElementById('ticker');
   if(!el || !GIDS.length) return;
   const ids = GIDS.slice(0, 26);
-  const tkLogo = (tm,y) => { const lg = teamLogoForYear(tm,y); return lg ? `<img class="tk-logo" src="${lg}" alt="">` : ''; };
+  const tkLogo = (tm,y) => logoIcon(teamLogoForYear(tm,y), '', 'tk-logo');
   const tkRow = (tm,yr,r,win) => `<span class="tk-row${win?' tk-w':''}">
     ${tkLogo(tm,yr)}<span class="tk-nm">${esc(histNick(tm,yr))}</span><span class="tk-r">${r}</span></span>`;
   const items = ids.map(id=>{

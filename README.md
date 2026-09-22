@@ -5813,6 +5813,43 @@ Panthers and Mustangs were each missing one or more of their own
 pre-2017 names (e.g. Kraken's aka list had "Bluefish" but not "Capitals"
 or "Eagles"). Process and Braves/Harris Kings were already complete.
 
+## 2026-09-21 — Fix severe page-load slowness (same bug as the old Games page, spread wider)
+
+Investigated "some pages are taking too long to load": several routes'
+rendered `#app` HTML had ballooned into the tens of megabytes on every
+navigation, from the same root cause the Games page hit earlier this
+session (fixed there via `logoIcon()`/`LOGO_CLASS`, but that fix was
+never applied to most other team-logo call sites) — a small set of
+team logos embedded as raw base64 `<img src>` repeated across every
+row of a large list, instead of referencing the already-registered
+shared CSS class. Measured before fixing (rendered `#app.innerHTML`
+size per route):
+
+- Awards: 19.3 MB → 111 KB (174×)
+- Records: 12.8 MB → 52 KB (245×)
+- Leaders: 11.1 MB → 45 KB (245×)
+- Players directory: 9.7 MB → 80 KB (121×)
+- Home: 8.0 MB → 1.4 MB (5.6×; the rest is the homepage's own
+  large-image ticker/hero content, not logo duplication)
+- Teams directory: 2.6 MB → 34 KB (75×)
+- Champions: 5.4 MB → 4.5 MB (modest — most of this page's weight is
+  genuinely unique per-year champion photos, not a duplication bug)
+
+Root-caused each one to a specific call site still doing raw `<img
+src="${logo}">` instead of `logoIcon()`: `tnick()` (the Awards page's
+Team-column badge — the single biggest offender, used for both the
+main Annual Awards table across 15 years and every NWLA Awards table),
+`teamHistoryChips()` (a player's career-teams chips), the Home page's
+"League Leaders" preview lists, two Leaders/Records-page team-cell
+helpers, the season-table and game-log team cells, the header ticker,
+and the Teams directory/Franchise Timeline row icons and Champions
+badge. Switched all of them to `logoIcon()`, which was already built
+and already used correctly on the Games page — this pass just finished
+rolling it out everywhere else a team logo can repeat across many rows
+on one page. No visual change (the CSS classes render identically on
+a `<span>` background as they did on an `<img>`), confirmed via
+computed-style checks and a console-error sweep on every affected page.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
