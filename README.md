@@ -5868,6 +5868,20 @@ unadjusted single-season numbers — that's a look at one real season in
 isolation, not a cross-era comparison, so it doesn't have the same
 problem. Verified in both Practice and Today's Draft modes.
 
+## 2026-09-22 — Grid game: reveal each square's full qualifying pool once done
+
+Each square already showed a count ("6 players qualify") once answered,
+but only the count — the actual list stayed hidden even after the
+whole grid was finished. Added a per-cell `<details>` reveal, only
+computed and rendered once all 9 squares are attempted (nothing to
+spoil mid-game), listing every real qualifying player as a link to
+their page. Had to change `.gcell` from a fixed `height` to
+`min-height` so an expanded cell can actually grow the table row
+instead of overflowing it, and dropped an initial 2-column list layout
+after finding it visually interleaved two names into unreadable mush
+in the grid's ~104px-wide cells — a single column reads fine and
+scrolls internally past ~200px for a large pool.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

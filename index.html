@@ -350,7 +350,7 @@ sup.seed.x{color:var(--clay)}
 .gside{text-align:right;padding:8px 10px}
 .gcatlogo{width:20px;height:20px;object-fit:contain;display:block;margin:0 auto 4px}
 .gside .gcatlogo{margin:0 0 4px auto}
-.gcell{height:96px;min-width:104px;position:relative}
+.gcell{min-height:96px;min-width:104px;position:relative}
 .gcell.correct{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .gcell.wrong{background:color-mix(in srgb, var(--clay) 8%, transparent)}
 .gguess{width:100%;height:100%;border:1px dashed var(--line-strong);background:none;border-radius:8px;
@@ -367,6 +367,12 @@ sup.seed.x{color:var(--clay)}
 .gpick{display:block;font-size:.82rem}
 .gpoolnote{display:block;font-size:.6rem;color:var(--muted);margin-top:3px;font-weight:400}
 .gmiss{color:var(--clay);font-weight:600;text-decoration:line-through;font-size:.8rem}
+.gpoolreveal{margin-top:4px;text-align:left}
+.gpoolreveal summary{cursor:pointer;font-size:.6rem;color:var(--muted);list-style:none}
+.gpoolreveal summary::-webkit-details-marker{display:none}
+.gpoolreveal summary:hover{color:var(--accent)}
+.gpoollist{margin:6px 0 0;padding-left:1.1em;font-size:.72rem;max-height:200px;overflow-y:auto}
+.gpoollist li{margin:2px 0}
 .statpad{display:flex;flex-direction:column;gap:14px;max-width:640px;margin:0 auto}
 .sprow{border:1px solid var(--line-strong);border-radius:10px;padding:12px 14px;background:var(--card)}
 .sprow.answered{background:color-mix(in srgb, var(--accent) 8%, var(--card))}
@@ -5877,11 +5883,21 @@ function gridHeadHTML(cat){ return `${cat.logo?`<img class="gcatlogo" src="${cat
 function gridUsedNames(puzzle){
   return new Set(Object.values(puzzle.answers).filter(a=>a.correct).map(a=>a.name));
 }
-function gridCellHTML(k, ans){
+const qualifyText = n => `${n} player${n===1?'':'s'} ${n===1?'qualifies':'qualify'}`;
+/* once every square's been attempted, each cell can reveal its whole
+   qualifying pool (not just the count) — poolNames is only computed by
+   the caller once the grid is done, so there's nothing to spoil mid-game */
+function gridPoolReveal(poolNames){
+  return `<details class="gpoolreveal"><summary>${qualifyText(poolNames.length)} →</summary>
+    <ul class="gpoollist">${poolNames.map(n=>`<li><button class="pname" data-p="${esc(n)}">${esc(n)}</button></li>`).join('')}</ul></details>`;
+}
+function gridCellHTML(k, ans, poolNames){
   if(ans){
-    if(ans.correct) return `<button class="pname gpick" data-p="${esc(ans.name)}">${esc(ans.name)}</button>
-      <span class="gpoolnote">${ans.pool} player${ans.pool===1?'':'s'} ${ans.pool===1?'qualifies':'qualify'}</span>`;
-    return `<span class="gmiss">${esc(ans.name)}</span>`;
+    const label = ans.correct
+      ? `<button class="pname gpick" data-p="${esc(ans.name)}">${esc(ans.name)}</button>`
+      : `<span class="gmiss">${esc(ans.name)}</span>`;
+    if(poolNames) return `${label}${gridPoolReveal(poolNames)}`;
+    return ans.correct ? `${label}<span class="gpoolnote">${qualifyText(ans.pool)}</span>` : label;
   }
   if(gridActiveCell===k){
     return `<form class="gform" data-cell="${k}">
@@ -5959,17 +5975,18 @@ function renderGrid(){
   setNav('arcade');
   if(gridMode==='practice' && !gridPractice) gridPractice = newPracticeGrid();
   const puzzle = gridMode==='daily' ? getDailyGrid() : gridPractice;
+  const solved = Object.values(puzzle.answers).filter(a=>a.correct).length;
+  const attempted = Object.keys(puzzle.answers).length;
+  const done = attempted===9;
   const rowsHTML = puzzle.rows.map((rc,ri)=>{
     const cells = puzzle.cols.map((cc,ci)=>{
       const k = ri+','+ci;
-      return `<td class="gcell${puzzle.answers[k]?(puzzle.answers[k].correct?' correct':' wrong'):''}">${gridCellHTML(k, puzzle.answers[k])}</td>`;
+      const poolNames = done ? [...rc.set].filter(n=>cc.set.has(n)).sort((a,b)=>nameLast(a).localeCompare(nameLast(b))) : null;
+      return `<td class="gcell${puzzle.answers[k]?(puzzle.answers[k].correct?' correct':' wrong'):''}">${gridCellHTML(k, puzzle.answers[k], poolNames)}</td>`;
     }).join('');
     return `<tr><th class="gside">${gridHeadHTML(rc)}</th>${cells}</tr>`;
   }).join('');
   const topRow = `<tr><th class="gcorner"></th>${puzzle.cols.map(cc=>`<th class="gtop">${gridHeadHTML(cc)}</th>`).join('')}</tr>`;
-  const solved = Object.values(puzzle.answers).filter(a=>a.correct).length;
-  const attempted = Object.keys(puzzle.answers).length;
-  const done = attempted===9;
   app.innerHTML = `
     <div class="phead"><h2>Arcade</h2><span class="yrs">${gridMode==='daily'?`Today's Grid · ${puzzle.key}`:'Practice Grid'}</span></div>
     ${arcadeTabBar('grid')}
