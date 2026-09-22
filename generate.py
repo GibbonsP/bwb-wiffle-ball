@@ -1062,14 +1062,16 @@ function franchiseIsLinkable(full){
 }
 function histName(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
-  if(!t){
-    const era = defunctEra(full, y);
-    if(!era) return full;
-    return (era.loc && !era.nick.startsWith(era.loc)) ? era.loc+' '+era.nick : era.nick;
-  }
-  const nm = (t.nameByYear||{})[y];
-  if(!nm || nm===t.nick) return full;
-  return (t.loc && !nm.startsWith(t.loc)) ? t.loc+' '+nm : nm;
+  const nm = t && (t.nameByYear||{})[y];
+  if(t && nm===t.nick) return full;
+  if(nm) return (t.loc && !nm.startsWith(t.loc)) ? t.loc+' '+nm : nm;
+  /* nameByYear only covers a live franchise's tracked seasons (2017 on)
+     — a hand-kept award from before that (or any fully defunct
+     franchise) falls back to FRANCHISE_TIMELINE instead, so a name
+     stays era-accurate even for years with no roster/game data. */
+  const era = defunctEra(full, y);
+  if(!era) return full;
+  return (era.loc && !era.nick.startsWith(era.loc)) ? era.loc+' '+era.nick : era.nick;
 }
 /* DB.franchiseLogos[nick] is a single data URI for most defunct
    franchises, but one that changed its own name before ever appearing
@@ -1106,11 +1108,10 @@ function teamLogoForYear(full, y){
    without the location prefix, for narrow game/box-score contexts ("vs X") */
 function histNick(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
-  if(!t){
-    const era = defunctEra(full, y);
-    return era ? era.nick : full;
-  }
-  return (t.nameByYear||{})[y] || t.nick;
+  const nm = t && (t.nameByYear||{})[y];
+  if(nm) return nm;
+  const era = defunctEra(full, y);
+  return era ? era.nick : (t ? t.nick : full);
 }
 /* clickable team reference that DISPLAYS the era-accurate name for year y but
    still LINKS to the current franchise page (data-t stays the live key) —

@@ -5790,6 +5790,29 @@ gallery live franchise pages already have, gated the same way (a
 franchise with only one era, i.e. every other defunct franchise on
 the site, doesn't get an empty gallery).
 
+## 2026-09-21 — Era-accurate names for live franchises' pre-2017 years
+
+The previous pass added era-specific logos for 5 franchises' pre-2017
+years (Kraken, Lavahogs, Panthers, Mustangs, Process), but the era-
+specific *names* were still wrong for those same years: `histName()`/
+`histNick()` only checked a live franchise's `nameByYear`, which only
+covers its tracked seasons (2017 on) — any earlier year fell straight
+through to the franchise's current nick. A 2013 Golden Hands award for
+the Kraken franchise was showing "Kraken" instead of "Eagles", right
+next to a Team badge that (after the logo fix) correctly showed the
+Eagles logo — a name/logo mismatch. Both functions now fall back to
+`FRANCHISE_TIMELINE` (the same data the logos already use) whenever
+`nameByYear` has no entry for that year, before defaulting to the
+current nick. Verified on the Awards page (2013 Golden Hands/Silver
+Slugger South now read Eagles/Warriors instead of Kraken/Lavahogs) and
+the Champions page (2013/2015 now read "Brookside Eagles").
+
+Also caught up each franchise's "aka" list (the hero text and directory
+subtitle) to match `FRANCHISE_TIMELINE` in full — Kraken, Lavahogs,
+Panthers and Mustangs were each missing one or more of their own
+pre-2017 names (e.g. Kraken's aka list had "Bluefish" but not "Capitals"
+or "Eagles"). Process and Braves/Harris Kings were already complete.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
