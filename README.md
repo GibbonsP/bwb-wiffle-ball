@@ -5907,6 +5907,19 @@ original 2048×1536 to 1600×1200 and re-encoded as JPEG (quality 82,
 ~380KB) to match the size/quality convention already used for the
 Champions page's own team photos.
 
+## 2026-09-22 — Fix 2015 Golden Hands (South) team attribution
+
+Same "N winners, fewer team codes" bug as the 2013 rows fixed earlier
+this session: the 2015 South Golden Hands row had 4 co-winners (Parker
+Gibbons, TJ Fuerst, Joey Cardascia, Vinny Spoto) but only 2 team codes
+("Eagles, Squirrels"), so positional pairing put TJ Fuerst on Squirrels
+instead of Eagles (Brookside Kraken's 2015 era name) — confirmed by
+the user. Added a second "Eagles" so Parker and TJ both land on Kraken
+and Joey Cardascia (already confirmed as Squirrels' captain) gets his
+own slot; Vinny Spoto's team for this specific row is still unresolved
+(no code for him at all) since I don't have a confirmed 2015 team for
+him to add without guessing.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
