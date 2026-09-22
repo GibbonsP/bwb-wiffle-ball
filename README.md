@@ -5882,6 +5882,20 @@ after finding it visually interleaved two names into unreadable mush
 in the grid's ~104px-wide cells — a single column reads fine and
 scrolls internally past ~200px for a large pool.
 
+## 2026-09-22 — Fix Grid boxes shrinking (regression from the pool-reveal change)
+
+The pool-reveal change swapped `.gcell` from a fixed `height:96px` to
+`min-height:96px`, on the assumption a fixed height would clip an
+expanded reveal. It doesn't need to — a table cell already lets its
+row grow past a fixed `height` when content demands more room, which
+is exactly why the reveal worked in testing either way. What `min-height`
+actually did was make Chrome stop reliably sizing the cell to 96px at
+all: an unanswered "Guess" box measured ~46px tall instead of 96,
+because `min-height` on a table cell isn't honored the same way
+`height` is. Reverted to `height:96px` — verified boxes are back to
+normal size, and a 15-name reveal still correctly grows its row
+(checked at 289px) without needing the min-height in the first place.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

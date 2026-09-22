@@ -356,7 +356,7 @@ sup.seed.x{color:var(--clay)}
 .gside{text-align:right;padding:8px 10px}
 .gcatlogo{width:20px;height:20px;object-fit:contain;display:block;margin:0 auto 4px}
 .gside .gcatlogo{margin:0 0 4px auto}
-.gcell{min-height:96px;min-width:104px;position:relative}
+.gcell{height:96px;min-width:104px;position:relative}
 .gcell.correct{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .gcell.wrong{background:color-mix(in srgb, var(--clay) 8%, transparent)}
 .gguess{width:100%;height:100%;border:1px dashed var(--line-strong);background:none;border-radius:8px;
