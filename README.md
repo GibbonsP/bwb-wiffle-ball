@@ -5938,6 +5938,16 @@ year selector is intentionally still sticky across players (its own
 long-standing comment: "sticky across player pages") — left that as
 is since it's a deliberate choice, not the reported bug.
 
+## 2026-09-22 — Update the site's search/social description
+
+Replaced the generic stats-focused description with the user's own
+copy across all three tags that carry it (`<meta name="description">`,
+`og:description`, `twitter:description`) — this is what shows under
+the title in Google search results and in social link previews
+(iMessage, Twitter, Slack, etc.). Minor grammar fix applied ("is a
+competitive...") plus a comma after "website" for readability;
+otherwise used verbatim.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
