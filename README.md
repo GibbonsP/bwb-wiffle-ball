@@ -5948,25 +5948,6 @@ the title in Google search results and in social link previews
 competitive...") plus a comma after "website" for readability;
 otherwise used verbatim.
 
-## 2026-09-23 — Add a combined Game Score stat
-
-New single-game "Game Score" metric (`gameScoreOf()`), in the spirit of
-hockey-graphs.com's Game Score: one linear-weighted number per player
-per game combining hitting, pitching and fielding into a single figure,
-rather than three separate stat lines. Pitching reuses baseball's own
-well-known Bill James Game Score weights (1/out, 1/K, -2/H, -4/ER,
--2/unearned R, -1/BB) minus its fixed +50 baseline, so summing across
-categories for a two-way player doesn't distort the total; hitting and
-fielding use comparably-scaled weights of the same shape. Not era-
-adjusted, matching how the real Game Score behaves.
-
-Wired in three places: a new "Game Score" table on every player's Game
-Log (one row per game, chronological, with a season total), a new
-"Game Score" table on every box score page (one row per player who
-appeared, sorted best-to-worst), and a new "Combined" leaderboard on
-Leaders & Records → Single-Game (and its Postseason → Single Game
-equivalent) showing the top 10 single-game scores in league history.
-
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
