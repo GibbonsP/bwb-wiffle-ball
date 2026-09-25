@@ -5948,6 +5948,21 @@ the title in Google search results and in social link previews
 competitive...") plus a comma after "website" for readability;
 otherwise used verbatim.
 
+## 2026-09-24 — Fix the favicon not showing in Google search, switch it to the 15th-anniversary logo, and update the description again
+
+The favicon was embedded as a `data:image/png;base64,...` URI directly in
+the `<link rel="icon">` tag. Browsers render that fine, but Google's
+favicon crawler fetches the icon from its own independent URL — it can't
+do that for a data URI, which is why the icon never showed up in search
+results despite looking correct in the browser tab. `generate.py` now
+decodes the logo and writes it out as a real `favicon.png` file alongside
+`index.html`, and the `<link>` tags point at that file instead. Also
+swapped which logo it uses: `LEAGUE_LOGO` now prefers `anniversaryLogo`
+(the 15th-anniversary badge, 2012–2026, already used as the site's main
+header logo) over the old `faviconLogo`, at the user's request. Description
+copy updated again across all three tags (`<meta name="description">`,
+`og:description`, `twitter:description`) to the user's new text.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

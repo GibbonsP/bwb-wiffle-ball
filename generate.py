@@ -1,23 +1,23 @@
-import json
+import json, base64
 
 data = open('players.json').read()
 _db = json.loads(data)
-LEAGUE_LOGO = _db.get('faviconLogo') or _db.get('anniversaryLogo') or _db.get('leagueLogo', '')
+LEAGUE_LOGO = _db.get('anniversaryLogo') or _db.get('faviconLogo') or _db.get('leagueLogo', '')
 
 HTML = r'''<meta charset="utf-8">
 <title>BWB Wiffleball</title>
-<meta name="description" content="The official Brookside Wiffleball League website, including news, rosters, stats, and teams. BWB Wiffleball is a competitive fast-pitch wiffleball league based in Harrison, New York. Established in 2012.">
+<meta name="description" content="Official website of the Brookside Wiffleball League, a fast pitch wiffleball league based in Harrison, New York.">
 <link rel="canonical" href="https://bwbwiffleball.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="BWB Wiffleball">
-<meta property="og:description" content="The official Brookside Wiffleball League website, including news, rosters, stats, and teams. BWB Wiffleball is a competitive fast-pitch wiffleball league based in Harrison, New York. Established in 2012.">
+<meta property="og:description" content="Official website of the Brookside Wiffleball League, a fast pitch wiffleball league based in Harrison, New York.">
 <meta property="og:url" content="https://bwbwiffleball.com/">
 <meta property="og:image" content="https://bwbwiffleball.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="BWB Wiffleball">
-<meta name="twitter:description" content="The official Brookside Wiffleball League website, including news, rosters, stats, and teams. BWB Wiffleball is a competitive fast-pitch wiffleball league based in Harrison, New York. Established in 2012.">
+<meta name="twitter:description" content="Official website of the Brookside Wiffleball League, a fast pitch wiffleball league based in Harrison, New York.">
 <meta name="twitter:image" content="https://bwbwiffleball.com/og-image.png">
-<link rel="icon" href="__FAVICON__">
+<link rel="icon" type="image/png" sizes="320x320" href="__FAVICON__">
 <link rel="apple-touch-icon" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6931,5 +6931,13 @@ route();
 </script>
 '''
 
-open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', LEAGUE_LOGO))
+'''favicon.png is written out as a real file, not inlined as a data: URI in the <link>
+   tag — Google's favicon crawler independently fetches the icon from its own URL and
+   can't do that for a data: URI (it only exists inline in the HTML your browser already
+   loaded), which is why the icon wasn't showing up in search results even though it
+   displayed fine in the browser tab.'''
+_favicon_header, _favicon_b64 = LEAGUE_LOGO.split(',', 1)
+open('favicon.png', 'wb').write(base64.b64decode(_favicon_b64))
+open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', 'favicon.png'))
 print('wrote index.html')
+print('wrote favicon.png')
