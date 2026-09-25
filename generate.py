@@ -532,6 +532,12 @@ table.h2hsub thead th{padding:7px 10px}
 .chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);
   border-color:transparent;font-weight:600}
 .chips button:hover{border-color:var(--accent)}
+.svheadrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cardbtn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  border-radius:999px;padding:7px 16px;font-size:.78rem;font-weight:600;letter-spacing:.03em;
+  cursor:pointer;white-space:nowrap}
+.cardbtn:hover{opacity:.88}
+.cardbtn:disabled{opacity:.45;cursor:default}
 .logchips{margin:2px 0 12px}
 
 .recgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:26px}
@@ -2067,16 +2073,236 @@ function savantInner(pl){
 }
 function savantCard(pl){
   if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
-  return `<section class="savant" id="savantCard"><h3>Percentile Rankings</h3>${savantInner(pl)}</section>`;
+  return `<section class="savant" id="savantCard">
+    <div class="svheadrow"><h3>Percentile Rankings</h3>
+    <button class="cardbtn" id="cardBtn" type="button">Share Card</button></div>
+    ${savantInner(pl)}</section>`;
 }
 function wireSavant(pl){
   const host = document.getElementById('savantCard');
   if(!host) return;
   host.querySelectorAll('.svchips button').forEach(b=>b.addEventListener('click',()=>{
     svYear = +b.dataset.svy;
-    host.innerHTML = '<h3>Percentile Rankings</h3>' + savantInner(pl);
+    host.innerHTML = `<div class="svheadrow"><h3>Percentile Rankings</h3>
+      <button class="cardbtn" id="cardBtn" type="button">Share Card</button></div>
+      ${savantInner(pl)}`;
     wireSavant(pl);
   }));
+  const btn = document.getElementById('cardBtn');
+  if(btn) btn.addEventListener('click', ()=>sharePlayerCard(pl, svYear));
+}
+
+/* ---- shareable percentile-rankings card (Canvas-rendered PNG) ----
+   Reuses the exact same SV_BAT/SV_PIT metric defs, svPct percentile math
+   and svColor gradient the on-page panel above uses, so the card can never
+   drift from what the page itself shows — it's the same numbers, just
+   drawn onto a canvas instead of HTML. Only offered for a fully qualified
+   season: the on-page panel has a faded "estimated, unqualified" state for
+   short seasons, but that caveat wouldn't travel with a screenshot shared
+   off-site, so a card is simply not offered for those. */
+const CARD_W = 1080;
+function loadImg(src){
+  return new Promise(res=>{
+    if(!src){ res(null); return; }
+    const img = new Image();
+    img.onload = ()=>res(img);
+    img.onerror = ()=>res(null);
+    img.src = src;
+  });
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+async function buildPlayerCard(pl, year){
+  const row = svRegRow(pl, year);
+  if(!row) return null;
+  const seasonRows = NAMES.map(n=>svRegRow(P[n], year)).filter(Boolean);
+  const qb = seasonRows.filter(r=>r.G_bat>=SV_MING);
+  const qp = seasonRows.filter(r=>r.IPouts>=SV_MINOUTS);
+  const batOK = row.G_bat>=SV_MING, pitOK = row.IPouts>=SV_MINOUTS;
+  if(!batOK && !pitOK) return null;
+
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+  const full = row.team;
+  const colors = FRANCHISE_COLORS[full] || {p:'#041e42', s:'#d50032'};
+  const accent = teamAccent(full) || '#041e42';
+  const logo = (full && TEAMS[full]) ? teamLogoForYear(full, year) : null;
+  const logoImg = await loadImg(logo);
+  const photoImg = await loadImg(pl.photo);
+
+  const panelsNeeded = (batOK?1:0) + (pitOK?1:0);
+  const rowsTotal = (batOK?SV_BAT.length:0) + (pitOK?SV_PIT.length:0);
+  const HEADER_H = 300, STATROW_H = 190, PANEL_TITLE_H = 56, ROW_H = 66, FOOT_H = 90, PAD = 56;
+  const H = HEADER_H + STATROW_H + panelsNeeded*PANEL_TITLE_H + rowsTotal*ROW_H + FOOT_H + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = CARD_W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#0d1b2e';
+  ctx.fillRect(0,0,CARD_W,H);
+
+  const grad = ctx.createLinearGradient(0,0,CARD_W,HEADER_H);
+  grad.addColorStop(0, accent);
+  grad.addColorStop(1, colors.s || accent);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,CARD_W,HEADER_H);
+
+  let textX = PAD;
+  /* headshot leads (this is a PLAYER card), team logo rides along as a small
+     corner badge on it — the same trading-card convention Statcast-style
+     player cards use. A player with no headshot on file (52 of 96 don't
+     have one) falls back to the team logo alone, same as before. */
+  if(photoImg){
+    const LS=170, top=64;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(PAD+LS/2, top+LS/2, LS/2, 0, Math.PI*2);
+    ctx.closePath();
+    ctx.fillStyle='#fff';
+    ctx.fill();
+    ctx.clip();
+    const side = Math.min(photoImg.width, photoImg.height);
+    const sx = (photoImg.width-side)/2, sy = (photoImg.height-side)/2;
+    ctx.drawImage(photoImg, sx, sy, side, side, PAD, top, LS, LS);
+    ctx.restore();
+    if(logoImg){
+      const BS=62, bx=PAD+LS-BS*0.78, by=top+LS-BS*0.78;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(bx+BS/2, by+BS/2, BS/2+4, 0, Math.PI*2);
+      ctx.fillStyle = accent;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bx+BS/2, by+BS/2, BS/2, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.fillStyle='#fff';
+      ctx.fill();
+      ctx.clip();
+      ctx.drawImage(logoImg, bx, by, BS, BS);
+      ctx.restore();
+    }
+    textX = PAD+LS+30;
+  } else if(logoImg){
+    const LS=150;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(PAD+LS/2, 70+LS/2, LS/2, 0, Math.PI*2);
+    ctx.closePath();
+    ctx.fillStyle='#fff';
+    ctx.fill();
+    ctx.clip();
+    ctx.drawImage(logoImg, PAD, 70, LS, LS);
+    ctx.restore();
+    textX = PAD+LS+30;
+  }
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 62px Oswald, Arial, sans-serif';
+  ctx.fillText(pl.name, textX, 150);
+  ctx.font = '500 30px "IBM Plex Sans", Arial, sans-serif';
+  ctx.globalAlpha = 0.9;
+  ctx.fillText(`${year} · ${histNick(full, year)}`, textX, 194);
+  ctx.globalAlpha = 1;
+  ctx.font = '600 24px "IBM Plex Mono", monospace';
+  ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
+
+  let y = HEADER_H + 30;
+  const headline = batOK
+    ? [['AVG', rate(avg(row))], ['OBP', rate(obp(row))], ['SLG', rate(slg(row))],
+       ['OPS+', String(opsPlusFor(row, [{year, pa:row.PA}]))]]
+    : [['ERA', two(era(row))], ['WHIP', two(whip(row))], ['K/3', two(k9(row))],
+       ['ERA+', String(eraPlusFor(row, [{year, outs:row.IPouts}]))]];
+  const tileW = (CARD_W-PAD*2)/headline.length;
+  headline.forEach(([lab,val], i)=>{
+    const cx = PAD + tileW*i + tileW/2;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 54px Oswald, Arial, sans-serif';
+    ctx.fillText(val, cx, y+70);
+    ctx.fillStyle = '#93a0b4';
+    ctx.font = '600 21px "IBM Plex Mono", monospace';
+    ctx.fillText(lab, cx, y+108);
+  });
+  ctx.textAlign = 'left';
+  y += STATROW_H;
+
+  function drawPanel(title, metrics, subject, pool){
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 29px Oswald, Arial, sans-serif';
+    ctx.fillText(title, PAD, y+36);
+    y += PANEL_TITLE_H;
+    metrics.forEach(([lab,fn,fmt,low])=>{
+      const p = svPct(pool.map(fn).filter(isFinite), fn(subject), low);
+      if(p==null) return;
+      const rowY = y;
+      ctx.fillStyle = '#c7d0dd';
+      ctx.font = '600 25px "IBM Plex Sans", Arial, sans-serif';
+      ctx.fillText(lab, PAD, rowY+38);
+      const trackX = PAD+150, trackW = CARD_W-PAD*2-150-140, trackY = rowY+18, trackH = 20;
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      roundRect(ctx, trackX, trackY, trackW, trackH, trackH/2); ctx.fill();
+      const dotX = trackX + trackW*(p/100);
+      ctx.beginPath();
+      ctx.arc(dotX, trackY+trackH/2, 16, 0, Math.PI*2);
+      ctx.fillStyle = svColor(p);
+      ctx.fill();
+      ctx.fillStyle = '#0d1b2e';
+      ctx.font = '700 17px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(p), dotX, trackY+trackH/2+6);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fff';
+      ctx.font = '600 25px "IBM Plex Mono", monospace';
+      ctx.fillText(fmt(fn(subject)), CARD_W-PAD, rowY+38);
+      ctx.textAlign = 'left';
+      y += ROW_H;
+    });
+  }
+  if(batOK) drawPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb);
+  if(pitOK) drawPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp);
+
+  ctx.fillStyle = '#5f6a7d';
+  ctx.font = '500 23px "IBM Plex Sans", Arial, sans-serif';
+  ctx.fillText('bwbwiffleball.com', PAD, H-32);
+
+  return canvas;
+}
+async function sharePlayerCard(pl, year){
+  const btn = document.getElementById('cardBtn');
+  const setLabel = t => { if(btn) btn.textContent = t; };
+  if(btn) btn.disabled = true;
+  setLabel('Building…');
+  try{
+    const canvas = await buildPlayerCard(pl, year);
+    if(!canvas){ setLabel('Not enough games yet'); return; }
+    canvas.toBlob(async blob=>{
+      const fname = `${pl.name.replace(/\s+/g,'_')}_${year}_card.png`;
+      const file = new File([blob], fname, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file], title:`${pl.name} — ${year}`}); }
+        catch(e){ /* user backed out of the share sheet — nothing to fall back to */ }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }
+      if(btn) btn.disabled = false;
+      setLabel('Share Card');
+    }, 'image/png');
+  } catch(e){
+    if(btn) btn.disabled = false;
+    setLabel('Share Card');
+  }
 }
 
 /* ---- minimal sparkline (season trajectory) ---- */

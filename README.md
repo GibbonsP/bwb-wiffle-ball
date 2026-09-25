@@ -5974,6 +5974,25 @@ shown as Game 1, 2-1 as Game 2). Added `dt` timestamps to both games
 data already rely on for correct ordering. Game 1 now correctly shows
 2-1, Game 2 shows 8-6.
 
+## 2026-09-25 — Add shareable player cards
+
+New "Share Card" button on the Percentile Rankings panel of a player's
+page, for any season where they're fully qualified (9+ G batting or 12+
+IP pitching — the same bar the on-page panel itself uses). Renders a
+1080px-wide PNG via Canvas: player headshot leading (falls back to the
+team logo alone for the 52 of 96 players without a photo on file), team
+logo as a small corner badge on the headshot, headline stat line (AVG/
+OBP/SLG/OPS+ for a batter, ERA/WHIP/K per 3/ERA+ for a pitcher), and the
+full percentile-bar breakdown for whichever of batting/pitching they
+qualify in (both, for a two-way player — the canvas height grows to fit).
+Deliberately reuses the exact SV_BAT/SV_PIT metric defs, svPct percentile
+math and svColor gradient the on-page panel already uses (`buildPlayerCard`
+calls the same functions), so the card can never drift from what the page
+itself shows. Uses the Web Share API on mobile (native share sheet) and
+falls back to a plain file download elsewhere. Not offered for a season
+below the qualification bar — the on-page panel's "estimated/unqualified"
+caveat wouldn't travel with a screenshot shared off-site.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
