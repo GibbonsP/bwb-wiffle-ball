@@ -2105,7 +2105,7 @@ function svPlayableYears(pl){
 function savantCard(pl){
   if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
   const playBtn = svPlayableYears(pl).length>=2
-    ? `<button class="cardbtn cardbtn-ghost" id="svPlayBtn" type="button">▶ Play Progression</button>` : '';
+    ? `<button class="cardbtn cardbtn-ghost" id="svPlayBtn" type="button">▶ Play</button>` : '';
   return `<section class="savant" id="savantCard">
     <div class="svheadrow"><h3>Percentile Rankings</h3>
     <div class="svbtns">${playBtn}<button class="cardbtn" id="cardBtn" type="button">Player Card</button></div></div>
@@ -2203,14 +2203,14 @@ async function playPercentiles(pl){
     <div class="svpanels${(batShow0&&pitShow0)?' two':''}">${panels0}</div>`;
 
   for(let i=1; i<years.length; i++){
-    await new Promise(r=>setTimeout(r, 900));
+    await new Promise(r=>setTimeout(r, 5000));
     if(!document.body.contains(host)){ svPlaying=false; return; } // navigated away mid-play
     svYear = years[i];
     updateSavantValues(pl, years[i]);
   }
 
   svPlaying = false;
-  if(playBtn){ playBtn.disabled = false; playBtn.textContent = '▶ Play Progression'; }
+  if(playBtn){ playBtn.disabled = false; playBtn.textContent = '▶ Play'; }
   if(cardBtn) cardBtn.disabled = false;
   body.innerHTML = savantInner(pl);
   wireSavantBody(pl);

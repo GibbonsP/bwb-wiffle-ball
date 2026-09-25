@@ -6090,6 +6090,12 @@ every normal year change or at the end of a playback run — calling the
 old single `wireSavant` after every re-render would have silently
 double-bound the header buttons' click handlers.
 
+## 2026-09-25 — Rename "Play Progression" to "Play", slow down the playback
+
+Button label simplified from "▶ Play Progression" to "▶ Play". Per-year
+hold before advancing to the next season increased from 900ms to 5
+seconds, giving each year long enough to actually read before it moves on.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
