@@ -2075,7 +2075,7 @@ function savantCard(pl){
   if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
   return `<section class="savant" id="savantCard">
     <div class="svheadrow"><h3>Percentile Rankings</h3>
-    <button class="cardbtn" id="cardBtn" type="button">Share Card</button></div>
+    <button class="cardbtn" id="cardBtn" type="button">Player Card</button></div>
     ${savantInner(pl)}</section>`;
 }
 function wireSavant(pl){
@@ -2084,12 +2084,12 @@ function wireSavant(pl){
   host.querySelectorAll('.svchips button').forEach(b=>b.addEventListener('click',()=>{
     svYear = +b.dataset.svy;
     host.innerHTML = `<div class="svheadrow"><h3>Percentile Rankings</h3>
-      <button class="cardbtn" id="cardBtn" type="button">Share Card</button></div>
+      <button class="cardbtn" id="cardBtn" type="button">Player Card</button></div>
       ${savantInner(pl)}`;
     wireSavant(pl);
   }));
   const btn = document.getElementById('cardBtn');
-  if(btn) btn.addEventListener('click', ()=>sharePlayerCard(pl, svYear));
+  if(btn) btn.addEventListener('click', ()=>downloadPlayerCard(pl, svYear));
 }
 
 /* ---- shareable percentile-rankings card (Canvas-rendered PNG) ----
@@ -2136,6 +2136,11 @@ async function buildPlayerCard(pl, year){
   const logo = (full && TEAMS[full]) ? teamLogoForYear(full, year) : null;
   const logoImg = await loadImg(logo);
   const photoImg = await loadImg(pl.photo);
+  /* 2026 is the league's 15th-anniversary season, so that year's cards carry
+     the anniversary badge next to the wordmark; every other year — past
+     seasons and anything after 2026 once the anniversary has passed — gets
+     the plain league logo instead. */
+  const brandLogoImg = await loadImg(year===2026 ? DB.anniversaryLogo : DB.leagueLogo);
 
   const panelsNeeded = (batOK?1:0) + (pitOK?1:0);
   const rowsTotal = (batOK?SV_BAT.length:0) + (pitOK?SV_PIT.length:0);
@@ -2214,8 +2219,14 @@ async function buildPlayerCard(pl, year){
   ctx.globalAlpha = 0.9;
   ctx.fillText(`${year} · ${histNick(full, year)}`, textX, 194);
   ctx.globalAlpha = 1;
+  let wordmarkX = PAD;
+  if(brandLogoImg){
+    const BLS = 40;
+    ctx.drawImage(brandLogoImg, PAD, HEADER_H-28-BLS+7, BLS, BLS);
+    wordmarkX = PAD+BLS+12;
+  }
   ctx.font = '600 24px "IBM Plex Mono", monospace';
-  ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
+  ctx.fillText('BWB WIFFLEBALL', wordmarkX, HEADER_H-28);
 
   let y = HEADER_H + 30;
   function drawHeadline(tiles){
@@ -2281,7 +2292,7 @@ async function buildPlayerCard(pl, year){
 
   return canvas;
 }
-async function sharePlayerCard(pl, year){
+async function downloadPlayerCard(pl, year){
   const btn = document.getElementById('cardBtn');
   const setLabel = t => { if(btn) btn.textContent = t; };
   if(btn) btn.disabled = true;
@@ -2289,25 +2300,19 @@ async function sharePlayerCard(pl, year){
   try{
     const canvas = await buildPlayerCard(pl, year);
     if(!canvas){ setLabel('Not enough games yet'); return; }
-    canvas.toBlob(async blob=>{
+    canvas.toBlob(blob=>{
       const fname = `${pl.name.replace(/\s+/g,'_')}_${year}_card.png`;
-      const file = new File([blob], fname, {type:'image/png'});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        try{ await navigator.share({files:[file], title:`${pl.name} — ${year}`}); }
-        catch(e){ /* user backed out of the share sheet — nothing to fall back to */ }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fname;
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
       if(btn) btn.disabled = false;
-      setLabel('Share Card');
+      setLabel('Player Card');
     }, 'image/png');
   } catch(e){
     if(btn) btn.disabled = false;
-    setLabel('Share Card');
+    setLabel('Player Card');
   }
 }
 

@@ -6002,6 +6002,16 @@ headline even though the percentile panels below already showed both.
 Now draws one headline row per discipline they're qualified in — the
 card's height grows to fit when that means two rows instead of one.
 
+## 2026-09-25 — Player card: download instead of share, rename, anniversary badge
+
+Three changes to the player card feature: (1) the button always downloads
+the PNG directly now, instead of first trying the Web Share API's native
+share sheet on mobile — simpler, more predictable behavior; (2) renamed
+the button from "Share Card" to "Player Card"; (3) the small league-logo
+lockup next to the "BWB WIFFLEBALL" wordmark now shows the 15th-
+anniversary badge specifically for 2026 cards (the anniversary season)
+and the plain league logo for every other year, past or future.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
