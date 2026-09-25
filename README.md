@@ -5993,6 +5993,15 @@ falls back to a plain file download elsewhere. Not offered for a season
 below the qualification bar — the on-page panel's "estimated/unqualified"
 caveat wouldn't travel with a screenshot shared off-site.
 
+## 2026-09-25 — Show both headline stat rows on a two-way player's card
+
+The share card's headline row (the big AVG/OBP/SLG/OPS+ or ERA/WHIP/K3/
+ERA+ numbers under the header) was an either/or pick keyed off batting
+qualification, so a two-way player's card silently dropped their pitching
+headline even though the percentile panels below already showed both.
+Now draws one headline row per discipline they're qualified in — the
+card's height grows to fit when that means two rows instead of one.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -2140,7 +2140,10 @@ async function buildPlayerCard(pl, year){
   const panelsNeeded = (batOK?1:0) + (pitOK?1:0);
   const rowsTotal = (batOK?SV_BAT.length:0) + (pitOK?SV_PIT.length:0);
   const HEADER_H = 300, STATROW_H = 190, PANEL_TITLE_H = 56, ROW_H = 66, FOOT_H = 90, PAD = 56;
-  const H = HEADER_H + STATROW_H + panelsNeeded*PANEL_TITLE_H + rowsTotal*ROW_H + FOOT_H + PAD;
+  /* a two-way player gets one headline row per discipline they qualify in
+     (batting AND pitching), not an either/or pick — same reasoning as the
+     percentile panels below already showing both. */
+  const H = HEADER_H + panelsNeeded*STATROW_H + panelsNeeded*PANEL_TITLE_H + rowsTotal*ROW_H + FOOT_H + PAD;
 
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W; canvas.height = H;
@@ -2215,24 +2218,27 @@ async function buildPlayerCard(pl, year){
   ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
 
   let y = HEADER_H + 30;
-  const headline = batOK
-    ? [['AVG', rate(avg(row))], ['OBP', rate(obp(row))], ['SLG', rate(slg(row))],
-       ['OPS+', String(opsPlusFor(row, [{year, pa:row.PA}]))]]
-    : [['ERA', two(era(row))], ['WHIP', two(whip(row))], ['K/3', two(k9(row))],
-       ['ERA+', String(eraPlusFor(row, [{year, outs:row.IPouts}]))]];
-  const tileW = (CARD_W-PAD*2)/headline.length;
-  headline.forEach(([lab,val], i)=>{
-    const cx = PAD + tileW*i + tileW/2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 54px Oswald, Arial, sans-serif';
-    ctx.fillText(val, cx, y+70);
-    ctx.fillStyle = '#93a0b4';
-    ctx.font = '600 21px "IBM Plex Mono", monospace';
-    ctx.fillText(lab, cx, y+108);
-  });
-  ctx.textAlign = 'left';
-  y += STATROW_H;
+  function drawHeadline(tiles){
+    const tileW = (CARD_W-PAD*2)/tiles.length;
+    tiles.forEach(([lab,val], i)=>{
+      const cx = PAD + tileW*i + tileW/2;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 54px Oswald, Arial, sans-serif';
+      ctx.fillText(val, cx, y+70);
+      ctx.fillStyle = '#93a0b4';
+      ctx.font = '600 21px "IBM Plex Mono", monospace';
+      ctx.fillText(lab, cx, y+108);
+    });
+    ctx.textAlign = 'left';
+    y += STATROW_H;
+  }
+  if(batOK) drawHeadline([
+    ['AVG', rate(avg(row))], ['OBP', rate(obp(row))], ['SLG', rate(slg(row))],
+    ['OPS+', String(opsPlusFor(row, [{year, pa:row.PA}]))]]);
+  if(pitOK) drawHeadline([
+    ['ERA', two(era(row))], ['WHIP', two(whip(row))], ['K/3', two(k9(row))],
+    ['ERA+', String(eraPlusFor(row, [{year, outs:row.IPouts}]))]]);
 
   function drawPanel(title, metrics, subject, pool){
     ctx.fillStyle = '#fff';
