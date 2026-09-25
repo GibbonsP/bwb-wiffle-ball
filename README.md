@@ -6020,6 +6020,18 @@ Moved it to the header's top-right corner instead — empty space since the
 headshot/logo/name/team all sit left — at 130px, where it reads as a real
 seal instead of an afterthought. Wordmark reverted to plain text alone.
 
+## 2026-09-25 — Allow player cards for unqualified seasons, labeled as such
+
+The player card previously required full percentile qualification (9+ G
+batting / 12+ IP pitching), the same bar the on-page panel uses before it
+shows a real (non-estimated) ranking. Now allows a card down to the same
+floor the on-page panel already uses for its faded "estimated" rows (3+ G
+batting / 3+ IP pitching), with "· Unqualified" appended directly to the
+panel title (e.g. "Batting · vs 25 · Unqualified") and the headline stat
+row shown regardless. Unlike the on-page panel's dashed/faded styling, a
+downloaded PNG carries no surrounding context, so the caveat has to travel
+with the image itself. Still returns no card below that floor.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

@@ -2126,7 +2126,14 @@ async function buildPlayerCard(pl, year){
   const qb = seasonRows.filter(r=>r.G_bat>=SV_MING);
   const qp = seasonRows.filter(r=>r.IPouts>=SV_MINOUTS);
   const batOK = row.G_bat>=SV_MING, pitOK = row.IPouts>=SV_MINOUTS;
-  if(!batOK && !pitOK) return null;
+  /* below the real qualification bar, still allow a card down to the same
+     floor the on-page panel uses for its faded "estimated" rows — just
+     labeled Unqualified right on the card itself (drawPanel below), since
+     unlike the page's own dashed/faded styling, a downloaded PNG carries no
+     surrounding context to signal that on its own. */
+  const batShow = batOK || row.G_bat>=SV_MIN_SHOW_G;
+  const pitShow = pitOK || row.IPouts>=SV_MIN_SHOW_OUTS;
+  if(!batShow && !pitShow) return null;
 
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
 
@@ -2142,8 +2149,8 @@ async function buildPlayerCard(pl, year){
      the plain league logo instead. */
   const brandLogoImg = await loadImg(year===2026 ? DB.anniversaryLogo : DB.leagueLogo);
 
-  const panelsNeeded = (batOK?1:0) + (pitOK?1:0);
-  const rowsTotal = (batOK?SV_BAT.length:0) + (pitOK?SV_PIT.length:0);
+  const panelsNeeded = (batShow?1:0) + (pitShow?1:0);
+  const rowsTotal = (batShow?SV_BAT.length:0) + (pitShow?SV_PIT.length:0);
   const HEADER_H = 300, STATROW_H = 190, PANEL_TITLE_H = 56, ROW_H = 66, FOOT_H = 90, PAD = 56;
   /* a two-way player gets one headline row per discipline they qualify in
      (batting AND pitching), not an either/or pick — same reasoning as the
@@ -2247,10 +2254,10 @@ async function buildPlayerCard(pl, year){
     ctx.textAlign = 'left';
     y += STATROW_H;
   }
-  if(batOK) drawHeadline([
+  if(batShow) drawHeadline([
     ['AVG', rate(avg(row))], ['OBP', rate(obp(row))], ['SLG', rate(slg(row))],
     ['OPS+', String(opsPlusFor(row, [{year, pa:row.PA}]))]]);
-  if(pitOK) drawHeadline([
+  if(pitShow) drawHeadline([
     ['ERA', two(era(row))], ['WHIP', two(whip(row))], ['K/3', two(k9(row))],
     ['ERA+', String(eraPlusFor(row, [{year, outs:row.IPouts}]))]]);
 
@@ -2286,8 +2293,8 @@ async function buildPlayerCard(pl, year){
       y += ROW_H;
     });
   }
-  if(batOK) drawPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb);
-  if(pitOK) drawPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp);
+  if(batShow) drawPanel(`Batting · vs ${qb.length}${batOK?'':' · Unqualified'}`, SV_BAT, row, qb);
+  if(pitShow) drawPanel(`Pitching · vs ${qp.length}${pitOK?'':' · Unqualified'}`, SV_PIT, row, qp);
 
   ctx.fillStyle = '#5f6a7d';
   ctx.font = '500 23px "IBM Plex Sans", Arial, sans-serif';
