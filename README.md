@@ -6096,6 +6096,30 @@ Button label simplified from "▶ Play Progression" to "▶ Play". Per-year
 hold before advancing to the next season increased from 900ms to 5
 seconds, giving each year long enough to actually read before it moves on.
 
+## 2026-09-25 — Play animation: include unqualified years, live counts, timer bar
+
+Three refinements to the Percentile Rankings "Play" animation:
+
+- **Steps through the player's whole Regular-season career now**, including
+  years below the normal estimate floor (a token few-game rookie or
+  farewell season), not just the ones with enough sample to rank. A below-
+  floor year just plays as a blank/dashed frame, same treatment
+  `updateSavantValues` already had for a category the player didn't do
+  anything in that year.
+- **Each panel's "vs N" qualified-pool count and unqualified styling now
+  update live, per year, per category** — previously both were fixed to
+  whatever the first frame happened to show. Without this, a below-the-bar
+  year would render with the exact same solid-dot styling as a fully
+  qualified one, silently misrepresenting a rough estimate as a real
+  ranking. Now each frame toggles the same faded/dashed `.svrow.svunq`
+  treatment and "est. · unqualified" tag a static year already gets,
+  correctly per bat/pit category (a player can be qualified in one and
+  merely estimated in the other within the same year).
+- **Added a countdown timer bar** under the year label showing the current
+  5-second hold ticking down, restarted at the start of every year via a
+  forced reflow (changing a CSS transition's target twice in a row with no
+  reflow in between doesn't retrigger it).
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

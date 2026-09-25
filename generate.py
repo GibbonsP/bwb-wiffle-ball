@@ -546,6 +546,8 @@ table.h2hsub thead th{padding:7px 10px}
 .svbtns{display:flex;gap:8px;flex-wrap:wrap}
 .cardbtn-ghost{background:transparent;color:var(--accent)}
 .cardbtn-ghost:hover{background:var(--accent-soft);opacity:1}
+.svtimerbar{height:4px;border-radius:999px;background:var(--line);overflow:hidden;margin:2px 0 16px}
+.svtimerfill{height:100%;width:100%;background:var(--accent);border-radius:999px}
 .logchips{margin:2px 0 12px}
 
 .recgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:26px}
@@ -2097,14 +2099,17 @@ function savantInner(pl){
    floor the player card uses (batting OR pitching, not necessarily both
    every year), and needs at least 2 to be worth animating at all */
 function svPlayableYears(pl){
-  return svSeasons(pl).filter(y=>{
+  return svSeasons(pl);
+}
+function svHasShowableYear(pl){
+  return svSeasons(pl).some(y=>{
     const row = svRegRow(pl, y);
     return row && (row.G_bat>=SV_MIN_SHOW_G || row.IPouts>=SV_MIN_SHOW_OUTS);
   });
 }
 function savantCard(pl){
   if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
-  const playBtn = svPlayableYears(pl).length>=2
+  const playBtn = (svPlayableYears(pl).length>=2 && svHasShowableYear(pl))
     ? `<button class="cardbtn cardbtn-ghost" id="svPlayBtn" type="button">▶ Play</button>` : '';
   return `<section class="savant" id="savantCard">
     <div class="svheadrow"><h3>Percentile Rankings</h3>
@@ -2131,20 +2136,38 @@ function wireSavant(pl){
   const playBtn = document.getElementById('svPlayBtn');
   if(playBtn) playBtn.addEventListener('click', ()=>playPercentiles(pl));
 }
-/* ---- Play Progression: animate the percentile panel from a player's first
-   qualifying season to their last, Savant-style. A full re-render each
-   frame (the normal svchips pattern) would just replace the DOM nodes —
-   no CSS transition to animate, since a freshly created element has no
-   prior state to move from. So this renders the real first frame once via
-   the normal svPanel (with data-cat/data-idx hooks on each row), then every
-   later frame updates those SAME elements' left%/color/text in place —
-   .svdot's own CSS transition (see its rule) does the actual sliding. */
+/* ---- Play: animate the percentile panel across a player's whole career,
+   Savant-style. A full re-render each frame (the normal svchips pattern)
+   would just replace the DOM nodes — no CSS transition to animate, since a
+   freshly created element has no prior state to move from. So this renders
+   one blank skeleton ONCE (with data-cat/data-idx hooks on each row, panels
+   built for whichever categories the player shows in ANY playable year,
+   since a year below the estimate floor can't dictate the shape — see
+   svHasShowableYear), then every frame just updates those SAME elements'
+   left%/color/text in place — .svdot's own CSS transition (see its rule)
+   does the actual sliding. Reused for the very first frame too (not a
+   special case), since a player's first Regular season on record is
+   sometimes itself a token few-game year with nothing to show yet. */
 let svPlaying = false;
+/* title carries its own "vs N" count and "est. · unqualified" tag as
+   updatable elements from the start, since both change every frame —
+   whether a year is fully qualified or just an estimate isn't fixed for
+   the whole animation the way it would be for a single static year. */
+function svPanelTitleHTML(label, cat){
+  return `${label} · vs <span class="svcount" data-titlecat="${cat}">—</span>` +
+    `<span class="svunqtag" data-tagcat="${cat}" style="display:none"> est. · unqualified</span>`;
+}
+function svRowBlank(lab, cat, i){
+  return `<div class="svrow" data-cat="${cat}" data-idx="${i}"><span class="svlab">${lab}</span>
+    <span class="svbar"><span class="svdot" style="left:50%;background:rgba(255,255,255,.25);opacity:.3"></span></span>
+    <span class="svval">—</span></div>`;
+}
 /* updates an already-rendered panel's rows IN PLACE for a new year — no
-   re-render, so .svdot's own CSS transition can animate the move. The
-   panel titles' "vs N" pool size stays fixed at whatever the first frame
-   showed rather than live-updating each step; that count barely moves
-   year to year and isn't worth the extra bookkeeping to chase. */
+   re-render, so .svdot's own CSS transition can animate the move. Also
+   keeps each panel's "vs N" qualified-pool count live and marks rows with
+   the same faded/dashed "unqualified estimate" styling a static year
+   already gets (.svrow.svunq) — without it, a below-the-bar year would be
+   indistinguishable from a fully qualified one mid-animation. */
 function updateSavantValues(pl, y){
   const row = svRegRow(pl, y);
   const seasonRows = NAMES.map(n=>svRegRow(P[n], y)).filter(Boolean);
@@ -2153,10 +2176,11 @@ function updateSavantValues(pl, y){
   const batOK = !!row && row.G_bat>=SV_MING, pitOK = !!row && row.IPouts>=SV_MINOUTS;
   const batShow = !!row && (batOK || row.G_bat>=SV_MIN_SHOW_G);
   const pitShow = !!row && (pitOK || row.IPouts>=SV_MIN_SHOW_OUTS);
-  const applyRows = (metrics, cat, pool, show) => {
+  const applyRows = (metrics, cat, pool, show, ok) => {
     metrics.forEach(([lab,fn,fmt,low], i)=>{
       const rowEl = document.querySelector(`.svrow[data-cat="${cat}"][data-idx="${i}"]`);
       if(!rowEl) return;
+      rowEl.classList.toggle('svunq', show && !ok);
       const dot = rowEl.querySelector('.svdot'), val = rowEl.querySelector('.svval');
       const p = (show && row) ? svPct(pool.map(fn).filter(isFinite), fn(row), low) : null;
       if(p==null){
@@ -2169,11 +2193,29 @@ function updateSavantValues(pl, y){
         val.textContent = fmt(fn(row));
       }
     });
+    const countEl = document.querySelector(`.svcount[data-titlecat="${cat}"]`);
+    if(countEl) countEl.textContent = show ? pool.length : '—';
+    const tagEl = document.querySelector(`.svunqtag[data-tagcat="${cat}"]`);
+    if(tagEl) tagEl.style.display = (show && !ok) ? '' : 'none';
   };
-  applyRows(SV_BAT, 'bat', qb, batShow);
-  applyRows(SV_PIT, 'pit', qp, pitShow);
+  applyRows(SV_BAT, 'bat', qb, batShow, batOK);
+  applyRows(SV_PIT, 'pit', qp, pitShow, pitOK);
   const badge = document.getElementById('svPlayYear');
   if(badge) badge.textContent = y;
+}
+const SV_PLAY_MS = 5000;
+/* restarts the timer-bar's shrink animation from full width — changing
+   `width` twice in a row with no reflow in between wouldn't retrigger a
+   CSS transition, so this forces one (reading offsetWidth) between
+   snapping back to 100% and animating down to 0%. */
+function startSvTimer(ms){
+  const fill = document.getElementById('svTimerFill');
+  if(!fill) return;
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  void fill.offsetWidth;
+  fill.style.transition = `width ${ms}ms linear`;
+  fill.style.width = '0%';
 }
 async function playPercentiles(pl){
   if(svPlaying) return;
@@ -2188,22 +2230,25 @@ async function playPercentiles(pl){
   const cardBtn = document.getElementById('cardBtn');
   if(cardBtn) cardBtn.disabled = true;
 
-  // first frame: real values via the normal svPanel, now carrying data-cat/
-  // data-idx hooks so every later frame can update these SAME elements
-  svYear = years[0];
-  const row0 = svRegRow(pl, years[0]);
-  const seasonRows0 = NAMES.map(n=>svRegRow(P[n], years[0])).filter(Boolean);
-  const qb0 = seasonRows0.filter(r=>r.G_bat>=SV_MING);
-  const qp0 = seasonRows0.filter(r=>r.IPouts>=SV_MINOUTS);
-  const batShow0 = row0.G_bat>=SV_MING || row0.G_bat>=SV_MIN_SHOW_G;
-  const pitShow0 = row0.IPouts>=SV_MINOUTS || row0.IPouts>=SV_MIN_SHOW_OUTS;
-  const panels0 = (batShow0 ? svPanel(`Batting · vs ${qb0.length}`, SV_BAT, row0, qb0, false, 'bat') : '')
-    + (pitShow0 ? svPanel(`Pitching · vs ${qp0.length}`, SV_PIT, row0, qp0, false, 'pit') : '');
+  // one blank skeleton for the whole run — panels built for whichever
+  // categories the player shows in ANY playable year, since a below-floor
+  // year (including possibly the first one) can't dictate the shape
+  const anyBat = years.some(y=>{ const r=svRegRow(pl,y); return r && (r.G_bat>=SV_MING || r.G_bat>=SV_MIN_SHOW_G); });
+  const anyPit = years.some(y=>{ const r=svRegRow(pl,y); return r && (r.IPouts>=SV_MINOUTS || r.IPouts>=SV_MIN_SHOW_OUTS); });
+  const batRows = anyBat ? SV_BAT.map(([lab],i)=>svRowBlank(lab,'bat',i)).join('') : '';
+  const pitRows = anyPit ? SV_PIT.map(([lab],i)=>svRowBlank(lab,'pit',i)).join('') : '';
+  const panels = (anyBat ? `<div class="svpanel" data-cat="bat"><h4>${svPanelTitleHTML('Batting','bat')}</h4>${batRows}</div>` : '')
+    + (anyPit ? `<div class="svpanel" data-cat="pit"><h4>${svPanelTitleHTML('Pitching','pit')}</h4>${pitRows}</div>` : '');
   body.innerHTML = `<p class="smeta">Playing career progression — <span id="svPlayYear">${years[0]}</span></p>
-    <div class="svpanels${(batShow0&&pitShow0)?' two':''}">${panels0}</div>`;
+    <div class="svtimerbar"><div class="svtimerfill" id="svTimerFill"></div></div>
+    <div class="svpanels${(anyBat&&anyPit)?' two':''}">${panels}</div>`;
+
+  svYear = years[0];
+  updateSavantValues(pl, years[0]);
 
   for(let i=1; i<years.length; i++){
-    await new Promise(r=>setTimeout(r, 5000));
+    startSvTimer(SV_PLAY_MS);
+    await new Promise(r=>setTimeout(r, SV_PLAY_MS));
     if(!document.body.contains(host)){ svPlaying=false; return; } // navigated away mid-play
     svYear = years[i];
     updateSavantValues(pl, years[i]);
