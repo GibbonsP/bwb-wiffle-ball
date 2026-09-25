@@ -210,6 +210,10 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svval{font-family:"IBM Plex Mono",monospace;font-size:.76rem;text-align:right;
   font-variant-numeric:tabular-nums;color:var(--ink)}
 .svleg{margin:8px 0 0;font-size:.7rem;color:var(--muted)}
+.pfpill{display:inline-block;min-width:2.2em;padding:2px 9px;border-radius:999px;
+  font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-weight:700;color:#fff;
+  text-align:center;font-variant-numeric:tabular-nums}
+
 .svunqtag{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-style:italic}
 .svrow.svunq{opacity:.5}
 .svrow.svunq .svbar::before{opacity:.55;background-image:
@@ -1981,6 +1985,18 @@ function svColor(p){
   const c = t<0.5 ? mix(blue,grey,t*2) : mix(grey,red,(t-0.5)*2);
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
+/* maps a park-factor-style number (100 = neutral) onto the same blue→grey→red
+   scale svColor already uses for percentiles — a factor 30 points from 100
+   in either direction hits full saturation, which comfortably covers this
+   league's actual spread (its Ballparks factors run from the low 80s to
+   the high 130s) without everything crowding into the pale middle. */
+const pfColor = (v, lowerBetter) => {
+  let p = 50 + (v-100)*(50/30);
+  if(lowerBetter) p = 100-p;
+  return svColor(Math.max(0, Math.min(100, p)));
+};
+const pfPill = (v, lowerBetter) => v==null ? '—'
+  : `<span class="pfpill" style="background:${pfColor(v, lowerBetter)}">${v}</span>`;
 function svPct(vals, val, lowerBetter){
   const n = vals.length; if(!n || !isFinite(val)) return null;
   let below=0, equal=0;
@@ -4982,10 +4998,119 @@ function renderRecords(){
     location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
 }
 
+/* ---- Park Factors: how much each field's offensive environment differs
+   from that year's league average, blended across every year it's been
+   used — same era-normalized "actual vs. expected" ratio OPS+/ERA+ already
+   use to compare a season to its own year rather than an absolute cross-era
+   number, since this league's scoring swung roughly 2.5x across its history
+   (2017's league-wide runs/game was double 2024's). Runs PF is computed from the official
+   recorded line score (away.R/home.R) — the same authoritative result box
+   scores note elsewhere — across every Regular season game; every other
+   factor needs individual box-score bat lines (2020 on) and is computed
+   only from games that have them. Modeled on Baseball Savant's own Park
+   Factors leaderboard, minus the columns that need batted-ball tracking
+   (xwOBA, Hard Hit%, etc.) this league's box scores don't have, and using
+   a simpler park-vs-league-average method rather than Savant's actual
+   same-player-elsewhere matched comparison — worth being upfront about,
+   since it's a real methodological difference, not just fewer columns. */
+const PARK_MIN_G = 15;
+function weightedRatioFactor(byYear, leagueByYear, numKey, denKey){
+  let actualNum=0, expectedNum=0;
+  Object.keys(byYear).forEach(y=>{
+    const lg = leagueByYear[y]; if(!lg || !lg[denKey]) return;
+    const rate = lg[numKey]/lg[denKey];
+    actualNum += byYear[y][numKey];
+    expectedNum += rate*byYear[y][denKey];
+  });
+  return expectedNum ? Math.round(100*actualNum/expectedNum) : null;
+}
+function computeParkFactors(){
+  const parkYear = {}, leagueYear = {};
+  const touch = (map, key, y) => (map[key] = map[key] || {})[y] = (map[key][y] || {
+    games:0, runs:0, boxGames:0, h:0, hr:0, bb:0, so:0, obpNum:0, obpDen:0});
+  GIDS.forEach(gid=>{
+    const g = GAMES[gid];
+    if(g.phase!=='Regular') return;
+    const y = +g.date.slice(0,4);
+    const loc = g.loc && g.loc!=='TBA' ? g.loc : null;
+    const runs = g.away.R + g.home.R;
+    touch(leagueYear, 'league', y).games++; leagueYear.league[y].runs += runs;
+    if(loc){ touch(parkYear, loc, y).games++; parkYear[loc][y].runs += runs; }
+    const hasBox = g.away.bat.length>=3 && g.home.bat.length>=3;
+    if(!hasBox) return;
+    const bat = [...g.away.bat, ...g.home.bat];
+    const h = bat.reduce((s,b)=>s+(b.h||0),0), hr = bat.reduce((s,b)=>s+(b.hr||0),0);
+    const bb = bat.reduce((s,b)=>s+(b.bb||0),0), so = bat.reduce((s,b)=>s+(b.k||0),0);
+    const hbp = bat.reduce((s,b)=>s+(b.hbp||0),0), ab = bat.reduce((s,b)=>s+(b.ab||0),0);
+    const obpNum = h+bb+hbp, obpDen = ab+bb+hbp;
+    const apply = row => { row.boxGames++; row.h+=h; row.hr+=hr; row.bb+=bb; row.so+=so;
+      row.obpNum+=obpNum; row.obpDen+=obpDen; };
+    apply(leagueYear.league[y]);
+    if(loc) apply(parkYear[loc][y]);
+  });
+  const factors = [
+    ['runFactor', 'runs', 'games', false],
+    ['hFactor', 'h', 'boxGames', false],
+    ['hrFactor', 'hr', 'boxGames', false],
+    ['bbFactor', 'bb', 'boxGames', false],
+    ['soFactor', 'so', 'boxGames', true],
+  ];
+  return Object.keys(parkYear).map(loc=>{
+    const byYear = parkYear[loc];
+    const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    const games = years.reduce((s,y)=>s+byYear[y].games, 0);
+    const boxGames = years.reduce((s,y)=>s+byYear[y].boxGames, 0);
+    const row = {loc, games, boxGames, span: years.length>1?`${years[0]}–${years[years.length-1]}`:`${years[0]}`};
+    factors.forEach(([key, numKey, denKey])=>{
+      row[key] = boxGames>=PARK_MIN_G || denKey==='games'
+        ? weightedRatioFactor(byYear, leagueYear.league, numKey, denKey) : null;
+    });
+    row.obpFactor = boxGames>=PARK_MIN_G ? weightedRatioFactor(byYear, leagueYear.league, 'obpNum', 'obpDen') : null;
+    return row;
+  }).filter(r=>r.games>=PARK_MIN_G && r.runFactor!=null).sort((a,b)=>b.runFactor-a.runFactor);
+}
+const PARK_COLS = [
+  {l:'Field',lft:1,f:d=>esc(d.loc)},
+  {l:'G',f:d=>d.games},
+  {l:'Years',f:d=>d.span},
+  {l:'Runs PF',m:1,f:d=>pfPill(d.runFactor)},
+  {l:'OBP PF',m:1,f:d=>pfPill(d.obpFactor)},
+  {l:'H PF',m:1,f:d=>pfPill(d.hFactor)},
+  {l:'HR PF',m:1,f:d=>pfPill(d.hrFactor)},
+  {l:'BB PF',m:1,f:d=>pfPill(d.bbFactor)},
+  {l:'SO PF',m:1,f:d=>pfPill(d.soFactor, true)},
+];
+function parkFactorsHTML(){
+  const rows = computeParkFactors();
+  if(!rows.length) return '<p class="empty">Not enough located games on record yet.</p>';
+  const leagueRow = {loc:'League Average', games:'', span:'', boxGames:'',
+    runFactor:100, obpFactor:100, hFactor:100, hrFactor:100, bbFactor:100, soFactor:100};
+  return `<p class="pmeta">How much each field's offensive environment differs from that year's league
+    average, blended across every year it's been used (100 = neutral; above 100 favors hitters, below
+    favors pitchers — reversed for SO PF, where below 100 favors pitchers via more strikeouts) — the
+    same era-normalized approach OPS+/ERA+ use, since this league's scoring has swung by roughly 2.5x
+    across its history and a flat cross-era number would just reward "used in a high-offense year."
+    Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
+    (exit velocity, Hard Hit%) this league's box scores don't have — and using a simpler park-vs-league
+    method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
+    Regular season game's official final score; every other column only from games with individual box
+    scores (2020 on) and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+ games at that
+    field to appear at all.</p>
+    ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
+}
+let gamesView = 'list';
 function renderGames(){
   setNav('games');
   const yrs=[...new Set(GIDS.map(id=>GAMES[id].date.slice(0,4)))].sort();
   if(gYear==null) gYear = yrs[yrs.length-1];
+  const viewToggle = `<div class="segs" role="group" aria-label="View">
+    <button data-gv="list" aria-pressed="${gamesView==='list'}">Games</button>
+    <button data-gv="parks" aria-pressed="${gamesView==='parks'}">Park Factors</button></div>`;
+  if(gamesView==='parks'){
+    app.innerHTML = `${viewToggle}${parkFactorsHTML()}`;
+    app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
+    return;
+  }
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
@@ -5003,10 +5128,11 @@ function renderGames(){
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
-  app.innerHTML=`${chips}
+  app.innerHTML=`${viewToggle}${chips}
     <div class="tscroll"><table class="dir"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>`;
+  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));

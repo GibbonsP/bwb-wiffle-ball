@@ -6032,6 +6032,33 @@ row shown regardless. Unlike the on-page panel's dashed/faded styling, a
 downloaded PNG carries no surrounding context, so the caveat has to travel
 with the image itself. Still returns no card below that floor.
 
+## 2026-09-25 — Add Park Factors to the Games page
+
+New "Park Factors" view on the Games page (a toggle alongside the existing
+game list), modeled on Baseball Savant's own Park Factors leaderboard.
+Shows Runs/OBP/H/HR/BB/SO factors for every field with 15+ games on
+record (100 = neutral; above favors hitters, below favors pitchers —
+reversed for SO PF, where fewer strikeouts means more contact and thus
+favors hitters). Each factor is era-normalized the same way OPS+/ERA+
+compare a season to its own year rather than an absolute cross-era number,
+blended across every year a field's been used, since this league's scoring
+has swung roughly 2.5x across its history. Runs PF uses every Regular
+season game's official final score; every other column only counts games
+with individual box scores (2020 on) and needs its own 15+ such games.
+
+Factor values render as colored pills (new `pfColor`/`pfPill` helpers)
+using the same blue→grey→red gradient the Percentile Rankings panel
+already uses (`svColor`), so a park's numbers read visually consistent
+with how a player's percentiles look elsewhere on the site — and visually
+similar to Savant's own color-coded leaderboard.
+
+Worth being upfront about a real methodological difference: this uses a
+simpler park-vs-league-average ratio, not Savant's own same-player-
+elsewhere matched comparison (which controls for the specific batters/
+pitchers who played at that park also playing elsewhere) — a more
+rigorous method this data doesn't support without tracking who played
+where across parks.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
