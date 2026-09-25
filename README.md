@@ -6066,6 +6066,30 @@ environment is a property of the field itself, not of which phase a game
 belongs to, so there's no reason to leave playoff games out of the sample
 — widened the filter to include both Regular season and Playoffs.
 
+## 2026-09-25 — Animated "Play Progression" on Percentile Rankings
+
+New "▶ Play Progression" button on a player's Percentile Rankings panel
+(shown whenever they have 2+ seasons meeting the same qualification floor
+the player card uses), modeled on Baseball Savant's own animated
+percentile playback. Steps through every eligible year from first to
+last, sliding each stat's dot to its new position rather than jumping —
+the key trick is that a normal re-render (destroying and recreating DOM
+nodes, the pattern used everywhere else on this site) gives a CSS
+transition nothing to animate from, so this instead renders the real
+first frame once via the existing `svPanel`, then updates that SAME set
+of DOM nodes' position/color/value in place for every later year
+(`updateSavantValues`), letting `.svdot`'s own new CSS transition do the
+sliding. A year where the player didn't qualify in one category (e.g. a
+season they didn't pitch) dims that row to a neutral dash rather than
+carrying over stale data from the previous frame.
+
+Required restructuring `wireSavant` into two layers: the header's Play/
+Player Card buttons are wired once and never destroyed, while a new
+`wireSavantBody` handles just the year-chip body that gets replaced on
+every normal year change or at the end of a playback run — calling the
+old single `wireSavant` after every re-render would have silently
+double-bound the header buttons' click handlers.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

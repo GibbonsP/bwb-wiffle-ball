@@ -206,7 +206,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svdot{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;
   transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;
   font-size:.62rem;font-weight:700;color:#fff;border:1.5px solid var(--card);
-  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  box-shadow:0 1px 2px rgba(0,0,0,.25);
+  transition:left .7s ease,background-color .7s ease,opacity .7s ease}
 .svval{font-family:"IBM Plex Mono",monospace;font-size:.76rem;text-align:right;
   font-variant-numeric:tabular-nums;color:var(--ink)}
 .svleg{margin:8px 0 0;font-size:.7rem;color:var(--muted)}
@@ -536,6 +537,9 @@ table.h2hsub thead th{padding:7px 10px}
   cursor:pointer;white-space:nowrap}
 .cardbtn:hover{opacity:.88}
 .cardbtn:disabled{opacity:.45;cursor:default}
+.svbtns{display:flex;gap:8px;flex-wrap:wrap}
+.cardbtn-ghost{background:transparent;color:var(--accent)}
+.cardbtn-ghost:hover{background:var(--accent-soft);opacity:1}
 .logchips{margin:2px 0 12px}
 
 .recgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:26px}
@@ -2035,16 +2039,18 @@ function svSeasons(pl){
    the percentile is an estimate against the qualified pool rather than a
    real ranking — pool itself is untouched either way (the subject was never
    in it, qualified or not), only the row's own look changes. */
-function svPanel(title, metrics, subject, pool, unqualified){
-  const rows = metrics.map(([lab,fn,fmt,low])=>{
+function svPanel(title, metrics, subject, pool, unqualified, cat){
+  const rows = metrics.map(([lab,fn,fmt,low], i)=>{
     const p = svPct(pool.map(fn).filter(isFinite), fn(subject), low);
     if(p==null) return '';
-    return `<div class="svrow${unqualified?' svunq':''}"><span class="svlab">${lab}</span>
+    const idxAttr = cat ? ` data-cat="${cat}" data-idx="${i}"` : '';
+    return `<div class="svrow${unqualified?' svunq':''}"${idxAttr}><span class="svlab">${lab}</span>
       <span class="svbar"><span class="svdot" style="left:${p}%;background:${svColor(p)}">${p}</span></span>
       <span class="svval">${fmt(fn(subject))}</span></div>`;
   }).join('');
   const titleHTML = unqualified ? `${esc(title)} <span class="svunqtag">est. · unqualified</span>` : esc(title);
-  return rows ? `<div class="svpanel${unqualified?' svpanel-unq':''}"><h4>${titleHTML}</h4>${rows}</div>` : '';
+  const catAttr = cat ? ` data-cat="${cat}"` : '';
+  return rows ? `<div class="svpanel${unqualified?' svpanel-unq':''}"${catAttr}><h4>${titleHTML}</h4>${rows}</div>` : '';
 }
 function savantInner(pl){
   const yrs = svSeasons(pl);
@@ -2062,10 +2068,10 @@ function savantInner(pl){
   const batOK = row && row.G_bat>=SV_MING, pitOK = row && row.IPouts>=SV_MINOUTS;
   const batShow = row && !batOK && row.G_bat>=SV_MIN_SHOW_G;
   const pitShow = row && !pitOK && row.IPouts>=SV_MIN_SHOW_OUTS;
-  const panels = (batOK ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb)
-      : batShow ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb, true) : '')
-    + (pitOK ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp)
-      : pitShow ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp, true) : '');
+  const panels = (batOK ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb, false, 'bat')
+      : batShow ? svPanel(`Batting · vs ${qb.length}`, SV_BAT, row, qb, true, 'bat') : '')
+    + (pitOK ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp, false, 'pit')
+      : pitShow ? svPanel(`Pitching · vs ${qp.length}`, SV_PIT, row, qp, true, 'pit') : '');
   if(!panels){
     return `${chips}<p class="smeta">No ${svYear} regular season line long enough to estimate
       (${SV_MIN_SHOW_G}+ G batting or ${SV_MIN_SHOW_OUTS/3}+ IP pitching needed at minimum).</p>`;
@@ -2081,25 +2087,127 @@ function savantInner(pl){
       qualified field (down to ${SV_MIN_SHOW_G}+ G / ${SV_MIN_SHOW_OUTS/3}+ IP) but don't count toward it.`:''}</p>
     <div class="svpanels${twoUp}">${panels}</div>`;
 }
+/* the years a Play Progression run would step through — same qualification
+   floor the player card uses (batting OR pitching, not necessarily both
+   every year), and needs at least 2 to be worth animating at all */
+function svPlayableYears(pl){
+  return svSeasons(pl).filter(y=>{
+    const row = svRegRow(pl, y);
+    return row && (row.G_bat>=SV_MIN_SHOW_G || row.IPouts>=SV_MIN_SHOW_OUTS);
+  });
+}
 function savantCard(pl){
   if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
+  const playBtn = svPlayableYears(pl).length>=2
+    ? `<button class="cardbtn cardbtn-ghost" id="svPlayBtn" type="button">▶ Play Progression</button>` : '';
   return `<section class="savant" id="savantCard">
     <div class="svheadrow"><h3>Percentile Rankings</h3>
-    <button class="cardbtn" id="cardBtn" type="button">Player Card</button></div>
-    ${savantInner(pl)}</section>`;
+    <div class="svbtns">${playBtn}<button class="cardbtn" id="cardBtn" type="button">Player Card</button></div></div>
+    <div id="svBody">${savantInner(pl)}</div></section>`;
+}
+/* only the chip-driven body needs rewiring after every re-render — the
+   header's Play/Card buttons live outside #svBody and are never destroyed,
+   so wiring them more than once (e.g. after every Play Progression run)
+   would double-fire their click handlers */
+function wireSavantBody(pl){
+  const body = document.getElementById('svBody');
+  if(!body) return;
+  body.querySelectorAll('.svchips button').forEach(b=>b.addEventListener('click',()=>{
+    svYear = +b.dataset.svy;
+    body.innerHTML = savantInner(pl);
+    wireSavantBody(pl);
+  }));
 }
 function wireSavant(pl){
+  wireSavantBody(pl);
+  const cardBtn = document.getElementById('cardBtn');
+  if(cardBtn) cardBtn.addEventListener('click', ()=>downloadPlayerCard(pl, svYear));
+  const playBtn = document.getElementById('svPlayBtn');
+  if(playBtn) playBtn.addEventListener('click', ()=>playPercentiles(pl));
+}
+/* ---- Play Progression: animate the percentile panel from a player's first
+   qualifying season to their last, Savant-style. A full re-render each
+   frame (the normal svchips pattern) would just replace the DOM nodes —
+   no CSS transition to animate, since a freshly created element has no
+   prior state to move from. So this renders the real first frame once via
+   the normal svPanel (with data-cat/data-idx hooks on each row), then every
+   later frame updates those SAME elements' left%/color/text in place —
+   .svdot's own CSS transition (see its rule) does the actual sliding. */
+let svPlaying = false;
+/* updates an already-rendered panel's rows IN PLACE for a new year — no
+   re-render, so .svdot's own CSS transition can animate the move. The
+   panel titles' "vs N" pool size stays fixed at whatever the first frame
+   showed rather than live-updating each step; that count barely moves
+   year to year and isn't worth the extra bookkeeping to chase. */
+function updateSavantValues(pl, y){
+  const row = svRegRow(pl, y);
+  const seasonRows = NAMES.map(n=>svRegRow(P[n], y)).filter(Boolean);
+  const qb = seasonRows.filter(r=>r.G_bat>=SV_MING);
+  const qp = seasonRows.filter(r=>r.IPouts>=SV_MINOUTS);
+  const batOK = !!row && row.G_bat>=SV_MING, pitOK = !!row && row.IPouts>=SV_MINOUTS;
+  const batShow = !!row && (batOK || row.G_bat>=SV_MIN_SHOW_G);
+  const pitShow = !!row && (pitOK || row.IPouts>=SV_MIN_SHOW_OUTS);
+  const applyRows = (metrics, cat, pool, show) => {
+    metrics.forEach(([lab,fn,fmt,low], i)=>{
+      const rowEl = document.querySelector(`.svrow[data-cat="${cat}"][data-idx="${i}"]`);
+      if(!rowEl) return;
+      const dot = rowEl.querySelector('.svdot'), val = rowEl.querySelector('.svval');
+      const p = (show && row) ? svPct(pool.map(fn).filter(isFinite), fn(row), low) : null;
+      if(p==null){
+        dot.style.opacity = '.3'; dot.style.left = '50%';
+        dot.style.background = 'rgba(255,255,255,.25)'; dot.textContent = '';
+        val.textContent = '—';
+      } else {
+        dot.style.opacity = '1'; dot.style.left = p+'%';
+        dot.style.background = svColor(p); dot.textContent = p;
+        val.textContent = fmt(fn(row));
+      }
+    });
+  };
+  applyRows(SV_BAT, 'bat', qb, batShow);
+  applyRows(SV_PIT, 'pit', qp, pitShow);
+  const badge = document.getElementById('svPlayYear');
+  if(badge) badge.textContent = y;
+}
+async function playPercentiles(pl){
+  if(svPlaying) return;
+  const years = svPlayableYears(pl);
+  if(years.length<2) return;
   const host = document.getElementById('savantCard');
-  if(!host) return;
-  host.querySelectorAll('.svchips button').forEach(b=>b.addEventListener('click',()=>{
-    svYear = +b.dataset.svy;
-    host.innerHTML = `<div class="svheadrow"><h3>Percentile Rankings</h3>
-      <button class="cardbtn" id="cardBtn" type="button">Player Card</button></div>
-      ${savantInner(pl)}`;
-    wireSavant(pl);
-  }));
-  const btn = document.getElementById('cardBtn');
-  if(btn) btn.addEventListener('click', ()=>downloadPlayerCard(pl, svYear));
+  const body = document.getElementById('svBody');
+  if(!host || !body) return;
+  svPlaying = true;
+  const playBtn = document.getElementById('svPlayBtn');
+  if(playBtn){ playBtn.disabled = true; playBtn.textContent = 'Playing…'; }
+  const cardBtn = document.getElementById('cardBtn');
+  if(cardBtn) cardBtn.disabled = true;
+
+  // first frame: real values via the normal svPanel, now carrying data-cat/
+  // data-idx hooks so every later frame can update these SAME elements
+  svYear = years[0];
+  const row0 = svRegRow(pl, years[0]);
+  const seasonRows0 = NAMES.map(n=>svRegRow(P[n], years[0])).filter(Boolean);
+  const qb0 = seasonRows0.filter(r=>r.G_bat>=SV_MING);
+  const qp0 = seasonRows0.filter(r=>r.IPouts>=SV_MINOUTS);
+  const batShow0 = row0.G_bat>=SV_MING || row0.G_bat>=SV_MIN_SHOW_G;
+  const pitShow0 = row0.IPouts>=SV_MINOUTS || row0.IPouts>=SV_MIN_SHOW_OUTS;
+  const panels0 = (batShow0 ? svPanel(`Batting · vs ${qb0.length}`, SV_BAT, row0, qb0, false, 'bat') : '')
+    + (pitShow0 ? svPanel(`Pitching · vs ${qp0.length}`, SV_PIT, row0, qp0, false, 'pit') : '');
+  body.innerHTML = `<p class="smeta">Playing career progression — <span id="svPlayYear">${years[0]}</span></p>
+    <div class="svpanels${(batShow0&&pitShow0)?' two':''}">${panels0}</div>`;
+
+  for(let i=1; i<years.length; i++){
+    await new Promise(r=>setTimeout(r, 900));
+    if(!document.body.contains(host)){ svPlaying=false; return; } // navigated away mid-play
+    svYear = years[i];
+    updateSavantValues(pl, years[i]);
+  }
+
+  svPlaying = false;
+  if(playBtn){ playBtn.disabled = false; playBtn.textContent = '▶ Play Progression'; }
+  if(cardBtn) cardBtn.disabled = false;
+  body.innerHTML = savantInner(pl);
+  wireSavantBody(pl);
 }
 
 /* ---- shareable percentile-rankings card (Canvas-rendered PNG) ----
