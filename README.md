@@ -6020,21 +6020,6 @@ Moved it to the header's top-right corner instead — empty space since the
 headshot/logo/name/team all sit left — at 130px, where it reads as a real
 seal instead of an afterthought. Wordmark reverted to plain text alone.
 
-## 2026-09-25 — Add shareable team-season cards
-
-New "Team Card" button on a team's one-year view, alongside the record
-cards. Same Canvas-rendered PNG construction as the player card (shares
-CARD_W/loadImg/roundRect/the header layout conventions), but there's no
-team-level percentile system on the site to visualize — OPS+/ERA+ are
-always a player compared to the league, never a team compared to other
-teams — so this reuses what the team-season page already shows instead:
-the regular-season record (from `t.seasons[y].record.Regular`), division
-standing (`divisionFinish`) and playoff result (`playoffResultFor`), plus
-the team's own top 3 hitters (by HR) and top 3 pitchers (by W) straight
-off its roster array. Era-accurate team name and logo for that season via
-the existing `histName`/`teamLogoForYear`. Same 2026-anniversary-badge/
-plain-league-logo seal in the header as the player card.
-
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

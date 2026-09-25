@@ -2313,152 +2313,6 @@ async function downloadPlayerCard(pl, year){
   }
 }
 
-async function buildTeamCard(full, year){
-  const t = TEAMS[full];
-  if(!t) return null;
-  const s = t.seasons[year];
-  const r = s && (s.record||{}).Regular;
-  if(!r) return null;
-
-  if(document.fonts && document.fonts.ready) await document.fonts.ready;
-
-  const accent = teamAccent(full) || '#041e42';
-  const colors = FRANCHISE_COLORS[full] || {p:accent, s:accent};
-  const logoImg = await loadImg(teamLogoForYear(full, year));
-  const brandLogoImg = await loadImg(year===2026 ? DB.anniversaryLogo : DB.leagueLogo);
-
-  const roster = s.roster || [];
-  const batRows = roster.map(e=>({name:e.name, ...(e.regular||{})})).filter(d=>d.PA>0);
-  const pitRows = roster.map(e=>({name:e.name, ...(e.regular||{})})).filter(d=>d.IPouts>0);
-  const topBat = [...batRows].sort((a,b)=>(b.HR-a.HR)||(b.RBI-a.RBI)).slice(0,3);
-  const topPit = [...pitRows].sort((a,b)=>(b.W-a.W)||(era(a)-era(b))).slice(0,3);
-
-  const dn = divisionOf(full, year);
-  const standing = divisionFinish(full, year, dn);
-  const po = playoffResultFor(full, year);
-
-  const HEADER_H=300, TILE_H=190, LIST_TITLE_H=56, LIST_ROW_H=60, FOOT_H=90, PAD=56;
-  const leadersNeeded = (topBat.length?1:0)+(topPit.length?1:0);
-  const rowsTotal = topBat.length+topPit.length;
-  const H = HEADER_H + TILE_H + leadersNeeded*LIST_TITLE_H + rowsTotal*LIST_ROW_H + FOOT_H + PAD;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = CARD_W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#0d1b2e';
-  ctx.fillRect(0,0,CARD_W,H);
-
-  const grad = ctx.createLinearGradient(0,0,CARD_W,HEADER_H);
-  grad.addColorStop(0, accent);
-  grad.addColorStop(1, colors.s || accent);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,CARD_W,HEADER_H);
-
-  let textX = PAD;
-  if(logoImg){
-    const LS=170, top=64;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(PAD+LS/2, top+LS/2, LS/2, 0, Math.PI*2);
-    ctx.closePath();
-    ctx.fillStyle='#fff';
-    ctx.fill();
-    ctx.clip();
-    ctx.drawImage(logoImg, PAD, top, LS, LS);
-    ctx.restore();
-    textX = PAD+LS+30;
-  }
-  if(brandLogoImg){
-    const BLS=130;
-    ctx.drawImage(brandLogoImg, CARD_W-PAD-BLS, 34, BLS, BLS);
-  }
-
-  ctx.fillStyle = '#fff';
-  ctx.font = '700 56px Oswald, Arial, sans-serif';
-  ctx.fillText(histName(full, year), textX, 138);
-  ctx.font = '500 28px "IBM Plex Sans", Arial, sans-serif';
-  ctx.globalAlpha = 0.9;
-  ctx.fillText(`${year}${dn && standing ? ` · ${standing} in ${dn}` : ''}`, textX, 176);
-  ctx.globalAlpha = 1;
-  if(po.label){
-    ctx.font = '700 26px "IBM Plex Mono", monospace';
-    ctx.fillText(po.label, textX, 214);
-  }
-  ctx.font = '600 24px "IBM Plex Mono", monospace';
-  ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
-
-  let y = HEADER_H + 30;
-  const gp = r.W+r.L+(r.T||0);
-  const tiles = [['RECORD', recWL(r)], ['PCT', rate(gp?r.W/gp:NaN)],
-    ['RF', String(r.RF)], ['RA', String(r.RA)]];
-  const tileW = (CARD_W-PAD*2)/tiles.length;
-  tiles.forEach(([lab,val], i)=>{
-    const cx = PAD + tileW*i + tileW/2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 50px Oswald, Arial, sans-serif';
-    ctx.fillText(val, cx, y+70);
-    ctx.fillStyle = '#93a0b4';
-    ctx.font = '600 20px "IBM Plex Mono", monospace';
-    ctx.fillText(lab, cx, y+108);
-  });
-  ctx.textAlign = 'left';
-  y += TILE_H;
-
-  function drawLeaders(title, rows, isBat){
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 29px Oswald, Arial, sans-serif';
-    ctx.fillText(title, PAD, y+36);
-    y += LIST_TITLE_H;
-    rows.forEach(d=>{
-      ctx.fillStyle = '#fff';
-      ctx.font = '600 27px "IBM Plex Sans", Arial, sans-serif';
-      ctx.fillText(d.name, PAD, y+38);
-      const line = isBat
-        ? `${d.HR} HR · ${d.RBI} RBI · ${rate(avg(d))}`
-        : `${d.W}-${d.L}, ${two(era(d))} ERA`;
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#c7d0dd';
-      ctx.font = '600 25px "IBM Plex Mono", monospace';
-      ctx.fillText(line, CARD_W-PAD, y+38);
-      ctx.textAlign = 'left';
-      y += LIST_ROW_H;
-    });
-  }
-  if(topBat.length) drawLeaders('Batting Leaders', topBat, true);
-  if(topPit.length) drawLeaders('Pitching Leaders', topPit, false);
-
-  ctx.fillStyle = '#5f6a7d';
-  ctx.font = '500 23px "IBM Plex Sans", Arial, sans-serif';
-  ctx.fillText('bwbwiffleball.com', PAD, H-32);
-
-  return canvas;
-}
-async function downloadTeamCard(full, year){
-  const btn = document.getElementById('teamCardBtn');
-  const setLabel = t => { if(btn) btn.textContent = t; };
-  if(btn) btn.disabled = true;
-  setLabel('Building…');
-  try{
-    const canvas = await buildTeamCard(full, year);
-    if(!canvas){ setLabel('No record yet'); return; }
-    canvas.toBlob(blob=>{
-      const fname = `${full.replace(/\s+/g,'_')}_${year}_card.png`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = fname;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      if(btn) btn.disabled = false;
-      setLabel('Team Card');
-    }, 'image/png');
-  } catch(e){
-    if(btn) btn.disabled = false;
-    setLabel('Team Card');
-  }
-}
-
 /* ---- minimal sparkline (season trajectory) ---- */
 function sparkline(pts, col){
   const valid = (pts||[]).filter(p=>isFinite(p.y));
@@ -4135,9 +3989,7 @@ function teamOneYear(t, y){
     ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}])
       + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}])
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
-  return `<div class="svheadrow"><h3 class="viewhead">${y} Season</h3>
-    <button class="cardbtn" id="teamCardBtn" type="button">Team Card</button></div>
-    <div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
+  return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
     ${rosterHTML}
     ${teamStatsBySeason(t)}
@@ -4612,8 +4464,6 @@ function teamDetail(name){
     const [yy,rk] = b.dataset.series.split('|');
     location.hash = '#/series/'+yy+'/'+rk;
   }));
-  const teamCardBtn = document.getElementById('teamCardBtn');
-  if(teamCardBtn) teamCardBtn.addEventListener('click', ()=>downloadTeamCard(name, teamYear));
   document.getElementById('editLogoBtn').addEventListener('click', ()=>{
     openImageEditor(`Team Logo — ${t.name}`, t.logo, 200, async url=>{
       const before = t.logo;
