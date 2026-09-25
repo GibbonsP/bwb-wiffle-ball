@@ -6012,6 +6012,14 @@ lockup next to the "BWB WIFFLEBALL" wordmark now shows the 15th-
 anniversary badge specifically for 2026 cards (the anniversary season)
 and the plain league logo for every other year, past or future.
 
+## 2026-09-25 — Move the player card's league badge to a proper seal
+
+The league logo (anniversary badge for 2026, plain league logo otherwise)
+was a cramped 40px icon squeezed next to the "BWB WIFFLEBALL" wordmark.
+Moved it to the header's top-right corner instead — empty space since the
+headshot/logo/name/team all sit left — at 130px, where it reads as a real
+seal instead of an afterthought. Wordmark reverted to plain text alone.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these

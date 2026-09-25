@@ -2206,6 +2206,15 @@ async function buildPlayerCard(pl, year){
     textX = PAD+LS+30;
   }
 
+  /* the header's top-right is empty (headshot/logo/name/team all sit left),
+     so the league badge gets real room to read as a seal there instead of
+     being squeezed down to a tiny icon next to the wordmark. */
+  if(brandLogoImg){
+    const BLS = 130;
+    const bx = CARD_W-PAD-BLS, by = 34;
+    ctx.drawImage(brandLogoImg, bx, by, BLS, BLS);
+  }
+
   ctx.fillStyle = '#fff';
   ctx.font = '700 62px Oswald, Arial, sans-serif';
   ctx.fillText(pl.name, textX, 150);
@@ -2213,14 +2222,8 @@ async function buildPlayerCard(pl, year){
   ctx.globalAlpha = 0.9;
   ctx.fillText(`${year} · ${histNick(full, year)}`, textX, 194);
   ctx.globalAlpha = 1;
-  let wordmarkX = PAD;
-  if(brandLogoImg){
-    const BLS = 40;
-    ctx.drawImage(brandLogoImg, PAD, HEADER_H-28-BLS+7, BLS, BLS);
-    wordmarkX = PAD+BLS+12;
-  }
   ctx.font = '600 24px "IBM Plex Mono", monospace';
-  ctx.fillText('BWB WIFFLEBALL', wordmarkX, HEADER_H-28);
+  ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
 
   let y = HEADER_H + 30;
   function drawHeadline(tiles){
