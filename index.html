@@ -5030,7 +5030,7 @@ function computeParkFactors(){
     games:0, runs:0, boxGames:0, h:0, hr:0, bb:0, so:0, obpNum:0, obpDen:0});
   GIDS.forEach(gid=>{
     const g = GAMES[gid];
-    if(g.phase!=='Regular') return;
+    if(g.phase!=='Regular' && g.phase!=='Playoffs') return;
     const y = +g.date.slice(0,4);
     const loc = g.loc && g.loc!=='TBA' ? g.loc : null;
     const runs = g.away.R + g.home.R;
@@ -5093,9 +5093,9 @@ function parkFactorsHTML(){
     Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
     (exit velocity, Hard Hit%) this league's box scores don't have — and using a simpler park-vs-league
     method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
-    Regular season game's official final score; every other column only from games with individual box
-    scores (2020 on) and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+ games at that
-    field to appear at all.</p>
+    regular-season and playoff game's official final score; every other column only from games with
+    individual box scores (2020 on) and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
+    games at that field to appear at all.</p>
     ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
 }
 let gamesView = 'list';

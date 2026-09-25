@@ -6059,6 +6059,13 @@ pitchers who played at that park also playing elsewhere) — a more
 rigorous method this data doesn't support without tracking who played
 where across parks.
 
+## 2026-09-25 — Include playoff games in Park Factors
+
+Park Factors was only counting Regular season games. A field's run/HR
+environment is a property of the field itself, not of which phase a game
+belongs to, so there's no reason to leave playoff games out of the sample
+— widened the filter to include both Regular season and Playoffs.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
