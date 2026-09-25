@@ -5963,6 +5963,17 @@ header logo) over the old `faviconLogo`, at the user's request. Description
 copy updated again across all three tags (`<meta name="description">`,
 `og:description`, `twitter:description`) to the user's new text.
 
+## 2026-09-25 — Fix flipped 2024 World Series game order
+
+Games 1 and 2 of the 2024 World Series (Kraken vs. Braves) were both
+played on the same date (2024-08-12) with no `dt` (time-of-day) field to
+break the tie, so the series page's chronological sort fell back to an
+arbitrary tiebreak that happened to list them in the wrong order (8-6
+shown as Game 1, 2-1 as Game 2). Added `dt` timestamps to both games
+(09:00/11:00), the same mechanism 58 other same-day doubleheaders in the
+data already rely on for correct ordering. Game 1 now correctly shows
+2-1, Game 2 shows 8-6.
+
 ## Outstanding work
 
 **2016 integration** — blocked on a name+team mapping from the user for these
