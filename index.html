@@ -5160,8 +5160,12 @@ function renderRecords(){
    (2017's league-wide runs/game was double 2024's). Runs PF is computed from the official
    recorded line score (away.R/home.R) — the same authoritative result box
    scores note elsewhere — across every Regular season game; every other
-   factor needs individual box-score bat lines (2020 on) and is computed
-   only from games that have them. Modeled on Baseball Savant's own Park
+   factor needs a recorded bat line and is computed only from games that have
+   one — that goes back to 2017 same as Runs PF, since these factors only
+   ever sum a game's bat lines into game-level totals (never attribute to an
+   individual player), so even this league's early team-total-as-one-line
+   games sum to the same real totals a full per-player box score would.
+   Modeled on Baseball Savant's own Park
    Factors leaderboard, minus the columns that need batted-ball tracking
    (xwOBA, Hard Hit%, etc.) this league's box scores don't have, and using
    a simpler park-vs-league-average method rather than Savant's actual
@@ -5190,7 +5194,16 @@ function computeParkFactors(){
     const runs = g.away.R + g.home.R;
     touch(leagueYear, 'league', y).games++; leagueYear.league[y].runs += runs;
     if(loc){ touch(parkYear, loc, y).games++; parkYear[loc][y].runs += runs; }
-    const hasBox = g.away.bat.length>=3 && g.home.bat.length>=3;
+    // Park Factors only ever sums a game's bat lines into game-level totals (h,
+    // hr, bb, so, obpNum/Den) — it never attributes anything to an individual
+    // player — so a game logged as one combined team-total "batter" (this
+    // league's format before per-player logging started) sums to the exact
+    // same real totals as a full multi-player box score. Requiring 3+ batters
+    // here (a threshold that matters for per-player attribution elsewhere on
+    // the site) was wrongly treating those team-total games as if they had no
+    // box score at all, which excluded 2017-2019 almost entirely even though
+    // the real, accurate totals were sitting right there.
+    const hasBox = g.away.bat.length>=1 && g.home.bat.length>=1;
     if(!hasBox) return;
     const bat = [...g.away.bat, ...g.home.bat];
     const h = bat.reduce((s,b)=>s+(b.h||0),0), hr = bat.reduce((s,b)=>s+(b.hr||0),0);
@@ -5248,7 +5261,7 @@ function parkFactorsHTML(){
     (exit velocity, Hard Hit%) this league's box scores don't have — and using a simpler park-vs-league
     method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
     regular-season and playoff game's official final score; every other column only from games with
-    individual box scores (2020 on) and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
+    a recorded bat line, back to 2017, and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
     games at that field to appear at all.</p>
     ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
 }
