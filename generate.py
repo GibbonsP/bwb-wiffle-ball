@@ -6371,6 +6371,34 @@ function gridCats(){
   return GRID_CATS;
 }
 function gridIntersection(a,b){ let n=0; a.set.forEach(x=>{ if(b.set.has(x)) n++; }); return n; }
+/* Verify a real 9-distinct-name solution exists for this rows/cols combo —
+   not just that every square individually has >=1 valid name (the old
+   check), which can still leave no way to fill all 9 with different people
+   at once. Standard augmenting-path bipartite matching: each of the 9
+   squares is a "left" node, each candidate name a "right" node: a full
+   match (all 9 squares assigned a distinct name) proves a clean, no-repeat
+   solution exists. Small enough (9 squares) that a plain DFS is instant —
+   no need for anything fancier than augmenting paths here. */
+function gridFullSolutionExists(rows, cols){
+  const pools = [];
+  for(const r of rows) for(const c of cols) pools.push([...r.set].filter(n=>c.set.has(n)));
+  const nameToCell = {};
+  function tryAssign(cellIdx, seen){
+    for(const name of pools[cellIdx]){
+      if(seen.has(name)) continue;
+      seen.add(name);
+      if(!(name in nameToCell) || tryAssign(nameToCell[name], seen)){
+        nameToCell[name] = cellIdx;
+        return true;
+      }
+    }
+    return false;
+  }
+  for(let i=0;i<pools.length;i++){
+    if(!tryAssign(i, new Set())) return false;
+  }
+  return true;
+}
 function mulberry32(seed){
   return function(){
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -6380,16 +6408,19 @@ function mulberry32(seed){
   };
 }
 function gridSeedFromString(s){ let h=0; for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h; }
-/* pick 3 row + 3 column categories with every one of the 9 squares having a real
-   answer (checked, not assumed) — retries a fresh shuffle until one works, which
-   given how much these category pools overlap resolves almost immediately */
+/* pick 3 row + 3 column categories where a full 9-square solution using 9
+   DIFFERENT people actually exists (gridFullSolutionExists) — not just each
+   square individually having an answer, which doesn't guarantee those
+   answers can all be different at once. Retries a fresh shuffle until one
+   qualifies; given how much these category pools overlap in practice this
+   resolves almost immediately (no meaningful slowdown from the extra check). */
 function pickGrid(rng){
   const pool = gridCats();
   for(let attempt=0; attempt<300; attempt++){
     const shuffled = pool.slice();
     for(let i=shuffled.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
     const rows = shuffled.slice(0,3), cols = shuffled.slice(3,6);
-    if(rows.every(r=>cols.every(c=>gridIntersection(r,c)>0))) return {rows, cols};
+    if(gridFullSolutionExists(rows, cols)) return {rows, cols};
   }
   return {rows: pool.slice(0,3), cols: pool.slice(3,6)};  // pathological fallback, never hit in practice
 }
