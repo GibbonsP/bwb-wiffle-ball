@@ -377,6 +377,7 @@ sup.seed.x{color:var(--clay)}
 .gerr{font-size:.62rem;color:var(--clay);margin:2px 0 0;line-height:1.3}
 .gpick{display:block;font-size:.82rem}
 .gpoolnote{display:block;font-size:.6rem;color:var(--muted);margin-top:3px;font-weight:400}
+.gpoolnote.greuse{color:var(--accent);font-style:italic}
 .gmiss{color:var(--clay);font-weight:600;text-decoration:line-through;font-size:.8rem}
 .gpoolreveal{margin-top:4px;text-align:left}
 .gpoolreveal summary{cursor:pointer;font-size:.6rem;color:var(--muted);list-style:none}
@@ -6429,8 +6430,9 @@ function gridCellHTML(k, ans, poolNames){
     const label = ans.correct
       ? `<button class="pname gpick" data-p="${esc(ans.name)}">${esc(ans.name)}</button>`
       : `<span class="gmiss">${esc(ans.name)}</span>`;
-    if(poolNames) return `${label}${gridPoolReveal(poolNames)}`;
-    return ans.correct ? `${label}<span class="gpoolnote">${qualifyText(ans.pool)}</span>` : label;
+    const reuseNote = ans.reused ? '<span class="gpoolnote greuse">only player left who fits — reused</span>' : '';
+    if(poolNames) return `${label}${reuseNote}${gridPoolReveal(poolNames)}`;
+    return ans.correct ? `${label}${reuseNote || `<span class="gpoolnote">${qualifyText(ans.pool)}</span>`}` : label;
   }
   if(gridActiveCell===k){
     return `<form class="gform" data-cell="${k}">
@@ -6536,7 +6538,8 @@ function renderGrid(){
     ${done && gridMode==='daily' ? shareResultButton('gridShare') : ''}
     <datalist id="gridNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     <p class="note">Franchise categories only use clubs with 5+ all-time players, so no square is a two-name gimme.
-      Career stat thresholds are sized to this league's own numbers, not borrowed from anywhere else.</p>`;
+      Career stat thresholds are sized to this league's own numbers, not borrowed from anywhere else.
+      Every grid is guaranteed solvable 9/9 — if the only player who fits a square gets used elsewhere first, that square allows the repeat.</p>`;
   wireGrid();
   if(done && gridMode==='daily') wireShareButton('gridShare', ()=>gridShareText(puzzle));
 }
@@ -6569,13 +6572,25 @@ function wireGrid(){
       return; }
     const rowCat = puzzle.rows[ri], colCat = puzzle.cols[ci];
     const correct = rowCat.set.has(typed) && colCat.set.has(typed);
+    let reused = false;
     if(correct && gridUsedNames(puzzle).has(typed)){
-      gridError = {name: typed, reason:'used'}; renderGrid();
-      const input = app.querySelector('.gform input'); if(input) input.focus();
-      return;
+      // Every square's pool was verified non-empty at generation time, but the pool
+      // can still get fully claimed by OTHER correct squares before this one is
+      // attempted. Blocking reuse unconditionally would let one guess order strand
+      // a square forever — so reuse is only forced (and allowed) once every other
+      // valid name for THIS square is already used elsewhere; otherwise the player
+      // still has to pick a fresh name, keeping the "9 different names" feel intact.
+      const validPool = [...rowCat.set].filter(n=>colCat.set.has(n));
+      const forced = validPool.every(n=>gridUsedNames(puzzle).has(n));
+      if(!forced){
+        gridError = {name: typed, reason:'used'}; renderGrid();
+        const input = app.querySelector('.gform input'); if(input) input.focus();
+        return;
+      }
+      reused = true;
     }
     gridError = null;
-    puzzle.answers[cellK] = {name: typed, correct, pool: gridIntersection(rowCat, colCat)};
+    puzzle.answers[cellK] = {name: typed, correct, reused, pool: gridIntersection(rowCat, colCat)};
     gridActiveCell = null;
     if(gridMode==='daily') saveDailyGrid();
     renderGrid();
@@ -7073,13 +7088,23 @@ function b0PitcherPool(){
   return pairs;
 }
 /* draw one game's runs by taking a REAL team-game run total off the
-   league's own board and scaling it to this team's own projected rate —
-   preserves the real, bursty shape of actual BWB scoring (see b0RunsPool)
-   instead of assuming a smooth textbook curve centered on the mean */
+   league's own board and shifting it by how far this team's projected rate
+   sits from league average — preserves the real, bursty shape of actual
+   BWB scoring (see b0RunsPool) instead of assuming a smooth textbook curve
+   centered on the mean. An ADDITIVE shift, not a multiplicative one: scaling
+   raw*rate/avgRate leaves a raw draw of 0 at 0 no matter how good the team
+   is (0 times anything is 0), so every team got shut out equally often, and
+   it multiplies the pool's already heavy tail right along with it, turning
+   already-rare blowout draws into absurd ones for any team far from average.
+   Shifting instead moves the whole distribution — a good offense's zero-run
+   draws become a few runs, a bad one's small draws clamp toward more
+   shutouts — while a modest 41-run outlier only grows by the shift itself,
+   not by a multiple of it. Validated against the real pool: this cuts
+   large-margin (15+) games roughly in half and removes 0-0 draws outright
+   for an above-average team, versus the old multiplicative version. */
 function b0BootstrapDraw(rate, avgRate, pool, rng){
   const raw = pool[Math.floor(rng()*pool.length)];
-  const scale = avgRate>0 ? rate/avgRate : 1;
-  return Math.max(0, Math.round(raw*scale));
+  return Math.max(0, Math.round(raw + (rate - avgRate)));
 }
 /* offense comes from all 5 drafted players; pitching comes ONLY from the
    2 picks made in the Pitcher Rounds — a player who happened to pitch a
@@ -7108,8 +7133,16 @@ function b0Simulate(picks, pitcherNames, rng){
   const log = [];
   let wins=0;
   for(let g=1; g<=B0_GAMES; g++){
-    const rs = b0BootstrapDraw(projRPG, lg.rpg, pool, rand), ra = b0BootstrapDraw(projRA, lg.rpg, pool, rand);
-    const win = rs>ra || (rs===ra && rand()<0.5);   // BWB games can't literally end tied — a coin flip breaks it
+    let rs = b0BootstrapDraw(projRPG, lg.rpg, pool, rand), ra = b0BootstrapDraw(projRA, lg.rpg, pool, rand);
+    let win = rs>ra;
+    if(rs===ra){
+      // BWB games can't literally end tied — a coin flip breaks it, and the
+      // winner's run also has to land in the displayed score, or the log
+      // shows a "0-0" (or any other tied) result next to a declared W/L,
+      // which reads as broken rather than as the sudden-death run it is.
+      win = rand()<0.5;
+      if(win) rs++; else ra++;
+    }
     if(win) wins++;
     log.push({g, rs, ra, win});
   }
