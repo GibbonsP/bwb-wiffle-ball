@@ -602,7 +602,7 @@ a{color:var(--accent)}
 .champhead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
 .champtext{display:flex;flex-direction:column;gap:5px;min-width:0}
 .champhead h4{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.7rem;line-height:1.1}
-.champlogo{height:140px;width:auto;flex:none}
+.champlogo{width:140px;height:140px;object-fit:contain;flex:none}
 .champbadges{display:flex;gap:12px;margin-left:auto}
 .pobadge,.wsbadge{height:96px;width:auto;border-radius:8px}
 .cscore{color:var(--muted);font-size:.88rem;font-variant-numeric:tabular-nums}
@@ -5271,11 +5271,11 @@ function parkFactorsHTML(){
     runFactor:100, obpFactor:100, hFactor:100, hrFactor:100, bbFactor:100, soFactor:100};
   return `<p class="pmeta">How much each field's offensive environment differs from that year's league
     average, blended across every year it's been used (100 = neutral; above 100 favors hitters, below
-    favors pitchers — reversed for SO PF, where below 100 favors pitchers via more strikeouts) — the
-    same era-normalized approach OPS+/ERA+ use, since this league's scoring has swung by roughly 2.5x
-    across its history and a flat cross-era number would just reward "used in a high-offense year."
+    favors pitchers, reversed for SO PF, where below 100 favors pitchers via more strikeouts), the
+    same era-normalized approach OPS+/ERA+ use, since the league's scoring has swung by roughly 2.5x
+    across history and a flat cross-era number would just reward "used in a high-offense year."
     Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
-    (exit velocity, Hard Hit%) this league's box scores don't have — and using a simpler park-vs-league
+    (exit velocity, Hard Hit%) this league's box scores don't have, and using a simpler park-vs-league
     method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
     regular-season and playoff game's official final score; every other column only from games with
     a recorded bat line, back to 2017, and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
