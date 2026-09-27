@@ -6042,7 +6042,7 @@ const HISTORY_STORY = [
 ];
 /* Order and selection set by Parker directly (not every photo made the cut). */
 const HISTORY_PHOTOS = [
-  '14.jpg','13.jpg','12.jpg','22.jpg','9.jpg','6.jpg','23.jpg','3.jpg','24.jpg','4.jpg',
+  '14.jpg','13.jpg','12.jpg','24.jpg','9.jpg','6.jpg','23.jpg','3.jpg','22.jpg','4.jpg',
 ];
 function historyPhotoHTML(src){
   return `<div class="historyshot"><img src="img/history/${src}" alt="" loading="lazy"></div>`;
