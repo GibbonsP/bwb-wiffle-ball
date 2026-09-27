@@ -1414,8 +1414,8 @@ function renderHome(){
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
     ${champbar}
-    ${trailerHTML}
     ${bracketSnap}
+    ${trailerHTML}
     ${standingsSnap}
     <h3 class="hsub">${LY} season leaders</h3>
     <div class="llgrid">${yGrid}</div>
