@@ -2829,17 +2829,36 @@ function cmpCareerQual(c){
     pitShow: c.IPouts<SV_MINOUTS && c.IPouts>=SV_MIN_SHOW_OUTS,
   };
 }
-/* one player's own stacked Batting-then-Pitching panels (the exact same
-   svPanel() a solo player page uses), reused as-is for each side of the
-   comparison instead of merging both players onto one shared dot-per-row
-   bar — putting each player's whole percentile picture together on their
-   own side reads more like "look at their profile" than "spot two dots
-   sharing a track," which is the point of a side-by-side comparison. */
-function cmpSvSide(pl, c, q){
-  const bat = q.batOK ? svPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, CMP_POOL_BAT, false)
-    : q.batShow ? svPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, CMP_POOL_BAT, true) : '';
-  const pit = q.pitOK ? svPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, CMP_POOL_PIT, false)
-    : q.pitShow ? svPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, CMP_POOL_PIT, true) : '';
+/* same row layout as the solo-page svPanel(), but each row also compares
+   this subject's raw value against the OTHER player's (respecting each
+   metric's own low-is-better flag) and bolds the value when this side
+   wins — the whole point of putting both players' stat lines side by side
+   is spotting who's actually better at a glance, not just where each one
+   ranks in isolation. */
+function cmpSvPanel(title, metrics, subject, other, pool, unqualified){
+  const rows = metrics.map(([lab,fn,fmt,low])=>{
+    const p = svPct(pool.map(fn).filter(isFinite), fn(subject), low);
+    if(p==null) return '';
+    const vA = fn(subject), vB = fn(other);
+    const win = isFinite(vA) && isFinite(vB) && vA!==vB && (low ? vA<vB : vA>vB);
+    return `<div class="svrow${unqualified?' svunq':''}"><span class="svlab">${lab}</span>
+      <span class="svbar"><span class="svdot" style="left:${p}%;background:${svColor(p)}">${p}</span></span>
+      <span class="svval${win?' cmpwin':''}">${fmt(vA)}</span></div>`;
+  }).join('');
+  const titleHTML = unqualified ? `${esc(title)} <span class="svunqtag">est. · unqualified</span>` : esc(title);
+  return rows ? `<div class="svpanel${unqualified?' svpanel-unq':''}"><h4>${titleHTML}</h4>${rows}</div>` : '';
+}
+/* one player's own stacked Batting-then-Pitching panels, reused for each
+   side of the comparison instead of merging both players onto one shared
+   dot-per-row bar — putting each player's whole percentile picture
+   together on their own side reads more like "look at their profile"
+   than "spot two dots sharing a track," which is the point of a
+   side-by-side comparison. */
+function cmpSvSide(pl, c, other, q){
+  const bat = q.batOK ? cmpSvPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, other, CMP_POOL_BAT, false)
+    : q.batShow ? cmpSvPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, other, CMP_POOL_BAT, true) : '';
+  const pit = q.pitOK ? cmpSvPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, other, CMP_POOL_PIT, false)
+    : q.pitShow ? cmpSvPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, other, CMP_POOL_PIT, true) : '';
   if(!bat && !pit) return '';
   return `<div class="cmpsvside"><h4 class="cmpsvname">${esc(pl.name)}</h4>
     <div class="svpanels">${bat}${pit}</div></div>`;
@@ -2850,7 +2869,7 @@ function cmpSavantHTML(a, b){
   const showBat = qa.batOK||qa.batShow||qb.batOK||qb.batShow;
   const showPit = qa.pitOK||qa.pitShow||qb.pitOK||qb.pitShow;
   if(!showBat && !showPit) return '';
-  const sideA = cmpSvSide(a, ca, qa), sideB = cmpSvSide(b, cb, qb);
+  const sideA = cmpSvSide(a, ca, cb, qa), sideB = cmpSvSide(b, cb, ca, qb);
   const anyUnq = (showBat && !qa.batOK) || (showBat && !qb.batOK) || (showPit && !qa.pitOK) || (showPit && !qb.pitOK);
   return `<section class="savant"><h3>Percentile Comparison</h3>
     <p class="smeta">Career totals, percentile vs every qualified player's own career (${SV_MING}+ G batting,
