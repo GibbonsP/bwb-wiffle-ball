@@ -798,7 +798,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .logohist-item span{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:12px;flex:none}
-.pheadlogo{width:40px;height:40px;object-fit:contain;flex:none;margin-left:10px}
+.pheadlogo{width:56px;height:56px;object-fit:contain;flex:none;margin-left:10px}
 .banner{width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:18px;
   box-shadow:var(--shadow);display:block}
 .barchart text{font-family:"IBM Plex Sans",sans-serif}
