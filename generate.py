@@ -1921,7 +1921,7 @@ function yearAwards(pl, y){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const out = [];
   if(h.rings.some(r=>r.year===y)) out.push('WS');
-  h.awards.filter(a=>a.year===y).forEach(a=>{ const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
+  if(!HIDDEN_AWARD_YEARS.has(y)) h.awards.filter(a=>a.year===y).forEach(a=>{ const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
   if(h.asg.some(s=>s.year===y)) out.push('AS');
   return out.join(', ');
 }
@@ -2607,13 +2607,14 @@ function accolades(pl){
   const hrdYears = (typeof HRD_BY_PLAYER!=='undefined' && HRD_BY_PLAYER[pl.name]) || [];
   const asgMvpYears = (typeof ASGMVP_BY_PLAYER!=='undefined' && ASGMVP_BY_PLAYER[pl.name]) || [];
   const nwHonors = (typeof NWLA_BY_PLAYER!=='undefined' && NWLA_BY_PLAYER[pl.name]) || [];
-  if(!(h.rings.length || h.awards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length || nwHonors.length)) return '';
+  const visibleAwards = h.awards.filter(a=>!HIDDEN_AWARD_YEARS.has(a.year));
+  if(!(h.rings.length || visibleAwards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length || nwHonors.length)) return '';
   const rings = h.rings.length ? `<div class="acc-block">
     <h4>${h.rings.length}× World Series</h4>
     <div class="rings">${h.rings.map(r=>`<span class="ring">${TROPHY} ${r.year} <span class="rt">${histNickLink(r.team, r.year)}</span></span>`).join('')}</div>
   </div>` : '';
   const grp = {};
-  h.awards.forEach(a=>{ (grp[a.award] = grp[a.award] || []).push(a.year); });
+  visibleAwards.forEach(a=>{ (grp[a.award] = grp[a.award] || []).push(a.year); });
   if(hrdYears.length) grp['Home Run Derby Champion'] = hrdYears.slice();
   if(asgMvpYears.length) grp['All-Star Game MVP'] = asgMvpYears.slice();
   const gkeys = Object.keys(grp).sort((a,b)=>{
@@ -5632,6 +5633,10 @@ function playerNWLASplits(pl, selYear){
 const CHAMPS = DB.champs || [];
 const CHAMP_SRC = 'https://bwbwiffleball.blogspot.com/p/champs-of-bwb-wiffleball.html';
 const AWARDS = DB.awards || {};
+/* 2026's ballot is still being finalized — hide it from every awards
+   surface (Awards page, team Awards tab, player pages) without touching
+   the underlying data, so it's a one-line revert once it's official. */
+const HIDDEN_AWARD_YEARS = new Set([2026]);
 const ASG = DB.asg || {};
 /* Home Run Derby champs live only on the year-by-year ASG record (a.hrd), not in any
    player's honors.awards — build a name lookup so a player's own Accolades card can
@@ -5785,7 +5790,7 @@ function asgSection(){
 }
 
 function awardsSection(){
-  const yrs=Object.keys(AWARDS).map(Number).sort((a,b)=>b-a);
+  const yrs=Object.keys(AWARDS).map(Number).filter(y=>!HIDDEN_AWARD_YEARS.has(y)).sort((a,b)=>b-a);
   const winnerCell = r => {
     if(r.award==='Team of the Year') return esc(r.winner);
     if(r.award==='Game Of The Year' && r.gid) return `<button class="pname" data-g="${r.gid}">${esc(r.winner)}</button>`;
@@ -5810,7 +5815,7 @@ function awardsSection(){
   }).join('');
   return `<h3 class="hsub" id="h-awards">Annual Awards</h3>
     <p class="lead">League awards by year, ${yrs[yrs.length-1]}–${yrs[0]}. 2016 and earlier (plus 2017)
-    were voted by division. 2026 is a preview ballot.</p>${blocks}`;
+    were voted by division.</p>${blocks}`;
 }
 
 function nwlaAwardsSection(){
@@ -5910,6 +5915,7 @@ const NON_PLAYER_AWARDS = new Set(['Sox Trophy']);
 function teamAwardEntries(fullName){
   const out = [];
   Object.keys(AWARDS).forEach(y=>{
+    if(HIDDEN_AWARD_YEARS.has(+y)) return;
     AWARDS[y].forEach(r=>{
       if(!r.team || NON_PLAYER_AWARDS.has(r.award)) return;
       const teamParts = r.team.split(/\s*[/,]\s*/);
