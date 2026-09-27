@@ -820,16 +820,17 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .followcard.pw .fico{background:none}
 .followcard b{display:block;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1rem}
 .followcard span{color:var(--muted);font-size:.8rem}
-.history-story{max-width:70ch}
-.history-story p{font-size:.98rem;line-height:1.68;margin:0 0 18px}
-.history-era{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.05rem;
-  letter-spacing:.02em;color:var(--accent);margin:30px 0 8px;text-transform:uppercase}
-.history-gallery-head{margin:44px 0 6px}
-.historygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin:18px 0 36px}
+.history-layout{display:grid;grid-template-columns:1fr 300px;gap:36px;align-items:start}
+@media (max-width:760px){.history-layout{grid-template-columns:1fr}}
+.history-story{font-size:.98rem;line-height:1.68}
+.history-story p{margin:0 0 18px}
+.history-signoff{margin:34px 0 0;font-size:.98rem;line-height:1.6}
+.history-signoff .sig{display:block;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.1rem;margin-top:4px}
+.history-signoff .role{display:block;color:var(--muted);font-size:.82rem}
+.history-photorail{display:flex;flex-direction:column;gap:14px}
 .historyshot{border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--shadow);
-  overflow:hidden;display:flex;flex-direction:column}
+  overflow:hidden}
 .historyshot img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--accent-soft)}
-.historyshot figcaption{margin:0;padding:9px 12px;font-size:.76rem;color:var(--muted);line-height:1.4}
 </style>
 
 <header class="mast">
@@ -6012,73 +6013,63 @@ function officeCard(name, titles, big){
 }
 /* ============================== HISTORY ==============================
    The league's own origin story, written by its founder, plus a photo
-   gallery. Static content — no data dependency — grouped into loose
-   chronological "eras" mirroring how the essay itself is written (each
-   paragraph already anchors to a year), so a reader can scan the timeline
-   without reading every word. Photos ship as real files under img/history/
-   (not base64 in players.json) for the same reason favicon.png does —
-   plain static files load faster and stay crawlable, and 19 full-size
-   photos would bloat players.json by several megabytes for no benefit. */
+   rail alongside it. Static content — no data dependency. Photos ship as
+   real files under img/history/ (not base64 in players.json) for the same
+   reason favicon.png does — plain static files load faster and stay
+   crawlable, and 19 full-size photos would bloat players.json by several
+   megabytes for no benefit. */
 const HISTORY_STORY = [
-  {era:'How It Started', text:`My brother and I would often play wiffleball in our front yard, beginning with the big, eight-hole Wiffle Ball. Once enough cars were hit, we were banished to the backyard, and soon enough, we started inviting friends from the block over to join us. The pickup games became more and more frequent, and eventually, we started keeping track of wins and losses and recording all of the games on a Flip camera.`},
-  {era:'2012 — The First Season', text:`In 2012, we decided to start a league with six teams and seven total players: Parker Gibbons, Peter Fraioli, Brandon Gibbons, Joey Cardascia, Darien Sharpe, Kento Kamezaki, and AJ Cefaloni, five of whom lived on our block next to "Beaver Brook." My backyard, Brookside Field, became the epicenter of the league and hosted every game. We played a 15 game season, culminating in Kento Kamezaki winning the first ever league championship.`},
-  {era:'2013 — School Takes Over', text:`The next spring, we brought the league to school, and it soon took over recess. While Kento unfortunately moved away, we gained three new captains, AJ Cefaloni, Peter Sposato, and Tochi Onwuasoanya, along with significant players such as Vinny Spoto and Austin Corvino. We now had eight teams and more than 40 players playing a 40 game season at fields across town from March through September. What started as pickup games on the block had quickly turned into a competition involving people and places all across town.`},
-  {era:'2015 — Middle School', text:`Once we went to middle school in 2015, the league began to grow beyond our "Downtown" section of Harrison and into other parts of town. The league gained new star players such as Victor Cottini and Evan Wilkins. The team count returned to six, but the rosters continued to grow. Griffin Krueger became the league's newest captain and commissioner, becoming crucial to managing league operations alongside Peter Fraioli and me. Brentwood Park also quickly emerged as the new favorite place to play, with all of us taking the bus there after school or gathering on weekends for long days in the sun.`},
-  {era:'2017 — High School', text:`We entered high school in 2017, and the league moved into a new era. The top heavy nature of the league started to fade, and it began to feel like anyone's game. Evan Wilkins became a captain, and his team quickly became a legitimate contender. Vinny Spoto's squad also established itself as a force to be reckoned with after he became a captain in 2016. Jake Quigley rose to captainship in 2018, and his squad became the first team besides the Kraken or Panthers to win a league championship since Kento's Sox in the inaugural season.`},
-  {era:'2020', text:`The current era of the league quickly became its most competitive yet. The 2020 World Series between Jake's Special K's and Evan's The Process was historic, with the Special K's overcoming a Game 1 loss to win the next two games. It was the first championship series in league history to go to three games, requiring a winner take all Game 3 to decide the title.`},
-  {era:'2021 — Year 10', text:`Once our 10th annual season arrived in 2021, I genuinely wasn't sure what was next for the league as our high school era came to a close. The league gained the Gladiators, captained by Austin Corvino, and the Dragons, captained by Chris Canno, and the season reached new heights. The year culminated in the Panthers defeating the Kraken in the World Series, bringing a 10 year rivalry to center stage in a pivotal year for the league.`},
-  {era:'2022', text:`Needing to fill two team slots in 2022, TJ Ciafone's Shock and Dean Corvino's Bananas stepped up with squads that changed the course of the league for the better. With the most active players in league history since 2014, the league's competition and commitment rose to a level I never believed it could reach.`},
-  {text:`2022 also marked the retirement of Brookside Field, the place that had been home to the majority of the league's moments and memories up to that point. We began playing at Downtown Metro, the league's first pitcher friendly field, which would become a staple of the league for years to come. Pitching and hitting had never been more difficult, and every team posed a unique series of challenges for its opponents.`},
-  {text:`Even with the college schedule forcing a May start date, the league's schedule worked to perfection, with every team playing every game before the preseason defined postseason period. Austin Corvino's Gladiators pulled off an incredible upset, defeating TJ Ciafone's Shock in the World Series and capping off what was, without a doubt, the most successful season in league history to that point.`},
-  {era:'2023', text:`The following season saw the return of all six teams and somehow followed up the most successful season in league history with even greater heights. Rosters grew in size, and games became more fiercely competitive. With a week left to go in the regular season, every squad remained within reach of the postseason.`},
-  {text:`Ultimately, Austin's Gladiators would go on a magical postseason run, coming back from a Game 1 extra inning no hitter loss to win the next two games and claim their second consecutive title. Game 3 featured a game tying two run single by Tommy Peck with two outs, becoming perhaps the most clutch individual at bat in league history.`},
-  {era:'2024', text:`The league remained as competitive as ever in 2024, with my Kraken squad finally ending our nine year championship drought. We defeated Vinny and Victor Cottini's Braves in their inaugural season in a World Series filled with some of the league's most clutch moments, including Theo Canning's go ahead walk off home run with two outs in the bottom of the third inning of Game 1.`},
-  {era:'2025', text:`In 2025, two new teams, the Snapping Turtles and Titans, joined the league. Peter Fraioli's Panthers came back from a 1-7 start to put together an unbelievable underdog story, sweeping the Kraken in the World Series to earn their league leading fifth title.`},
-  {era:'2026 — Year 15', text:`2026 marked Year 15 for the league, a feat I never thought would be possible. TJ Ciafone revived the Shock after a year hiatus, and Jake Quigley made his return to captainship to round out the six teams. Another phenomenal season, filled with competitive games from start to finish, culminated in the Shock raising the trophy for the first time in franchise history.`},
-  {text:`2026 also marked the league's first NWLA Tournament and our first wins on the national stage, an unforgettable experience that we will work to build on in 2027.`},
-  {era:'Looking Back', text:`As we wrap up Year 15, it still baffles me how our pickup games in the backyard have turned into competing with some of the best leagues in the country. I am so grateful for everyone who has ever played in the league, because that is what keeps it going at the end of the day. Somehow, the league just keeps getting better every year.`},
-  {text:`Specifically, Peter Fraioli and Trevor Meyler have been at the forefront of making the league the best it can be every year. It has become a staple of my summer and has taught me the importance of the relationships that matter in life, and how great something can become when people are passionate and committed to it.`},
-  {text:`At the end of the day, we are out playing ball with the boys, and there aren't many experiences I would trade for it.`},
+  `My brother and I would often play wiffleball in our front yard, beginning with the big, eight-hole Wiffle Ball. Once enough cars were hit, we were banished to the backyard, and soon enough, we started inviting friends from the block over to join us. The pickup games became more and more frequent, and eventually, we started keeping track of wins and losses and recording all of the games on a Flip camera.`,
+  `In 2012, we decided to start a league with six teams and seven total players: Parker Gibbons, Peter Fraioli, Brandon Gibbons, Joey Cardascia, Darien Sharpe, Kento Kamezaki, and AJ Cefaloni, five of whom lived on our block next to "Beaver Brook." My backyard, Brookside Field, became the epicenter of the league and hosted every game. We played a 15 game season, culminating in Kento Kamezaki winning the first ever league championship.`,
+  `The next spring, we brought the league to school, and it soon took over recess. While Kento unfortunately moved away, we gained three new captains, AJ Cefaloni, Peter Sposato, and Tochi Onwuasoanya, along with significant players such as Vinny Spoto and Austin Corvino. We now had eight teams and more than 40 players playing a 40 game season at fields across town from March through September. What started as pickup games on the block had quickly turned into a competition involving people and places all across town.`,
+  `Once we went to middle school in 2015, the league began to grow beyond our "Downtown" section of Harrison and into other parts of town. The league gained new star players such as Victor Cottini and Evan Wilkins. The team count returned to six, but the rosters continued to grow. Griffin Krueger became the league's newest captain and commissioner, becoming crucial to managing league operations alongside Peter Fraioli and me. Brentwood Park also quickly emerged as the new favorite place to play, with all of us taking the bus there after school or gathering on weekends for long days in the sun.`,
+  `We entered high school in 2017, and the league moved into a new era. The top heavy nature of the league started to fade, and it began to feel like anyone's game. Evan Wilkins became a captain, and his team quickly became a legitimate contender. Vinny Spoto's squad also established itself as a force to be reckoned with after he became a captain in 2016. Jake Quigley rose to captainship in 2018, and his squad became the first team besides the Kraken or Panthers to win a league championship since Kento's Sox in the inaugural season.`,
+  `The current era of the league quickly became its most competitive yet. The 2020 World Series between Jake's Special K's and Evan's The Process was historic, with the Special K's overcoming a Game 1 loss to win the next two games. It was the first championship series in league history to go to three games, requiring a winner take all Game 3 to decide the title.`,
+  `Once our 10th annual season arrived in 2021, I genuinely wasn't sure what was next for the league as our high school era came to a close. The league gained the Gladiators, captained by Austin Corvino, and the Dragons, captained by Chris Canno, and the season reached new heights. The year culminated in the Panthers defeating the Kraken in the World Series, bringing a 10 year rivalry to center stage in a pivotal year for the league.`,
+  `Needing to fill two team slots in 2022, TJ Ciafone's Shock and Dean Corvino's Bananas stepped up with squads that changed the course of the league for the better. With the most active players in league history since 2014, the league's competition and commitment rose to a level I never believed it could reach.`,
+  `2022 also marked the retirement of Brookside Field, the place that had been home to the majority of the league's moments and memories up to that point. We began playing at Downtown Metro, the league's first pitcher friendly field, which would become a staple of the league for years to come. Pitching and hitting had never been more difficult, and every team posed a unique series of challenges for its opponents.`,
+  `Even with the college schedule forcing a May start date, the league's schedule worked to perfection, with every team playing every game before the preseason defined postseason period. Austin Corvino's Gladiators pulled off an incredible upset, defeating TJ Ciafone's Shock in the World Series and capping off what was, without a doubt, the most successful season in league history to that point.`,
+  `The following season saw the return of all six teams and somehow followed up the most successful season in league history with even greater heights. Rosters grew in size, and games became more fiercely competitive. With a week left to go in the regular season, every squad remained within reach of the postseason.`,
+  `Ultimately, Austin's Gladiators would go on a magical postseason run, coming back from a Game 1 extra inning no hitter loss to win the next two games and claim their second consecutive title. Game 3 featured a game tying two run single by Tommy Peck with two outs, becoming perhaps the most clutch individual at bat in league history.`,
+  `The league remained as competitive as ever in 2024, with my Kraken squad finally ending our nine year championship drought. We defeated Vinny and Victor Cottini's Braves in their inaugural season in a World Series filled with some of the league's most clutch moments, including Theo Canning's go ahead walk off home run with two outs in the bottom of the third inning of Game 1.`,
+  `In 2025, two new teams, the Snapping Turtles and Titans, joined the league. Peter Fraioli's Panthers came back from a 1-7 start to put together an unbelievable underdog story, sweeping the Kraken in the World Series to earn their league leading fifth title.`,
+  `2026 marked Year 15 for the league, a feat I never thought would be possible. TJ Ciafone revived the Shock after a year hiatus, and Jake Quigley made his return to captainship to round out the six teams. Another phenomenal season, filled with competitive games from start to finish, culminated in the Shock raising the trophy for the first time in franchise history.`,
+  `2026 also marked the league's first NWLA Tournament and our first wins on the national stage, an unforgettable experience that we will work to build on in 2027.`,
+  `As we wrap up Year 15, it still baffles me how our pickup games in the backyard have turned into competing with some of the best leagues in the country. I am so grateful for everyone who has ever played in the league, because that is what keeps it going at the end of the day. Somehow, the league just keeps getting better every year.`,
+  `Specifically, Peter Fraioli and Trevor Meyler have been at the forefront of making the league what it is today. Peter has been by my side since day one, constantly going above and beyond to help the league grow and improve year after year. Since Trevor joined the league in 2019, he has played a pivotal role in all aspects of league operations, always stepping up and willing to help wherever he can.`,
+  `BWB has become a staple of my summer and, more importantly, has taught me the value of the relationships that matter most in life. It has shown me how great something can become when people are passionate, committed, and willing to put in the work to build something meaningful together.`,
+  `At the end of the day, we are out playing ball with the boys, and there aren't many experiences I would trade for it.`,
 ];
-const HISTORY_EARLY_PHOTOS = [
-  {src:'12.jpg', cap:'Pickup games in the front yard — the format that started it all.'},
-  {src:'13.jpg', cap:'Another afternoon game on the block.'},
-  {src:'14.jpg', cap:'Backyard at-bats, long before there was a website to track them.'},
-  {src:'15.jpg', cap:'Celebrating a game, backyard-era style.'},
+/* Best-guess chronological order from what's visible in each photo (trophy
+   plaques, shirt text, apparent age of the kids) — flagged to Parker as a
+   guess, not confirmed; easy to reorder this list once he gives the real
+   order. */
+const HISTORY_PHOTOS = [
+  '12.jpg','13.jpg','14.jpg','15.jpg',
+  '19.jpg','21.jpg','20.jpg',
+  '10.jpg','11.jpg',
+  '6.jpg','8.jpg','9.jpg','7.jpg',
+  '4.jpg','17.jpg',
+  '16.webp',
+  '18.jpg',
+  '3.jpg','5.jpg',
 ];
-const HISTORY_ERA_PHOTOS = [
-  {src:'10.jpg', cap:'The 2021 championship trophy, marking the league’s 10th annual season.'},
-  {src:'11.jpg', cap:'The Panthers with the 2021 title, capping their 10-year rivalry with the Kraken.'},
-  {src:'6.jpg', cap:'A rainbow over the field mid-game.'},
-  {src:'8.jpg', cap:'On the field at Downtown Metro.'},
-  {src:'9.jpg', cap:'The Gladiators with the trophy at dusk.'},
-  {src:'7.jpg', cap:'The Gladiators celebrate their second straight championship in 2023.'},
-  {src:'4.jpg', cap:'The 2024 World Series champion Brookside Kraken.'},
-  {src:'17.jpg', cap:'The Kraken celebrate the 2024 title.'},
-  {src:'16.webp', cap:'The Panthers celebrate their league-leading fifth championship in 2025.'},
-  {src:'18.jpg', cap:'The Shock hoist the trophy in 2026 — their first championship in franchise history.'},
-  {src:'3.jpg', cap:'Captains and players from across the league gather for a season.'},
-  {src:'5.jpg', cap:'Another year, another group of captains and players.'},
-  {src:'20.jpg', cap:'The Process with the championship trophy.'},
-  {src:'19.jpg', cap:'Champions pose with the trophy.'},
-  {src:'21.jpg', cap:'Another season, another trophy.'},
-];
-function historyPhotoHTML(p){
-  return `<figure class="historyshot"><img src="img/history/${p.src}" alt="" loading="lazy">
-    <figcaption>${esc(p.cap)}</figcaption></figure>`;
+function historyPhotoHTML(src){
+  return `<div class="historyshot"><img src="img/history/${src}" alt="" loading="lazy"></div>`;
 }
 function renderHistory(){
   setNav('history');
-  const storyHTML = HISTORY_STORY.map(s=>
-    (s.era ? `<h3 class="history-era">${esc(s.era)}</h3>` : '') + `<p>${esc(s.text)}</p>`).join('');
+  const storyHTML = HISTORY_STORY.map(t=>`<p>${esc(t)}</p>`).join('');
   app.innerHTML = `
     <div class="phead"><h2>History</h2></div>
     <p class="lead">How six backyard teams and seven players in 2012 grew into a 15-year-old league — in the founder's own words.</p>
-    <div class="history-story">${storyHTML}</div>
-    <h3 class="hsub history-gallery-head">The Backyard Years</h3>
-    <div class="historygrid">${HISTORY_EARLY_PHOTOS.map(historyPhotoHTML).join('')}</div>
-    <h3 class="hsub history-gallery-head">Through the Years</h3>
-    <div class="historygrid">${HISTORY_ERA_PHOTOS.map(historyPhotoHTML).join('')}</div>`;
+    <div class="history-layout">
+      <div>
+        <div class="history-story">${storyHTML}</div>
+        <p class="history-signoff"><span class="sig">— Parker Gibbons</span><span class="role">Commissioner</span></p>
+      </div>
+      <div class="history-photorail">${HISTORY_PHOTOS.map(historyPhotoHTML).join('')}</div>
+    </div>`;
 }
 function renderOffice(){
   setNav('office');
