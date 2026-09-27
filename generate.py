@@ -5780,7 +5780,7 @@ function champsSection(){
         </div>
         ${badges}
       </div>
-      ${c.photo?`<img class="champphoto" src="${c.photo}" alt="${esc(c.full)} — ${c.y} champions" loading="lazy">`:''}
+      ${c.photo?`<img class="champphoto" src="${c.photo}" alt="${esc(c.full)} — ${c.y} champions" loading="lazy"${c.photoW?` style="aspect-ratio:${c.photoW}/${c.photoH}"`:''}>`:''}
       ${rosterHTML}
     </div>`;
   }).join('');
@@ -6389,7 +6389,7 @@ function renderBeaverTournament(dateKey){
     <button class="back" id="back">← Brookside Beavers</button>
     ${hero}
     ${overview}
-    ${t.photo?`<img class="champphoto" src="${t.photo}" alt="Brookside Beavers — ${esc(bvTournamentLabel(t))}">`:''}
+    ${t.photo?`<img class="champphoto" src="${t.photo}" alt="Brookside Beavers — ${esc(bvTournamentLabel(t))}"${t.photoW?` style="aspect-ratio:${t.photoW}/${t.photoH}"`:''}>`:''}
     <h3 class="hsub">Roster</h3>
     ${bvRosterGrid(bat, pit, t.extraRoster)}
     <h3 class="hsub">Batting</h3>
