@@ -486,6 +486,7 @@ table.h2hsub thead th{padding:7px 10px}
 .dir td.tm{color:var(--muted)}
 .pt{color:var(--clay);font-weight:700;padding-left:1px}
 .estd{color:var(--gold);font-weight:700}
+.asgstar{color:var(--gold);margin-left:3px;font-size:.85em}
 .detail tbody tr.estrow td.lft:first-child{font-style:italic}
 .nopost{border:1px dashed var(--line-strong);border-radius:12px;padding:22px;color:var(--muted);
   font-size:.9rem;text-align:center}
@@ -1922,7 +1923,6 @@ function yearAwards(pl, y){
   const out = [];
   if(h.rings.some(r=>r.year===y)) out.push('WS');
   if(!HIDDEN_AWARD_YEARS.has(y)) h.awards.filter(a=>a.year===y).forEach(a=>{ const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
-  if(h.asg.some(s=>s.year===y)) out.push('AS');
   return out.join(', ');
 }
 
@@ -1932,7 +1932,10 @@ function phaseBlock(pl, type){
   const meta = PHASE_META[type];
   const career = sumRows(rows.filter(d=>!d.split));   // split rows would double-count
   const yrs = yearsOf(pl, type);
-  const seasonCols = [{l:'Season',f:d=>d.year+(d.est?'<span class="estd" title="estimated">†</span>':'')},{l:'Tm',f:teamCell,noTot:1}];
+  const seasonCols = [{l:'Season',f:d=>{
+    const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
+    return d.year+(d.est?'<span class="estd" title="estimated">†</span>':'')+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
+  }},{l:'Tm',f:teamCell,noTot:1}];
   const awCol = type==='Regular'
     ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year)}] : [];
 
@@ -2650,8 +2653,8 @@ function accolades(pl){
   return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${nw}${asg}${noHit}
     <p class="acc-leg">In the season tables below, the <b>Awards</b> column marks that year:
     WS champion · MVP · CYA Cy Young · RoY Rookie of the Year · SS Silver Slugger · GH Golden Hands ·
-    BT Batting Title · HRK Home Run King · RoR Reliever · CPoY Comeback · MgrY Manager · PoMVP Postseason MVP ·
-    AS All-Star.${nh.length?' No-hitters and perfect games are from the league\'s own record — see the Records page.':''}</p></section>`;
+    BT Batting Title · HRK Home Run King · RoR Reliever · CPoY Comeback · MgrY Manager · PoMVP Postseason MVP.
+    A <span class="asgstar">★</span> next to the year marks an All-Star season.${nh.length?' No-hitters and perfect games are from the league\'s own record — see the Records page.':''}</p></section>`;
 }
 
 let playerTab = 'Regular', logYear = null, splitYear = 'all', playerSubView = 'stats';
