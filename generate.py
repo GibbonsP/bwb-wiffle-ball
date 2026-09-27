@@ -7607,8 +7607,15 @@ route();
    can't do that for a data: URI (it only exists inline in the HTML your browser already
    loaded), which is why the icon wasn't showing up in search results even though it
    displayed fine in the browser tab.'''
-_favicon_header, _favicon_b64 = LEAGUE_LOGO.split(',', 1)
-open('favicon.png', 'wb').write(base64.b64decode(_favicon_b64))
+if LEAGUE_LOGO.startswith('data:'):
+    _favicon_header, _favicon_b64 = LEAGUE_LOGO.split(',', 1)
+    open('favicon.png', 'wb').write(base64.b64decode(_favicon_b64))
+else:
+    # logos now ship as real files under img/data/ (extracted from the old
+    # inline data: URIs to cut ~10MB of duplicated base64 out of every page
+    # load) — copy the referenced file straight through instead of decoding.
+    import shutil
+    shutil.copyfile(LEAGUE_LOGO, 'favicon.png')
 open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', 'favicon.png'))
 print('wrote index.html')
 print('wrote favicon.png')
