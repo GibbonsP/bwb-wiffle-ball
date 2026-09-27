@@ -646,6 +646,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .champbar .pname{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700}
 .herofeature{border-radius:8px;overflow:hidden;margin:0 0 24px;box-shadow:var(--shadow);background:var(--brandbar)}
 .herophoto{display:block;width:100%;aspect-ratio:16/9;max-height:480px;object-fit:cover;object-position:center 22%}
+.videowrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;
+  box-shadow:var(--shadow);margin-bottom:26px;background:#000}
+.videowrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .herocap{background:var(--brandbar);color:var(--brandbar-ink);padding:18px 22px 20px}
 .herotag{display:inline-block;background:var(--clay);color:#fff;font-family:"Oswald","Arial Narrow",sans-serif;
   font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:3px;margin-bottom:10px}
@@ -1401,10 +1404,17 @@ function renderHome(){
   const poY = poYears[poYears.length-1];
   const bracketSnap = poY ? `<h3 class="hsub">${poY} Playoffs</h3>${playoffBracket(poY)}` : '';
 
+  const trailerHTML = `<h3 class="hsub">15th Anniversary Season Trailer</h3>
+    <div class="videowrap"><iframe src="https://www.youtube.com/embed/7zS2dLZCkzI"
+      title="BWB Wiffleball — 15th Anniversary Season Trailer" loading="lazy"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen></iframe></div>`;
+
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
     ${champbar}
+    ${trailerHTML}
     ${bracketSnap}
     ${standingsSnap}
     <h3 class="hsub">${LY} season leaders</h3>
