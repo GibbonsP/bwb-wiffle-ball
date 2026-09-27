@@ -4188,8 +4188,8 @@ function teamOneYear(t, y){
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
     ${rosterHTML}
-    ${teamStatsBySeason(t)}
-    ${gameLog(s.games, y)}`;
+    ${gameLog(s.games, y)}
+    ${teamStatsBySeason(t)}`;
 }
 
 /* compact franchise-history overview: one row per year, shown regardless of the year picker */
