@@ -5,6 +5,7 @@ _db = json.loads(data)
 LEAGUE_LOGO = _db.get('anniversaryLogo') or _db.get('faviconLogo') or _db.get('leagueLogo', '')
 
 HTML = r'''<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BWB Wiffleball</title>
 <meta name="description" content="Official website of the Brookside Wiffleball League, a fast pitch wiffleball league based in Harrison, New York.">
 <link rel="canonical" href="https://bwbwiffleball.com/">
@@ -108,7 +109,7 @@ header.mast{background:var(--brandbar)}
 
 .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);
   box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;min-width:100%;font-variant-numeric:tabular-nums}
 thead th{position:sticky;top:0;background:var(--accent);z-index:2;
   font-family:"Oswald","Arial Narrow",sans-serif;
   font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);
