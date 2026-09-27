@@ -6047,6 +6047,7 @@ const HISTORY_PHOTOS = [
   '16.webp',
   '18.jpg',
   '3.jpg','5.jpg',
+  '22.jpg','23.jpg','24.jpg',
 ];
 function historyPhotoHTML(src){
   return `<div class="historyshot"><img src="img/history/${src}" alt="" loading="lazy"></div>`;
@@ -6056,7 +6057,6 @@ function renderHistory(){
   const storyHTML = HISTORY_STORY.map(t=>`<p>${esc(t)}</p>`).join('');
   app.innerHTML = `
     <div class="phead"><h2>History</h2></div>
-    <p class="lead">How six backyard teams and seven players in 2012 grew into a 15-year-old league — in the founder's own words.</p>
     <div class="history-layout">
       <div>
         <div class="history-story">${storyHTML}</div>
