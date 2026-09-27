@@ -228,12 +228,10 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
     repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 3px, transparent 3px 6px),
     linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
 .svrow.svunq .svdot{border-style:dashed;border-width:2px;opacity:.85}
-.cmpsvbar .svdot{font-size:.56rem;overflow:visible}
-.svdotltr{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-  font-size:.5rem;font-weight:800;line-height:1.4;color:var(--ink);background:var(--card);
-  border:1px solid var(--line-strong);border-radius:3px;padding:0 3px;pointer-events:none}
-.svrow.cmpsvunq{opacity:.85}
-.svdot.svunq-dot{border-style:dashed;border-width:2px;opacity:.7}
+.cmpsvgrid{display:grid;grid-template-columns:1fr;gap:10px 30px}
+@media(min-width:700px){.cmpsvgrid{grid-template-columns:1fr 1fr}}
+.cmpsvside{border-top:2px solid var(--line-strong);padding-top:10px}
+.cmpsvname{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.05rem;margin:0 0 6px}
 
 .accolades{margin:0 0 34px}
 .acc-block{margin:0 0 16px}
@@ -2837,21 +2835,20 @@ function cmpCareerQual(c){
     pitShow: c.IPouts<SV_MINOUTS && c.IPouts>=SV_MIN_SHOW_OUTS,
   };
 }
-function cmpSvRow(label, fn, fmt, low, ca, cb, pool, unqA, unqB, nameA, nameB){
-  const vals = pool.map(fn).filter(isFinite);
-  const pA = svPct(vals, fn(ca), low), pB = svPct(vals, fn(cb), low);
-  if(pA==null && pB==null) return '';
-  const dot = (p, unq, letter, nm) => p==null ? '' :
-    `<span class="svdot${unq?' svunq-dot':''}" style="left:${p}%;background:${svColor(p)}"
-      title="${esc(nm)} — ${ORDINAL_TH(p)} percentile${unq?' (estimate — below the qualification bar)':''}">
-      <b class="svdotltr">${letter}</b>${p}</span>`;
-  return `<div class="svrow${(unqA&&pA!=null)||(unqB&&pB!=null)?' cmpsvunq':''}"><span class="svlab">${label}</span>
-    <span class="svbar cmpsvbar">${dot(pA,unqA,'A',nameA)}${dot(pB,unqB,'B',nameB)}</span>
-    <span class="svval">${isFinite(fn(ca))?fmt(fn(ca)):'—'} · ${isFinite(fn(cb))?fmt(fn(cb)):'—'}</span></div>`;
-}
-function cmpSvPanel(title, metrics, ca, cb, pool, unqA, unqB, nameA, nameB){
-  const rows = metrics.map(([lab,fn,fmt,low])=>cmpSvRow(lab, fn, fmt, low, ca, cb, pool, unqA, unqB, nameA, nameB)).join('');
-  return rows ? `<div class="svpanel"><h4>${esc(title)}</h4>${rows}</div>` : '';
+/* one player's own stacked Batting-then-Pitching panels (the exact same
+   svPanel() a solo player page uses), reused as-is for each side of the
+   comparison instead of merging both players onto one shared dot-per-row
+   bar — putting each player's whole percentile picture together on their
+   own side reads more like "look at their profile" than "spot two dots
+   sharing a track," which is the point of a side-by-side comparison. */
+function cmpSvSide(pl, c, q){
+  const bat = q.batOK ? svPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, CMP_POOL_BAT, false)
+    : q.batShow ? svPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, c, CMP_POOL_BAT, true) : '';
+  const pit = q.pitOK ? svPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, CMP_POOL_PIT, false)
+    : q.pitShow ? svPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, c, CMP_POOL_PIT, true) : '';
+  if(!bat && !pit) return '';
+  return `<div class="cmpsvside"><h4 class="cmpsvname">${esc(pl.name)}</h4>
+    <div class="svpanels">${bat}${pit}</div></div>`;
 }
 function cmpSavantHTML(a, b){
   const ca = a.careerReg, cb = b.careerReg;
@@ -2859,16 +2856,15 @@ function cmpSavantHTML(a, b){
   const showBat = qa.batOK||qa.batShow||qb.batOK||qb.batShow;
   const showPit = qa.pitOK||qa.pitShow||qb.pitOK||qb.pitShow;
   if(!showBat && !showPit) return '';
-  const batHTML = showBat ? cmpSvPanel(`Batting · vs ${CMP_POOL_BAT.length}`, SV_BAT, ca, cb, CMP_POOL_BAT, !qa.batOK, !qb.batOK, a.name, b.name) : '';
-  const pitHTML = showPit ? cmpSvPanel(`Pitching · vs ${CMP_POOL_PIT.length}`, SV_PIT, ca, cb, CMP_POOL_PIT, !qa.pitOK, !qb.pitOK, a.name, b.name) : '';
+  const sideA = cmpSvSide(a, ca, qa), sideB = cmpSvSide(b, cb, qb);
   const anyUnq = (showBat && !qa.batOK) || (showBat && !qb.batOK) || (showPit && !qa.pitOK) || (showPit && !qb.pitOK);
   return `<section class="savant"><h3>Percentile Comparison</h3>
     <p class="smeta">Career totals, percentile vs every qualified player's own career (${SV_MING}+ G batting,
-      ${SV_MINOUTS/3}+ IP pitching) · <b>A</b> = ${esc(a.name)}, <b>B</b> = ${esc(b.name)} ·
+      ${SV_MINOUTS/3}+ IP pitching) ·
       <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing.
       K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.
-      ${anyUnq?' Faded dots are below the qualification bar — shown as an estimate, not a real ranking.':''}</p>
-    <div class="svpanels two">${batHTML}${pitHTML}</div>
+      ${anyUnq?' Faded, dashed rows are below the qualification bar — shown as an estimate, not a real ranking.':''}</p>
+    <div class="cmpsvgrid">${sideA}${sideB}</div>
   </section>`;
 }
 function renderComparePicker(prefA, prefB, notFound){
