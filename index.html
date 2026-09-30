@@ -7544,7 +7544,7 @@ function dispatch(h){
   if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){
-    playerTab = 'Regular'; playerSubView = 'stats'; logYear = null; splitYear = 'all';
+    playerTab = 'Regular'; playerSubView = 'stats'; logYear = null; splitYear = 'all'; svYear = null;
     return detail(decodeURIComponent(m[1]));
   }
   if(h === '#/players') return renderDir();
