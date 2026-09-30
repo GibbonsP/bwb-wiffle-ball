@@ -5909,14 +5909,23 @@ function seriesAwardsSection(){
     const logo = teamLogoForYear(full, year);
     return `<span class="tmcell">${logoIcon(logo,'','llogo llogo-sm')}${histTeamLink(full, year)}</span>`;
   };
+  /* the winner's own team logo, not either matchup badge above — resolved
+     through playerTeamsForYear same as an All-Star roster spot, so it's
+     always the honoree's real team even though a Player of the Week isn't
+     tied to a single matchup the way a Player of the Series is. */
+  const winnerHTML = (name, year) => {
+    const teams = playerTeamsForYear(name, year);
+    const logo = teams.length ? teamLogoForYear(teams[0], year) : null;
+    return `<span class="tmcell">${logo?logoIcon(logo,'','llogo llogo-sm'):''}${plink(name)}</span>`;
+  };
   const weekHTML = (year, wk, w) => {
     const rows = (w.series||[]).map(s=>{
       const [a,b] = s.teams.split('/');
       return `<div class="pweek-row">
         <span class="pweek-matchup">${teamBadge(a,year)}<span class="vs">vs</span>${teamBadge(b,year)}</span>
-        <span class="pweek-winner">${plink(s.player)}</span></div>`;
+        <span class="pweek-winner">${winnerHTML(s.player,year)}</span></div>`;
     }).join('');
-    const potw = w.potw ? `<div class="pweek-potw"><b>Player of the Week:</b> ${plink(w.potw)}</div>` : '';
+    const potw = w.potw ? `<div class="pweek-potw"><b>Player of the Week:</b> ${winnerHTML(w.potw,year)}</div>` : '';
     return `<div class="pweek"><h5>Week ${wk}</h5>${rows || '<p class="mut">No series played.</p>'}${potw}</div>`;
   };
   const yearBlocks = yrs.map(y=>{
@@ -5925,7 +5934,7 @@ function seriesAwardsSection(){
     return `<div class="asgyear"><h4>${y} Season</h4>
       <div class="pweekgrid">${wkKeys.map(wk=>weekHTML(y, wk, weeks[wk])).join('')}</div></div>`;
   }).join('');
-  return `<h3 class="hsub" id="h-series">Player of the Series &amp; Week</h3>
+  return `<h3 class="hsub" id="h-series">Series &amp; Weekly Awards</h3>
     <p class="lead">One Player of the Series per 3-game regular-season matchup, and one Player of the Week
     chosen from that week's series winners, ${yrs[yrs.length-1]}–${yrs[0]}.</p>
     ${yearBlocks}`;
@@ -6019,7 +6028,7 @@ function renderAwards(){
   const tabBar = `<div class="subtabs" role="group" aria-label="Section">
     <button data-at="awards" aria-pressed="${awardsTab==='awards'}">Awards</button>
     <button data-at="asg" aria-pressed="${awardsTab==='asg'}">All-Star Games</button>
-    <button data-at="series" aria-pressed="${awardsTab==='series'}">Player of the Series/Week</button>
+    <button data-at="series" aria-pressed="${awardsTab==='series'}">Series &amp; Weekly Awards</button>
     <button data-at="nwla" aria-pressed="${awardsTab==='nwla'}">NWLA Awards</button>
   </div>`;
   const note = awardsTab==='asg'
