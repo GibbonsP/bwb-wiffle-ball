@@ -2674,7 +2674,7 @@ function accolades(pl){
   const potwRow = weeklyHonors.length ? `<div><dt>Player of the Week${weeklyHonors.length>1?` <b>×${weeklyHonors.length}</b>`:''}</dt>
     <dd>${weeklyHonors.slice().sort(wkSort).map(e=>`${e.year} Wk${e.week}`).join(', ')}</dd></div>` : '';
   const weekly = (seriesHonors.length || weeklyHonors.length) ? `<div class="acc-block">
-    <h4>Player of the Series &amp; Week</h4>
+    <h4>Series &amp; Weekly Awards</h4>
     <dl class="awroll">${potsRow}${potwRow}</dl>
   </div>` : '';
   const nhPerf = nh.filter(x=>x.perfect).length;
