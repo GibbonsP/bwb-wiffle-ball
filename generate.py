@@ -6055,7 +6055,7 @@ function renderAwards(){
   const body = awardsTab==='asg' ? asgSection() : awardsTab==='series' ? seriesAwardsSection()
     : awardsTab==='nwla' ? nwlaAwardsSection() : awardsSection();
   app.innerHTML = `
-    <div class="phead"><h2>Awards &amp; All-Star</h2></div>
+    <div class="phead"><h2>Awards</h2></div>
     ${tabBar}
     ${body}
     ${note}`;
