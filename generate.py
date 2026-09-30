@@ -6030,8 +6030,9 @@ function teamNwlaEntries(fullName){
    old team-code reference on this page already goes through. */
 const ASG_PRE2017_TEAM = {
   '2012|Brandon Gibbons':'Tornadoes', '2012|Darien Sharpe':'Bears', '2012|Parker Gibbons':'Capitals',
+  '2012|Kento Kamezaki':'Sox',
   '2013|Brandon Gibbons':'Warriors', '2013|Joey Cardascia':'Squirrels', '2013|Darien Sharpe':'Royals',
-  '2013|Parker Gibbons':'Eagles', '2013|Peter Fraioli':'Panthers',
+  '2013|Parker Gibbons':'Eagles', '2013|Peter Fraioli':'Panthers', '2013|Davis Kim':'Eagles',
   '2014|AJ Cefaloni':'Aces', '2014|Brandon Gibbons':'Warriors', '2014|Peter Fraioli':'Panthers',
   '2014|Vinny Spoto':'Warriors', '2014|Darien Sharpe':'Royals', '2014|Joey Cardascia':'Squirrels',
   '2014|Parker Gibbons':'Eagles', '2014|Tochi Onwuasoanya':'Angels',
