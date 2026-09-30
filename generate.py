@@ -622,6 +622,13 @@ a{color:var(--accent)}
 .asgcol li.mut{list-style:none;color:var(--muted);margin-left:-1.4em}
 .asgmeta{margin:11px 0 0;padding-top:9px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
 .asgmeta b{color:var(--ink);font-weight:600}
+.pweekgrid{display:grid;gap:10px}
+.pweek{border-top:1px solid var(--line);padding-top:10px}
+.pweek:first-child{border-top:none;padding-top:0}
+.pweek h5{margin:0 0 6px;font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.pweek-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.87rem;margin:3px 0;flex-wrap:wrap}
+.pweek-matchup{display:flex;align-items:center;gap:2px}
+.pweek-potw{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:.85rem}
 .awyear{margin-bottom:20px}
 .awyear h4{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.2rem;margin:0 0 8px}
 .awyear h5{font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
@@ -2629,8 +2636,11 @@ function accolades(pl){
   const hrdYears = (typeof HRD_BY_PLAYER!=='undefined' && HRD_BY_PLAYER[pl.name]) || [];
   const asgMvpYears = (typeof ASGMVP_BY_PLAYER!=='undefined' && ASGMVP_BY_PLAYER[pl.name]) || [];
   const nwHonors = (typeof NWLA_BY_PLAYER!=='undefined' && NWLA_BY_PLAYER[pl.name]) || [];
+  const seriesHonors = (typeof SERIES_BY_PLAYER!=='undefined' && SERIES_BY_PLAYER[pl.name]) || [];
+  const weeklyHonors = (typeof WEEKLY_BY_PLAYER!=='undefined' && WEEKLY_BY_PLAYER[pl.name]) || [];
   const visibleAwards = h.awards.filter(a=>!HIDDEN_AWARD_YEARS.has(a.year));
-  if(!(h.rings.length || visibleAwards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length || nwHonors.length)) return '';
+  if(!(h.rings.length || visibleAwards.length || h.asg.length || nh.length || hrdYears.length || asgMvpYears.length
+    || nwHonors.length || seriesHonors.length || weeklyHonors.length)) return '';
   const rings = h.rings.length ? `<div class="acc-block">
     <h4>${h.rings.length}× World Series</h4>
     <div class="rings">${h.rings.map(r=>`<span class="ring">${TROPHY} ${r.year} <span class="rt">${histNickLink(r.team, r.year)}</span></span>`).join('')}</div>
@@ -2664,12 +2674,21 @@ function accolades(pl){
     <h4>${h.asg.length}× All-Star${caps?` · ${caps}× captain`:''}</h4>
     <p class="acc-years">${h.asg.map(s=>`${s.year}${s.cap?'<span class="capdot">C</span>':''}`).join('&nbsp; ')}</p>
   </div>` : '';
+  const wkSort = (a,b) => b.year-a.year || b.week-a.week;
+  const potsRow = seriesHonors.length ? `<div><dt>Player of the Series${seriesHonors.length>1?` <b>×${seriesHonors.length}</b>`:''}</dt>
+    <dd>${seriesHonors.slice().sort(wkSort).map(e=>`${e.year} Wk${e.week}`).join(', ')}</dd></div>` : '';
+  const potwRow = weeklyHonors.length ? `<div><dt>Player of the Week${weeklyHonors.length>1?` <b>×${weeklyHonors.length}</b>`:''}</dt>
+    <dd>${weeklyHonors.slice().sort(wkSort).map(e=>`${e.year} Wk${e.week}`).join(', ')}</dd></div>` : '';
+  const weekly = (seriesHonors.length || weeklyHonors.length) ? `<div class="acc-block">
+    <h4>Player of the Series &amp; Week</h4>
+    <dl class="awroll">${potsRow}${potwRow}</dl>
+  </div>` : '';
   const nhPerf = nh.filter(x=>x.perfect).length;
   const noHit = nh.length ? `<div class="acc-block">
     <h4>${nh.length} No-Hitter${nh.length>1?'s':''}${nhPerf?` · ${nhPerf} Perfect Game${nhPerf>1?'s':''}`:''}</h4>
     <p class="acc-years">${nh.map(x=>`${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)} vs ${histNickLink(x.opp, +x.date.slice(0,4))}${x.perfect?' <span class="estd">Perfect Game</span>':''}`).join('<br>')}</p>
   </div>` : '';
-  return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${nw}${asg}${noHit}
+  return `<section class="stat accolades"><h3>Accolades</h3>${rings}${aw}${nw}${asg}${weekly}${noHit}
     <p class="acc-leg">In the season tables below, the <b>Awards</b> column marks that year:
     WS champion · MVP · CYA Cy Young · RoY Rookie of the Year · SS Silver Slugger · GH Golden Hands ·
     BT Batting Title · HRK Home Run King · RoR Reliever · CPoY Comeback · MgrY Manager · PoMVP Postseason MVP.
@@ -4597,7 +4616,8 @@ function teamAccolades(name){
       if(entry && entry[1]==='^') titleEntries.push({year:+y, div:dn});
     });
   });
-  const hasAwards = teamAwardEntries(name).length > 0 || teamNwlaEntries(name).length > 0;
+  const hasAwards = teamAwardEntries(name).length > 0 || teamNwlaEntries(name).length > 0
+    || teamAsgEntries(name).length > 0 || teamSeriesEntries(name).length > 0 || teamWeeklyEntries(name).length > 0;
   if(!wsYears.length && !pennantEntries.length && !titleEntries.length && !hasAwards) return '';
   /* a classic 3-column trophy — a wiffleball finial, star, tapering neck,
      a disc on three gold pillars around a center medallion, a base with a
@@ -5743,7 +5763,31 @@ const AWARD_TEAM_ALIAS = {
   'Buf':'Kraken', 'Das':'Braves', 'Mus':'Mustangs', 'GLA':'Gladiators', 'SHK':'Shock',
   'Wicked':'Aces', 'Wic':'Aces', 'Man':'Lavahogs', 'Bul':'Mustangs',
   'Dev':'Devils', 'Eag':'Kraken', 'Wia':'Aces',
+  /* all-caps 3-letter codes used on the Player of the Series/Week sheet
+     (SERIES_AWARDS below) — that sheet's own convention, distinct from the
+     mixed-case short codes above even where a team already has one. */
+  'DRA':'Dragons', 'KRA':'Kraken', 'BAN':'Bananas', 'BRV':'Braves',
+  'DTT':'Titans', 'KNG':'Kings', 'SNA':'Snapping Turtles', 'TUR':'Snapping Turtles',
 };
+/* Player of the Series (one per 3-game regular-season series, since the
+   league moved to that format in 2022) and Player of the Week (one per
+   week, drawn from that week's series winners) — from the league's own
+   hand-kept record. Stored per year/week: `series` is one entry per
+   matchup that week ({teams: two AWARD_TEAM_ALIAS codes joined "/",
+   player}), `potw` is that week's overall pick, and a matchup with no
+   standout performance simply has no entry (not every series produces
+   one). Flattened into per-player lookups the same way NWLA_BY_PLAYER
+   above is, for use on the Accolades card. */
+const SERIES_AWARDS = DB.seriesAwards || {};
+const SERIES_BY_PLAYER = {}, WEEKLY_BY_PLAYER = {};
+Object.entries(SERIES_AWARDS).forEach(([y, weeks])=>{
+  Object.entries(weeks).forEach(([wk, w])=>{
+    (w.series||[]).forEach(s=>{
+      (SERIES_BY_PLAYER[s.player] = SERIES_BY_PLAYER[s.player] || []).push({year:+y, week:+wk, teams:s.teams});
+    });
+    if(w.potw) (WEEKLY_BY_PLAYER[w.potw] = WEEKLY_BY_PLAYER[w.potw] || []).push({year:+y, week:+wk});
+  });
+});
 /* link a player name that may carry "(C)", periods (A.J.), or be a "/"/"," list */
 function plink(raw){
   if(!raw) return '';
@@ -5759,15 +5803,16 @@ function plink(raw){
 }
 /* same name-cleaning as plink(), but for a single All-Star roster spot —
    also resolves and shows the small logo of whichever franchise that player
-   was actually on that year (via asgPlayerTeams below), since an ASG squad
-   is a division all-star team mixing players from every franchise in it. */
+   was actually on that year (via playerTeamsForYear below), since an ASG
+   squad is a division all-star team mixing players from every franchise
+   in it. */
 function asgPlayerHTML(raw, year){
   const cap = /\(c\)/i.test(raw);
   const disp = raw.replace(/\s*\(c\)\s*/ig,'').trim();
   let key = disp;
   if(!P[key]) key = disp.replace(/\./g,'');
   if(!P[key]) key = ({'Trevor Fraioli':'Trevor Meyler'})[disp] || disp;
-  const teams = asgPlayerTeams(key, year);
+  const teams = playerTeamsForYear(key, year);
   const logo = teams.length ? teamLogoForYear(teams[0], year) : null;
   const nameHTML = P[key] ? `<button class="pname" data-p="${esc(key)}">${esc(disp)}</button>` : esc(disp);
   return `<span class="tmcell">${logo?logoIcon(logo,'','llogo llogo-sm'):''}${nameHTML}${cap?' <span class="cap">C</span>':''}</span>`;
@@ -5855,6 +5900,41 @@ function asgSection(){
     <p class="lead">Rosters, results, game MVPs and Home Run Derby champions, ${yrs[yrs.length-1]}–${yrs[0]}.
     Squads were North / South through 2021, then Brookside / Brentwood.</p>
     ${blocks}`;
+}
+
+/* Player of the Series (one per matchup) and Player of the Week (one per
+   week, drawn from that week's series winners) — every regular season
+   since the league moved to 3-game series in 2022. Grouped the same way
+   asgSection() groups by year above, one card per season with a row per
+   week's matchups underneath. */
+function seriesAwardsSection(){
+  const yrs = Object.keys(SERIES_AWARDS).map(Number).sort((a,b)=>b-a);
+  const teamBadge = (code, year) => {
+    const full = nickToFullTeam(code);
+    if(!full) return esc(code);
+    const logo = teamLogoForYear(full, year);
+    return `<span class="tmcell">${logoIcon(logo,'','llogo llogo-sm')}${histTeamLink(full, year)}</span>`;
+  };
+  const weekHTML = (year, wk, w) => {
+    const rows = (w.series||[]).map(s=>{
+      const [a,b] = s.teams.split('/');
+      return `<div class="pweek-row">
+        <span class="pweek-matchup">${teamBadge(a,year)}<span class="vs">vs</span>${teamBadge(b,year)}</span>
+        <span class="pweek-winner">${plink(s.player)}</span></div>`;
+    }).join('');
+    const potw = w.potw ? `<div class="pweek-potw"><b>Player of the Week:</b> ${plink(w.potw)}</div>` : '';
+    return `<div class="pweek"><h5>Week ${wk}</h5>${rows || '<p class="mut">No series played.</p>'}${potw}</div>`;
+  };
+  const yearBlocks = yrs.map(y=>{
+    const weeks = SERIES_AWARDS[y];
+    const wkKeys = Object.keys(weeks).map(Number).sort((a,b)=>a-b);
+    return `<div class="asgyear"><h4>${y} Season</h4>
+      <div class="pweekgrid">${wkKeys.map(wk=>weekHTML(y, wk, weeks[wk])).join('')}</div></div>`;
+  }).join('');
+  return `<h3 class="hsub" id="h-series">Player of the Series &amp; Week</h3>
+    <p class="lead">One Player of the Series per 3-game regular-season matchup, and one Player of the Week
+    chosen from that week's series winners, ${yrs[yrs.length-1]}–${yrs[0]}.</p>
+    ${yearBlocks}`;
 }
 
 function awardsSection(){
@@ -5945,19 +6025,26 @@ function renderAwards(){
   const tabBar = `<div class="subtabs" role="group" aria-label="Section">
     <button data-at="awards" aria-pressed="${awardsTab==='awards'}">Awards</button>
     <button data-at="asg" aria-pressed="${awardsTab==='asg'}">All-Star Games</button>
+    <button data-at="series" aria-pressed="${awardsTab==='series'}">Player of the Series/Week</button>
     <button data-at="nwla" aria-pressed="${awardsTab==='nwla'}">NWLA Awards</button>
   </div>`;
   const note = awardsTab==='asg'
     ? `<p class="note">All-Star history from the league's own ASG records. Names link to a player or
        franchise page where one exists in the database (2017 on). <span class="cap">C</span> marks an
        All-Star captain.</p>`
+    : awardsTab==='series'
+    ? `<p class="note">Player of the Series (one per 3-game regular-season series) and Player of the Week
+       (one per week) since the league moved to that schedule format in 2022. Names link to a player or
+       franchise page where one exists in the database. A series with no standout performance has no
+       award for that week.</p>`
     : awardsTab==='nwla'
     ? `<p class="note">BWB's placements at the NWLA national tournament, from the league's own record —
        separate from the Brookside Beavers' own tournament trips. Names link to a player or franchise
        page where one exists in the database (2017 on).</p>`
     : `<p class="note">Annual awards from the league's own award records. Names link to a player or
        franchise page where one exists in the database (2017 on). World Series champions have their own tab.</p>`;
-  const body = awardsTab==='asg' ? asgSection() : awardsTab==='nwla' ? nwlaAwardsSection() : awardsSection();
+  const body = awardsTab==='asg' ? asgSection() : awardsTab==='series' ? seriesAwardsSection()
+    : awardsTab==='nwla' ? nwlaAwardsSection() : awardsSection();
   app.innerHTML = `
     <div class="phead"><h2>Awards &amp; All-Star</h2></div>
     ${tabBar}
@@ -6056,12 +6143,13 @@ const ASG_PRE2017_TEAM = {
   '2016|Vinny Spoto':'Dashers',
 };
 const nickToFullTeam = nick => NICK2FULL[AWARD_TEAM_ALIAS[nick]||nick] || null;
-/* the franchise(s) a given player was actually on for a given All-Star
-   year — teamsByYear when the database covers it (2017 on, "/"-joined for
-   a mid-season trade), ASG_PRE2017_TEAM otherwise. Shared by teamAsgEntries
-   (which team page(s) an honor belongs on) and the All-Star Games roster
-   display (which team logo to show next to a name). */
-function asgPlayerTeams(name, year){
+/* the franchise(s) a given player was actually on for a given season —
+   teamsByYear when the database covers it (2017 on, "/"-joined for a
+   mid-season trade), ASG_PRE2017_TEAM otherwise (All-Star only, so this
+   falls through to [] for any other pre-2017 use). Shared by teamAsgEntries
+   and the All-Star Games roster display (which team logo to show next to
+   a name), and by the Player of the Week team lookups below. */
+function playerTeamsForYear(name, year){
   const tby = (P[name] && P[name].teamsByYear || {})[year];
   if(tby && tby.team) return tby.team.split(' / ');
   const full = nickToFullTeam(ASG_PRE2017_TEAM[year+'|'+name]);
@@ -6072,10 +6160,39 @@ function teamAsgEntries(fullName){
   NAMES.forEach(n=>{
     const h = P[n].honors || {asg:[]};
     (h.asg||[]).forEach(s=>{
-      if(asgPlayerTeams(n, s.year).includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
+      if(playerTeamsForYear(n, s.year).includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
     });
   });
   return out.sort((a,b)=>b.year-a.year || a.name.localeCompare(b.name));
+}
+/* Player of the Series entries for a franchise — matched straight off the
+   matchup's own two team codes (SERIES_AWARDS already records exactly
+   which two teams played, so unlike ASG this never needs a teamsByYear
+   lookup to figure out who the honoree even played for). */
+function teamSeriesEntries(fullName){
+  const out = [];
+  Object.entries(SERIES_AWARDS).forEach(([y,weeks])=>{
+    Object.entries(weeks).forEach(([wk,w])=>{
+      (w.series||[]).forEach(s=>{
+        if(s.teams.split('/').some(c=>nickToFullTeam(c)===fullName))
+          out.push({year:+y, week:+wk, name:s.player, teams:s.teams});
+      });
+    });
+  });
+  return out.sort((a,b)=>b.year-a.year || b.week-a.week);
+}
+/* Player of the Week entries for a franchise — unlike a series award, a
+   week's pick isn't tied to a single matchup, so this resolves through
+   playerTeamsForYear the same way an All-Star selection does. */
+function teamWeeklyEntries(fullName){
+  const out = [];
+  Object.entries(SERIES_AWARDS).forEach(([y,weeks])=>{
+    Object.entries(weeks).forEach(([wk,w])=>{
+      if(w.potw && playerTeamsForYear(w.potw, +y).includes(fullName))
+        out.push({year:+y, week:+wk, name:w.potw});
+    });
+  });
+  return out.sort((a,b)=>b.year-a.year || b.week-a.week);
 }
 function renderTeamAwards(name){
   setNav('teams');
@@ -6100,6 +6217,20 @@ function renderTeamAwards(name){
     <ul class="pa-list">${asgEntries.map(e=>`<li><span class="pa-yr">${e.year}</span>
       <button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button>${e.cap?' <span class="cap">C</span>':''}
       <span class="azm">(${esc(e.squad)})</span></li>`).join('')}</ul></div>` : '';
+  const seriesOpponent = (teams, year) => {
+    const other = teams.split('/').map(nickToFullTeam).find(f=>f && f!==name);
+    return other ? histNick(other, year) : '';
+  };
+  const seriesEntries = teamSeriesEntries(name);
+  const seriesBlocks = seriesEntries.length ? `<div class="pa-block"><h4>${seriesEntries.length}× Player of the Series</h4>
+    <ul class="pa-list">${seriesEntries.map(e=>`<li><span class="pa-yr">${e.year}</span>
+      <button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button>
+      <span class="azm">(Wk ${e.week} vs ${esc(seriesOpponent(e.teams,e.year))})</span></li>`).join('')}</ul></div>` : '';
+  const weeklyEntries = teamWeeklyEntries(name);
+  const weeklyBlocks = weeklyEntries.length ? `<div class="pa-block"><h4>${weeklyEntries.length}× Player of the Week</h4>
+    <ul class="pa-list">${weeklyEntries.map(e=>`<li><span class="pa-yr">${e.year}</span>
+      <button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button>
+      <span class="azm">(Wk ${e.week})</span></li>`).join('')}</ul></div>` : '';
   const nwlaEntries = teamNwlaEntries(name);
   const nwlaGrouped = {};
   nwlaEntries.forEach(e=>{ (nwlaGrouped[e.label] = nwlaGrouped[e.label] || []).push(e); });
@@ -6115,10 +6246,12 @@ function renderTeamAwards(name){
     <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Awards</h2></div></div>
     ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No awards on record for this franchise.</p>'}
     ${asgBlocks ? `<h3 class="hsub">All-Star Selections</h3><div class="pa-grid">${asgBlocks}</div>` : ''}
+    ${(seriesBlocks||weeklyBlocks) ? `<h3 class="hsub">Player of the Series &amp; Week</h3><div class="pa-grid">${seriesBlocks}${weeklyBlocks}</div>` : ''}
     ${nwlaBlocks ? `<h3 class="hsub">NWLA Awards</h3><div class="pa-grid">${nwlaBlocks}</div>` : ''}
     <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
     All-Star selections are resolved to whichever franchise a player was actually on that season — the
-    All-Star roster itself only records the division squad, not the team.
+    All-Star roster itself only records the division squad, not the team. Player of the Series/Week has
+    been tracked since the league moved to 3-game regular-season series in 2022.
     The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
     accolades for titles and pennants.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
