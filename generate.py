@@ -5718,6 +5718,13 @@ const AWARD_TEAM_ALIAS = {
   'Hotdoggers':'Lavahogs', 'Hogriders':'Lavahogs', 'Soxs':'Sox', 'Bulldogs':'Mustangs',
   'Eagles':'Kraken', 'Bluefish':'Kraken', 'Mustangs&Kraken':'Kraken', 'Brentwood Dashers':'Braves',
   'Sea Thieves':'Lavahogs', 'Pawsox':'PawSox', 'Dra':'Dragons', 'Shk':'Shock',
+  /* pre-2017 Lavahogs/Kraken/Royals eras, from the league's own ASG rosters —
+     these three franchises cycled through a new nickname almost every year
+     early on (see FRANCHISE_TIMELINE), well before AWARDS/NICK2FULL existed
+     to track it, so All-Star selections from those years need the same
+     alias treatment as any other historical team code. */
+  'Tornadoes':'Lavahogs', 'Warriors':'Lavahogs', 'Manatees':'Lavahogs',
+  'Capitals':'Kraken', 'Bears':'Royals',
   /* 3-letter (or otherwise abbreviated) team codes used on some pre-2018
      multi-winner award rows (Golden Hands / Silver Slugger co-winners),
      confirmed against the league's own records rather than guessed. */
@@ -5739,6 +5746,21 @@ function plink(raw){
     const el = P[key] ? `<button class="pname" data-p="${esc(key)}">${esc(disp)}</button>` : esc(disp);
     return el + (cap?' <span class="cap">C</span>':'');
   }).join(', ')).join(' / ');
+}
+/* same name-cleaning as plink(), but for a single All-Star roster spot —
+   also resolves and shows the small logo of whichever franchise that player
+   was actually on that year (via asgPlayerTeams below), since an ASG squad
+   is a division all-star team mixing players from every franchise in it. */
+function asgPlayerHTML(raw, year){
+  const cap = /\(c\)/i.test(raw);
+  const disp = raw.replace(/\s*\(c\)\s*/ig,'').trim();
+  let key = disp;
+  if(!P[key]) key = disp.replace(/\./g,'');
+  if(!P[key]) key = ({'Trevor Fraioli':'Trevor Meyler'})[disp] || disp;
+  const teams = asgPlayerTeams(key, year);
+  const logo = teams.length ? teamLogoForYear(teams[0], year) : null;
+  const nameHTML = P[key] ? `<button class="pname" data-p="${esc(key)}">${esc(disp)}</button>` : esc(disp);
+  return `<span class="tmcell">${logo?logoIcon(logo,'','llogo llogo-sm'):''}${nameHTML}${cap?' <span class="cap">C</span>':''}</span>`;
 }
 function tnick(raw, year){
   if(!raw) return '';
@@ -5807,7 +5829,7 @@ function asgSection(){
   const boxFor=y=>Object.keys(GAMES).find(id=>GAMES[id].phase==='AllStar'&&GAMES[id].date.slice(0,4)==y);
   const blocks=yrs.map(y=>{
     const a=ASG[y], gid=boxFor(y);
-    const sq=s=>`<div class="asgcol"><h5>${esc(s.name)} ${y}</h5><ol>${s.players.map(p=>`<li>${plink(p)}</li>`).join('')||'<li class="mut">—</li>'}</ol></div>`;
+    const sq=s=>`<div class="asgcol"><h5>${esc(s.name)} ${y}</h5><ol>${s.players.map(p=>`<li>${asgPlayerHTML(p,y)}</li>`).join('')||'<li class="mut">—</li>'}</ol></div>`;
     const meta=[];
     if(a.winner) meta.push(`<b>Result:</b> ${esc(a.winner)}`);
     if(a.mvp && a.mvp!=='N/A') meta.push(`<b>MVP:</b> ${plink(a.mvp)}`);
@@ -5999,18 +6021,47 @@ function teamNwlaEntries(fullName){
    teamsByYear for that season, the same real-roster data the rest of the
    site already uses for "what team were they on". A mid-season trade in an
    All-Star year (teamsByYear holding a "/"-joined pair) credits both
-   franchises, same convention as a traded player's split stat lines. Only
-   goes back to 2017 — teamsByYear has no entries before the database does,
-   so a pre-2017 selection (squad-only, no franchise on record) can't be
-   attributed to any team page and is silently skipped here. */
+   franchises, same convention as a traded player's split stat lines.
+   teamsByYear itself only goes back to 2017 (same as the database), so
+   pre-2017 selections fall back to ASG_PRE2017_TEAM below — a hand-kept
+   record of which team each of those players actually suited up for that
+   year, confirmed against the league's own history rather than guessed,
+   resolved through the same AWARD_TEAM_ALIAS/NICK2FULL lookup every other
+   old team-code reference on this page already goes through. */
+const ASG_PRE2017_TEAM = {
+  '2012|Brandon Gibbons':'Tornadoes', '2012|Darien Sharpe':'Bears', '2012|Parker Gibbons':'Capitals',
+  '2013|Brandon Gibbons':'Warriors', '2013|Joey Cardascia':'Squirrels', '2013|Darien Sharpe':'Royals',
+  '2013|Parker Gibbons':'Eagles', '2013|Peter Fraioli':'Panthers',
+  '2014|AJ Cefaloni':'Aces', '2014|Brandon Gibbons':'Warriors', '2014|Peter Fraioli':'Panthers',
+  '2014|Vinny Spoto':'Warriors', '2014|Darien Sharpe':'Royals', '2014|Joey Cardascia':'Squirrels',
+  '2014|Parker Gibbons':'Eagles', '2014|Tochi Onwuasoanya':'Angels',
+  '2015|AJ Cefaloni':'Aces', '2015|Brandon Gibbons':'Manatees', '2015|Peter Fraioli':'Panthers',
+  '2015|Tarif Sabur':'Manatees', '2015|Griffin Krueger':'Mustangs', '2015|Joey Cardascia':'Squirrels',
+  '2015|Parker Gibbons':'Eagles', '2015|Tochi Onwuasoanya':'Mustangs', '2015|Victor Cottini':'Panthers',
+  '2015|Vinny Spoto':'Squirrels',
+  '2016|AJ Cefaloni':'Aces', '2016|Austin Corvino':'Aces', '2016|Joey Cardascia':'Squirrels',
+  '2016|Parker Gibbons':'Eagles', '2016|Peter Fraioli':'Panthers', '2016|Brandon Gibbons':'Hotdoggers',
+  '2016|Evan Wilkins':'Dashers', '2016|Griffin Krueger':'Bulldogs', '2016|Victor Cottini':'Hotdoggers',
+  '2016|Vinny Spoto':'Dashers',
+};
+const nickToFullTeam = nick => NICK2FULL[AWARD_TEAM_ALIAS[nick]||nick] || null;
+/* the franchise(s) a given player was actually on for a given All-Star
+   year — teamsByYear when the database covers it (2017 on, "/"-joined for
+   a mid-season trade), ASG_PRE2017_TEAM otherwise. Shared by teamAsgEntries
+   (which team page(s) an honor belongs on) and the All-Star Games roster
+   display (which team logo to show next to a name). */
+function asgPlayerTeams(name, year){
+  const tby = (P[name] && P[name].teamsByYear || {})[year];
+  if(tby && tby.team) return tby.team.split(' / ');
+  const full = nickToFullTeam(ASG_PRE2017_TEAM[year+'|'+name]);
+  return full ? [full] : [];
+}
 function teamAsgEntries(fullName){
   const out = [];
   NAMES.forEach(n=>{
     const h = P[n].honors || {asg:[]};
     (h.asg||[]).forEach(s=>{
-      const tby = (P[n].teamsByYear||{})[s.year];
-      if(!tby || !tby.team) return;
-      if(tby.team.split(' / ').includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
+      if(asgPlayerTeams(n, s.year).includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
     });
   });
   return out.sort((a,b)=>b.year-a.year || a.name.localeCompare(b.name));
@@ -6055,8 +6106,8 @@ function renderTeamAwards(name){
     ${asgBlocks ? `<h3 class="hsub">All-Star Selections</h3><div class="pa-grid">${asgBlocks}</div>` : ''}
     ${nwlaBlocks ? `<h3 class="hsub">NWLA Awards</h3><div class="pa-grid">${nwlaBlocks}</div>` : ''}
     <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
-    All-Star selections are shown back to 2017, resolved to whichever franchise a player was actually on
-    that season — the All-Star roster itself only records the division squad, not the team.
+    All-Star selections are resolved to whichever franchise a player was actually on that season — the
+    All-Star roster itself only records the division squad, not the team.
     The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
     accolades for titles and pennants.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
