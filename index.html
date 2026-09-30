@@ -5985,6 +5985,30 @@ function teamNwlaEntries(fullName){
   });
   return out.sort((a,b)=>b.year-a.year);
 }
+/* All-Star selections, attributed to a franchise. Unlike AWARDS/NWLA_AWARDS,
+   an ASG roster spot (pl.honors.asg) only records the division SQUAD a
+   player represented ("Brookside"/"Brentwood", or "North"/"South" pre-2022)
+   — never their actual franchise — so there's no team field to match against
+   directly. Instead this resolves each selection through that player's own
+   teamsByYear for that season, the same real-roster data the rest of the
+   site already uses for "what team were they on". A mid-season trade in an
+   All-Star year (teamsByYear holding a "/"-joined pair) credits both
+   franchises, same convention as a traded player's split stat lines. Only
+   goes back to 2017 — teamsByYear has no entries before the database does,
+   so a pre-2017 selection (squad-only, no franchise on record) can't be
+   attributed to any team page and is silently skipped here. */
+function teamAsgEntries(fullName){
+  const out = [];
+  NAMES.forEach(n=>{
+    const h = P[n].honors || {asg:[]};
+    (h.asg||[]).forEach(s=>{
+      const tby = (P[n].teamsByYear||{})[s.year];
+      if(!tby || !tby.team) return;
+      if(tby.team.split(' / ').includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
+    });
+  });
+  return out.sort((a,b)=>b.year-a.year || a.name.localeCompare(b.name));
+}
 function renderTeamAwards(name){
   setNav('teams');
   if(!franchiseIsLinkable(name)){ location.hash='#/t/'+encodeURIComponent(name); return; }
@@ -6003,6 +6027,11 @@ function renderTeamAwards(name){
     return `<div class="pa-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
       <ul class="pa-list">${items}</ul></div>`;
   }).join('');
+  const asgEntries = teamAsgEntries(name);
+  const asgBlocks = asgEntries.length ? `<div class="pa-block"><h4>${asgEntries.length}× All-Star</h4>
+    <ul class="pa-list">${asgEntries.map(e=>`<li><span class="pa-yr">${e.year}</span>
+      <button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button>${e.cap?' <span class="cap">C</span>':''}
+      <span class="azm">(${esc(e.squad)})</span></li>`).join('')}</ul></div>` : '';
   const nwlaEntries = teamNwlaEntries(name);
   const nwlaGrouped = {};
   nwlaEntries.forEach(e=>{ (nwlaGrouped[e.label] = nwlaGrouped[e.label] || []).push(e); });
@@ -6017,8 +6046,11 @@ function renderTeamAwards(name){
     <button class="back" id="back">← ${esc(name)}</button>
     <div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)} — Awards</h2></div></div>
     ${blocks ? `<div class="pa-grid">${blocks}</div>` : '<p class="empty">No awards on record for this franchise.</p>'}
+    ${asgBlocks ? `<h3 class="hsub">All-Star Selections</h3><div class="pa-grid">${asgBlocks}</div>` : ''}
     ${nwlaBlocks ? `<h3 class="hsub">NWLA Awards</h3><div class="pa-grid">${nwlaBlocks}</div>` : ''}
     <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
+    All-Star selections are shown back to 2017, resolved to whichever franchise a player was actually on
+    that season — the All-Star roster itself only records the division squad, not the team.
     The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
     accolades for titles and pennants.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
