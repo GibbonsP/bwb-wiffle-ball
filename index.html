@@ -6168,16 +6168,26 @@ function teamAsgEntries(fullName){
   });
   return out.sort((a,b)=>b.year-a.year || a.name.localeCompare(b.name));
 }
-/* Player of the Series entries for a franchise — matched straight off the
-   matchup's own two team codes (SERIES_AWARDS already records exactly
-   which two teams played, so unlike ASG this never needs a teamsByYear
-   lookup to figure out who the honoree even played for). */
+/* Player of the Series entries for a franchise — credited to whichever of
+   the matchup's two teams the WINNER was actually on that season, via
+   playerTeamsForYear, same as Player of the Week. `s.teams` names both
+   sides of the series (the winner's team and their opponent), not the
+   winner's own team or teams, so matching on it directly (the way
+   teamNwlaEntries' codeMatches does for a genuinely multi-team honoree)
+   would wrongly credit the award to the LOSING side's page too.
+   Intersecting with the matchup's own two teams also resolves a mid-season
+   trade correctly: a split-team player's season-long team list can name a
+   franchise that has nothing to do with this particular series (e.g. they
+   were traded away before ever playing this team), so requiring the
+   credited franchise to also be one of this series' two actual opponents
+   rules that out. */
 function teamSeriesEntries(fullName){
   const out = [];
   Object.entries(SERIES_AWARDS).forEach(([y,weeks])=>{
     Object.entries(weeks).forEach(([wk,w])=>{
       (w.series||[]).forEach(s=>{
-        if(s.teams.split('/').some(c=>nickToFullTeam(c)===fullName))
+        const matchTeams = s.teams.split('/').map(nickToFullTeam);
+        if(matchTeams.includes(fullName) && playerTeamsForYear(s.player, +y).includes(fullName))
           out.push({year:+y, week:+wk, name:s.player, teams:s.teams});
       });
     });
