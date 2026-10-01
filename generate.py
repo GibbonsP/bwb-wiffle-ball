@@ -356,7 +356,8 @@ sup.seed.x{color:var(--clay)}
 .gtable th,.gtable td{border:1px solid var(--line-strong);text-align:center;vertical-align:middle;padding:8px 6px}
 .gcorner{background:var(--paper)}
 .gtop,.gside{background:var(--card);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.74rem;
-  letter-spacing:.01em;line-height:1.25;color:var(--ink);font-weight:500}
+  letter-spacing:.01em;line-height:1.25;color:var(--ink);font-weight:500;
+  white-space:normal;overflow-wrap:break-word}
 .gside{text-align:right;padding:8px 10px}
 .gcatlogo{width:20px;height:20px;object-fit:contain;display:block;margin:0 auto 4px}
 .gside .gcatlogo{margin:0 0 4px auto}
@@ -626,9 +627,17 @@ a{color:var(--accent)}
 .pweek{border-top:1px solid var(--line);padding-top:10px}
 .pweek:first-child{border-top:none;padding-top:0}
 .pweek h5{margin:0 0 6px;font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
-.pweek-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.87rem;margin:3px 0;flex-wrap:wrap}
-.pweek-matchup{display:flex;align-items:center;gap:2px}
+.pweek-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.87rem;
+  padding:5px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pweek-row:last-of-type{border-bottom:none}
+.pweek-matchup{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.pweek-winner{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.pweek-wl{display:none;font-weight:600;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
 .pweek-potw{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:.85rem}
+@media (max-width:560px){
+  .pweek-row{flex-direction:column;align-items:flex-start;gap:4px}
+  .pweek-wl{display:inline}
+}
 .awyear{margin-bottom:20px}
 .awyear h4{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.2rem;margin:0 0 8px}
 .awyear h5{font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
@@ -5926,7 +5935,7 @@ function seriesAwardsSection(){
       const [a,b] = s.teams.split('/');
       return `<div class="pweek-row">
         <span class="pweek-matchup">${teamBadge(a,year)}<span class="vs">vs</span>${teamBadge(b,year)}</span>
-        <span class="pweek-winner">${winnerHTML(s.player,year)}</span></div>`;
+        <span class="pweek-winner"><b class="pweek-wl">Winner:</b> ${winnerHTML(s.player,year)}</span></div>`;
     }).join('');
     const potw = w.potw ? `<div class="pweek-potw"><b>Player of the Week:</b> ${winnerHTML(w.potw,year)}</div>` : '';
     return `<div class="pweek"><h5>Week ${wk}</h5>${rows || '<p class="mut">No series played.</p>'}${potw}</div>`;
