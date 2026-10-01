@@ -2095,10 +2095,7 @@ function svPanel(title, metrics, subject, pool, unqualified, cat){
 function savantInner(pl){
   const yrs = svSeasons(pl);
   if(!yrs.length) return '<p class="smeta">No regular-season data.</p>';
-  if(svYear==null || !yrs.includes(svYear)){
-    const q = yrs.filter(y=>{ const r=svRegRow(pl,y); return r && (r.G_bat>=SV_MING || r.IPouts>=SV_MINOUTS); });
-    svYear = (q.length?q:yrs).slice(-1)[0];
-  }
+  if(svYear==null || !yrs.includes(svYear)) svYear = yrs[yrs.length-1];
   const chips = `<div class="chips svchips">${yrs.map(y=>
     `<button data-svy="${y}" aria-pressed="${y===svYear}">${y}</button>`).join('')}</div>`;
   const row = svRegRow(pl, svYear);
