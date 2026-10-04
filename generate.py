@@ -6106,6 +6106,18 @@ function teamAwardEntries(fullName){
       });
     });
   });
+  /* All-Star Game MVP and Home Run Derby champion aren't rows in AWARDS — they
+     live on the year's ASG record (asgTeamsFor says which club the winner was
+     with that year; a tied MVP is "/"-separated). Not subject to
+     HIDDEN_AWARD_YEARS, which is about the still-open annual-awards ballot. */
+  [['mvp','All-Star Game MVP'],['hrd','Home Run Derby Champion']].forEach(([key,award])=>{
+    Object.entries(ASG).forEach(([y,a])=>{
+      if(!a[key] || a[key]==='N/A') return;
+      a[key].split('/').map(x=>x.trim()).filter(Boolean).forEach(n=>{
+        if(asgTeamsFor(n, +y).includes(fullName)) out.push({year:+y, award, winner:n});
+      });
+    });
+  });
   return out.sort((a,b)=>b.year-a.year);
 }
 /* same idea as teamAwardEntries() but over NWLA_AWARDS — a team code can be
