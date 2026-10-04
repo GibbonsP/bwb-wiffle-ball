@@ -673,8 +673,16 @@ if INCLUDE_2026:
         d = dt[:10]
         ph = 'Playoffs' if d >= '2026-08-22' else 'Regular'
         rpi = box.get('runsPerInning') or {}
-        aline = [rpi[str(k)] for k in sorted(int(k) for k in rpi if int(k) > 0)] or [0]
-        hline = [rpi[str(k)] for k in sorted((int(k) for k in rpi if int(k) < 0), key=abs)] or [0]
+        # runsPerInning also carries the inning the feed had moved on to once the game
+        # ended (and a 0 for a bottom half the home team never batted) — only halves that
+        # have plays were really played, so those alone make the line score. A game with no
+        # real innings (a 3-0 forfeit-style result) gets no line score at all.
+        _pl = gd.get('plays') or {}
+        _played = lambda sign: sorted((int(k) for k in _pl if int(k) * sign > 0), key=abs)
+        aline = [rpi[str(k)] for k in _played(1)]
+        hline = [rpi[str(k)] for k in _played(-1)]
+        if sum(aline) != box['away']['score'] or sum(hline) != box['home']['score']:
+            aline, hline = [], []
         rn_all = [('%s %s' % (b['firstName'], b['lastName'])).strip()
                   for sd in ('away', 'home') for b in lu[sd].get('batting', [])]
         parsed = parse_bat(gd.get('plays'), rn_all)

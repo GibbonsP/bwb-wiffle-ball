@@ -5436,12 +5436,14 @@ function boxSide(g, sk, yr){
 function lineScore(g, yr){
   const n=Math.max(g.away.line.length, g.home.line.length);
   const hd=Array.from({length:n},(_,i)=>`<th class="mono">${i+1}</th>`).join('');
-  const rw=(nm,s,win)=>`<tr><td class="lft${win?' wteam':''}">${histTeamLink(nm, yr)}</td>
-    ${Array.from({length:n},(_,i)=>`<td class="mono">${s.line[i]!=null?s.line[i]:''}</td>`).join('')}
+  /* a home team that won without needing its last at-bats has no entry for that
+     half-inning — shown as X, the standard line-score mark, not an empty cell */
+  const rw=(nm,s,win,xs)=>`<tr><td class="lft${win?' wteam':''}">${histTeamLink(nm, yr)}</td>
+    ${Array.from({length:n},(_,i)=>`<td class="mono">${s.line[i]!=null?s.line[i]:(xs?'X':'')}</td>`).join('')}
     <td class="mono b">${s.R}</td><td class="mono">${s.H}</td><td class="mono">${s.E}</td></tr>`;
   return `<div class="tscroll"><table class="detail linescore"><thead><tr><th class="lft"></th>${hd}
     <th class="mono b">R</th><th class="mono">H</th><th class="mono">E</th></tr></thead><tbody>
-    ${rw(g.away.team,g.away,g.away.R>g.home.R)}${rw(g.home.team,g.home,g.home.R>g.away.R)}</tbody></table></div>`;
+    ${rw(g.away.team,g.away,g.away.R>g.home.R)}${rw(g.home.team,g.home,g.home.R>g.away.R,g.home.R>g.away.R)}</tbody></table></div>`;
 }
 function boxScore(gid){
   const g=GAMES[gid];
