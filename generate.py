@@ -1150,6 +1150,9 @@ function franchiseLogoForYear(nick, y){
 function teamLogoForYear(full, y){
   const t = (typeof TEAMS!=='undefined') && TEAMS[full];
   if(!t){
+    /* an All-Star Game's two sides are divisions, not franchises ("Brookside
+       Division") — show the division's own logo where one is on file */
+    if(/ Division$/.test(full)) return (DB.divisionLogos||{})[full.replace(/ Division$/,'')] || null;
     const summary = (typeof FRANCHISE_SUMMARY!=='undefined') && FRANCHISE_SUMMARY.find(d=>d.f===null && d.full===full);
     return summary ? franchiseLogoForYear(summary.t, y) : null;
   }
@@ -5449,7 +5452,7 @@ function boxScore(gid){
   const bs=s=>s.bat.reduce((x,b)=>x+b.r,0);
   const untied = (g.away.bat.length && bs(g.away)!==a) || (g.home.bat.length && bs(g.home)!==hh);
   const muTeam = (team, y) => {
-    const logo = TEAMS[team] ? teamLogoForYear(team, y) : null;
+    const logo = teamLogoForYear(team, y);
     return `<span class="muteam">${logoIcon(logo, '', 'llogo-lg')}${histTeamLink(team, y)}</span>`;
   };
   app.innerHTML=`
@@ -5819,7 +5822,7 @@ function asgPlayerHTML(raw, year){
   let key = disp;
   if(!P[key]) key = disp.replace(/\./g,'');
   if(!P[key]) key = ({'Trevor Fraioli':'Trevor Meyler'})[disp] || disp;
-  const teams = playerTeamsForYear(key, year);
+  const teams = asgTeamsFor(key, year);
   const logo = teams.length ? teamLogoForYear(teams[0], year) : null;
   const nameHTML = P[key] ? `<button class="pname" data-p="${esc(key)}">${esc(disp)}</button>` : esc(disp);
   return `<span class="tmcell">${logo?logoIcon(logo,'','llogo llogo-sm'):''}${nameHTML}${cap?' <span class="cap">C</span>':''}</span>`;
@@ -6171,12 +6174,21 @@ function playerTeamsForYear(name, year){
   const full = nickToFullTeam(ASG_PRE2017_TEAM[year+'|'+name]);
   return full ? [full] : [];
 }
+/* the franchise(s) a player represented at one specific All-Star Game. A
+   selection can carry its own `team` (honors.asg[].team) — recorded whenever
+   the roster names the club outright, and needed when the player's whole-
+   season record is ambiguous (a mid-season trade lists both clubs, but the
+   selection was for exactly one). Otherwise falls back to their season team. */
+function asgTeamsFor(name, year){
+  const sel = ((P[name]||{}).honors||{asg:[]}).asg.find(s=>s.year===year);
+  return sel && sel.team ? [sel.team] : playerTeamsForYear(name, year);
+}
 function teamAsgEntries(fullName){
   const out = [];
   NAMES.forEach(n=>{
     const h = P[n].honors || {asg:[]};
     (h.asg||[]).forEach(s=>{
-      if(playerTeamsForYear(n, s.year).includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
+      if(asgTeamsFor(n, s.year).includes(fullName)) out.push({year:s.year, name:n, cap:s.cap, squad:s.squad});
     });
   });
   return out.sort((a,b)=>b.year-a.year || a.name.localeCompare(b.name));
