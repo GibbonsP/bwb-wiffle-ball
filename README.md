@@ -11,7 +11,8 @@ Live Artifact: https://claude.ai/code/artifact/38e0593f-f6fc-4444-a77b-b426ed2e5
 
 `build.py` needs `pandas`/`numpy`/`openpyxl`; a fresh machine/session may need
 `pip3 install --user pandas numpy openpyxl` first. `generate.py` has no
-dependencies beyond the standard library.
+dependencies beyond the standard library, except Pillow (`pip3 install --user pillow`),
+which sizes the favicon to the 192px Google requires.
 
 ## Files
 

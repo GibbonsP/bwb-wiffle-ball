@@ -18,7 +18,8 @@ HTML = r'''<meta charset="utf-8">
 <meta name="twitter:title" content="BWB Wiffleball">
 <meta name="twitter:description" content="Official website of the Brookside Wiffleball League, a fast pitch wiffleball league based in Harrison, New York.">
 <meta name="twitter:image" content="https://bwbwiffleball.com/og-image.png">
-<link rel="icon" type="image/png" sizes="320x320" href="__FAVICON__">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="192x192" href="__FAVICON__">
 <link rel="apple-touch-icon" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -7895,15 +7896,22 @@ route();
    can't do that for a data: URI (it only exists inline in the HTML your browser already
    loaded), which is why the icon wasn't showing up in search results even though it
    displayed fine in the browser tab.'''
+'''Google only shows a site's favicon in search results if it's a square whose side is
+   a multiple of 48px (48, 96, 144, 192, ...) — the 320px source logo isn't, so it was
+   being passed over. Resized to 192px (needs Pillow, the one non-stdlib dependency
+   here), plus a multi-size favicon.ico at the site root, the first place crawlers
+   look when a <link> is missed. The logo is a real file under img/data/ (extracted
+   from the old inline data: URIs to cut ~10MB of duplicated base64 out of every page
+   load), but may still be a data: URI in older players.json copies.'''
+import io
+from PIL import Image
 if LEAGUE_LOGO.startswith('data:'):
-    _favicon_header, _favicon_b64 = LEAGUE_LOGO.split(',', 1)
-    open('favicon.png', 'wb').write(base64.b64decode(_favicon_b64))
+    _logo = Image.open(io.BytesIO(base64.b64decode(LEAGUE_LOGO.split(',', 1)[1])))
 else:
-    # logos now ship as real files under img/data/ (extracted from the old
-    # inline data: URIs to cut ~10MB of duplicated base64 out of every page
-    # load) — copy the referenced file straight through instead of decoding.
-    import shutil
-    shutil.copyfile(LEAGUE_LOGO, 'favicon.png')
-open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', 'favicon.png'))
+    _logo = Image.open(LEAGUE_LOGO)
+_logo = _logo.convert('RGBA').resize((192, 192), Image.LANCZOS)
+_logo.save('favicon.png')
+_logo.save('favicon.ico', sizes=[(16, 16), (32, 32), (48, 48)])
+open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', '/favicon.png'))
 print('wrote index.html')
-print('wrote favicon.png')
+print('wrote favicon.png, favicon.ico')
