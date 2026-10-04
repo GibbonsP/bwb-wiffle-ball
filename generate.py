@@ -663,6 +663,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .champbar .pname{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700}
 .herofeature{border-radius:8px;overflow:hidden;margin:0 0 24px;box-shadow:var(--shadow);background:var(--brandbar)}
 .herophoto{display:block;width:100%;aspect-ratio:16/9;max-height:480px;object-fit:cover;object-position:center 22%}
+.herophoto.sq{aspect-ratio:1/1;object-fit:contain;object-position:center}
 .videowrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;
   box-shadow:var(--shadow);margin-bottom:26px;background:#000}
 .videowrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -1353,8 +1354,8 @@ function renderHome(){
       <span>${teamLink(g.away.team)} <b>${g.away.R}–${g.home.R}</b> ${teamLink(g.home.team)}
       ${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</span></li>`; }).join('');
   const rc = CHAMPS[0], rcColor = FRANCHISE_COLORS[rc.tm];
-  /* homeTicker: an editable array of {photo, tag, title, caption, link, linkText}
-     slides — falls back to the old single auto-generated champion card (photo
+  /* homeTicker: an editable array of {photo, tag, title, caption, link, linkText, fit}
+     slides (fit:'contain' shows a square graphic whole instead of cropping it to the 16:9 band) — falls back to the old single auto-generated champion card (photo
      hero, or a plain text pill if there's no champion photo) when empty, so
      nothing regresses before any slides are added. Add slides by asking for
      one; there's no in-page editor (the old ones relied on the Claude Artifact
@@ -1370,7 +1371,7 @@ function renderHome(){
     const arrows = slides.length>1 ? `<button class="tickerarrow prev" data-tnav="-1" aria-label="Previous">‹</button>
       <button class="tickerarrow next" data-tnav="1" aria-label="Next">›</button>` : '';
     champbar = `<div class="herofeature hometicker">
-      ${s.photo?`<img class="herophoto" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
+      ${s.photo?`<img class="herophoto${s.fit==='contain'?' sq':''}" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
       <div class="herocap">
         ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
         ${s.title?`<h2>${esc(s.title)}</h2>`:''}
