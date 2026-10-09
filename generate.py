@@ -5363,8 +5363,7 @@ function parkFactorsHTML(){
     Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
     (exit velocity, Hard Hit%) this league's box scores don't have, and using a simpler park-vs-league
     method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
-    played regular-season and playoff game's official final score (forfeits, which have no player stats,
-    are left out); every other column only from games with
+    regular-season and playoff game's official final score; every other column only from games with
     a recorded bat line, back to 2017, and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
     games at that field to appear at all.</p>
     ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
