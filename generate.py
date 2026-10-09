@@ -1996,8 +1996,7 @@ function phaseBlock(pl, type){
         : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
       return isFinite(v)?String(v):'—';
     }}];
-    // NWLA tournament lines carry no per-game starter data, so no GS there
-    const gsCol = type==='NWLA' ? [] : [{l:'GS',f:d=>d.GS_pit}];
+    const gsCol = [{l:'GS',f:d=>d.GS_pit}];
     const pitCols = [...seasonCols,
       {l:'G',f:d=>d.G_pit},...gsCol,{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
@@ -6562,7 +6561,7 @@ function mergeBvRows(rows, keys){
   return [...byName.values()];
 }
 const BV_BAT_KEYS = ['G','PA','AB','R','H','2B','3B','HR','RBI','BB','K','TB'];
-const BV_PIT_KEYS = ['G','IPouts','pH','pR','ER','pBB','pK','W','L','SV'];
+const BV_PIT_KEYS = ['G','GS','IPouts','pH','pR','ER','pBB','pK','W','L','SV'];
 /* shared by both the all-tournament overview and each tournament's own page —
    no OPS+ here — the Beavers' NWLA tournament games have no BWB league-year
    context to normalize against, so every row would just show '—' */
@@ -6575,7 +6574,7 @@ const bvBatCols = () => [
   {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))}];
 const bvPitCols = () => [
   {l:'Player',lft:1,f:d=>bvName(d.name)},
-  {l:'G',f:d=>d.G},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+  {l:'G',f:d=>d.G},{l:'GS',f:d=>d.GS},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
   {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
   {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
   {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))}];
@@ -6604,7 +6603,7 @@ function renderBeavers(){
     .sort((a,b)=>b.PA-a.PA || b.AB-a.AB);
   const pit = mergeBvRows(BV_LIST.flatMap(t=>t.pitching), BV_PIT_KEYS).sort((a,b)=>b.IPouts-a.IPouts);
   const bTot = bat.reduce((t,r)=>{['G','PA','AB','R','H','2B','3B','HR','RBI','BB','K','TB'].forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{HBP:0,SF:0});
-  const pTot = pit.reduce((t,r)=>{['G','IPouts','pH','pR','ER','pBB','pK','W','L','SV'].forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{});
+  const pTot = pit.reduce((t,r)=>{['G','GS','IPouts','pH','pR','ER','pBB','pK','W','L','SV'].forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{});
 
   /* one card per tournament linking out to its own roster/stats/game-log
      page — the overview itself only ever shows the combined, all-tournament
