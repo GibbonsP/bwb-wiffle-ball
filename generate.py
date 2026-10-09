@@ -8039,101 +8039,9 @@ function svpPoolFor(year){
   const rows = NAMES.map(n=>svRegRow(P[n], year)).filter(Boolean);
   return {bat: rows.filter(r=>r.G_bat>=SV_MING), pit: rows.filter(r=>r.IPouts>=SV_MINOUTS)};
 }
-function svpSeasonTeam(row, year){
-  if(!row || !row.team) return '';
-  return row.team.split(' / ').map(t=>TEAMS[t] ? histNick(t, year) : t).join(' / ');
-}
-function svpCmpHead(pl, year, row){
-  return `<div class="cmpplayer">
-    ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
-    <button class="pname cmpname" data-p="${esc(pl.name)}">${esc(pl.name)}</button>
-    <span class="azm">${year} season${svpSeasonTeam(row, year)?' · '+esc(svpSeasonTeam(row, year)):''}</span>
-  </div>`;
-}
-function svpCmpSide(pl, year, row, other, pool){
-  const q = cmpCareerQual(row);
-  const bat = q.batOK ? cmpSvPanel(`Batting · vs ${pool.bat.length}`, SV_BAT, row, other, pool.bat, false)
-    : q.batShow ? cmpSvPanel(`Batting · vs ${pool.bat.length}`, SV_BAT, row, other, pool.bat, true) : '';
-  const pit = q.pitOK ? cmpSvPanel(`Pitching · vs ${pool.pit.length}`, SV_PIT, row, other, pool.pit, false)
-    : q.pitShow ? cmpSvPanel(`Pitching · vs ${pool.pit.length}`, SV_PIT, row, other, pool.pit, true) : '';
-  return {html: `<div class="cmpsvside"><h4 class="cmpsvname">${esc(pl.name)} · ${year}</h4>
-    <div class="svpanels">${bat||pit ? bat+pit : '<p class="smeta">Too few games that season to estimate.</p>'}</div></div>`, unq: !!(q.batShow||q.pitShow)};
-}
-function svpCmpPicker(a, b){
-  const opt = (name, yr) => {
-    const ys = P[name] ? svSeasons(P[name]) : SVP_YEARS;
-    return ys.slice().reverse().map(y=>`<option value="${y}"${y===yr?' selected':''}>${y}</option>`).join('');
-  };
-  return `<div class="cmppicker svpcmp">
-      <span class="svpside"><input id="svpA" list="svpnames" placeholder="Player A" value="${esc(a.name||'')}">
-        <select id="svpAy" aria-label="Season for player A">${opt(a.name, a.year)}</select></span>
-      <span class="cmpvs">vs</span>
-      <span class="svpside"><input id="svpB" list="svpnames" placeholder="Player B" value="${esc(b.name||'')}">
-        <select id="svpBy" aria-label="Season for player B">${opt(b.name, b.year)}</select></span>
-      <button class="pname cmpgo" id="svpGo">Compare →</button>
-    </div>
-    <datalist id="svpnames">${NAMES.filter(n=>svSeasons(P[n]).length).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
-}
-function wireSvpPicker(){
-  const refill = (inId, selId) => {
-    const nm = document.getElementById(inId).value.trim(), sel = document.getElementById(selId);
-    if(!P[nm]) return;
-    const ys = svSeasons(P[nm]), keep = +sel.value;
-    sel.innerHTML = ys.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
-    sel.value = String(ys.includes(keep) ? keep : ys[ys.length-1]);
-  };
-  document.getElementById('svpA').addEventListener('change',()=>refill('svpA','svpAy'));
-  document.getElementById('svpB').addEventListener('change',()=>refill('svpB','svpBy'));
-  const go = () => {
-    const a = document.getElementById('svpA').value.trim(), b = document.getElementById('svpB').value.trim();
-    if(!P[a] || !P[b]){ document.getElementById('svpMsg').textContent = `Pick two names from the list${!P[a]&&a?` — couldn't find "${a}"`:!P[b]&&b?` — couldn't find "${b}"`:''}.`; return; }
-    location.hash = '#/savant/compare/'+encodeURIComponent(a)+'/'+document.getElementById('svpAy').value
-      +'/'+encodeURIComponent(b)+'/'+document.getElementById('svpBy').value;
-  };
-  document.getElementById('svpGo').addEventListener('click', go);
-  ['svpA','svpB'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
-}
-function renderSavantCompare(a, b){
-  if(!a || !b){
-    /* default to something real: the two best qualified bats of the latest season by OPS+ */
-    const y = SVP_YEARS[SVP_YEARS.length-1];
-    const top = svpEntries(y).filter(e=>e.row.G_bat>=SV_MING)
-      .map(e=>({name:e.name, v:opsPlusFor(e.row,[{year:y, pa:e.row.PA}])})).filter(e=>isFinite(e.v))
-      .sort((p,q)=>q.v-p.v);
-    a = {name:(top[0]||{}).name, year:y}; b = {name:(top[1]||{}).name, year:y};
-  }
-  const plA = P[a.name], plB = P[b.name];
-  const rowA = plA && svRegRow(plA, a.year), rowB = plB && svRegRow(plB, b.year);
-  if(!rowA || !rowB){
-    svpShell('compare', `${svpCmpPicker(a, b)}<p class="empty" id="svpMsg">${
-      (!plA||!plB) ? 'Couldn’t find that player — pick a name from the list.' : 'No regular-season line for one of those seasons.'}</p>`);
-    wireSvpPicker(); return;
-  }
-  const hasBat = rowA.G_bat>0 || rowB.G_bat>0, hasPit = rowA.IPouts>0 || rowB.IPouts>0;
-  const opsA = opsPlusFor(rowA, [{year:a.year, pa:rowA.PA}]), opsB = opsPlusFor(rowB, [{year:b.year, pa:rowB.PA}]);
-  const batHTML = hasBat ? cmpTable('Hitting', CMP_BAT, rowA, rowB, cmpRow('OPS+', opsA, opsB, v=>String(v), false)) : '';
-  const eA = eraPlusFor(rowA, [{year:a.year, outs:rowA.IPouts}]), eB = eraPlusFor(rowB, [{year:b.year, outs:rowB.IPouts}]);
-  const pitHTML = hasPit ? cmpTable('Pitching', CMP_PIT, rowA, rowB, cmpRow('ERA+', eA, eB, v=>String(v), false)) : '';
-  const sA = svpCmpSide(plA, a.year, rowA, rowB, svpPoolFor(a.year));
-  const sB = svpCmpSide(plB, b.year, rowB, rowA, svpPoolFor(b.year));
-  svpShell('compare', `
-    ${svpCmpPicker(a, b)}<p class="smeta svpmsg" id="svpMsg"></p>
-    <div class="cmpwrap">
-      <div class="cmpheads">${svpCmpHead(plA, a.year, rowA)}<span class="cmpvs">vs</span>${svpCmpHead(plB, b.year, rowB)}</div>
-      ${batHTML}${pitHTML}
-    </div>
-    <section class="savant"><h3>Percentile Comparison</h3>
-      <p class="smeta">Each season ranked against its own year’s qualified field (${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching),
-        so a season from a high-scoring year isn’t mistaken for a better player.
-        <span style="color:${svColor(100)}">Red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing.
-        K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.${(sA.unq||sB.unq)?' Faded, dashed rows are below the qualification bar — an estimate, not a real ranking.':''}</p>
-      <div class="cmpsvgrid">${sA.html}${sB.html}</div>
-    </section>
-    <p class="note">Regular-season lines. <span class="cmpwin cmpwinsample">Highlighted</span> value is the better of the two in each row;
-      K is fewer-is-better for batters, more-is-better for pitchers.</p>
-    ${svpCompsHTML()}`);
-  wireSvpPicker();
-  wireSvpComps(a, b);
+function renderSavantCompare(){
+  svpShell('compare', svpCompsHTML());
+  wireSvpComps();
 }
 
 /* ------------------------ closest-season comps ------------------------
@@ -8175,8 +8083,7 @@ function svpCompsTable(mode, year){
   const head = mode==='bat' ? (r=>{ const v = SV_BAT[3][1](r); return isFinite(v)?String(v):'—'; }) : (r=>two(era(r)));
   const body = rows.map(e=>{
     const comps = svpCompsFor(e, list, 3).map(({o,sim})=>{
-      const ref = [e.name, e.year, o.name, o.year].map((x,i)=>i%2?x:encodeURIComponent(x)).join('|');
-      return `<td class="svpcc"><button class="pname" data-svpcmp="${ref}">${esc(o.name)} ’${String(o.year).slice(2)}</button>
+      return `<td class="svpcc"><button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button> <span class="azm">’${String(o.year).slice(2)}</span>
         <span class="svpv">${sim.toFixed(0)}% match</span></td>`;
     }).join('');
     return `<tr><td class="lft"><button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button></td>
@@ -8191,32 +8098,24 @@ function svpCompsHTML(){
   if(svpYear==null || !SVP_YEARS.includes(svpYear)) svpYear = SVP_YEARS[SVP_YEARS.length-1];
   const chips = `<div class="chips svpcompyears">${SVP_YEARS.slice().reverse().map(y=>
     `<button data-svpcy="${y}" aria-pressed="${y===svpYear}">${y}</button>`).join('')}</div>`;
-  return `<section class="svpcomps" id="svpComps"><h3 class="hsub">Season Comps</h3>
+  return `<section class="svpcomps" id="svpComps"><h3 class="hsub">Matched Seasons</h3>
     <p class="smeta">Every qualified season, matched to the most similar seasons by other players from any year — hitting and
       pitching separately. Seasons are matched on their percentile profile within their own year, so it compares how good a
       season was in context, not raw numbers from different scoring eras. Match % is 100 minus the average gap in percentile
-      points. Click a comp to put the two seasons head to head.</p>
+      points. Click a name to open that player.</p>
     ${chips}
     <h4 class="svph4">Hitting · ${svpYear}</h4>${svpCompsTable('bat', svpYear)}
     <h4 class="svph4">Pitching · ${svpYear}</h4>${svpCompsTable('pit', svpYear)}
   </section>`;
 }
-function wireSvpComps(a, b){
+function wireSvpComps(){
   app.querySelectorAll('[data-svpcy]').forEach(x=>x.addEventListener('click',()=>{
-    svpYear = +x.dataset.svpcy; renderSavantCompare(a, b);
-    const el = document.getElementById('svpComps'); if(el) el.scrollIntoView();
-  }));
-  app.querySelectorAll('[data-svpcmp]').forEach(x=>x.addEventListener('click',()=>{
-    const [na, ya, nb, yb] = x.dataset.svpcmp.split('|');
-    location.hash = '#/savant/compare/'+na+'/'+ya+'/'+nb+'/'+yb;
+    svpYear = +x.dataset.svpcy; renderSavantCompare();
   }));
 }
 
 function renderSavant(h){
-  let m;
-  if((m = h.match(/^#\/savant\/compare\/([^/]+)\/(\d{4})\/([^/]+)\/(\d{4})$/)))
-    return renderSavantCompare({name:decodeURIComponent(m[1]), year:+m[2]}, {name:decodeURIComponent(m[3]), year:+m[4]});
-  if(h === '#/savant/compare') return renderSavantCompare(null, null);
+  if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
   if(h === '#/savant/trends') return renderSavantTrends();
   return renderSavantPct();
 }
