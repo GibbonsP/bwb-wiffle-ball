@@ -230,6 +230,25 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpctl .chips,.svpmodes{margin:6px 0 14px}
 .svptabs{margin:14px 0 8px}
 .svptable{min-width:100%}
+.svpform{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin:4px 0 14px}
+.svpform label{display:flex;flex-direction:column;gap:3px;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.svpform select,.svpform input:not([type=checkbox]),.svpfrow select,.svpfrow input{padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:.86rem;letter-spacing:0;text-transform:none;min-width:0}
+.svpform .svpchk{flex-direction:row;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-size:.82rem;padding-bottom:7px}
+.svpswap{border:1px solid var(--line-strong);background:var(--card);border-radius:6px;padding:6px 10px;font-size:1rem;color:var(--muted);margin-bottom:0}
+.svpswap:hover{border-color:var(--accent);color:var(--ink)}
+.svpfilters{display:grid;gap:8px;margin:0 0 16px}
+.svpfrow{display:flex;flex-wrap:wrap;gap:8px}
+.svpfrow input{width:150px}
+.svscatter{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.svs-dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.2;cursor:pointer}
+.svs-dot:hover{fill:var(--clay);stroke:var(--clay);fill-opacity:.9}
+.svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
+.svs-med{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4;opacity:.6}
+.svs-lab{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+.svs-ax{fill:var(--ink);font-family:"Oswald","Arial Narrow",sans-serif;font-size:12px;letter-spacing:.04em}
+.svpread{margin:8px 0 4px;min-height:1.5em;font-size:.88rem}
+.svpread .pname{margin-left:8px;font-size:.82rem}
 .svpcomps{margin-top:8px}
 .svph4{font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
 .svpcc{text-align:left;white-space:nowrap}
@@ -7909,8 +7928,8 @@ function svpShell(tab, inner){
   app.innerHTML = `
     <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
     <p class="pmeta">Percentile rankings for every qualified season, how the league's scoring has changed over time,
-      and head-to-head comparisons of any two player seasons.</p>
-    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}</div>
+      matched seasons, a scatter plot of any two stats, and a search across every player season.</p>
+    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='pct' ? '#/savant' : '#/savant/'+b.dataset.svpt;
@@ -8149,9 +8168,230 @@ function wireSvpComps(){
   }));
 }
 
+/* ------------------- shared stat list for Scatter and Search -------------------
+   The percentile metrics (SV_BAT / SV_PIT) plus the counting stats and
+   runs-above-average that don't make sense as percentile rows. `pct` marks
+   the fraction-valued rate stats (shown as 15.3%) — Search takes those
+   thresholds in whole percent, so "K% ≤ 15" means 15%. */
+const svpInt = v => isFinite(v) ? String(Math.round(v)) : '—';
+const svpOne = v => isFinite(v) ? v.toFixed(1) : '—';
+function svpStats(mode){
+  const base = (mode==='bat' ? SV_BAT : SV_PIT).map(([lab,fn,fmt,low])=>({lab, fn, fmt, low, pct: /%$/.test(lab)}));
+  const extra = mode==='bat' ? [
+    ['G', c=>c.G_bat, svpInt], ['PA', c=>c.PA, svpInt], ['AB', c=>c.AB, svpInt], ['R', c=>c.R, svpInt],
+    ['H', c=>c.H, svpInt], ['2B', c=>c['2B'], svpInt], ['3B', c=>c['3B'], svpInt], ['HR', c=>c.HR, svpInt],
+    ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt], ['SB', c=>c.SB, svpInt],
+    ['wRAA', c=>wrAAFor(c, c.year), svpOne],
+  ] : [
+    ['G', c=>c.G_pit, svpInt], ['GS', c=>c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
+    ['W', c=>c.W, svpInt], ['L', c=>c.L, svpInt], ['SV', c=>c.SV, svpInt],
+    ['K', c=>c.pK, svpInt], ['BB', c=>c.pBB, svpInt], ['H', c=>c.pH, svpInt], ['R', c=>c.pR, svpInt],
+    ['RAA', c=>{ const r = leagueRatesFor(c.year); return r ? (r.era - era(c)) * c.IPouts/9 : NaN; }, svpOne],
+  ];
+  return base.concat(extra.map(([lab,fn,fmt])=>({lab, fn, fmt, low:false, pct:false})));
+}
+const svpQual = (mode, r) => mode==='bat' ? r.G_bat>=SV_MING : r.IPouts>=SV_MINOUTS;
+const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
+
+/* --------------------------------- scatter ---------------------------------- */
+const svpSc = {mode:'bat', year:'all', x:'ISO', y:'wOBA', hl:'', sel:null};
+function svpNiceTicks(lo, hi, n){
+  const raw = (hi-lo)/n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/mag;
+  const step = (f<=1?1:f<=2?2:f<=5?5:10)*mag;
+  const out = []; for(let v=Math.ceil(lo/step)*step; v<=hi+step*1e-9; v+=step) out.push(+v.toFixed(10));
+  return out;
+}
+function svpScatterData(){
+  const stats = svpStats(svpSc.mode);
+  const sx = stats.find(s=>s.lab===svpSc.x) || stats[0], sy = stats.find(s=>s.lab===svpSc.y) || stats[1];
+  const years = svpSc.year==='all' ? SVP_YEARS : [+svpSc.year];
+  const pts = [];
+  years.forEach(y=>svpEntries(y).forEach(e=>{
+    if(!svpQual(svpSc.mode, e.row)) return;
+    const x = sx.fn(e.row), yv = sy.fn(e.row);
+    if(isFinite(x) && isFinite(yv)) pts.push({name:e.name, year:y, row:e.row, x, y:yv});
+  }));
+  return {sx, sy, pts};
+}
+function svpScatterSVG(d){
+  const W = 720, H = 470, L = 62, R = 18, T = 14, B = 48;
+  const {sx, sy, pts} = d;
+  if(!pts.length) return '<p class="empty">No qualified seasons for that selection.</p>';
+  const dom = k => { let lo = Math.min(...pts.map(p=>p[k])), hi = Math.max(...pts.map(p=>p[k]));
+    const sp = (hi-lo) || Math.abs(hi)*0.1 || 1; return [lo-sp*0.06, hi+sp*0.06]; };
+  const [x0,x1] = dom('x'), [y0,y1] = dom('y');
+  const X = v => L + (W-L-R)*(v-x0)/(x1-x0), Y = v => T + (H-T-B)*(1-(v-y0)/(y1-y0));
+  const med = k => { const a = pts.map(p=>p[k]).sort((p,q)=>p-q), m = a.length>>1; return a.length%2 ? a[m] : (a[m-1]+a[m])/2; };
+  const mx = med('x'), my = med('y');
+  const xt = svpNiceTicks(x0,x1,6), yt = svpNiceTicks(y0,y1,6);
+  const grid = xt.map(v=>`<line class="svc-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${sx.fmt(v)}</text>`).join('')
+    + yt.map(v=>`<line class="svc-grid" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${sy.fmt(v)}</text>`).join('');
+  const medians = `<line class="svs-med" x1="${X(mx).toFixed(1)}" x2="${X(mx).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+    <line class="svs-med" x1="${L}" x2="${W-R}" y1="${Y(my).toFixed(1)}" y2="${Y(my).toFixed(1)}"/>
+    <text class="svc-t" x="${(X(mx)+4).toFixed(1)}" y="${T+10}">median ${sx.fmt(mx)}</text>
+    <text class="svc-t" x="${W-R-4}" y="${(Y(my)-4).toFixed(1)}" text-anchor="end">median ${sy.fmt(my)}</text>`;
+  const hl = svpSc.hl.trim().toLowerCase();
+  const isHl = p => hl && p.name.toLowerCase()===hl;
+  const order = pts.map((p,i)=>i).sort((a,b)=>(isHl(pts[a])?1:0)-(isHl(pts[b])?1:0));
+  const dots = order.map(i=>{
+    const p = pts[i], h = isHl(p), s = svpSc.sel===i;
+    return `<circle class="svs-dot${h?' svs-hl':''}${s?' svs-sel':''}" data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${h||s?7:5}"/>`
+      + (h ? `<text class="svs-lab" x="${(X(p.x)+10).toFixed(1)}" y="${(Y(p.y)+3).toFixed(1)}">${esc(p.name)}${svpSc.year==='all'?' ’'+String(p.year).slice(2):''}</text>` : '');
+  }).join('');
+  return `<svg class="svscatter" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(sy.lab)} versus ${esc(sx.lab)}">
+    ${grid}${medians}${dots}
+    <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">${esc(sx.lab)}</text>
+    <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">${esc(sy.lab)}</text></svg>`;
+}
+function svpReadout(d){
+  const p = d.pts[svpSc.sel];
+  if(!p) return '<span class="svpv">Click a dot to see who it is.</span>';
+  const tm = p.row.team ? p.row.team.split(' / ').map(t=>TEAMS[t]?histNick(t,p.year):t).join(' / ') : '';
+  return `<b>${esc(p.name)}</b> · ${p.year}${tm?' · '+esc(tm):''} — ${esc(d.sx.lab)} <b>${d.sx.fmt(p.x)}</b>, ${esc(d.sy.lab)} <b>${d.sy.fmt(p.y)}</b>
+    <button class="pname" data-p="${esc(p.name)}">View player →</button>`;
+}
+function renderSavantScatter(){
+  const stats = svpStats(svpSc.mode);
+  if(!stats.some(s=>s.lab===svpSc.x)) svpSc.x = svpDefaultAxes[svpSc.mode].x;
+  if(!stats.some(s=>s.lab===svpSc.y)) svpSc.y = svpDefaultAxes[svpSc.mode].y;
+  const opts = sel => stats.map(s=>`<option value="${esc(s.lab)}"${s.lab===sel?' selected':''}>${esc(s.lab)}</option>`).join('');
+  const yearOpts = `<option value="all"${svpSc.year==='all'?' selected':''}>All seasons</option>`
+    + SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpSc.year)?' selected':''}>${y}</option>`).join('');
+  const names = [...new Set(svpScatterData().pts.map(p=>p.name))].sort();
+  svpShell('scatter', `
+    <div class="chips svpmodes"><button data-scm="bat" aria-pressed="${svpSc.mode==='bat'}">Batting</button>
+      <button data-scm="pit" aria-pressed="${svpSc.mode==='pit'}">Pitching</button></div>
+    <div class="svpform">
+      <label>X axis <select id="scX">${opts(svpSc.x)}</select></label>
+      <button class="svpswap" id="scSwap" type="button" title="Swap axes" aria-label="Swap axes">⇄</button>
+      <label>Y axis <select id="scY">${opts(svpSc.y)}</select></label>
+      <label>Season <select id="scYear">${yearOpts}</select></label>
+      <label>Highlight <input id="scHl" list="scNames" placeholder="Player name" value="${esc(svpSc.hl)}"></label>
+      <datalist id="scNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    </div>
+    <div id="scChart"></div><p class="svpread" id="scRead"></p>
+    <p class="smeta">Every qualified ${svpSc.mode==='bat'?`hitter (${SV_MING}+ G)`:`pitcher (${SV_MINOUTS/3}+ IP)`} season${svpSc.year==='all'?' since '+SVP_YEARS[0]:' in '+svpSc.year}.
+      Dashed lines are the median of the field on each axis. Pick any two stats; rate stats are each season’s own numbers, so
+      comparing across years mixes scoring environments — use <b>OPS+, wOBA, wRC+</b> or <b>ERA+</b> to level it.</p>`);
+  const draw = () => {
+    const d = svpScatterData();
+    document.getElementById('scChart').innerHTML = svpScatterSVG(d);
+    const rd = document.getElementById('scRead'); rd.innerHTML = svpReadout(d);
+    rd.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
+    const svg = document.querySelector('.svscatter'); if(!svg) return;
+    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return;
+      svpSc.sel = +c.dataset.i; draw(); });
+    svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return;
+      const p = d.pts[+c.dataset.i];
+      document.getElementById('scRead').innerHTML = `<b>${esc(p.name)}</b> · ${p.year} — ${esc(d.sx.lab)} <b>${d.sx.fmt(p.x)}</b>, ${esc(d.sy.lab)} <b>${d.sy.fmt(p.y)}</b>`; });
+    svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')){
+      const rd = document.getElementById('scRead'); rd.innerHTML = svpReadout(d);
+      rd.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); })); } });
+  };
+  draw();
+  app.querySelectorAll('[data-scm]').forEach(b=>b.addEventListener('click',()=>{
+    svpSc.mode = b.dataset.scm; svpSc.x = svpDefaultAxes[svpSc.mode].x; svpSc.y = svpDefaultAxes[svpSc.mode].y; svpSc.sel = null; svpSc.hl = '';
+    renderSavantScatter(); }));
+  const on = (id, fn) => document.getElementById(id).addEventListener('change', fn);
+  on('scX', e=>{ svpSc.x = e.target.value; svpSc.sel = null; draw(); });
+  on('scY', e=>{ svpSc.y = e.target.value; svpSc.sel = null; draw(); });
+  on('scYear', e=>{ svpSc.year = e.target.value; svpSc.sel = null; renderSavantScatter(); });
+  document.getElementById('scSwap').addEventListener('click',()=>{ const t = svpSc.x; svpSc.x = svpSc.y; svpSc.y = t; svpSc.sel = null; renderSavantScatter(); });
+  document.getElementById('scHl').addEventListener('input', e=>{ svpSc.hl = e.target.value; draw(); });
+}
+
+/* ---------------------------------- search ---------------------------------- */
+const svpSr = {mode:'bat', from:null, to:null, qual:true, team:'', f:[{s:'',op:'>=',v:''},{s:'',op:'>=',v:''},{s:'',op:'>=',v:''}], sort:{bat:'wRC+', pit:'ERA+'}, dir:{bat:-1, pit:-1}};
+function svpSearchRows(){
+  const mode = svpSr.mode, stats = svpStats(mode);
+  const lo = svpSr.from!=null ? svpSr.from : SVP_YEARS[0], hi = svpSr.to!=null ? svpSr.to : SVP_YEARS[SVP_YEARS.length-1];
+  const filters = svpSr.f.filter(f=>f.s && f.v!=='' && isFinite(+f.v)).map(f=>({st:stats.find(s=>s.lab===f.s), op:f.op, v:+f.v})).filter(f=>f.st);
+  const rows = [];
+  SVP_YEARS.filter(y=>y>=lo && y<=hi).forEach(y=>svpEntries(y).forEach(e=>{
+    const r = e.row;
+    if(mode==='bat' ? !(r.G_bat>0 && r.PA>0) : !(r.IPouts>0)) return;
+    if(svpSr.qual && !svpQual(mode, r)) return;
+    if(svpSr.team && !(r.team||'').split(' / ').includes(svpSr.team)) return;
+    for(const f of filters){
+      const v = f.st.fn(r) * (f.st.pct ? 100 : 1);
+      if(!isFinite(v) || (f.op==='>=' ? v < f.v : v > f.v)) return;
+    }
+    rows.push({name:e.name, year:y, row:r});
+  }));
+  const sk = stats.find(s=>s.lab===svpSr.sort[mode]) || stats[0], dir = svpSr.dir[mode];
+  rows.sort((a,b)=>{
+    const va = sk.fn(a.row), vb = sk.fn(b.row);
+    return ((isFinite(vb)?vb:-1e9) - (isFinite(va)?va:-1e9)) * -dir || nameLast(a.name).localeCompare(nameLast(b.name));
+  });
+  return {rows, stats};
+}
+function svpSearchResults(){
+  const mode = svpSr.mode, {rows, stats} = svpSearchRows();
+  const cap = 250, shown = rows.slice(0, cap);
+  const cols = (mode==='bat' ? SV_BAT : SV_PIT).map(([lab])=>stats.find(s=>s.lab===lab));
+  const arrow = lab => svpSr.sort[mode]===lab ? ` <span class="ar">${svpSr.dir[mode]<0?'▼':'▲'}</span>` : '';
+  const head = `<tr><th class="lft">Player</th><th class="lft">Season</th><th class="lft svptm">Tm</th>
+    ${mode==='bat'?'<th>G</th><th>PA</th>':'<th>G</th><th>IP</th>'}
+    ${cols.map(c=>`<th class="sortcol" data-srs="${esc(c.lab)}">${esc(c.lab)}${arrow(c.lab)}</th>`).join('')}</tr>`;
+  const body = shown.map(r=>{
+    const d = r.row;
+    return `<tr><td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td><td class="lft">${r.year}</td>
+      <td class="lft svptm">${teamCell(d)}</td>
+      ${mode==='bat' ? `<td>${d.G_bat}</td><td>${d.PA}</td>` : `<td>${d.G_pit}</td><td class="mono">${ipStr(d.IPouts)}</td>`}
+      ${cols.map(c=>{ const v = c.fn(d); return `<td class="mono">${isFinite(v)?c.fmt(v):'—'}</td>`; }).join('')}</tr>`;
+  }).join('');
+  return `<p class="smeta"><b>${rows.length}</b> player-season${rows.length===1?'':'s'}${rows.length>cap?` · showing the top ${cap}`:''}. Click a column to sort.</p>
+    ${rows.length ? `<div class="tscroll"><table class="detail svptable"><thead>${head}</thead><tbody>${body}</tbody></table></div>` : '<p class="empty">Nothing matches — loosen a filter.</p>'}`;
+}
+function renderSavantSearch(){
+  const mode = svpSr.mode, stats = svpStats(mode);
+  const lo = svpSr.from!=null ? svpSr.from : SVP_YEARS[0], hi = svpSr.to!=null ? svpSr.to : SVP_YEARS[SVP_YEARS.length-1];
+  const yopts = sel => SVP_YEARS.map(y=>`<option value="${y}"${y===sel?' selected':''}>${y}</option>`).join('');
+  const teams = [...new Set(NAMES.flatMap(n=>P[n].seasons.filter(s=>s.type==='Regular'&&!s.split&&s.team).flatMap(s=>s.team.split(' / '))))].filter(t=>TEAMS[t]).sort();
+  const frow = (f,i) => `<div class="svpfrow"><select data-fs="${i}"><option value="">Filter by stat…</option>${
+      stats.map(s=>`<option value="${esc(s.lab)}"${s.lab===f.s?' selected':''}>${esc(s.lab)}</option>`).join('')}</select>
+    <select data-fo="${i}"><option value="&gt;="${f.op==='>='?' selected':''}>at least</option><option value="&lt;="${f.op==='<='?' selected':''}>at most</option></select>
+    <input data-fv="${i}" type="number" step="any" inputmode="decimal" placeholder="${(stats.find(s=>s.lab===f.s)||{}).pct?'e.g. 15 for 15%':'value'}" value="${esc(f.v)}"></div>`;
+  svpShell('search', `
+    <div class="chips svpmodes"><button data-srm="bat" aria-pressed="${mode==='bat'}">Batting</button>
+      <button data-srm="pit" aria-pressed="${mode==='pit'}">Pitching</button></div>
+    <div class="svpform">
+      <label>From <select id="srFrom">${yopts(lo)}</select></label>
+      <label>To <select id="srTo">${yopts(hi)}</select></label>
+      <label>Team <select id="srTeam"><option value="">Any team</option>${teams.map(t=>`<option value="${esc(t)}"${t===svpSr.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="svpchk"><input id="srQual" type="checkbox"${svpSr.qual?' checked':''}> Qualified only (${mode==='bat'?SV_MING+'+ G':SV_MINOUTS/3+'+ IP'})</label>
+    </div>
+    <div class="svpfilters">${svpSr.f.map(frow).join('')}</div>
+    <div id="srRes"></div>
+    <p class="note">Search runs over regular-season lines, one row per player-season. Rate stats like K% and BB% are entered in whole
+      percent. Team matches any club a player appeared for that season.</p>`);
+  const fill = () => {
+    document.getElementById('srRes').innerHTML = svpSearchResults();
+    wirePlayerLinks();
+    app.querySelectorAll('#srRes .pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+    app.querySelectorAll('[data-srs]').forEach(th=>th.addEventListener('click',()=>{
+      const lab = th.dataset.srs;
+      if(svpSr.sort[mode]===lab) svpSr.dir[mode] *= -1; else { svpSr.sort[mode] = lab; svpSr.dir[mode] = -1; }
+      fill(); }));
+  };
+  fill();
+  app.querySelectorAll('[data-srm]').forEach(b=>b.addEventListener('click',()=>{ svpSr.mode = b.dataset.srm; svpSr.f.forEach(f=>{f.s='';f.v='';}); renderSavantSearch(); }));
+  document.getElementById('srFrom').addEventListener('change',e=>{ svpSr.from = +e.target.value; if(svpSr.to!=null && svpSr.from>svpSr.to) svpSr.to = svpSr.from; renderSavantSearch(); });
+  document.getElementById('srTo').addEventListener('change',e=>{ svpSr.to = +e.target.value; if(svpSr.from!=null && svpSr.to<svpSr.from) svpSr.from = svpSr.to; renderSavantSearch(); });
+  document.getElementById('srTeam').addEventListener('change',e=>{ svpSr.team = e.target.value; fill(); });
+  document.getElementById('srQual').addEventListener('change',e=>{ svpSr.qual = e.target.checked; fill(); });
+  app.querySelectorAll('[data-fs]').forEach(el=>el.addEventListener('change',()=>{ svpSr.f[+el.dataset.fs].s = el.value; renderSavantSearch(); }));
+  app.querySelectorAll('[data-fo]').forEach(el=>el.addEventListener('change',()=>{ svpSr.f[+el.dataset.fo].op = el.value; fill(); }));
+  app.querySelectorAll('[data-fv]').forEach(el=>el.addEventListener('input',()=>{ svpSr.f[+el.dataset.fv].v = el.value; fill(); }));
+}
+
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
   if(h === '#/savant/trends') return renderSavantTrends();
+  if(h === '#/savant/scatter') return renderSavantScatter();
+  if(h === '#/savant/search') return renderSavantSearch();
   return renderSavantPct();
 }
 
