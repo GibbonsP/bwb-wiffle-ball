@@ -240,6 +240,19 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpfilters{display:grid;gap:8px;margin:0 0 16px}
 .svpfrow{display:flex;flex-wrap:wrap;gap:8px}
 .svpfrow input{width:150px}
+.svpread{position:relative}
+#scChart{position:relative}
+.svstip{position:absolute;z-index:5;pointer-events:none;min-width:190px;max-width:260px;padding:9px 12px;border-radius:8px;
+  background:var(--card);border:1px solid var(--line-strong);box-shadow:var(--shadow);font-size:.8rem;line-height:1.45}
+.svstip[hidden]{display:none}
+.tt-h{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:1px}
+.tt-h b{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1rem;font-weight:600}
+.tt-h span{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:.74rem}
+.tt-s{color:var(--muted);font-size:.72rem;margin-bottom:5px}
+.tt-l{margin:5px 0 0;padding-top:5px;border-top:1px solid var(--line);font-family:"IBM Plex Mono",monospace}
+.tt-r{display:flex;justify-content:space-between;gap:16px;font-size:.82rem}
+.tt-r span{color:var(--muted)}
+.tt-r b{font-family:"IBM Plex Mono",monospace;font-weight:600}
 .svscatter{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
 .svs-dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.2;cursor:pointer}
 .svs-dot:hover{fill:var(--clay);stroke:var(--clay);fill-opacity:.9}
@@ -8252,6 +8265,20 @@ function svpReadout(d){
   return `<b>${esc(p.name)}</b> · ${p.year}${tm?' · '+esc(tm):''} — ${esc(d.sx.lab)} <b>${d.sx.fmt(p.x)}</b>, ${esc(d.sy.lab)} <b>${d.sy.fmt(p.y)}</b>
     <button class="pname" data-p="${esc(p.name)}">View player →</button>`;
 }
+/* hover card for a dot: who, when, which club, the two plotted values, and the
+   headline line for that side so a dot never needs a trip to the player page */
+function svpTipHTML(p, d){
+  const r = p.row, tm = r.team ? r.team.split(' / ').map(t=>TEAMS[t]?histNick(t,p.year):t).join(' / ') : '';
+  const line = svpSc.mode==='bat'
+    ? `${rate(avg(r))}/${rate(obp(r))}/${rate(slg(r))} · wRC+ ${(v=>isFinite(v)?v:'—')(wrcPlusFor(r, p.year))}`
+    : `${two(era(r))} ERA · ${two(whip(r))} WHIP · ${(v=>isFinite(v)?v:'—')(eraPlusFor(r,[{year:p.year, outs:r.IPouts}]))} ERA+`;
+  const vol = svpSc.mode==='bat' ? `${r.G_bat} G · ${r.PA} PA` : `${r.G_pit} G · ${ipStr(r.IPouts)} IP`;
+  return `<div class="tt-h"><b>${esc(p.name)}</b><span>${p.year}</span></div>
+    <div class="tt-s">${tm?esc(tm)+' · ':''}${vol}</div>
+    <div class="tt-r"><span>${esc(d.sx.lab)}</span><b>${d.sx.fmt(p.x)}</b></div>
+    <div class="tt-r"><span>${esc(d.sy.lab)}</span><b>${d.sy.fmt(p.y)}</b></div>
+    <div class="tt-s tt-l">${line}</div>`;
+}
 function renderSavantScatter(){
   const stats = svpStats(svpSc.mode);
   if(!stats.some(s=>s.lab===svpSc.x)) svpSc.x = svpDefaultAxes[svpSc.mode].x;
@@ -8277,18 +8304,28 @@ function renderSavantScatter(){
       comparing across years mixes scoring environments — use <b>OPS+, wOBA, wRC+</b> or <b>ERA+</b> to level it.</p>`);
   const draw = () => {
     const d = svpScatterData();
-    document.getElementById('scChart').innerHTML = svpScatterSVG(d);
+    document.getElementById('scChart').innerHTML = svpScatterSVG(d) + '<div class="svstip" hidden></div>';
     const rd = document.getElementById('scRead'); rd.innerHTML = svpReadout(d);
     rd.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
     const svg = document.querySelector('.svscatter'); if(!svg) return;
     svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return;
       svpSc.sel = +c.dataset.i; draw(); });
-    svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return;
-      const p = d.pts[+c.dataset.i];
-      document.getElementById('scRead').innerHTML = `<b>${esc(p.name)}</b> · ${p.year} — ${esc(d.sx.lab)} <b>${d.sx.fmt(p.x)}</b>, ${esc(d.sy.lab)} <b>${d.sy.fmt(p.y)}</b>`; });
-    svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')){
-      const rd = document.getElementById('scRead'); rd.innerHTML = svpReadout(d);
-      rd.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); })); } });
+    const show = c => {
+      const wrap = document.getElementById('scChart'), tip = wrap.querySelector('.svstip');
+      tip.innerHTML = svpTipHTML(d.pts[+c.dataset.i], d); tip.hidden = false;
+      const wr = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      const cx = cr.left + cr.width/2 - wr.left, cy = cr.top + cr.height/2 - wr.top;
+      let left = cx + 14; if(left + tip.offsetWidth > wr.width - 4) left = cx - 14 - tip.offsetWidth;
+      tip.style.left = Math.max(4, left)+'px';
+      tip.style.top = Math.max(4, Math.min(cy - tip.offsetHeight/2, wr.height - tip.offsetHeight - 4))+'px';
+    };
+    const hide = () => {
+      const tip = document.querySelector('#scChart .svstip'); if(tip) tip.hidden = true;
+      const cur = svpSc.sel!=null && svg.querySelector(`circle[data-i="${svpSc.sel}"]`); if(cur) show(cur);
+    };
+    svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(c) show(c); });
+    svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')) hide(); });
+    hide();
   };
   draw();
   app.querySelectorAll('[data-scm]').forEach(b=>b.addEventListener('click',()=>{
