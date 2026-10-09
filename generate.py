@@ -8098,8 +8098,8 @@ function renderSavantTrends(){
     ${insight}
     <div class="svcharts">${d.series.map(s=>svpChart(s, d.years, focus)).join('')}</div>
     <h3 class="hsub">By Season</h3>
-    <p class="smeta">League-wide totals for every player who recorded a line. Runs per team-game is from official final scores
-      (forfeits excluded); the rest are summed from player lines. ERA, WHIP and K/3 are per 3 innings, a full game.
+    <p class="smeta">League-wide totals for every player who recorded a line. Runs per team-game is from official final scores;
+      the rest are summed from player lines. ERA, WHIP and K/3 are per 3 innings, a full game.
       Click a season to see its percentile rankings.</p>
     ${tbl}`);
   app.querySelectorAll('[data-svpp]').forEach(b=>b.addEventListener('click',()=>{ svpPost = b.dataset.svpp==='1'; renderSavantTrends(); }));
