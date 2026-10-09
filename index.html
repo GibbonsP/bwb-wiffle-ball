@@ -1091,8 +1091,8 @@ function setNav(v){
   const b=(k,l)=>`<button data-v="${k}" class="${v===k?'active':''}">${l}</button>`;
   document.getElementById('nav').innerHTML =
     b('home','Home')+b('history','History')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
-    +b('leaders','Leaders')+b('savant','Savant')+b('records','Records')+b('games','Games')+b('champs','Champions')
-    +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('arcade','Arcade');
+    +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champions')
+    +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('savant','Savant')+b('arcade','Arcade');
   document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>{
     location.hash = x.dataset.v==='home' ? '#/' : '#/'+x.dataset.v;
   }));
