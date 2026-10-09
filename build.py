@@ -403,6 +403,9 @@ def box_pit(row):
             'w': int(row['W']), 'l': int(row['L']), 'sv': int(row['S']),
             'gs': int(row['GS.2'])}
 
+# the export lists these games' field as "TBA"; where they were actually played, confirmed by the league
+LOC_FIX = {24163421: 'Brookside Field'}   # 2017-09-01 Wildcats 1-0 Mustangs
+
 games = {}
 for r in BX[1:]:
     if r[BHc['Status']] != '1':
@@ -419,7 +422,7 @@ for r in BX[1:]:
 
     games[gid] = {
         'gid': gid, 'date': _iso(r[BHc['Date']]), 'div': r[BHc['DivisionName']],
-        'phase': ph, 'loc': r[BHc['LocationName']], 'innings': inn,
+        'phase': ph, 'loc': LOC_FIX.get(gid, r[BHc['LocationName']]), 'innings': inn,
         'away': {'team': canon_team(yr, r[BHc['VisitingTeamName']]), 'line': line('Away'),
                  'R': _bi(r, 'Runs - Away'), 'H': _bi(r, 'Hits - Away'),
                  'E': _bi(r, 'Errors - Away'), 'bat': [], 'pit': []},
