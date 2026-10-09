@@ -236,6 +236,11 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpctl .chips,.svpmodes{margin:6px 0 14px}
 .svptabs{margin:14px 0 8px}
 .svptable{min-width:100%}
+.svpcomps{margin-top:8px}
+.svph4{font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+.svpcc{text-align:left;white-space:nowrap}
+.svpcc .svpv{display:block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--muted);margin-top:2px}
+.svptable td.svpcc:first-child{position:static}
 .svptable th.sortcol{cursor:pointer;white-space:nowrap}
 .svptable th.sortcol:hover{color:var(--accent)}
 .svptable td{vertical-align:middle}
@@ -8125,8 +8130,86 @@ function renderSavantCompare(a, b){
       <div class="cmpsvgrid">${sA.html}${sB.html}</div>
     </section>
     <p class="note">Regular-season lines. <span class="cmpwin cmpwinsample">Highlighted</span> value is the better of the two in each row;
-      K is fewer-is-better for batters, more-is-better for pitchers.</p>`);
+      K is fewer-is-better for batters, more-is-better for pitchers.</p>
+    ${svpCompsHTML()}`);
   wireSvpPicker();
+  wireSvpComps(a, b);
+}
+
+/* ------------------------ closest-season comps ------------------------
+   Every qualified player-season gets its nearest matches among every OTHER
+   player's qualified seasons, hitting and pitching separately. A season is
+   described by its percentile in each of that side's SV_BAT / SV_PIT stats
+   against its own year's qualified field — so a 2017 season and a 2026 one
+   line up on how good they were in context, not on raw numbers from two very
+   different scoring environments. Similarity is 100 minus the average gap, in
+   percentile points, across the stats. */
+let svpCompsIdx = null;
+function svpCompIndex(){
+  if(svpCompsIdx) return svpCompsIdx;
+  const idx = {bat:[], pit:[]};
+  SVP_YEARS.forEach(y=>{
+    const pool = svpPoolFor(y), ents = svpEntries(y);
+    [['bat', SV_BAT, pool.bat, e=>e.row.G_bat>=SV_MING], ['pit', SV_PIT, pool.pit, e=>e.row.IPouts>=SV_MINOUTS]]
+      .forEach(([k, metrics, rows, q])=>{
+        const vals = metrics.map(([,fn])=>rows.map(fn).filter(isFinite));
+        ents.filter(q).forEach(e=>{
+          const pc = metrics.map(([,fn,,low],i)=>{ const v = fn(e.row); return isFinite(v) ? svPct(vals[i], v, low) : null; });
+          if(pc.some(p=>p==null)) return;
+          idx[k].push({name:e.name, year:y, row:e.row, pc, avg: pc.reduce((a,b)=>a+b,0)/pc.length});
+        });
+      });
+  });
+  return (svpCompsIdx = idx);
+}
+function svpCompsFor(entry, list, n){
+  return list.filter(o=>o.name!==entry.name)
+    .map(o=>({o, sim: 100 - entry.pc.reduce((s,p,i)=>s+Math.abs(p-o.pc[i]),0)/entry.pc.length}))
+    .sort((a,b)=>b.sim-a.sim).slice(0,n);
+}
+function svpCompsTable(mode, year){
+  const list = svpCompIndex()[mode];
+  const rows = list.filter(e=>e.year===year).sort((a,b)=>b.avg-a.avg);
+  if(!rows.length) return '<p class="empty">No qualified seasons that year.</p>';
+  const lab = mode==='bat' ? 'OPS+' : 'ERA';
+  const head = mode==='bat' ? (r=>{ const v = SV_BAT[3][1](r); return isFinite(v)?String(v):'—'; }) : (r=>two(era(r)));
+  const body = rows.map(e=>{
+    const comps = svpCompsFor(e, list, 3).map(({o,sim})=>{
+      const ref = [e.name, e.year, o.name, o.year].map((x,i)=>i%2?x:encodeURIComponent(x)).join('|');
+      return `<td class="svpcc"><button class="pname" data-svpcmp="${ref}">${esc(o.name)} ’${String(o.year).slice(2)}</button>
+        <span class="svpv">${sim.toFixed(0)}% match</span></td>`;
+    }).join('');
+    return `<tr><td class="lft"><button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button></td>
+      <td class="lft svptm">${teamCell(e.row)}</td><td class="mono">${head(e.row)}</td>
+      <td class="svpavg">${svpPill(Math.round(e.avg))}</td>${comps}</tr>`;
+  }).join('');
+  return `<div class="tscroll"><table class="detail svptable"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
+    <th>${lab}</th><th class="svpavg" title="Mean of the season's percentiles">Avg</th>
+    <th class="lft">Closest</th><th class="lft">2nd</th><th class="lft">3rd</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function svpCompsHTML(){
+  if(svpYear==null || !SVP_YEARS.includes(svpYear)) svpYear = SVP_YEARS[SVP_YEARS.length-1];
+  const chips = `<div class="chips svpcompyears">${SVP_YEARS.slice().reverse().map(y=>
+    `<button data-svpcy="${y}" aria-pressed="${y===svpYear}">${y}</button>`).join('')}</div>`;
+  return `<section class="svpcomps" id="svpComps"><h3 class="hsub">Season Comps</h3>
+    <p class="smeta">Every qualified season, matched to the most similar seasons by other players from any year — hitting and
+      pitching separately. Seasons are matched on their percentile profile within their own year, so it compares how good a
+      season was in context, not raw numbers from different scoring eras. Match % is 100 minus the average gap in percentile
+      points. Click a comp to put the two seasons head to head.</p>
+    ${chips}
+    <h4 class="svph4">Hitting · ${svpYear}</h4>${svpCompsTable('bat', svpYear)}
+    <h4 class="svph4">Pitching · ${svpYear}</h4>${svpCompsTable('pit', svpYear)}
+  </section>`;
+}
+function wireSvpComps(a, b){
+  app.querySelectorAll('[data-svpcy]').forEach(x=>x.addEventListener('click',()=>{
+    svpYear = +x.dataset.svpcy; renderSavantCompare(a, b);
+    const el = document.getElementById('svpComps'); if(el) el.scrollIntoView();
+  }));
+  app.querySelectorAll('[data-svpcmp]').forEach(x=>x.addEventListener('click',()=>{
+    const [na, ya, nb, yb] = x.dataset.svpcmp.split('|');
+    location.hash = '#/savant/compare/'+na+'/'+ya+'/'+nb+'/'+yb;
+  }));
 }
 
 function renderSavant(h){
