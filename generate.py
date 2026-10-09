@@ -232,6 +232,38 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .cmpsvgrid{display:grid;grid-template-columns:1fr;gap:10px 30px}
 @media(min-width:700px){.cmpsvgrid{grid-template-columns:1fr 1fr}}
 .cmpsvside{border-top:2px solid var(--line-strong);padding-top:10px}
+.svpctl{display:flex;flex-wrap:wrap;gap:0 24px;align-items:flex-start}
+.svpctl .chips,.svpmodes{margin:6px 0 14px}
+.svptabs{margin:14px 0 8px}
+.svptable{min-width:100%}
+.svptable th.sortcol{cursor:pointer;white-space:nowrap}
+.svptable th.sortcol:hover{color:var(--accent)}
+.svptable td{vertical-align:middle}
+.svptable td:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+.svptable thead th:first-child{position:sticky;left:0;z-index:3}
+.svptable tbody tr:hover td:first-child{background:var(--accent-soft)}
+.svpc{text-align:center;white-space:nowrap}
+.svpc .svpv{display:block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.svpill{display:inline-block;min-width:2.1em;padding:2px 8px;border-radius:999px;font-family:"IBM Plex Mono",monospace;
+  font-size:.76rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.svpavg{border-right:1px solid var(--line-strong);text-align:center}
+.svpnote{margin:4px 0 18px;max-width:68ch;font-size:.95rem}
+.svpnote b{font-weight:600}
+.svcharts{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px 18px;margin:0 0 8px}
+.svchart{margin:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 10px 4px}
+.svchart figcaption{font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 2px 4px}
+.svchart svg{display:block;width:100%;height:auto}
+.svc-grid{stroke:var(--line);stroke-width:1}
+.svc-t{fill:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:8.5px}
+.svc-f{fill:var(--ink);font-weight:600}
+.svc-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.svc-dot{fill:var(--card);stroke:var(--accent);stroke-width:2}
+.svc-dotf{fill:var(--clay);stroke:var(--clay)}
+.svc-v{fill:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:8.5px;font-weight:600}
+.svptrend td.mono,.svptrend th{text-align:right}
+.svpcmp .svpside{display:inline-flex;gap:6px}
+.svpcmp select{padding:8px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+@media(max-width:640px){.svptable .svptm{display:none}}
 .cmpsvname{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.05rem;margin:0 0 6px}
 
 .accolades{margin:0 0 34px}
@@ -1060,7 +1092,7 @@ function setNav(v){
   const b=(k,l)=>`<button data-v="${k}" class="${v===k?'active':''}">${l}</button>`;
   document.getElementById('nav').innerHTML =
     b('home','Home')+b('history','History')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
-    +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champions')
+    +b('leaders','Leaders')+b('savant','Savant')+b('records','Records')+b('games','Games')+b('champs','Champions')
     +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('arcade','Arcade');
   document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>{
     location.hash = x.dataset.v==='home' ? '#/' : '#/'+x.dataset.v;
@@ -7819,6 +7851,293 @@ function wireB0(){
   }));
 }
 
+/* ================================ SAVANT PAGE ================================
+   One home for the league-wide view of the same percentile math each player
+   page already runs for a single player (svPct/svColor/SV_BAT/SV_PIT, same
+   qualification bar): a leaderboard of every qualified player-season with
+   its percentile pills, how the league's scoring environment has moved year
+   to year, and a head-to-head of any two player-seasons. Three sub-views off
+   one route: #/savant, #/savant/trends, #/savant/compare[/A/yearA/B/yearB]. */
+const SVP_YEARS = [...new Set(NAMES.flatMap(n=>svSeasons(P[n])))].sort((a,b)=>a-b);
+let svpYear = null, svpMode = 'bat', svpPost = false;
+const svpSort = {bat:'avg', pit:'avg'};
+
+function svpShell(tab, inner){
+  setNav('savant');
+  const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
+  const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
+  app.innerHTML = `
+    <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
+    <p class="pmeta">Percentile rankings for every qualified season, how the league's scoring has changed over time,
+      and head-to-head comparisons of any two player seasons.</p>
+    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}</div>
+    ${inner}`;
+  app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
+    location.hash = b.dataset.svpt==='pct' ? '#/savant' : '#/savant/'+b.dataset.svpt;
+  }));
+  wirePlayerLinks();
+  app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+}
+const svpPillInk = p => (p>=30 && p<=70) ? '#1b2433' : '#fff';
+const svpPill = p => p==null ? '<span class="svpv">—</span>'
+  : `<span class="svpill" style="background:${svColor(p)};color:${svpPillInk(p)}">${p}</span>`;
+
+/* ---------------------------- percentile rankings --------------------------- */
+function svpEntries(year){
+  return NAMES.map(n=>({name:n, row:svRegRow(P[n], year)})).filter(e=>e.row);
+}
+function svpRankTable(year, mode){
+  const metrics = mode==='bat' ? SV_BAT : SV_PIT;
+  const qual = svpEntries(year).filter(e=> mode==='bat' ? e.row.G_bat>=SV_MING : e.row.IPouts>=SV_MINOUTS);
+  const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row)).filter(isFinite));
+  const rows = qual.map(e=>{
+    const cells = metrics.map(([,fn,fmt,low],i)=>{
+      const v = fn(e.row);
+      return {p: isFinite(v) ? svPct(vals[i], v, low) : null, txt: isFinite(v) ? fmt(v) : '—'};
+    });
+    const ps = cells.map(c=>c.p).filter(p=>p!=null);
+    return {e, cells, avg: ps.length ? Math.round(ps.reduce((a,b)=>a+b,0)/ps.length) : null};
+  });
+  const key = svpSort[mode];
+  const sv = r => key==='name' ? r.e.name : key==='avg' ? r.avg : r.cells[key].p;
+  rows.sort((a,b)=>{
+    if(key==='name') return nameLast(a.e.name).localeCompare(nameLast(b.e.name));
+    return ((sv(b)==null?-1:sv(b)) - (sv(a)==null?-1:sv(a))) || nameLast(a.e.name).localeCompare(nameLast(b.e.name));
+  });
+  const arrow = k => key===k ? ' <span class="ar">▼</span>' : '';
+  const head = `<tr><th class="lft sortcol" data-svps="name">Player${key==='name'?' <span class="ar">▲</span>':''}</th>
+    <th class="lft svptm">Tm</th>${mode==='bat'?'<th>G</th><th>PA</th>':'<th>G</th><th>IP</th>'}
+    <th class="sortcol svpavg" data-svps="avg" title="Mean of the row's percentiles">Avg${arrow('avg')}</th>
+    ${metrics.map(([lab],i)=>`<th class="sortcol" data-svps="${i}">${lab}${arrow(i)}</th>`).join('')}</tr>`;
+  const body = rows.map(r=>{
+    const d = r.e.row;
+    return `<tr><td class="lft"><button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></td>
+      <td class="lft svptm">${teamCell(d)}</td>
+      ${mode==='bat' ? `<td>${d.G_bat}</td><td>${d.PA}</td>` : `<td>${d.G_pit}</td><td class="mono">${ipStr(d.IPouts)}</td>`}
+      <td class="svpavg">${svpPill(r.avg)}</td>
+      ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`;
+  }).join('');
+  return {n: qual.length, html: `<div class="tscroll"><table class="detail svptable"><thead>${head}</thead><tbody>${body}</tbody></table></div>`};
+}
+function renderSavantPct(){
+  if(svpYear==null || !SVP_YEARS.includes(svpYear)) svpYear = SVP_YEARS[SVP_YEARS.length-1];
+  const yearChips = `<div class="chips svpyears">${SVP_YEARS.slice().reverse().map(y=>
+    `<button data-svpy="${y}" aria-pressed="${y===svpYear}">${y}</button>`).join('')}</div>`;
+  const modeChips = `<div class="chips svpmodes"><button data-svpm="bat" aria-pressed="${svpMode==='bat'}">Batting</button>
+    <button data-svpm="pit" aria-pressed="${svpMode==='pit'}">Pitching</button></div>`;
+  const t = svpRankTable(svpYear, svpMode);
+  const bar = svpMode==='bat' ? `${SV_MING}+ G` : `${SV_MINOUTS/3}+ IP`;
+  svpShell('pct', `
+    <div class="svpctl">${yearChips}${modeChips}</div>
+    <p class="smeta">${svpYear} regular season · ${t.n} qualified ${svpMode==='bat'?'hitters':'pitchers'} (${bar}).
+      Each pill is the player's percentile among that field in that stat —
+      <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing —
+      with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better.
+      <b>Avg</b> is the mean of a row's percentiles. Click a column to sort.</p>
+    ${t.n ? t.html : '<p class="empty">No qualified players that year.</p>'}`);
+  app.querySelectorAll('[data-svpy]').forEach(b=>b.addEventListener('click',()=>{ svpYear = +b.dataset.svpy; renderSavantPct(); }));
+  app.querySelectorAll('[data-svpm]').forEach(b=>b.addEventListener('click',()=>{ svpMode = b.dataset.svpm; renderSavantPct(); }));
+  app.querySelectorAll('[data-svps]').forEach(th=>th.addEventListener('click',()=>{
+    const k = th.dataset.svps;
+    svpSort[svpMode] = (k==='name'||k==='avg') ? k : +k;
+    renderSavantPct();
+  }));
+}
+
+/* ------------------------------ league trends ------------------------------ */
+const svpIsForfeit = g => !g.away.bat.length && !g.home.bat.length && !(g.away.pit||[]).length && !(g.home.pit||[]).length;
+function svpLeagueSeries(post){
+  const lgMap = post ? LEAGUE_BY_YEAR_POST : LEAGUE_BY_YEAR;
+  const rpg = {};
+  GIDS.forEach(id=>{
+    const g = GAMES[id];
+    if(g.phase !== (post?'Playoffs':'Regular') || svpIsForfeit(g)) return;
+    const y = +g.date.slice(0,4), o = rpg[y] || (rpg[y] = {r:0, g:0});
+    o.r += g.away.R + g.home.R; o.g += 2;
+  });
+  const pct = v => (v*100).toFixed(1)+'%';
+  const defs = [
+    ['Runs / Team-Game', (lg,y)=>rpg[y] ? rpg[y].r/rpg[y].g : NaN, v=>v.toFixed(2)],
+    ['AVG', lg=>avg(lg), rate], ['OBP', lg=>obp(lg), rate], ['SLG', lg=>slg(lg), rate], ['OPS', lg=>ops(lg), rate],
+    ['HR%', lg=>lg.PA?lg.HR/lg.PA:NaN, pct], ['BB%', lg=>lg.PA?lg.BB/lg.PA:NaN, pct], ['K%', lg=>lg.PA?lg.K/lg.PA:NaN, pct],
+    ['ERA', lg=>era(lg), two], ['WHIP', lg=>whip(lg), two], ['K/3', lg=>k9(lg), two],
+  ];
+  const years = Object.keys(lgMap).map(Number).filter(y=>lgMap[y].PA>0).sort((a,b)=>a-b);
+  return {years, rpg, lgMap, defs, series: defs.map(([lab,fn,fmt])=>({lab, fmt,
+    pts: years.map(y=>({y, v: fn(lgMap[y], y)})).filter(p=>isFinite(p.v))}))};
+}
+function svpChart(s, yearsAll, focus){
+  const W = 320, H = 168, L = 42, R = 14, T = 22, B = 26;
+  if(!s.pts.length) return '';
+  const vs = s.pts.map(p=>p.v);
+  let lo = Math.min(...vs), hi = Math.max(...vs);
+  const span = (hi-lo) || Math.abs(hi)*0.1 || 1;
+  lo -= span*0.18; hi += span*0.18;
+  const IN = 14;   // keep the end labels clear of the axis labels
+  const X = y => L + IN + (W-L-R-2*IN)*(yearsAll.length>1 ? yearsAll.indexOf(y)/(yearsAll.length-1) : 0.5);
+  const Y = v => T + (H-T-B)*(1-(v-lo)/(hi-lo));
+  const ticks = [0,0.5,1].map(f=>lo+(hi-lo)*f);
+  const grid = ticks.map(v=>`<line class="svc-grid" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+    <text class="svc-t" x="${L-6}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${s.fmt(v)}</text>`).join('');
+  const xl = yearsAll.map(y=>`<text class="svc-t${y===focus?' svc-f':''}" x="${X(y).toFixed(1)}" y="${H-8}" text-anchor="middle">’${String(y).slice(2)}</text>`).join('');
+  const path = s.pts.map((p,i)=>`${i?'L':'M'}${X(p.y).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+  const maxV = Math.max(...vs), minV = Math.min(...vs);
+  const labelled = new Set([s.pts[0].y, s.pts[s.pts.length-1].y, s.pts.find(p=>p.v===maxV).y, s.pts.find(p=>p.v===minV).y]);
+  const dots = s.pts.map(p=>{
+    const isF = p.y===focus;
+    return `<circle class="svc-dot${isF?' svc-dotf':''}" cx="${X(p.y).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="${isF?4:3}"><title>${p.y}: ${s.fmt(p.v)}</title></circle>`
+      + (labelled.has(p.y) ? `<text class="svc-v" x="${X(p.y).toFixed(1)}" y="${(Y(p.v)-8).toFixed(1)}" text-anchor="middle">${s.fmt(p.v)}</text>` : '');
+  }).join('');
+  return `<figure class="svchart"><figcaption>${s.lab}</figcaption>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(s.lab)} by season">${grid}${xl}
+    <path class="svc-line" d="${path}"/>${dots}</svg></figure>`;
+}
+function renderSavantTrends(){
+  const d = svpLeagueSeries(svpPost);
+  if(!d.years.length){ svpShell('trends', '<p class="empty">No data.</p>'); return; }
+  const focus = svpYear || d.years[d.years.length-1];
+  const rp = d.series[0].pts;
+  let insight = '';
+  if(rp.length>1){
+    const mx = rp.reduce((a,b)=>b.v>a.v?b:a), mn = rp.reduce((a,b)=>b.v<a.v?b:a), last = rp[rp.length-1];
+    insight = `<p class="svpnote">Scoring peaked at <b>${mx.v.toFixed(2)}</b> runs per team per game in <b>${mx.y}</b> and bottomed out
+      at <b>${mn.v.toFixed(2)}</b> in <b>${mn.y}</b> — a ${(mx.v/mn.v).toFixed(1)}× swing.
+      ${(last.y===mx.y||last.y===mn.y)?'':`${last.y} sits at <b>${last.v.toFixed(2)}</b>.`}</p>`;
+  }
+  const cols = d.defs.map(([lab])=>lab);
+  const tbl = `<div class="tscroll"><table class="detail svptable svptrend"><thead><tr><th class="lft">Season</th><th>Players</th>
+    ${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+    ${d.years.slice().reverse().map(y=>{
+      const lg = d.lgMap[y];
+      const np = NAMES.filter(n=>P[n].seasons.some(s=>s.type===(svpPost?'Playoffs':'Regular') && !s.tot && !s.split && s.year===y && s.G_bat>0)).length;
+      return `<tr><td class="lft"><button class="pname" data-svpgo="${y}">${y}</button></td><td>${np}</td>
+        ${d.defs.map(([,fn,fmt])=>{ const v = fn(lg,y); return `<td class="mono">${isFinite(v)?fmt(v):'—'}</td>`; }).join('')}</tr>`;
+    }).join('')}</tbody></table></div>`;
+  svpShell('trends', `
+    <div class="chips svpmodes"><button data-svpp="0" aria-pressed="${!svpPost}">Regular Season</button>
+      <button data-svpp="1" aria-pressed="${svpPost}">Postseason</button></div>
+    ${insight}
+    <div class="svcharts">${d.series.map(s=>svpChart(s, d.years, focus)).join('')}</div>
+    <h3 class="hsub">By Season</h3>
+    <p class="smeta">League-wide totals for every player who recorded a line. Runs per team-game is from official final scores
+      (forfeits excluded); the rest are summed from player lines. ERA, WHIP and K/3 are per 3 innings, a full game.
+      Click a season to see its percentile rankings.</p>
+    ${tbl}`);
+  app.querySelectorAll('[data-svpp]').forEach(b=>b.addEventListener('click',()=>{ svpPost = b.dataset.svpp==='1'; renderSavantTrends(); }));
+  app.querySelectorAll('[data-svpgo]').forEach(b=>b.addEventListener('click',()=>{
+    svpYear = +b.dataset.svpgo; location.hash = '#/savant'; }));
+}
+
+/* --------------------------- season comparison ---------------------------- */
+function svpPoolFor(year){
+  const rows = NAMES.map(n=>svRegRow(P[n], year)).filter(Boolean);
+  return {bat: rows.filter(r=>r.G_bat>=SV_MING), pit: rows.filter(r=>r.IPouts>=SV_MINOUTS)};
+}
+function svpSeasonTeam(row, year){
+  if(!row || !row.team) return '';
+  return row.team.split(' / ').map(t=>TEAMS[t] ? histNick(t, year) : t).join(' / ');
+}
+function svpCmpHead(pl, year, row){
+  return `<div class="cmpplayer">
+    ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
+    <button class="pname cmpname" data-p="${esc(pl.name)}">${esc(pl.name)}</button>
+    <span class="azm">${year} season${svpSeasonTeam(row, year)?' · '+esc(svpSeasonTeam(row, year)):''}</span>
+  </div>`;
+}
+function svpCmpSide(pl, year, row, other, pool){
+  const q = cmpCareerQual(row);
+  const bat = q.batOK ? cmpSvPanel(`Batting · vs ${pool.bat.length}`, SV_BAT, row, other, pool.bat, false)
+    : q.batShow ? cmpSvPanel(`Batting · vs ${pool.bat.length}`, SV_BAT, row, other, pool.bat, true) : '';
+  const pit = q.pitOK ? cmpSvPanel(`Pitching · vs ${pool.pit.length}`, SV_PIT, row, other, pool.pit, false)
+    : q.pitShow ? cmpSvPanel(`Pitching · vs ${pool.pit.length}`, SV_PIT, row, other, pool.pit, true) : '';
+  return {html: `<div class="cmpsvside"><h4 class="cmpsvname">${esc(pl.name)} · ${year}</h4>
+    <div class="svpanels">${bat||pit ? bat+pit : '<p class="smeta">Too few games that season to estimate.</p>'}</div></div>`, unq: !!(q.batShow||q.pitShow)};
+}
+function svpCmpPicker(a, b){
+  const opt = (name, yr) => {
+    const ys = P[name] ? svSeasons(P[name]) : SVP_YEARS;
+    return ys.slice().reverse().map(y=>`<option value="${y}"${y===yr?' selected':''}>${y}</option>`).join('');
+  };
+  return `<div class="cmppicker svpcmp">
+      <span class="svpside"><input id="svpA" list="svpnames" placeholder="Player A" value="${esc(a.name||'')}">
+        <select id="svpAy" aria-label="Season for player A">${opt(a.name, a.year)}</select></span>
+      <span class="cmpvs">vs</span>
+      <span class="svpside"><input id="svpB" list="svpnames" placeholder="Player B" value="${esc(b.name||'')}">
+        <select id="svpBy" aria-label="Season for player B">${opt(b.name, b.year)}</select></span>
+      <button class="pname cmpgo" id="svpGo">Compare →</button>
+    </div>
+    <datalist id="svpnames">${NAMES.filter(n=>svSeasons(P[n]).length).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
+}
+function wireSvpPicker(){
+  const refill = (inId, selId) => {
+    const nm = document.getElementById(inId).value.trim(), sel = document.getElementById(selId);
+    if(!P[nm]) return;
+    const ys = svSeasons(P[nm]), keep = +sel.value;
+    sel.innerHTML = ys.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');
+    sel.value = String(ys.includes(keep) ? keep : ys[ys.length-1]);
+  };
+  document.getElementById('svpA').addEventListener('change',()=>refill('svpA','svpAy'));
+  document.getElementById('svpB').addEventListener('change',()=>refill('svpB','svpBy'));
+  const go = () => {
+    const a = document.getElementById('svpA').value.trim(), b = document.getElementById('svpB').value.trim();
+    if(!P[a] || !P[b]){ document.getElementById('svpMsg').textContent = `Pick two names from the list${!P[a]&&a?` — couldn't find "${a}"`:!P[b]&&b?` — couldn't find "${b}"`:''}.`; return; }
+    location.hash = '#/savant/compare/'+encodeURIComponent(a)+'/'+document.getElementById('svpAy').value
+      +'/'+encodeURIComponent(b)+'/'+document.getElementById('svpBy').value;
+  };
+  document.getElementById('svpGo').addEventListener('click', go);
+  ['svpA','svpB'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+}
+function renderSavantCompare(a, b){
+  if(!a || !b){
+    /* default to something real: the two best qualified bats of the latest season by OPS+ */
+    const y = SVP_YEARS[SVP_YEARS.length-1];
+    const top = svpEntries(y).filter(e=>e.row.G_bat>=SV_MING)
+      .map(e=>({name:e.name, v:opsPlusFor(e.row,[{year:y, pa:e.row.PA}])})).filter(e=>isFinite(e.v))
+      .sort((p,q)=>q.v-p.v);
+    a = {name:(top[0]||{}).name, year:y}; b = {name:(top[1]||{}).name, year:y};
+  }
+  const plA = P[a.name], plB = P[b.name];
+  const rowA = plA && svRegRow(plA, a.year), rowB = plB && svRegRow(plB, b.year);
+  if(!rowA || !rowB){
+    svpShell('compare', `${svpCmpPicker(a, b)}<p class="empty" id="svpMsg">${
+      (!plA||!plB) ? 'Couldn’t find that player — pick a name from the list.' : 'No regular-season line for one of those seasons.'}</p>`);
+    wireSvpPicker(); return;
+  }
+  const hasBat = rowA.G_bat>0 || rowB.G_bat>0, hasPit = rowA.IPouts>0 || rowB.IPouts>0;
+  const opsA = opsPlusFor(rowA, [{year:a.year, pa:rowA.PA}]), opsB = opsPlusFor(rowB, [{year:b.year, pa:rowB.PA}]);
+  const batHTML = hasBat ? cmpTable('Hitting', CMP_BAT, rowA, rowB, cmpRow('OPS+', opsA, opsB, v=>String(v), false)) : '';
+  const eA = eraPlusFor(rowA, [{year:a.year, outs:rowA.IPouts}]), eB = eraPlusFor(rowB, [{year:b.year, outs:rowB.IPouts}]);
+  const pitHTML = hasPit ? cmpTable('Pitching', CMP_PIT, rowA, rowB, cmpRow('ERA+', eA, eB, v=>String(v), false)) : '';
+  const sA = svpCmpSide(plA, a.year, rowA, rowB, svpPoolFor(a.year));
+  const sB = svpCmpSide(plB, b.year, rowB, rowA, svpPoolFor(b.year));
+  svpShell('compare', `
+    ${svpCmpPicker(a, b)}<p class="smeta svpmsg" id="svpMsg"></p>
+    <div class="cmpwrap">
+      <div class="cmpheads">${svpCmpHead(plA, a.year, rowA)}<span class="cmpvs">vs</span>${svpCmpHead(plB, b.year, rowB)}</div>
+      ${batHTML}${pitHTML}
+    </div>
+    <section class="savant"><h3>Percentile Comparison</h3>
+      <p class="smeta">Each season ranked against its own year’s qualified field (${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching),
+        so a season from a high-scoring year isn’t mistaken for a better player.
+        <span style="color:${svColor(100)}">Red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing.
+        K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.${(sA.unq||sB.unq)?' Faded, dashed rows are below the qualification bar — an estimate, not a real ranking.':''}</p>
+      <div class="cmpsvgrid">${sA.html}${sB.html}</div>
+    </section>
+    <p class="note">Regular-season lines. <span class="cmpwin cmpwinsample">Highlighted</span> value is the better of the two in each row;
+      K is fewer-is-better for batters, more-is-better for pitchers.</p>`);
+  wireSvpPicker();
+}
+
+function renderSavant(h){
+  let m;
+  if((m = h.match(/^#\/savant\/compare\/([^/]+)\/(\d{4})\/([^/]+)\/(\d{4})$/)))
+    return renderSavantCompare({name:decodeURIComponent(m[1]), year:+m[2]}, {name:decodeURIComponent(m[3]), year:+m[4]});
+  if(h === '#/savant/compare') return renderSavantCompare(null, null);
+  if(h === '#/savant/trends') return renderSavantTrends();
+  return renderSavantPct();
+}
+
 function dispatch(h){
   let m;
   if(h === '#/standings') return renderStandings();
@@ -7841,6 +8160,7 @@ function dispatch(h){
     return detail(decodeURIComponent(m[1]));
   }
   if(h === '#/players') return renderDir();
+  if(h === '#/savant' || h.startsWith('#/savant/')) return renderSavant(h);
   if(h === '#/compare') return renderCompare(null, null);
   if((m = h.match(/^#\/compare\/([^/]+)\/([^/]+)$/)))
     return renderCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
