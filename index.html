@@ -5282,6 +5282,11 @@ function computeParkFactors(){
   GIDS.forEach(gid=>{
     const g = GAMES[gid];
     if(g.phase!=='Regular' && g.phase!=='Playoffs') return;
+    /* a forfeit is a recorded result, not a game that was played — it's always
+       a game with no player stats at all (no batters, no pitchers) — so its 3-0
+       or 6-0 says nothing about any field's scoring environment, and counting
+       it would drag the league-average baseline down for every park */
+    if(!g.away.bat.length && !g.home.bat.length && !(g.away.pit||[]).length && !(g.home.pit||[]).length) return;
     const y = +g.date.slice(0,4);
     const loc = g.loc && g.loc!=='TBA' ? g.loc : null;
     const runs = g.away.R + g.home.R;
@@ -5353,7 +5358,8 @@ function parkFactorsHTML(){
     Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
     (exit velocity, Hard Hit%) this league's box scores don't have, and using a simpler park-vs-league
     method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
-    regular-season and playoff game's official final score; every other column only from games with
+    played regular-season and playoff game's official final score (forfeits, which have no player stats,
+    are left out); every other column only from games with
     a recorded bat line, back to 2017, and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
     games at that field to appear at all.</p>
     ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
