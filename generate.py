@@ -5519,7 +5519,7 @@ function playerGameLog(pl, type, selYear){
     <td>${bat.ab}</td><td>${bat.r}</td><td>${bat.h}</td><td>${bat['2b']}</td><td>${bat['3b']}</td><td>${bat.hr}</td>
     <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td><td>${bat.hbp}</td></tr>`).join('');
   const pitBody = rows.filter(r=>r.pit).map(({g,side,pit,opp})=>`<tr>${oppCell(g,side,opp)}
-    <td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
+    <td>${pit.gs}</td><td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
     <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td></tr>`).join('');
   const fldBody = rows.filter(r=>r.fldLine).map(({g,side,fldLine,opp})=>`<tr>${oppCell(g,side,opp)}
     <td class="mono">${fldLine.inn}</td><td>${fldLine.tc}</td><td>${fldLine.po}</td>
@@ -5530,13 +5530,13 @@ function playerGameLog(pl, type, selYear){
     <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Date</th><th class="lft">Opp</th>${th}
     </tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div></section>` : '';
   const batTot = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
-  const pitTot = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
+  const pitTot = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv','gs']);
   const fldTot = sumBox(fldRows,['inn','tc','po','a','e','dp']);
   const batFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${batTot.ab}</td><td>${batTot.r}</td><td>${batTot.h}</td><td>${batTot['2b']}</td><td>${batTot['3b']}</td><td>${batTot.hr}</td>
     <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td><td>${batTot.hbp}</td></tr>`;
   const pitFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
-    <td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
+    <td>${pitTot.gs}</td><td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
     <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td></tr>`;
   const fldFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td class="mono">${fldTot.inn}</td><td>${fldTot.tc}</td><td>${fldTot.po}</td>
@@ -5545,7 +5545,7 @@ function playerGameLog(pl, type, selYear){
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
     ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>HBP</th>', batBody, batFoot)}
-    ${tbl('Pitching', '<th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
+    ${tbl('Pitching', '<th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
     ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody, fldFoot)}
   </section>`;
 }
@@ -5596,7 +5596,7 @@ function gameBatRow(bat){
 }
 function gamePitRow(pit){
   if(!pit) return null;
-  return {G_pit:1, GS_pit:pit.o===1?1:0, IPouts:pit.ip||0, W:pit.w||0, L:pit.l||0, SV:pit.sv||0,
+  return {G_pit:1, GS_pit:pit.gs||0, IPouts:pit.ip||0, W:pit.w||0, L:pit.l||0, SV:pit.sv||0,
     pH:pit.h||0, pR:pit.r||0, ER:pit.er||0, pBB:pit.bb||0, pK:pit.k||0};
 }
 /* group a player's per-game rows by an arbitrary key (side, field, opponent)

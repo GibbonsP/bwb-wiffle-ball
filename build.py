@@ -400,7 +400,8 @@ def box_pit(row):
             'ip': int(row['IP']) * 3 + int(row['1/3 Innings']),
             'h': int(row['H']), 'r': int(row['R.1']), 'er': int(row['ER']),
             'bb': int(row['BB.1']), 'k': int(row['K.1']),
-            'w': int(row['W']), 'l': int(row['L']), 'sv': int(row['S'])}
+            'w': int(row['W']), 'l': int(row['L']), 'sv': int(row['S']),
+            'gs': int(row['GS.2'])}
 
 games = {}
 for r in BX[1:]:
@@ -712,7 +713,7 @@ if INCLUDE_2026:
                 er = round(float(p.get('era') or 0) * outs / 9) if outs else 0
                 pd = {'ip': outs, 'h': p['hits'], 'r': p['runs'], 'er': er,
                       'bb': p['walks'], 'k': p['strikeouts']}
-                pit.append({'n': nm, 'o': i + 1, **pd, 'w': 0, 'l': 0, 'sv': 0})
+                pit.append({'n': nm, 'o': i + 1, **pd, 'w': 0, 'l': 0, 'sv': 0, 'gs': 1 if i == 0 else 0})
                 p26gids[nm].append((dt, gid))
                 acc(nm, ph, club, gid, pit=pd, start=(i == 0))
             return {'team': club, 'line': line, 'R': bx['score'], 'H': bx['hits'],
