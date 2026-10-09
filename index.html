@@ -8183,7 +8183,10 @@ function wireSvpComps(){
 
 /* ------------------- shared stat list for Scatter and Search -------------------
    The percentile metrics (SV_BAT / SV_PIT) plus the counting stats and
-   runs-above-average that don't make sense as percentile rows. `pct` marks
+   runs-above-average that don't make sense as percentile rows. Doubles,
+   triples and stolen bases are left out on purpose: doubles fall from 129 a
+   season to single digits, triples are nearly absent and steals are never
+   recorded, so they'd chart as tracking gaps rather than performance. `pct` marks
    the fraction-valued rate stats (shown as 15.3%) — Search takes those
    thresholds in whole percent, so "K% ≤ 15" means 15%. */
 const svpInt = v => isFinite(v) ? String(Math.round(v)) : '—';
@@ -8192,8 +8195,8 @@ function svpStats(mode){
   const base = (mode==='bat' ? SV_BAT : SV_PIT).map(([lab,fn,fmt,low])=>({lab, fn, fmt, low, pct: /%$/.test(lab)}));
   const extra = mode==='bat' ? [
     ['G', c=>c.G_bat, svpInt], ['PA', c=>c.PA, svpInt], ['AB', c=>c.AB, svpInt], ['R', c=>c.R, svpInt],
-    ['H', c=>c.H, svpInt], ['2B', c=>c['2B'], svpInt], ['3B', c=>c['3B'], svpInt], ['HR', c=>c.HR, svpInt],
-    ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt], ['SB', c=>c.SB, svpInt],
+    ['H', c=>c.H, svpInt], ['HR', c=>c.HR, svpInt],
+    ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt],
     ['wRAA', c=>wrAAFor(c, c.year), svpOne],
   ] : [
     ['G', c=>c.G_pit, svpInt], ['GS', c=>c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
