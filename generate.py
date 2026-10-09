@@ -1271,7 +1271,7 @@ const BAT_COLS = [
   ['AVG','AVG','r'],['OBP','OBP','r'],['SLG','SLG','r'],['OPS','OPS','r'],['OPS+','OPS+','n']
 ];
 const PIT_COLS = [
-  ['name','Player','s'],['team','Tm','s'],['yrs','Yrs','n'],['G','G','n'],['IP','IP','n'],['W','W','n'],['L','L','n'],
+  ['name','Player','s'],['team','Tm','s'],['yrs','Yrs','n'],['G','G','n'],['GS','GS','n'],['IP','IP','n'],['W','W','n'],['L','L','n'],
   ['SV','SV','n'],['pH','H','n'],['ER','ER','n'],['pBB','BB','n'],['pK','K','n'],
   ['ERA','ERA','r'],['WHIP','WHIP','r'],['K9','K/3','r'],['ERA+','ERA+','n']
 ];
@@ -1287,7 +1287,7 @@ function rowVals(name){
   return {
     name, team: latestTeam(pl) || '—', teamCount: careerTeams(pl).length,
     yrs: yearsOf(pl, isPost?'Playoffs':'Regular').length,
-    G: mode==='bat'? c.G_bat : c.G_pit,
+    G: mode==='bat'? c.G_bat : c.G_pit, GS: c.GS_pit,
     PA:c.PA, AB:c.AB, R:c.R, H:c.H, HR:c.HR, RBI:c.RBI, BB:c.BB, K:c.K,
     AVG:avg(c), OBP:obp(c), SLG:slg(c), OPS:ops(c), 'OPS+':opsPlusFor(c, careerWeights(pl, isPost)),
     IP:c.IPouts/3, W:c.W, L:c.L, SV:c.SV, pH:c.pH, ER:c.ER, pBB:c.pBB, pK:c.pK,
@@ -1591,7 +1591,7 @@ const slash = d => `${rate(avg(d))}/${rate(obp(d))}/${rate(slg(d))}`;
 const wl = d => `${d.W}–${d.L}`;
 
 const ZERO_KEYS = ['G_bat','GS_bat','AB','R','1B','2B','3B','HR','RBI','BB','K','HBP','SB','CS','SF','SH',
-  'H','TB','PA','G_pit','IPouts','pR','ER','pH','pBB','pHB','pK','CG','W','L','SV','BS',
+  'H','TB','PA','G_pit','GS_pit','IPouts','pR','ER','pH','pBB','pHB','pK','CG','W','L','SV','BS',
   'G_fld','INN','TC','PO','A','E','DP'];
 function sumRows(rows){
   const t = {}; for(const k of ZERO_KEYS) t[k]=0;
@@ -1996,8 +1996,10 @@ function phaseBlock(pl, type){
         : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
       return isFinite(v)?String(v):'—';
     }}];
+    // NWLA tournament lines carry no per-game starter data, so no GS there
+    const gsCol = type==='NWLA' ? [] : [{l:'GS',f:d=>d.GS_pit}];
     const pitCols = [...seasonCols,
-      {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+      {l:'G',f:d=>d.G_pit},...gsCol,{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
@@ -2847,7 +2849,7 @@ const CMP_BAT = [
   ['SLG', c=>slg(c), rate, false], ['OPS', c=>ops(c), rate, false],
 ];
 const CMP_PIT = [
-  ['G',  c=>c.G_pit, v=>v, false], ['IP', c=>c.IPouts, ipStr, false],
+  ['G',  c=>c.G_pit, v=>v, false], ['GS', c=>c.GS_pit, v=>v, false], ['IP', c=>c.IPouts, ipStr, false],
   ['W',  c=>c.W, v=>v, false], ['L', c=>c.L, v=>v, true], ['SV', c=>c.SV, v=>v, false],
   ['K',  c=>c.pK, v=>v, false],
   ['ERA', c=>era(c), two, true], ['WHIP', c=>whip(c), two, true], ['K/3', c=>k9(c), two, false],
@@ -4052,7 +4054,7 @@ function renderLeaders(){
       const s = x.s, ti = teamOf(x);
       return {
         name:x.n, teamLabel:ti.label, logo:ti.logo, logo2:ti.logo2,
-        G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : s.G_fld,
+        G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : s.G_fld, GS: s.GS_pit,
         PA:s.PA, AB:s.AB, R:s.R, H:s.H, HR:s.HR, RBI:s.RBI, BB:s.BB, K:s.K,
         AVG:avg(s), OBP:obp(s), SLG:slg(s), OPS:ops(s),
         'OPS+': opsPlusFor(s, isCareer ? careerWeights(P[x.n], isPost) : [{year:leadYear, pa:s.PA, post:isPost}]),
@@ -4143,6 +4145,7 @@ function renderLeaders(){
     cat('K per 3 IP', s=>k9(s), two, {min:'o'}),
     cat('Saves', s=>s.SV, v=>v),
     cat('Innings Pitched', s=>s.IPouts/3, ipfmt),
+    cat('Games Started', s=>s.GS_pit, v=>v),
     cat('Complete Games', s=>s.CG, v=>v),
   ].join('');
   const fldLdrs = [
@@ -4227,7 +4230,7 @@ function rosterPitching(roster, ph, label, weights){
   rows.sort((a,b)=>b.IPouts-a.IPouts);
   const cols=[
     {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
-    {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+    {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
     {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
     {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
@@ -4491,7 +4494,7 @@ function teamAllYears(t, name){
 
   const pitCols=[
     {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
-    {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},
+    {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},
     {l:'W',f:d=>d.W},{l:'L',f:d=>d.L},{l:'ERA',m:1,f:d=>two(era(d))},
     {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, d._pitWeights);return isFinite(v)?String(v):'—';}}];
   const pitRows = arows.filter(d=>d.IPouts>0).sort((x,y)=>y.IPouts-x.IPouts);
@@ -5593,7 +5596,7 @@ function gameBatRow(bat){
 }
 function gamePitRow(pit){
   if(!pit) return null;
-  return {G_pit:1, IPouts:pit.ip||0, W:pit.w||0, L:pit.l||0, SV:pit.sv||0,
+  return {G_pit:1, GS_pit:pit.o===1?1:0, IPouts:pit.ip||0, W:pit.w||0, L:pit.l||0, SV:pit.sv||0,
     pH:pit.h||0, pR:pit.r||0, ER:pit.er||0, pBB:pit.bb||0, pK:pit.k||0};
 }
 /* group a player's per-game rows by an arbitrary key (side, field, opponent)
@@ -5625,7 +5628,7 @@ const splitBatCols = weights => [
   ...(weights ? [{l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d,weights);return isFinite(v)?String(v):'—';}}] : [])];
 const splitPitCols = weights => [
   {l:'Split',lft:1,f:d=>d.label},
-  {l:'G',f:d=>d.G_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+  {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
   {l:'SV',f:d=>d.SV},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
   {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
   {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},

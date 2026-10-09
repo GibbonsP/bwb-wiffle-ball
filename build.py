@@ -182,6 +182,7 @@ def agg(frame):
     d['PA']  = d['AB']+d['BB']+d['HBP']+d['SF']+d['SH']
     # pitching
     d['G_pit'] = int(frame['G.2'].sum())
+    d['GS_pit'] = int(frame['GS.2'].sum())
     outs = int(frame['IP'].sum())*3 + int(frame['1/3 Innings'].sum())
     d['IPouts'] = outs
     d['pR']  = int(frame['R.1'].sum())
@@ -644,7 +645,7 @@ if INCLUDE_2026:
     s26 = {}  # (pkey, phase) -> agg dict
     disc = []
 
-    def acc(pk, phase, club, gid, bat=None, pit=None):
+    def acc(pk, phase, club, gid, bat=None, pit=None, start=False):
         key = (pk, phase)
         r = s26.get(key)
         if r is None:
@@ -657,6 +658,7 @@ if INCLUDE_2026:
                 r[a] += bat.get(b, 0)
         if pit is not None:
             r['_gp'].add(gid)
+            if start: r['GS_pit'] += 1     # first pitcher listed = the starter
             for a, b in (('IPouts', 'ip'), ('pH', 'h'), ('pR', 'r'), ('ER', 'er'),
                          ('pBB', 'bb'), ('pK', 'k')):
                 r[a] += pit.get(b, 0)
@@ -678,9 +680,9 @@ if INCLUDE_2026:
         # have plays were really played, so those alone make the line score. A game with no
         # real innings (a 3-0 forfeit-style result) gets no line score at all.
         _pl = gd.get('plays') or {}
-        _played = lambda sign: sorted((int(k) for k in _pl if int(k) * sign > 0), key=abs)
-        aline = [rpi[str(k)] for k in _played(1)]
-        hline = [rpi[str(k)] for k in _played(-1)]
+        _halves = lambda sign: sorted((int(k) for k in _pl if int(k) * sign > 0), key=abs)
+        aline = [rpi[str(k)] for k in _halves(1)]
+        hline = [rpi[str(k)] for k in _halves(-1)]
         if sum(aline) != box['away']['score'] or sum(hline) != box['home']['score']:
             aline, hline = [], []
         rn_all = [('%s %s' % (b['firstName'], b['lastName'])).strip()
@@ -712,7 +714,7 @@ if INCLUDE_2026:
                       'bb': p['walks'], 'k': p['strikeouts']}
                 pit.append({'n': nm, 'o': i + 1, **pd, 'w': 0, 'l': 0, 'sv': 0})
                 p26gids[nm].append((dt, gid))
-                acc(nm, ph, club, gid, pit=pd)
+                acc(nm, ph, club, gid, pit=pd, start=(i == 0))
             return {'team': club, 'line': line, 'R': bx['score'], 'H': bx['hits'],
                     'E': bx['errors'], 'bat': bat, 'pit': pit}
 
