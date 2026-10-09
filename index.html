@@ -5563,7 +5563,7 @@ function playerNWLALog(pl, selYear){
       <td class="lft">${g.ha==='H'?'vs':'@'} ${esc(g.opp)}${g.phase?`<span class="gtag">${esc(g.phase)}</span>`:''}</td>
       <td>${bat?bat.ab:''}</td><td>${bat?bat.r:''}</td><td>${bat?bat.h:''}</td><td>${bat?bat.hr:''}</td>
       <td>${bat?bat.rbi:''}</td><td>${bat?bat.bb:''}</td><td>${bat?bat.k:''}</td>
-      <td class="mono">${pit?ipStr(pit.ip):''}</td><td>${pit?pit.h:''}</td><td>${pit?pit.r:''}</td>
+      <td>${pit?(g.pit[0]===pit?1:0):''}</td><td class="mono">${pit?ipStr(pit.ip):''}</td><td>${pit?pit.h:''}</td><td>${pit?pit.r:''}</td>
       <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td></tr>`;
   }).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
@@ -5573,7 +5573,7 @@ function playerNWLALog(pl, selYear){
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
     <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>
-    <th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    <th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 /* ------------------------------ PLAYER SPLITS ------------------------------
