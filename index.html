@@ -1649,6 +1649,43 @@ function buildLeagueByYear(type){
 }
 const LEAGUE_BY_YEAR = buildLeagueByYear('Regular');
 const LEAGUE_BY_YEAR_POST = buildLeagueByYear('Playoffs');
+/* wOBA / wRC+ — weighted on-base average and runs created, built from this
+   league's OWN results rather than MLB's published constants. Each event's
+   value is the OLS coefficient of team runs on that event across 988
+   team-game batting lines (regular season + playoffs, 2017–2026, R²=0.89,
+   fit on 1B/2B/3B/HR/BB/HBP and outs), re-based so an average out is worth
+   0 — i.e. how many runs the event is worth over making an out. Same method
+   as the Game Score weights, and for the same reason: they come from the
+   league's data, not from baseball's, so a walk-heavy 3-inning game is
+   weighted the way THIS game actually scores. wOBA is those run values per
+   PA, rescaled each season so the league's wOBA equals its OBP (the
+   familiar scale); wRC+ compares a player's runs created per PA against
+   that season's league, 100 = average, same shape as OPS+. */
+const WOBA_RV = {'1B':0.850, '2B':0.984, '3B':1.426, 'HR':1.769, 'BB':0.935, 'HBP':0.962};
+function wobaRaw(d){
+  if(!d || !d.PA) return NaN;
+  const h1 = d.H - d['2B'] - d['3B'] - d.HR;
+  return (WOBA_RV['1B']*h1 + WOBA_RV['2B']*d['2B'] + WOBA_RV['3B']*d['3B'] + WOBA_RV.HR*d.HR
+        + WOBA_RV.BB*d.BB + WOBA_RV.HBP*(d.HBP||0)) / d.PA;
+}
+const wobaLeague = (year, post) => (post ? LEAGUE_BY_YEAR_POST[year] : null) || LEAGUE_BY_YEAR[year];
+function wobaFor(d, year, post){
+  const lg = wobaLeague(year, post);
+  if(!lg) return NaN;
+  return wobaRaw(d) * obp(lg) / wobaRaw(lg);
+}
+/* batting runs above an average hitter over the same PAs */
+function wrAAFor(d, year, post){
+  const lg = wobaLeague(year, post);
+  if(!lg || !d || !d.PA) return NaN;
+  return (wobaRaw(d) - wobaRaw(lg)) * d.PA;
+}
+function wrcPlusFor(d, year, post){
+  const lg = wobaLeague(year, post);
+  if(!lg || !lg.PA || !d || !d.PA) return NaN;
+  const lgRpa = lg.R / lg.PA;
+  return Math.round(100 * (wrAAFor(d, year, post)/d.PA + lgRpa) / lgRpa);
+}
 function leagueRatesFor(year, post){
   const lg = (post ? LEAGUE_BY_YEAR_POST[year] : null) || LEAGUE_BY_YEAR[year];
   return lg ? {obp:obp(lg), slg:slg(lg), era:era(lg)} : null;
@@ -2102,11 +2139,15 @@ const SV_BAT = [
   ['AVG', c=>avg(c), rate, false], ['OBP', c=>obp(c), rate, false],
   ['SLG', c=>slg(c), rate, false],
   ['OPS+', c=>opsPlusFor(c, [{year:c.year, pa:c.PA}]), v=>isFinite(v)?String(v):'—', false],
+  ['wOBA', c=>c.year!=null ? wobaFor(c, c.year) : NaN, rate, false],
+  ['wRC+', c=>c.year!=null ? wrcPlusFor(c, c.year) : NaN, v=>isFinite(v)?String(v):'—', false],
   ['ISO', SV_ISO, rate, false], ['BB%', c=>c.PA?c.BB/c.PA:NaN, SV_PCTF, false],
   ['K%',  c=>c.PA?c.K/c.PA:NaN,  SV_PCTF, true], ['HR%', c=>c.PA?c.HR/c.PA:NaN, SV_PCTF, false],
 ];
 const SV_PIT = [
-  ['ERA', c=>era(c), two, true], ['WHIP', c=>whip(c), two, true],
+  ['ERA', c=>era(c), two, true],
+  ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts}]) : NaN, v=>isFinite(v)?String(v):'—', false],
+  ['WHIP', c=>whip(c), two, true],
   ['K/3', c=>k9(c), two, false], ['BB/3', c=>c.IPouts?3*c.pBB/(c.IPouts/3):NaN, two, true],
   ['K%',  c=>SV_BF(c)?c.pK/SV_BF(c):NaN, SV_PCTF, false],
   ['BB%', c=>SV_BF(c)?c.pBB/SV_BF(c):NaN, SV_PCTF, true],
