@@ -277,7 +277,6 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpc .svpv{display:block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .svpill{display:inline-block;min-width:2.1em;padding:2px 8px;border-radius:999px;font-family:"IBM Plex Mono",monospace;
   font-size:.76rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
-.svpavg{border-right:1px solid var(--line-strong);text-align:center}
 .svpnote{margin:4px 0 18px;max-width:68ch;font-size:.95rem}
 .svpnote b{font-weight:600}
 .svcharts{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px 18px;margin:0 0 8px}
@@ -7932,7 +7931,8 @@ function wireB0(){
    one route: #/savant, #/savant/trends, #/savant/compare[/A/yearA/B/yearB]. */
 const SVP_YEARS = [...new Set(NAMES.flatMap(n=>svSeasons(P[n])))].sort((a,b)=>a-b);
 let svpYear = null, svpMode = 'bat', svpPost = false;
-const svpSort = {bat:'avg', pit:'avg'};
+const svpHead = {bat: SV_BAT.findIndex(m=>m[0]==='wRC+'), pit: SV_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
+const svpSort = {bat: svpHead.bat, pit: svpHead.pit};
 
 function svpShell(tab, inner){
   setNav('savant');
@@ -7968,11 +7968,10 @@ function svpRankTable(year, mode){
       const v = fn(e.row);
       return {p: isFinite(v) ? svPct(vals[i], v, low) : null, txt: isFinite(v) ? fmt(v) : '—'};
     });
-    const ps = cells.map(c=>c.p).filter(p=>p!=null);
-    return {e, cells, avg: ps.length ? Math.round(ps.reduce((a,b)=>a+b,0)/ps.length) : null};
+    return {e, cells};
   });
   const key = svpSort[mode];
-  const sv = r => key==='name' ? r.e.name : key==='avg' ? r.avg : r.cells[key].p;
+  const sv = r => key==='name' ? r.e.name : r.cells[key].p;
   rows.sort((a,b)=>{
     if(key==='name') return nameLast(a.e.name).localeCompare(nameLast(b.e.name));
     return ((sv(b)==null?-1:sv(b)) - (sv(a)==null?-1:sv(a))) || nameLast(a.e.name).localeCompare(nameLast(b.e.name));
@@ -7980,14 +7979,12 @@ function svpRankTable(year, mode){
   const arrow = k => key===k ? ' <span class="ar">▼</span>' : '';
   const head = `<tr><th class="lft sortcol" data-svps="name">Player${key==='name'?' <span class="ar">▲</span>':''}</th>
     <th class="lft svptm">Tm</th>${mode==='bat'?'<th>G</th><th>PA</th>':'<th>G</th><th>IP</th>'}
-    <th class="sortcol svpavg" data-svps="avg" title="Mean of the row's percentiles">Avg${arrow('avg')}</th>
     ${metrics.map(([lab],i)=>`<th class="sortcol" data-svps="${i}">${lab}${arrow(i)}</th>`).join('')}</tr>`;
   const body = rows.map(r=>{
     const d = r.e.row;
     return `<tr><td class="lft"><button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></td>
       <td class="lft svptm">${teamCell(d)}</td>
       ${mode==='bat' ? `<td>${d.G_bat}</td><td>${d.PA}</td>` : `<td>${d.G_pit}</td><td class="mono">${ipStr(d.IPouts)}</td>`}
-      <td class="svpavg">${svpPill(r.avg)}</td>
       ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`;
   }).join('');
   return {n: qual.length, html: `<div class="tscroll"><table class="detail svptable"><thead>${head}</thead><tbody>${body}</tbody></table></div>`};
@@ -8006,13 +8003,13 @@ function renderSavantPct(){
       Each pill is the player's percentile among that field in that stat —
       <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing —
       with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better.
-      <b>Avg</b> is the mean of a row's percentiles. Click a column to sort.</p>
+      Click a column to sort.</p>
     ${t.n ? t.html : '<p class="empty">No qualified players that year.</p>'}`);
   app.querySelectorAll('[data-svpy]').forEach(b=>b.addEventListener('click',()=>{ svpYear = +b.dataset.svpy; renderSavantPct(); }));
   app.querySelectorAll('[data-svpm]').forEach(b=>b.addEventListener('click',()=>{ svpMode = b.dataset.svpm; renderSavantPct(); }));
   app.querySelectorAll('[data-svps]').forEach(th=>th.addEventListener('click',()=>{
     const k = th.dataset.svps;
-    svpSort[svpMode] = (k==='name'||k==='avg') ? k : +k;
+    svpSort[svpMode] = k==='name' ? k : +k;
     renderSavantPct();
   }));
 }
@@ -8131,7 +8128,7 @@ function svpCompIndex(){
         ents.filter(q).forEach(e=>{
           const pc = metrics.map(([,fn,,low],i)=>{ const v = fn(e.row); return isFinite(v) ? svPct(vals[i], v, low) : null; });
           if(pc.some(p=>p==null)) return;
-          idx[k].push({name:e.name, year:y, row:e.row, pc, avg: pc.reduce((a,b)=>a+b,0)/pc.length});
+          idx[k].push({name:e.name, year:y, row:e.row, pc});
         });
       });
   });
@@ -8144,10 +8141,11 @@ function svpCompsFor(entry, list, n){
 }
 function svpCompsTable(mode, year){
   const list = svpCompIndex()[mode];
-  const rows = list.filter(e=>e.year===year).sort((a,b)=>b.avg-a.avg);
+  const hk = svpHead[mode], hm = (mode==='bat' ? SV_BAT : SV_PIT)[hk];
+  const rows = list.filter(e=>e.year===year).sort((a,b)=>b.pc[hk]-a.pc[hk] || nameLast(a.name).localeCompare(nameLast(b.name)));
   if(!rows.length) return '<p class="empty">No qualified seasons that year.</p>';
-  const lab = mode==='bat' ? 'OPS+' : 'ERA';
-  const head = mode==='bat' ? (r=>{ const v = SV_BAT[3][1](r); return isFinite(v)?String(v):'—'; }) : (r=>two(era(r)));
+  const lab = hm[0];
+  const head = r=>{ const v = hm[1](r); return isFinite(v)?hm[2](v):'—'; };
   const body = rows.map(e=>{
     const comps = svpCompsFor(e, list, 3).map(({o,sim})=>{
       return `<td class="svpcc"><button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button> <span class="azm">’${String(o.year).slice(2)}</span>
@@ -8155,10 +8153,10 @@ function svpCompsTable(mode, year){
     }).join('');
     return `<tr><td class="lft"><button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button></td>
       <td class="lft svptm">${teamCell(e.row)}</td><td class="mono">${head(e.row)}</td>
-      <td class="svpavg">${svpPill(Math.round(e.avg))}</td>${comps}</tr>`;
+      ${comps}</tr>`;
   }).join('');
   return `<div class="tscroll"><table class="detail svptable"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
-    <th>${lab}</th><th class="svpavg" title="Mean of the season's percentiles">Avg</th>
+    <th>${lab}</th>
     <th class="lft">Closest</th><th class="lft">2nd</th><th class="lft">3rd</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function svpCompsHTML(){
