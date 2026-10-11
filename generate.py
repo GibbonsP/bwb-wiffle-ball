@@ -2176,15 +2176,11 @@ const SV_BAT = [
   ['AVG', c=>avg(c), rate, false], ['OBP', c=>obp(c), rate, false],
   ['SLG', c=>slg(c), rate, false],
   ['OPS+', c=>opsPlusFor(c, [{year:c.year, pa:c.PA}]), v=>isFinite(v)?String(v):'—', false],
-  ['wOBA', c=>c.year!=null ? wobaFor(c, c.year) : NaN, rate, false],
-  ['wRC+', c=>c.year!=null ? wrcPlusFor(c, c.year) : NaN, v=>isFinite(v)?String(v):'—', false],
   ['ISO', SV_ISO, rate, false], ['BB%', c=>c.PA?c.BB/c.PA:NaN, SV_PCTF, false],
   ['K%',  c=>c.PA?c.K/c.PA:NaN,  SV_PCTF, true], ['HR%', c=>c.PA?c.HR/c.PA:NaN, SV_PCTF, false],
 ];
 const SV_PIT = [
-  ['ERA', c=>era(c), two, true],
-  ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts}]) : NaN, v=>isFinite(v)?String(v):'—', false],
-  ['WHIP', c=>whip(c), two, true],
+  ['ERA', c=>era(c), two, true], ['WHIP', c=>whip(c), two, true],
   ['K/3', c=>k9(c), two, false], ['BB/3', c=>c.IPouts?3*c.pBB/(c.IPouts/3):NaN, two, true],
   ['K%',  c=>SV_BF(c)?c.pK/SV_BF(c):NaN, SV_PCTF, false],
   ['BB%', c=>SV_BF(c)?c.pBB/SV_BF(c):NaN, SV_PCTF, true],
@@ -7935,9 +7931,16 @@ function wireB0(){
    its percentile pills, how the league's scoring environment has moved year
    to year, and a head-to-head of any two player-seasons. Three sub-views off
    one route: #/savant, #/savant/trends, #/savant/compare[/A/yearA/B/yearB]. */
+/* the Savant page's own metric lists: the player-page percentile sliders (SV_BAT /
+   SV_PIT) plus wOBA, wRC+ and ERA+, which live on this page only for now */
+const SVP_BAT = SV_BAT.flatMap(m=>m[0]==='OPS+' ? [m,
+  ['wOBA', c=>c.year!=null ? wobaFor(c, c.year) : NaN, rate, false],
+  ['wRC+', c=>c.year!=null ? wrcPlusFor(c, c.year) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
+const SVP_PIT = SV_PIT.flatMap(m=>m[0]==='ERA' ? [m,
+  ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts}]) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
 const SVP_YEARS = [...new Set(NAMES.flatMap(n=>svSeasons(P[n])))].sort((a,b)=>a-b);
 let svpYear = null, svpMode = 'bat', svpPost = false;
-const svpHead = {bat: SV_BAT.findIndex(m=>m[0]==='wRC+'), pit: SV_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
+const svpHead = {bat: SVP_BAT.findIndex(m=>m[0]==='wRC+'), pit: SVP_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
 const svpSort = {bat: svpHead.bat, pit: svpHead.pit};
 
 function svpShell(tab, inner){
@@ -7966,7 +7969,7 @@ function svpEntries(year){
   return NAMES.map(n=>({name:n, row:svRegRow(P[n], year)})).filter(e=>e.row);
 }
 function svpRankTable(year, mode){
-  const metrics = mode==='bat' ? SV_BAT : SV_PIT;
+  const metrics = mode==='bat' ? SVP_BAT : SVP_PIT;
   const qual = svpEntries(year).filter(e=> mode==='bat' ? e.row.G_bat>=SV_MING : e.row.IPouts>=SV_MINOUTS);
   const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row)).filter(isFinite));
   const rows = qual.map(e=>{
@@ -8117,7 +8120,7 @@ function renderSavantCompare(){
 /* ------------------------ closest-season comps ------------------------
    Every qualified player-season gets its nearest matches among every OTHER
    player's qualified seasons, hitting and pitching separately. A season is
-   described by its percentile in each of that side's SV_BAT / SV_PIT stats
+   described by its percentile in each of that side's SVP_BAT / SVP_PIT stats
    against its own year's qualified field — so a 2017 season and a 2026 one
    line up on how good they were in context, not on raw numbers from two very
    different scoring environments. Similarity is 100 minus the average gap, in
@@ -8128,7 +8131,7 @@ function svpCompIndex(){
   const idx = {bat:[], pit:[]};
   SVP_YEARS.forEach(y=>{
     const pool = svpPoolFor(y), ents = svpEntries(y);
-    [['bat', SV_BAT, pool.bat, e=>e.row.G_bat>=SV_MING], ['pit', SV_PIT, pool.pit, e=>e.row.IPouts>=SV_MINOUTS]]
+    [['bat', SVP_BAT, pool.bat, e=>e.row.G_bat>=SV_MING], ['pit', SVP_PIT, pool.pit, e=>e.row.IPouts>=SV_MINOUTS]]
       .forEach(([k, metrics, rows, q])=>{
         const vals = metrics.map(([,fn])=>rows.map(fn).filter(isFinite));
         ents.filter(q).forEach(e=>{
@@ -8147,7 +8150,7 @@ function svpCompsFor(entry, list, n){
 }
 function svpCompsTable(mode, year){
   const list = svpCompIndex()[mode];
-  const hk = svpHead[mode], hm = (mode==='bat' ? SV_BAT : SV_PIT)[hk];
+  const hk = svpHead[mode], hm = (mode==='bat' ? SVP_BAT : SVP_PIT)[hk];
   const rows = list.filter(e=>e.year===year).sort((a,b)=>b.pc[hk]-a.pc[hk] || nameLast(a.name).localeCompare(nameLast(b.name)));
   if(!rows.length) return '<p class="empty">No qualified seasons that year.</p>';
   const lab = hm[0];
@@ -8186,7 +8189,7 @@ function wireSvpComps(){
 }
 
 /* ------------------- shared stat list for Scatter and Search -------------------
-   The percentile metrics (SV_BAT / SV_PIT) plus the counting stats and
+   The percentile metrics (SVP_BAT / SVP_PIT) plus the counting stats and
    runs-above-average that don't make sense as percentile rows. Doubles,
    triples and stolen bases are left out on purpose: doubles fall from 129 a
    season to single digits, triples are nearly absent and steals are never
@@ -8196,7 +8199,7 @@ function wireSvpComps(){
 const svpInt = v => isFinite(v) ? String(Math.round(v)) : '—';
 const svpOne = v => isFinite(v) ? v.toFixed(1) : '—';
 function svpStats(mode){
-  const base = (mode==='bat' ? SV_BAT : SV_PIT).map(([lab,fn,fmt,low])=>({lab, fn, fmt, low, pct: /%$/.test(lab)}));
+  const base = (mode==='bat' ? SVP_BAT : SVP_PIT).map(([lab,fn,fmt,low])=>({lab, fn, fmt, low, pct: /%$/.test(lab)}));
   const extra = mode==='bat' ? [
     ['G', c=>c.G_bat, svpInt], ['PA', c=>c.PA, svpInt], ['AB', c=>c.AB, svpInt], ['R', c=>c.R, svpInt],
     ['H', c=>c.H, svpInt], ['HR', c=>c.HR, svpInt],
@@ -8374,7 +8377,7 @@ function svpSearchRows(){
 function svpSearchResults(){
   const mode = svpSr.mode, {rows, stats} = svpSearchRows();
   const cap = 250, shown = rows.slice(0, cap);
-  const cols = (mode==='bat' ? SV_BAT : SV_PIT).map(([lab])=>stats.find(s=>s.lab===lab));
+  const cols = (mode==='bat' ? SVP_BAT : SVP_PIT).map(([lab])=>stats.find(s=>s.lab===lab));
   const arrow = lab => svpSr.sort[mode]===lab ? ` <span class="ar">${svpSr.dir[mode]<0?'▼':'▲'}</span>` : '';
   const head = `<tr><th class="lft">Player</th><th class="lft">Season</th><th class="lft svptm">Tm</th>
     ${mode==='bat'?'<th>G</th><th>PA</th>':'<th>G</th><th>IP</th>'}
