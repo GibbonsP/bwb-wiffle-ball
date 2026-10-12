@@ -8517,9 +8517,20 @@ function guessHints(pl){
   const label = s => `${s.team.split(' / ').map(t=>TEAMS[t]?histName(t, s.start):t).join(' / ')} (${s.start===s.end?s.start:s.start+'–'+s.end})`;
   const h4 = `Played for: ${stints.map(label).join(' → ')}.`;
 
-  const parts5 = pl.name.split(' ');
-  const first = parts5[0], lastN = parts5.slice(1).join(' ');
-  const h5 = `Initials: ${first[0]}. ${lastN[0]}. — first name ${first.length} letters, last name ${lastN.replace(/\s/g,'').length}.`;
+  /* the near-giveaway: their single best season, with the club they were on and
+     whatever hardware came with it */
+  const rows = ys.map(y=>({y, r:svRegRow(pl, y)})).filter(x=>x.r);
+  const score = x => isBat ? (x.r.G_bat>=SV_MING ? wrcPlusFor(x.r, x.y) : -1) : (x.r.IPouts>=SV_MINOUTS ? eraPlusFor(x.r, [{year:x.y, outs:x.r.IPouts}]) : -1);
+  const best = rows.map(x=>({...x, v:score(x)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v)[0] || rows[rows.length-1];
+  const line = [];
+  if(isBat && best.r.G_bat>=SV_MING) line.push(`${rate(avg(best.r))} AVG, ${best.r.HR} HR, ${best.r.RBI} RBI`);
+  if(isPit && best.r.IPouts>=SV_MINOUTS) line.push(`${two(era(best.r))} ERA, ${best.r.pK} K in ${ipStr(best.r.IPouts)} IP`);
+  const tmName = (pl.teamsByYear[best.y] && pl.teamsByYear[best.y].team || '').split(' / ').map(t=>TEAMS[t]?histName(t, best.y):t).join(' / ');
+  const yrHonors = [];
+  hn.awards.filter(a=>a.year===best.y && !HIDDEN_AWARD_YEARS.has(a.year) && AW_ORDER.includes(a.award)).forEach(a=>{ if(!yrHonors.includes(a.award)) yrHonors.push(a.award); });
+  if(hn.rings.some(r=>r.year===best.y)) yrHonors.push('a World Series title');
+  if(hn.asg.some(a=>a.year===best.y)) yrHonors.push('an All-Star selection');
+  const h5 = `Best season: ${best.y}${tmName?' with '+tmName:''} — ${line.join(' · ')}.${yrHonors.length?` That year: ${yrHonors.join(', ')}.`:''}`;
   return [h1, h2, h3, h4, h5];
 }
 function guessShareText(pz){
