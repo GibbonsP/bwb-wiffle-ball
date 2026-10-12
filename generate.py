@@ -8469,7 +8469,6 @@ function renderSavant(h){
    Everything is built from the player's real record — nothing is hand-written —
    and the daily answer is seeded by date the same way Grid and Stat Pad are. */
 const GUESS_MAX = 5;
-const GUESS_BLUR = [26, 18, 11, 5, 2];   // headshot blur in px per hint shown
 let guessMode = 'daily', guessDaily = null, guessPractice = null, guessError = null;
 function guessEligible(){
   return NAMES.filter(n=>{
@@ -8556,9 +8555,10 @@ function renderGuess(){
   const hintHTML = hints.map((h,i)=> i<shown
     ? `<li class="ghint"><span class="ghn">Hint ${i+1}</span><span>${esc(h)}</span></li>`
     : `<li class="ghint glocked"><span class="ghn">Hint ${i+1}</span><span>Locked — miss a guess to reveal</span></li>`).join('');
-  const blur = done ? 0 : GUESS_BLUR[Math.min(shown, GUESS_BLUR.length)-1];
-  const photo = pl.photo
-    ? `<div class="gphoto"><img src="${pl.photo}" alt="${done?esc(pl.name):'Mystery player'}" style="filter:blur(${blur}px)"></div>`
+  /* the headshot only appears once the round is over — even blurred, a photo gives away
+     things like jersey color, so the box stays a plain "?" until then */
+  const photo = done && pl.photo
+    ? `<div class="gphoto"><img src="${pl.photo}" alt="${esc(pl.name)}"></div>`
     : `<div class="gphoto gphoto-blank"><span>${done?esc(pl.name.split(' ').map(w=>w[0]).join('')):'?'}</span></div>`;
   const missed = pz.guesses.map((g,i)=> g===pz.name ? '' : `<span class="gmiss">${g?esc(g):'Skipped'}</span>`).join('');
   const form = done ? '' : `<form class="gpform" id="guessForm" autocomplete="off">
