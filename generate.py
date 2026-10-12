@@ -419,6 +419,26 @@ sup.seed.x{color:var(--clay)}
 .cmplab{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;width:100px}
 .cmpwin{color:var(--accent);font-weight:700}
 .cmpwinsample{padding:1px 6px;border-radius:4px;background:var(--accent-soft)}
+.gplay{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:start;margin:6px 0 16px}
+@media(max-width:560px){.gplay{grid-template-columns:1fr}.gphoto{margin:0 auto}}
+.gphoto{width:150px;height:150px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--accent-soft);box-shadow:var(--shadow)}
+.gphoto img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .5s ease}
+.gphoto-blank{display:flex;align-items:center;justify-content:center;font-family:"Oswald","Arial Narrow",sans-serif;font-size:2.6rem;color:var(--muted)}
+.ghints{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ghint{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:baseline;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:.92rem;line-height:1.45}
+.ghn{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--clay)}
+.glocked{opacity:.5;border-style:dashed;background:transparent}
+.glocked .ghn{color:var(--muted)}
+.gmisses{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.gmiss{padding:3px 10px;border-radius:999px;background:var(--clay-soft);color:var(--clay);font-size:.78rem;text-decoration:line-through}
+.gpform{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 6px}
+.gpform input{flex:1 1 220px;min-width:0;padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.gerr{margin:4px 0 0;color:var(--clay);font-size:.84rem}
+.gresult{margin:12px 0 4px;padding:14px 18px;border-radius:10px;border:1px solid var(--line)}
+.gresult h3{margin:0 0 2px;font-family:"Oswald","Arial Narrow",sans-serif}
+.gresult p{margin:0}
+.gwin{background:color-mix(in srgb, var(--accent) 10%, transparent)}
+.glose{background:var(--clay-soft)}
 .gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
   margin:14px 0;text-align:center;color:var(--ink)}
 .gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
@@ -7024,9 +7044,10 @@ function arcadeTabBar(active){
     <button data-ag="grid" aria-pressed="${active==='grid'}">Grid</button>
     <button data-ag="statpad" aria-pressed="${active==='statpad'}">Stat Pad</button>
     <button data-ag="b0" aria-pressed="${active==='b0'}">15-0</button>
+    <button data-ag="guess" aria-pressed="${active==='guess'}">Guess the Player</button>
   </div>`;
 }
-const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0'};
+const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0', guess:'#/guess'};
 function wireArcadeTabBar(){
   app.querySelectorAll('[data-ag]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = ARCADE_ROUTES[b.dataset.ag];
@@ -8442,6 +8463,150 @@ function renderSavant(h){
   return renderSavantPct();
 }
 
+/* ============================ ARCADE: GUESS THE PLAYER ============================
+   One mystery player, five hints, each more revealing than the last. A wrong
+   guess (or a skip) unlocks the next hint; the score is how many hints it took.
+   Everything is built from the player's real record — nothing is hand-written —
+   and the daily answer is seeded by date the same way Grid and Stat Pad are. */
+const GUESS_MAX = 5;
+const GUESS_BLUR = [26, 18, 11, 5, 2];   // headshot blur in px per hint shown
+let guessMode = 'daily', guessDaily = null, guessPractice = null, guessError = null;
+function guessEligible(){
+  return NAMES.filter(n=>{
+    const pl = P[n], c = pl.careerReg;
+    return svSeasons(pl).length>=2 && c && (c.G_bat>=SV_MING || c.IPouts>=SV_MINOUTS);
+  });
+}
+function newGuessPuzzle(rng, key){
+  const pool = guessEligible();
+  return {key, name: pool[Math.floor(rng()*pool.length)], guesses: []};
+}
+function getDailyGuess(){
+  const key = gridDailyKey();
+  if(!guessDaily || guessDaily.key!==key){
+    guessDaily = newGuessPuzzle(mulberry32(gridSeedFromString('bwb-guess-'+key)), key);
+    try{ const raw = localStorage.getItem('bwb-guess-'+key); if(raw) guessDaily.guesses = JSON.parse(raw); }catch(e){}
+  }
+  return guessDaily;
+}
+function saveDailyGuess(){ try{ localStorage.setItem('bwb-guess-'+guessDaily.key, JSON.stringify(guessDaily.guesses)); }catch(e){} }
+function guessSolved(pz){ return pz.guesses.includes(pz.name); }
+function guessDone(pz){ return guessSolved(pz) || pz.guesses.length>=GUESS_MAX; }
+
+/* the five hints, from broad to near-certain */
+function guessHints(pl){
+  const c = pl.careerReg, ys = svSeasons(pl);
+  const isBat = c.G_bat>=SV_MING, isPit = c.IPouts>=SV_MINOUTS;
+  const role = isBat && isPit ? 'a two-way player' : isPit ? 'a pitcher' : 'a hitter';
+  const h1 = `Played ${ys.length} regular season${ys.length===1?'':'s'}, debuting in ${ys[0]} and last appearing in ${ys[ys.length-1]}. Primarily ${role}.`;
+
+  const bits = [];
+  if(isBat) bits.push(`hitting: ${rate(avg(c))} AVG, ${c.HR} HR, ${c.RBI} RBI in ${c.G_bat} G`);
+  if(isPit) bits.push(`pitching: ${c.W}–${c.L}, ${two(era(c))} ERA, ${c.pK} K in ${ipStr(c.IPouts)} IP`);
+  const h2 = `Career regular-season ${bits.join(' · ')}.`;
+
+  const hn = pl.honors || {rings:[], awards:[], asg:[]};
+  const awards = hn.awards.filter(a=>!HIDDEN_AWARD_YEARS.has(a.year));
+  const top = AW_ORDER.find(n=>awards.some(a=>a.award===n));
+  const parts = [];
+  if(hn.rings.length) parts.push(`${hn.rings.length} World Series title${hn.rings.length===1?'':'s'}`);
+  if(hn.asg.length) parts.push(`${hn.asg.length} All-Star selection${hn.asg.length===1?'':'s'}`);
+  if(awards.length) parts.push(`${awards.length} league award${awards.length===1?'':'s'}${top?` (top honor: ${top})`:''}`);
+  const h3 = parts.length ? `Honors: ${parts.join(', ')}.` : 'Honors: no World Series titles, All-Star selections or league awards.';
+
+  const stints = [];
+  Object.keys(pl.teamsByYear).map(Number).sort((a,b)=>a-b).forEach(y=>{
+    const t = pl.teamsByYear[y] && pl.teamsByYear[y].team; if(!t) return;
+    const last = stints[stints.length-1];
+    if(last && last.team===t && last.end===y-1) last.end = y; else stints.push({team:t, start:y, end:y});
+  });
+  const label = s => `${s.team.split(' / ').map(t=>TEAMS[t]?histName(t, s.start):t).join(' / ')} (${s.start===s.end?s.start:s.start+'–'+s.end})`;
+  const h4 = `Played for: ${stints.map(label).join(' → ')}.`;
+
+  const parts5 = pl.name.split(' ');
+  const first = parts5[0], lastN = parts5.slice(1).join(' ');
+  const h5 = `Initials: ${first[0]}. ${lastN[0]}. — first name ${first.length} letters, last name ${lastN.replace(/\s/g,'').length}.`;
+  return [h1, h2, h3, h4, h5];
+}
+function guessShareText(pz){
+  const row = Array.from({length:GUESS_MAX}, (_,i)=>{
+    const g = pz.guesses[i];
+    return g===undefined ? '⬜' : g===pz.name ? '🟩' : '🟥';
+  }).join('');
+  return `BWB Guess the Player ${pz.key}\n${row}\n${guessSolved(pz) ? pz.guesses.length+'/'+GUESS_MAX : 'X/'+GUESS_MAX}`;
+}
+function renderGuess(){
+  setNav('arcade');
+  if(guessMode==='practice' && !guessPractice) guessPractice = newGuessPuzzle(Math.random, 'practice');
+  const pz = guessMode==='daily' ? getDailyGuess() : guessPractice;
+  const pl = P[pz.name], done = guessDone(pz), solved = guessSolved(pz);
+  const shown = done ? GUESS_MAX : Math.min(GUESS_MAX, pz.guesses.length+1);
+  const hints = guessHints(pl);
+  const hintHTML = hints.map((h,i)=> i<shown
+    ? `<li class="ghint"><span class="ghn">Hint ${i+1}</span><span>${esc(h)}</span></li>`
+    : `<li class="ghint glocked"><span class="ghn">Hint ${i+1}</span><span>Locked — miss a guess to reveal</span></li>`).join('');
+  const blur = done ? 0 : GUESS_BLUR[Math.min(shown, GUESS_BLUR.length)-1];
+  const photo = pl.photo
+    ? `<div class="gphoto"><img src="${pl.photo}" alt="${done?esc(pl.name):'Mystery player'}" style="filter:blur(${blur}px)"></div>`
+    : `<div class="gphoto gphoto-blank"><span>${done?esc(pl.name.split(' ').map(w=>w[0]).join('')):'?'}</span></div>`;
+  const missed = pz.guesses.map((g,i)=> g===pz.name ? '' : `<span class="gmiss">${g?esc(g):'Skipped'}</span>`).join('');
+  const form = done ? '' : `<form class="gpform" id="guessForm" autocomplete="off">
+      <input id="guessInput" list="guessNames" placeholder="Type a player's name…" aria-label="Your guess">
+      <button type="submit" class="cardbtn">Guess</button>
+      <button type="button" class="cardbtn cardbtn-ghost" id="guessSkip">Skip hint →</button>
+    </form>
+    ${guessError?`<p class="gerr">${esc(guessError)}</p>`:''}`;
+  const result = done ? `<div class="gresult ${solved?'gwin':'glose'}">
+      <h3>${solved ? `Got it in ${pz.guesses.length}!` : 'Out of hints'}</h3>
+      <p>The answer was <button class="pname" data-p="${esc(pl.name)}">${esc(pl.name)}</button>.</p>
+    </div>
+    ${guessMode==='daily' ? shareResultButton('guessShare') : ''}` : '';
+  app.innerHTML = `
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${guessMode==='daily'?`Today's Player · ${pz.key}`:'Practice Player'}</span></div>
+    ${arcadeTabBar('guess')}
+    <p class="lead">Guess the mystery BWB player. You start with one hint; every wrong guess unlocks a more revealing
+      one, down to a near giveaway on the fifth. Fewer hints is a better score.</p>
+    <div class="segs" role="group" aria-label="Guess the Player mode">
+      <button data-gpm="daily" aria-pressed="${guessMode==='daily'}">Today's Player</button>
+      <button data-gpm="practice" aria-pressed="${guessMode==='practice'}">Practice</button>
+    </div>
+    ${guessMode==='practice' && done ? '<p class="note"><button class="pname" id="guessAgain">Play another player →</button></p>' : ''}
+    <div class="gscoreboard">${done ? (solved?'Solved':'Not this time') : `Hint ${shown} of ${GUESS_MAX}`}${pz.guesses.length&&!solved?` · ${pz.guesses.length} miss${pz.guesses.length===1?'':'es'}`:''}</div>
+    <div class="gplay">${photo}<ol class="ghints">${hintHTML}</ol></div>
+    ${missed?`<div class="gmisses">${missed}</div>`:''}
+    ${form}${result}
+    <datalist id="guessNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <p class="note">Mystery players are anyone with at least two regular seasons and enough games or innings to qualify
+      for the Savant rankings. Hints come straight from the player's real record.</p>`;
+  wireArcadeTabBar();
+  wirePlayerLinks();
+  app.querySelectorAll('[data-gpm]').forEach(b=>b.addEventListener('click',()=>{
+    guessMode = b.dataset.gpm; guessError = null;
+    if(guessMode==='practice' && !guessPractice) guessPractice = newGuessPuzzle(Math.random, 'practice');
+    renderGuess();
+  }));
+  const again = document.getElementById('guessAgain');
+  if(again) again.addEventListener('click',()=>{ guessPractice = newGuessPuzzle(Math.random, 'practice'); guessError = null; renderGuess(); });
+  const commit = g => {
+    pz.guesses.push(g); guessError = null;
+    if(guessMode==='daily') saveDailyGuess();
+    renderGuess();
+    const inp = document.getElementById('guessInput'); if(inp) inp.focus();
+  };
+  const form_ = document.getElementById('guessForm');
+  if(form_){
+    form_.addEventListener('submit', e=>{
+      e.preventDefault();
+      const typed = document.getElementById('guessInput').value.trim();
+      if(!P[typed]){ guessError = typed ? `"${typed}" isn't a player in the league record — pick a name from the list.` : 'Type a name first, or skip the hint.'; renderGuess(); return; }
+      if(pz.guesses.includes(typed)){ guessError = `You already guessed ${typed}.`; renderGuess(); return; }
+      commit(typed);
+    });
+    document.getElementById('guessSkip').addEventListener('click', ()=>commit(''));
+  }
+  if(done && guessMode==='daily') wireShareButton('guessShare', ()=>guessShareText(pz));
+}
+
 function dispatch(h){
   let m;
   if(h === '#/standings') return renderStandings();
@@ -8469,6 +8634,7 @@ function dispatch(h){
   if((m = h.match(/^#\/compare\/([^/]+)\/([^/]+)$/)))
     return renderCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
   if(h === '#/arcade') return renderGrid();
+  if(h === '#/guess') return renderGuess();
   if(h === '#/grid') return renderGrid();
   if(h === '#/statpad') return renderStatpad();
   if(h === '#/15-0') return renderB0();
