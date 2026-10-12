@@ -6210,7 +6210,6 @@ function renderAwards(){
   }));
 }
 
-const NON_PLAYER_AWARDS = new Set(['Sox Trophy']);
 /* every award tied to a franchise, resolved through the same team-
    abbreviation machinery tnick() uses on the main Awards page. Individual
    player awards are paired positionally with the winner list on the old
@@ -6218,15 +6217,15 @@ const NON_PLAYER_AWARDS = new Set(['Sox Trophy']);
    falling back to the raw winner string if the two lists don't line up
    1:1 (a few of those old rows have mismatched counts). Team of the Year
    and Game of the Year are team-level (their "winner" is a team name or a
-   game description, not a player) but are included here too — Sox Trophy
-   stays out since it's just a regular-season-record tiebreaker, not a
-   standalone honor. */
+   game description, not a player) but are included here too, and so is
+   the Sox Trophy (best regular-season record) — also team-level, and not a
+   ballot award, so it shows for a year whose ballot is still hidden. */
 function teamAwardEntries(fullName){
   const out = [];
   Object.keys(AWARDS).forEach(y=>{
-    if(HIDDEN_AWARD_YEARS.has(+y)) return;
+    const hiddenYear = HIDDEN_AWARD_YEARS.has(+y);
     AWARDS[y].forEach(r=>{
-      if(!r.team || NON_PLAYER_AWARDS.has(r.award)) return;
+      if(!r.team || (hiddenYear && r.award!=='Sox Trophy')) return;
       const teamParts = r.team.split(/\s*[/,]\s*/);
       const winnerParts = (r.winner||'').split(/\s*[/,]\s*/);
       teamParts.forEach((tp,i)=>{
@@ -6389,11 +6388,17 @@ function renderTeamAwards(name){
     const ia=AW_ORDER.indexOf(a), ib=AW_ORDER.indexOf(b);
     return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
   });
+  /* Sox Trophy rows carry the record in their note ("Best Regular Season Record 11-4 (via tiebreaker)") */
+  const soxNote = e => {
+    if(e.award!=='Sox Trophy' || !e.note) return '';
+    const m = e.note.match(/(\d+)-(\d+)/);
+    return m ? ` <span class="azm">(${m[1]}–${m[2]}${/tiebreaker/i.test(e.note)?', via tiebreaker':''})</span>` : '';
+  };
   const awEntryHTML = e => e.award==='Game Of The Year' && e.gid
     ? `<button class="pname" data-g="${e.gid}">${esc(e.winner)}</button>`
     : plink(e.winner);
   const blocks = gkeys.map(k=>{
-    const items = grouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${awEntryHTML(e)}</li>`).join('');
+    const items = grouped[k].map(e=>`<li><span class="pa-yr">${e.year}</span>${awEntryHTML(e)}${soxNote(e)}</li>`).join('');
     return `<div class="pa-block"><h4>${grouped[k].length}× ${esc(k)}</h4>
       <ul class="pa-list">${items}</ul></div>`;
   }).join('');
@@ -6434,11 +6439,9 @@ function renderTeamAwards(name){
     ${(seriesBlocks||weeklyBlocks) ? `<h3 class="hsub">Player of the Series &amp; Week</h3><div class="pa-grid">${seriesBlocks}${weeklyBlocks}</div>` : ''}
     ${nwlaBlocks ? `<h3 class="hsub">NWLA Awards</h3><div class="pa-grid">${nwlaBlocks}</div>` : ''}
     <p class="note">Every individual and team award ${esc(name)} or its players have won, grouped by award.
-    All-Star selections are resolved to whichever franchise a player was actually on that season — the
-    All-Star roster itself only records the division squad, not the team. Player of the Series/Week has
+    All-Star selections are resolved to whichever franchise a player was actually on that season. Player of the Series/Week has
     been tracked since the league moved to 3-game regular-season series in 2022.
-    The Sox Trophy (a regular-season-record tiebreaker) isn't shown here — see the franchise's own
-    accolades for titles and pennants.</p>`;
+    The Sox Trophy goes to the team with the best regular-season record.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(name); });
   wireHonors();
 }
