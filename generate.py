@@ -8670,7 +8670,7 @@ function svpTeamPoints(){
   const yv = String(svpTm.year);
   const years = yv==='all' ? SVP_YEARS
     : yv[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
-  const rows = svpTeamStats().filter(a=>years.includes(a.year) && (!svpTmTeam || a.team===svpTmTeam));
+  const rows = svpTeamStats().filter(a=>years.includes(a.year) && (!svpTmTeam || a.team===svpTmTeam) && svpGroupOK(a.team, a.year));
   const mk = list => {
     const n = list.reduce((s,a)=>s+a.n,0), g = list.reduce((s,a)=>s+a.W+a.L+a.T,0);
     const W = list.reduce((s,a)=>s+a.W,0), L = list.reduce((s,a)=>s+a.L,0), T = list.reduce((s,a)=>s+a.T,0);
@@ -8681,7 +8681,7 @@ function svpTeamPoints(){
       rpg:list.reduce((s,a)=>s+a.r,0)/n, hrpg:list.reduce((s,a)=>s+a.hr,0)/n,
       act:1-list.reduce((s,a)=>s+a.k+a.bb,0)/list.reduce((s,a)=>s+a.pa,0)};
   };
-  if(svpTm.split || svpTmTeam || years.length===1) return rows.map(a=>mk([a]));
+  if(svpTm.split || svpTmTeam || svpTmGroup || years.length===1) return rows.map(a=>mk([a]));
   const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
   return Object.values(by).map(mk);
 }
@@ -8721,7 +8721,7 @@ function svpTeamSVG(pts){
     const showLab = !many || isH;
     let lab = '';
     if(showLab){
-      const txt = histNick(p.team, p.year) + (p.years.length===1 && (svpTm.split || svpTmTeam || many) ? ' ’'+String(p.year).slice(2) : '');
+      const txt = histNick(p.team, p.year) + (p.years.length===1 && (svpTm.split || svpTmTeam || svpTmGroup || many) ? ' ’'+String(p.year).slice(2) : '');
       const w = txt.length*6.4+4;
       const cands = [[cx+23, cy+4, 'start', cx+23, cx+23+w], [cx-23, cy+4, 'end', cx-23-w, cx-23],
                      [cx, cy-24, 'middle', cx-w/2, cx+w/2], [cx, cy+31, 'middle', cx-w/2, cx+w/2]];
@@ -8744,6 +8744,36 @@ function svpTeamSVG(pts){
    the race, its game-by-game results — no box scores needed, so they cover every season. */
 /* the Team select, shared by every team graph: picks one franchise and shows only it — as its seasons,
    since a lone franchise averaged over many seasons would be a single dot */
+/* "Show" groups: pick team-seasons from DIFFERENT years by what happened, e.g. every World Series champion.
+   Works with the season/era filter and the Team select, and — like a lone team — shows each qualifying
+   team-season on its own rather than averaging a franchise across years. */
+let svpTmGroup = '', svpBW = null;
+const SVP_GROUPS = [['','All teams'],['champ','World Series champions'],['runner','World Series runners-up'],['finalist','Both World Series finalists'],
+  ['div','Division winners'],['po','Made the playoffs'],['dnq','Missed the playoffs'],['best','Best record each season'],['worst','Worst record each season']];
+function svpBestWorst(){
+  if(svpBW) return svpBW;
+  const by = {}; svpTeamSeasons().forEach(r=>(by[r.year] = by[r.year] || []).push(r));
+  const best = new Set(), worst = new Set();
+  Object.values(by).forEach(l=>{
+    const w = r => r.aW/r.G, mx = Math.max(...l.map(w)), mn = Math.min(...l.map(w));
+    l.forEach(r=>{ if(Math.abs(w(r)-mx)<1e-9) best.add(r.team+'|'+r.year); if(Math.abs(w(r)-mn)<1e-9) worst.add(r.team+'|'+r.year); });
+  });
+  return (svpBW = {best, worst});
+}
+function svpGroupOK(team, year){
+  const g = svpTmGroup; if(!g) return true;
+  if(g==='best') return svpBestWorst().best.has(team+'|'+year);
+  if(g==='worst') return svpBestWorst().worst.has(team+'|'+year);
+  if(g==='div'){ const dn = divisionOf(team, year); return !!dn && /^1st/.test(divisionFinish(team, year, dn)||''); }
+  const lab = (playoffResultFor(team, year)||{}).label || '';
+  if(g==='champ') return /^WON WS/.test(lab);
+  if(g==='runner') return /^LOST WS/.test(lab);
+  if(g==='finalist') return /WS/.test(lab);
+  if(g==='po') return !!lab && lab!=='DNQ';
+  if(g==='dnq') return lab==='DNQ';
+  return true;
+}
+const svpGroupSelectHTML = id => `<label>Show <select id="${id}">${SVP_GROUPS.map(([k,l])=>`<option value="${k}"${k===svpTmGroup?' selected':''}>${l}</option>`).join('')}</select></label>`;
 let svpTmTeam = '';
 const svpTeamSelectHTML = (id, names) => `<label>Team <select id="${id}"><option value="">All teams</option>${
   names.map(t=>`<option value="${esc(t)}"${t===svpTmTeam?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
@@ -8799,7 +8829,7 @@ function svpTeamSeasons(){
   return rows;
 }
 function svpTeamAgg(sel, split){
-  const years = svpYearsFor(sel), rows = svpTeamSeasons().filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam));
+  const years = svpYearsFor(sel), rows = svpTeamSeasons().filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
   const mk = list => {
     const G = list.reduce((s,a)=>s+a.G,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
     const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+a[k]*a.G,0)/G;
@@ -8807,7 +8837,7 @@ function svpTeamAgg(sel, split){
       RF:sum('RF'), RA:sum('RA'), off:wt('off'), def:wt('def'), aW:sum('aW'), expW:sum('expW'),
       win:sum('aW')/G, exp:sum('expW')/G, luck:sum('aW')-sum('expW')};
   };
-  if(split || svpTmTeam || years.length===1) return rows.map(a=>mk([a]));
+  if(split || svpTmTeam || svpTmGroup || years.length===1) return rows.map(a=>mk([a]));
   const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
   return Object.values(by).map(mk);
 }
@@ -8841,7 +8871,7 @@ function svpTxPlot(pts, cfg){
     const logo = teamLogoForYear(p.team, p.year), lid = logo ? kit.ref(logo) : null;
     let lab = '';
     if(!many || isH){
-      const txt = histNick(p.team, p.year) + (p.years.length===1 && (st.split || svpTmTeam || many) ? ' ’'+String(p.year).slice(2) : '');
+      const txt = histNick(p.team, p.year) + (p.years.length===1 && (st.split || svpTmTeam || svpTmGroup || many) ? ' ’'+String(p.year).slice(2) : '');
       const w = txt.length*6.4+4;
       const cands = [[cx+23, cy+4, 'start', cx+23, cx+23+w], [cx-23, cy+4, 'end', cx-23-w, cx-23],
                      [cx, cy-24, 'middle', cx-w/2, cx+w/2], [cx, cy+31, 'middle', cx-w/2, cx+w/2]];
@@ -8868,7 +8898,8 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
       <label>Season / era <select id="txYear">${svpYearOptions(st.year)}</select></label>
       <label>Highlight <select id="txHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===st.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('txTeam', names)}
-      <label class="svpchk"><input id="txSplit" type="checkbox"${st.split||svpTmTeam?' checked':''}${svpTmTeam?' disabled':''}> Split every team into its seasons</label>
+      ${svpGroupSelectHTML('txGroup')}
+      <label class="svpchk"><input id="txSplit" type="checkbox"${st.split||svpTmTeam||svpTmGroup?' checked':''}${svpTmTeam||svpTmGroup?' disabled':''}> Split every team into its seasons</label>
     </div>
     <div id="txChart" class="txwrap"></div><p class="svpread" id="txRead"></p>
     <p class="smeta">${blurb}</p>
@@ -8881,7 +8912,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
       ex.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
     }
     const wrap = document.getElementById('txChart');
-    wrap.innerHTML = svpTxPlot(pts, {...cfgFor(pts), st:{...st, split: st.split || !!svpTmTeam}}) + '<div class="svstip" hidden></div>';
+    wrap.innerHTML = svpTxPlot(pts, {...cfgFor(pts), st:{...st, split: st.split || !!svpTmTeam || !!svpTmGroup}}) + '<div class="svstip" hidden></div>';
     const svg = wrap.querySelector('svg'); if(!svg) return;
     const rd = document.getElementById('txRead');
     const p0 = pts[st.sel];
@@ -8909,6 +8940,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
     hide();
   };
   draw();
+  document.getElementById('txGroup').addEventListener('change', e=>{ svpTmGroup = e.target.value; st.sel = null; svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn); });
   document.getElementById('txTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; st.sel = null; svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn); });
   document.getElementById('txYear').addEventListener('change', e=>{ st.year = e.target.value; st.sel = null; draw(); });
   document.getElementById('txHl').addEventListener('change', e=>{ st.hl = e.target.value; draw(); });
@@ -8979,7 +9011,7 @@ function renderSavantRace(){
   const years = SVP_YEARS.filter(y=>svpRaceSeries(y).length);
   if(svpTR.year==null || !years.includes(svpTR.year)) svpTR.year = years[years.length-1];
   const allSeries = svpRaceSeries(svpTR.year);
-  const teamSeries = allSeries.filter(s=>!svpTmTeam || s.team===svpTmTeam);
+  const teamSeries = allSeries.filter(s=>(!svpTmTeam || s.team===svpTmTeam) && svpGroupOK(s.team, svpTR.year));
   const series = teamSeries.length ? teamSeries : allSeries;   // a team that sat out that year: show everyone
   const champ = ((CHAMPS||[]).find(c=>c.y===svpTR.year)||{}).full;
   const W = 720, H = 500, L = 52, R = 190, T = 20, B = 46;
@@ -9022,6 +9054,7 @@ function renderSavantRace(){
     <div class="svpform">
       <label>Season <select id="rcYear">${years.slice().reverse().map(y=>`<option value="${y}"${y===svpTR.year?' selected':''}>${y}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('rcTeam', TEAMNAMES.filter(t=>TEAMS[t].seasons[svpTR.year]))}
+      ${svpGroupSelectHTML('rcGroup')}
       <label>Highlight <select id="rcHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===svpTR.hl?' selected':''}>${esc(histName(t, svpTR.year))}</option>`).join('')}</select></label>
     </div>
     <svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Games above .500 through the ${svpTR.year} season, every team">
@@ -9032,6 +9065,7 @@ function renderSavantRace(){
       and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.</p>`);
   wireTeamViews();
   document.getElementById('rcYear').addEventListener('change', e=>{ svpTR.year = +e.target.value; svpTR.hl = ''; renderSavantRace(); });
+  document.getElementById('rcGroup').addEventListener('change', e=>{ svpTmGroup = e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcHl').addEventListener('change', e=>{ svpTR.hl = e.target.value; renderSavantRace(); });
 }
@@ -9075,14 +9109,14 @@ function svpStyleSeasons(kind){
   return rows;
 }
 function svpStyleAgg(kind, sel, split){
-  const years = svpYearsFor(sel), rows = svpStyleSeasons(kind).filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam));
+  const years = svpYearsFor(sel), rows = svpStyleSeasons(kind).filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
   const mk = list => {
     const n = list.reduce((s,a)=>s+a.n,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
     const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+(a[k]||0)*a.n,0)/n;
     return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), W:sum('W'), L:sum('L'), T:sum('T'),
       RF:sum('RF'), RA:sum('RA'), sx:wt('sx'), sy:wt('sy'), a:wt('a'), b:wt('b'), k:wt('k'), era:wt('era')};
   };
-  if(split || svpTmTeam || years.length===1) return rows.map(a=>mk([a]));
+  if(split || svpTmTeam || svpTmGroup || years.length===1) return rows.map(a=>mk([a]));
   const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
   return Object.values(by).map(mk);
 }
@@ -9138,7 +9172,8 @@ function renderSavantTeams(){
       <label>Season / era <select id="tmYear">${yearOpts}</select></label>
       <label>Highlight <select id="tmHl"><option value="">None</option>${teamNames.map(t=>`<option value="${esc(t)}"${t===svpTm.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('tmTeam', teamNames)}
-      <label class="svpchk"><input id="tmSplit" type="checkbox"${svpTm.split||svpTmTeam?' checked':''}${svpTmTeam?' disabled':''}> Split every team into its seasons</label>
+      ${svpGroupSelectHTML('tmGroup')}
+      <label class="svpchk"><input id="tmSplit" type="checkbox"${svpTm.split||svpTmTeam||svpTmGroup?' checked':''}${svpTmTeam||svpTmGroup?' disabled':''}> Split every team into its seasons</label>
     </div>
     <div id="tmChart"></div><p class="svpread" id="tmRead"></p>
     <p class="smeta"><b>Right</b> is a better regular-season record. <b>Up</b> is a more fun team to watch: how many runs, home runs and
@@ -9182,6 +9217,7 @@ function renderSavantTeams(){
   };
   draw();
   wireTeamViews();
+  document.getElementById('tmGroup').addEventListener('change', e=>{ svpTmGroup = e.target.value; svpTm.sel = null; renderSavantTeams(); });
   document.getElementById('tmTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; svpTm.sel = null; renderSavantTeams(); });
   document.getElementById('tmYear').addEventListener('change', e=>{ svpTm.year = e.target.value; svpTm.sel = null; renderSavantTeams(); });
   document.getElementById('tmHl').addEventListener('change', e=>{ svpTm.hl = e.target.value; draw(); });
