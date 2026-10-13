@@ -8303,11 +8303,10 @@ const svpQual = (mode, r) => mode==='bat' ? r.G_bat>=SV_MING : r.IPouts>=SV_MINO
    "worth showing" floor (3 G / 3 IP) instead of a full regular-season qualification */
 const svpQualPhase = (mode, r, phase) => phase==='Playoffs'
   ? (mode==='bat' ? r.G_bat>=SV_MIN_SHOW_G : r.IPouts>=SV_MIN_SHOW_OUTS) : svpQual(mode, r);
-/* scoring-level eras, named by what the league's runs per team-game actually did */
+/* the same two eras the Records tab uses */
 const SVP_ERAS = [
-  {label:'High-scoring', from:2017, to:2020},
-  {label:'Low-scoring',  from:2021, to:2024},
-  {label:'Rebound',      from:2025, to:2026},
+  {from:2017, to:2021},
+  {from:2022, to:SVP_YEARS[SVP_YEARS.length-1]},
 ];
 const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
 
@@ -8398,7 +8397,7 @@ function renderSavantScatter(){
   const eraOpt = (e,i) => {
     const rs = SVP_YEARS.filter(y=>y>=e.from && y<=e.to && rpgOf[y]).map(y=>rpgOf[y].r/rpgOf[y].g);
     const rng = rs.length ? ` · ${Math.min(...rs).toFixed(1)}–${Math.max(...rs).toFixed(1)} R/G` : '';
-    return `<option value="e${i}"${String(svpSc.year)==='e'+i?' selected':''}>${e.label} ${e.from}–${e.to}${rng}</option>`;
+    return `<option value="e${i}"${String(svpSc.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era${rng}</option>`;
   };
   const yearOpts = `<option value="all"${svpSc.year==='all'?' selected':''}>All seasons</option>`
     + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
