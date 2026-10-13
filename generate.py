@@ -822,6 +822,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
+.tscroll table .lphoto{width:30px;height:30px}
 .plcell{display:inline-flex;align-items:center;gap:9px}
 .dir .lphoto{width:30px;height:30px}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
@@ -4201,7 +4202,7 @@ function svBarW(items, low){
 /* it.tm is trusted, pre-escaped HTML built by the caller (so a caller can embed
    a clickable date/box-score link, not just plain text) — every producer below
    escapes its own dynamic pieces before handing tm to this function. */
-/* Leaders-page headshots: turned on only while the Leaders page is showing a season from 2026 on
+/* Leaders-page headshots: turned on while the Leaders page renders
    (route() turns it off again for every other page that shares llist) */
 let llistPhotos = false;
 const llHead = n => {
@@ -4227,7 +4228,7 @@ function renderLeaders(){
   const yrs = ALL_YEARS.slice();
   const isCareer = leadYear==='career';
   if(!isCareer && !yrs.includes(leadYear)) leadYear = yrs[yrs.length-1];
-  llistPhotos = !isCareer && leadYear>=2026;
+  llistPhotos = true;
   const isPost = leadPhase==='post';
   const chips = `<div class="chips">
     <button data-ly="career" aria-pressed="${isCareer}">Career</button>
@@ -4418,12 +4419,12 @@ const phaseToggleHTML = () => `<div class="segs post" role="group" aria-label="P
    entirely for the division All-Star page's roster, which combines box
    scores across many years with no per-appearance year kept at this point in
    the pipeline, so there's no sound baseline to normalize against there. */
-function rosterBatting(roster, ph, label, weights){
+function rosterBatting(roster, ph, label, weights, photos){
   const rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.G_bat>0 || d.PA>0);
   if(!rows.length) return '';
   rows.sort((a,b)=>b.PA-a.PA);
   const cols=[
-    {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
     {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
     {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
@@ -4432,12 +4433,12 @@ function rosterBatting(roster, ph, label, weights){
     {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
   return statTable('Batting'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
-function rosterPitching(roster, ph, label, weights){
+function rosterPitching(roster, ph, label, weights, photos){
   let rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.IPouts>0);
   if(!rows.length) return '';
   rows.sort((a,b)=>b.IPouts-a.IPouts);
   const cols=[
-    {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
     {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
     {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
@@ -4469,8 +4470,8 @@ function teamOneYear(t, y){
       <div class="sub">${r.RF} RF · ${r.RA} RA · ${diff>0?'+':''}${diff}</div></div>`;
   }).join('');
   const rosterHTML = roster.length
-    ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}])
-      + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}])
+    ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}], true)
+      + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}], true)
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
@@ -4689,7 +4690,7 @@ function teamAllYears(t, name){
       _pitWeights: Object.entries(a.yearOuts).map(([y,outs])=>({year:+y, outs})), ...a.s}))
     .sort((x,y)=>y.PA-x.PA);
   const batCols=[
-    {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
     {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
@@ -4701,7 +4702,7 @@ function teamAllYears(t, name){
     ? statTable('Franchise Roster · Hitting', batCols, batRows, batTotal, 'Total', '', true) : '';
 
   const pitCols=[
-    {l:'Player',lft:1,f:d=>`<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button>`},
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
     {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},
     {l:'W',f:d=>d.W},{l:'L',f:d=>d.L},{l:'ERA',m:1,f:d=>two(era(d))},
     {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, d._pitWeights);return isFinite(v)?String(v):'—';}}];
