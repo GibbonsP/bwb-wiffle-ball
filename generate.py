@@ -274,6 +274,13 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svtm-axis{opacity:.9;stroke-dasharray:none;stroke:var(--line-strong)}
 .svs-hlt{stroke:var(--ink);stroke-width:1.8;fill-opacity:.95}
 .svpclear{margin-left:12px;color:var(--muted)}
+.txwrap{position:relative}
+.svr-line{fill:none;stroke-width:2;stroke-linejoin:round;opacity:.85}
+.svr-on{stroke-width:3.6;opacity:1}
+.svr-dim{opacity:.16}
+.svr-dimtxt{opacity:.35}
+.svr-end{stroke:var(--card);stroke-width:1.5}
+#txExtra{margin-top:18px}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
 .svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
@@ -8079,8 +8086,8 @@ function svpShell(tab, inner){
   app.innerHTML = `
     <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
     <p class="pmeta">Percentile rankings for every qualified season, how the league's scoring has changed over time,
-      matched seasons, a scatter plot of any two stats, a search across every player season, and a map of every team's style.</p>
-    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}${t('teams','Team Map')}</div>
+      matched seasons, a scatter plot of any two stats, a search across every player season, and graphs of every team's style, scoring, luck and season.</p>
+    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='pct' ? '#/savant' : '#/savant/'+b.dataset.svpt;
@@ -8728,6 +8735,273 @@ function svpTeamSVG(pts){
     <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">← Bad · Win % · Good →</text>
     <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Boring · Fun index · Fun →</text></svg>`;
 }
+/* ------------------------- more team graphs: offense/defense, luck, season race -------------------------
+   All three read straight off each franchise's own season records (W-L-T, runs for/against) and, for
+   the race, its game-by-game results — no box scores needed, so they cover every season. */
+const SVP_TEAM_VIEWS = [['style','Fun Map',''],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
+function svpTeamViews(active){
+  return `<div class="chips svpmodes svptv">${SVP_TEAM_VIEWS.map(([k,l])=>
+    `<button data-tmv="${k}" aria-pressed="${active===k}">${l}</button>`).join('')}</div>`;
+}
+function wireTeamViews(){
+  app.querySelectorAll('[data-tmv]').forEach(b=>b.addEventListener('click',()=>{
+    const v = SVP_TEAM_VIEWS.find(x=>x[0]===b.dataset.tmv);
+    location.hash = '#/savant/teams'+v[2];
+  }));
+}
+function svpYearsFor(sel){
+  const v = String(sel);
+  return v==='all' ? SVP_YEARS
+    : v[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+v.slice(1)].from && y<=SVP_ERAS[+v.slice(1)].to) : [+v];
+}
+function svpYearOptions(sel){
+  const eraOpt = (e,i) => `<option value="e${i}"${String(sel)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
+  return `<option value="all"${sel==='all'?' selected':''}>All seasons</option>`
+    + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
+    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+}
+
+/* one row per franchise-season: scoring relative to that year's league, and Pythagenpat expected wins */
+function svpTeamSeasons(){
+  const rows = [], lg = {};
+  TEAMNAMES.forEach(t=>Object.entries(TEAMS[t].seasons).forEach(([y,s])=>{
+    const r = s.record && s.record.Regular; if(!r) return;
+    const G = r.W + r.L + (r.T||0); if(!G) return;
+    rows.push({team:t, year:+y, G, W:r.W, L:r.L, T:r.T||0, RF:r.RF, RA:r.RA});
+    const a = lg[y] || (lg[y] = {RF:0, G:0}); a.RF += r.RF; a.G += G;
+  }));
+  rows.forEach(r=>{
+    const l = lg[r.year].RF / lg[r.year].G;                       // league runs per team-game that year
+    const e = Math.pow((r.RF+r.RA)/r.G, 0.287);                   // Pythagenpat exponent — scoring here swings 2.7x across years
+    const py = (r.RF===0 && r.RA===0) ? 0.5 : Math.pow(r.RF,e)/(Math.pow(r.RF,e)+Math.pow(r.RA,e));
+    r.off = (r.RF/r.G)/l - 1;                                     // + = scored more than the league average
+    r.def = 1 - (r.RA/r.G)/l;                                     // + = allowed fewer than the league average
+    r.aW = r.W + 0.5*r.T; r.expW = py*r.G;
+  });
+  return rows;
+}
+function svpTeamAgg(sel, split){
+  const years = svpYearsFor(sel), rows = svpTeamSeasons().filter(r=>years.includes(r.year));
+  const mk = list => {
+    const G = list.reduce((s,a)=>s+a.G,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
+    const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+a[k]*a.G,0)/G;
+    return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), G, W:sum('W'), L:sum('L'), T:sum('T'),
+      RF:sum('RF'), RA:sum('RA'), off:wt('off'), def:wt('def'), aW:sum('aW'), expW:sum('expW'),
+      win:sum('aW')/G, exp:sum('expW')/G, luck:sum('aW')-sum('expW')};
+  };
+  if(split || years.length===1) return rows.map(a=>mk([a]));
+  const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
+  return Object.values(by).map(mk);
+}
+const svpPctS = (v,d) => (v>=0?'+':'−')+Math.abs(v*100).toFixed(d==null?0:d)+'%';
+
+/* generic labelled team scatter used by the offense and luck views */
+function svpTxPlot(pts, cfg){
+  const W = 720, H = 500, L = 58, R = 18, T = 20, B = 52;
+  if(!pts.length) return '<p class="empty">No team data for that selection.</p>';
+  const rng = vals => { const lo = Math.min(...vals), hi = Math.max(...vals), sp = (hi-lo)||0.1; return [lo-sp*0.12, hi+sp*0.12]; };
+  let [x0,x1] = rng(pts.map(cfg.x).concat(cfg.keepX||[])), [y0,y1] = rng(pts.map(cfg.y).concat(cfg.keepY||[]));
+  if(cfg.square){ x0 = y0 = Math.min(x0,y0); x1 = y1 = Math.max(x1,y1); }
+  const X = v => L + (W-L-R)*(v-x0)/(x1-x0), Y = v => T + (H-T-B)*(1-(v-y0)/(y1-y0));
+  const xt = svpNiceTicks(x0,x1,6), yt = svpNiceTicks(y0,y1,6);
+  const grid = xt.map(v=>`<line class="svc-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${cfg.xf(v)}</text>`).join('')
+    + yt.map(v=>`<line class="svc-grid" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${cfg.yf(v)}</text>`).join('');
+  const lines = (cfg.mid ? `<line class="svs-med svtm-axis" x1="${X(cfg.mid[0]).toFixed(1)}" x2="${X(cfg.mid[0]).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+      <line class="svs-med svtm-axis" x1="${L}" x2="${W-R}" y1="${Y(cfg.mid[1]).toFixed(1)}" y2="${Y(cfg.mid[1]).toFixed(1)}"/>` : '')
+    + (cfg.diag ? `<line class="svs-med" x1="${X(Math.max(x0,y0)).toFixed(1)}" y1="${Y(Math.max(x0,y0)).toFixed(1)}" x2="${X(Math.min(x1,y1)).toFixed(1)}" y2="${Y(Math.min(x1,y1)).toFixed(1)}"/>` : '');
+  const q = (x,y,anchor,txt) => `<text class="svtm-q" x="${x}" y="${y}" text-anchor="${anchor}">${txt}</text>`;
+  const quads = cfg.quads ? q(L+8, T+14, 'start', cfg.quads[0]) + q(W-R-8, T+14, 'end', cfg.quads[1])
+    + q(L+8, H-B-8, 'start', cfg.quads[2]) + q(W-R-8, H-B-8, 'end', cfg.quads[3]) : '';
+  const st = cfg.st, many = pts.length>16, placed = [];
+  const order = pts.map((p,i)=>i).sort((a,b)=>((pts[a].team===st.hl)?1:0)-((pts[b].team===st.hl)?1:0));
+  const dots = order.map(i=>{
+    const p = pts[i], cx = X(cfg.x(p)), cy = Y(cfg.y(p)), isH = p.team===st.hl, sel = st.sel===i;
+    const c = teamAccent(p.team) || 'var(--accent)';
+    let lab = '';
+    if(!many || isH){
+      const txt = histNick(p.team, p.year) + (p.years.length===1 && (st.split || many) ? ' ’'+String(p.year).slice(2) : '');
+      const w = txt.length*6.4+4;
+      const cands = [[cx+12, cy+4, 'start', cx+12, cx+12+w], [cx-12, cy+4, 'end', cx-12-w, cx-12],
+                     [cx, cy-13, 'middle', cx-w/2, cx+w/2], [cx, cy+20, 'middle', cx-w/2, cx+w/2]];
+      const fits = k => k[3]>=L && k[4]<=W-R
+        && !placed.some(b=>Math.abs((b[0]+b[1])/2-(k[3]+k[4])/2)<(b[1]-b[0]+(k[4]-k[3]))/2 && Math.abs(b[2]-k[1])<12)
+        && !pts.some((o,j)=>j!==i && X(cfg.x(o))>k[3]-10 && X(cfg.x(o))<k[4]+10 && Math.abs(Y(cfg.y(o))-(k[1]-4))<12);
+      const pick = cands.find(fits) || cands[0];
+      placed.push([pick[3], pick[4], pick[1]]);
+      lab = `<text class="svtm-lab" x="${pick[0].toFixed(1)}" y="${pick[1].toFixed(1)}" text-anchor="${pick[2]}">${esc(txt)}</text>`;
+    }
+    return `<circle class="svtm-dot${isH||sel?' svtm-on':''}" data-i="${i}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${isH||sel?10:8}" style="fill:${c}"/>${lab}`;
+  }).join('');
+  return `<svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.aria)}">
+    ${grid}${lines}${quads}${dots}
+    <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">${esc(cfg.xl)}</text>
+    <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">${esc(cfg.yl)}</text></svg>`;
+}
+/* shared render + interaction for those two views */
+function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor){
+  const names = [...new Set(svpTeamSeasons().map(a=>a.team))].sort();
+  svpShell('teams', `
+    ${svpTeamViews(view)}
+    <div class="svpform">
+      <label>Season / era <select id="txYear">${svpYearOptions(st.year)}</select></label>
+      <label>Highlight <select id="txHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===st.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="svpchk"><input id="txSplit" type="checkbox"${st.split?' checked':''}> Split every team into its seasons</label>
+    </div>
+    <div id="txChart" class="txwrap"></div><p class="svpread" id="txRead"></p>
+    <p class="smeta">${blurb}</p>
+    <div id="txExtra"></div>`);
+  wireTeamViews();
+  const draw = () => {
+    const pts = svpTeamAgg(st.year, st.split);
+    if(extraFor){
+      const ex = document.getElementById('txExtra'); ex.innerHTML = extraFor(pts);
+      ex.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+    }
+    const wrap = document.getElementById('txChart');
+    wrap.innerHTML = svpTxPlot(pts, {...cfgFor(pts), st}) + '<div class="svstip" hidden></div>';
+    const svg = wrap.querySelector('svg'); if(!svg) return;
+    const rd = document.getElementById('txRead');
+    const p0 = pts[st.sel];
+    rd.innerHTML = p0 ? readFor(p0) + ` <button class="pname" data-t="${esc(p0.team)}">Team page →</button> <button class="pname svpclear" data-clr="1" type="button">Clear ✕</button>`
+      : '<span class="svpv">Click a dot to pin it. Click it again, or the empty chart, to clear.</span>';
+    rd.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+    rd.querySelectorAll('[data-clr]').forEach(b=>b.addEventListener('click',()=>{ st.sel = null; draw(); }));
+    const show = c => {
+      const tip = wrap.querySelector('.svstip');
+      tip.innerHTML = tipFor(pts[+c.dataset.i]); tip.hidden = false;
+      const wr = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      const cx = cr.left + cr.width/2 - wr.left, cy = cr.top + cr.height/2 - wr.top;
+      let left = cx + 16; if(left + tip.offsetWidth > wr.width - 4) left = cx - 16 - tip.offsetWidth;
+      tip.style.left = Math.max(4, left)+'px';
+      tip.style.top = Math.max(4, Math.min(cy - tip.offsetHeight/2, wr.height - tip.offsetHeight - 4))+'px';
+    };
+    const hide = () => {
+      const tip = wrap.querySelector('.svstip'); if(tip) tip.hidden = true;
+      const cur = st.sel!=null && svg.querySelector(`circle[data-i="${st.sel}"]`); if(cur) show(cur);
+    };
+    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); const nx = c ? +c.dataset.i : null;
+      st.sel = (nx!==null && nx!==st.sel) ? nx : null; draw(); });
+    svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(c) show(c); });
+    svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')) hide(); });
+    hide();
+  };
+  draw();
+  document.getElementById('txYear').addEventListener('change', e=>{ st.year = e.target.value; st.sel = null; draw(); });
+  document.getElementById('txHl').addEventListener('change', e=>{ st.hl = e.target.value; draw(); });
+  document.getElementById('txSplit').addEventListener('change', e=>{ st.split = e.target.checked; st.sel = null; draw(); });
+}
+const spanOf = p => p.years.length>1 ? `${p.years[0]}–${p.years[p.years.length-1]}` : String(p.year);
+
+/* ---- 1. offense vs defense ---- */
+const svpTO = {year:'all', split:false, hl:'', sel:null};
+function renderSavantOffense(){
+  svpTxView('offense', svpTO,
+    pts => ({x:p=>p.off, y:p=>p.def, xf:v=>svpPctS(v), yf:v=>svpPctS(v), mid:[0,0], diag:true, keepX:[0], keepY:[0],
+      quads:['PITCHING-FIRST','ELITE','STRUGGLING','SLUGGERS'], aria:'Teams by runs scored and runs allowed against the league',
+      xl:'← Scores fewer · Runs scored vs league · Scores more →', yl:'← Allows more · Runs allowed vs league · Allows fewer →'}),
+    p => `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${spanOf(p)}</span></div>
+      <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
+      <div class="tt-r"><span>Scoring</span><b>${svpPctS(p.off,1)}</b></div>
+      <div class="tt-r"><span>Run prevention</span><b>${svpPctS(p.def,1)}</b></div>
+      <div class="tt-s tt-l">${(p.RF/p.G).toFixed(1)} scored · ${(p.RA/p.G).toFixed(1)} allowed per game</div>`,
+    p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — scores ${svpPctS(p.off,0)} vs the league, allows ${Math.abs(p.def*100).toFixed(0)}% ${p.def>=0?'fewer':'more'} runs`,
+    `Each dot is measured against the rest of the league <i>that same season</i>, so scoring eras don't blur it: <b>right</b> means the team scored more
+      runs per game than the league average, <b>up</b> means it allowed fewer. Dots above the diagonal are carried by their pitching and defense, dots below it by their bats.
+      The dashed cross is the league average. Pick a season or era, or split every team into its seasons.`);
+}
+
+/* ---- 2. luck ---- */
+const svpTL = {year:'all', split:false, hl:'', sel:null};
+function renderSavantLuck(){
+  svpTxView('luck', svpTL,
+    pts => ({x:p=>p.exp, y:p=>p.win, xf:v=>(v*100).toFixed(0)+'%', yf:v=>(v*100).toFixed(0)+'%', diag:true, square:true,
+      quads:['LUCKY','','','UNLUCKY'], aria:'Actual win percentage against win percentage expected from runs scored and allowed',
+      xl:'Expected win % from runs scored and allowed →', yl:'Actual win % →'}),
+    p => `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${spanOf(p)}</span></div>
+      <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
+      <div class="tt-r"><span>Actual</span><b>${(p.win*100).toFixed(1)}%</b></div>
+      <div class="tt-r"><span>Expected</span><b>${(p.exp*100).toFixed(1)}%</b></div>
+      <div class="tt-s tt-l">${p.luck>=0?'+':'−'}${Math.abs(p.luck).toFixed(1)} wins ${p.luck>=0?'above':'below'} what its runs predicted</div>`,
+    p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — ${(p.win*100).toFixed(1)}% actual vs ${(p.exp*100).toFixed(1)}% expected (${p.luck>=0?'+':'−'}${Math.abs(p.luck).toFixed(1)} wins)`,
+    `Expected win % comes from each team's runs scored and allowed (Pythagenpat, tuned to this league's scoring level). On the diagonal, a team's record matched
+      its runs. <b>Above</b> it, a team won more than its run differential says it should have (close-game luck, a lucky bullpen or timely hitting); <b>below</b>, it deserved better.
+      Luck is not a skill — a lucky team tends to slip back the next season.`,
+    pts => {
+      const list = pts.slice().sort((a,b)=>b.luck-a.luck);
+      if(list.length<4) return '';
+      const row = p => `<li><span class="pa-yr">${spanOf(p)}</span> <button class="pname" data-t="${esc(p.team)}">${esc(histName(p.team,p.year))}</button>
+        <span class="azm">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.luck>=0?'+':'−'}${Math.abs(p.luck).toFixed(1)} wins</span></li>`;
+      return `<div class="pa-grid"><div class="pa-block"><h4>Luckiest</h4><ul class="pa-list">${list.slice(0,5).map(row).join('')}</ul></div>
+        <div class="pa-block"><h4>Unluckiest</h4><ul class="pa-list">${list.slice(-5).reverse().map(row).join('')}</ul></div></div>`;
+    });
+}
+
+/* ---- 3. season race ---- */
+const svpTR = {year:null, hl:''};
+function svpRaceSeries(year){
+  const out = [];
+  TEAMNAMES.forEach(t=>{
+    const s = TEAMS[t].seasons[year]; if(!s) return;
+    const gs = (s.games||[]).filter(g=>g.phase==='Regular').slice().sort((a,b)=>(a.dt||a.date).localeCompare(b.dt||b.date));
+    if(!gs.length) return;
+    let d = 0; const pts = [{g:0, d:0}];
+    gs.forEach((g,i)=>{ d += g.res==='W' ? 1 : g.res==='L' ? -1 : 0; pts.push({g:i+1, d}); });
+    const r = (s.record||{}).Regular || {};
+    out.push({team:t, pts, W:r.W, L:r.L, T:r.T||0});
+  });
+  return out;
+}
+function renderSavantRace(){
+  const years = SVP_YEARS.filter(y=>svpRaceSeries(y).length);
+  if(svpTR.year==null || !years.includes(svpTR.year)) svpTR.year = years[years.length-1];
+  const series = svpRaceSeries(svpTR.year);
+  const champ = ((CHAMPS||[]).find(c=>c.y===svpTR.year)||{}).full;
+  const W = 720, H = 500, L = 52, R = 150, T = 20, B = 46;
+  const maxG = Math.max(...series.map(s=>s.pts.length-1));
+  const ds = series.flatMap(s=>s.pts.map(p=>p.d));
+  const lo = Math.min(...ds, 0), hi = Math.max(...ds, 0), pad = Math.max(1, (hi-lo)*0.08);
+  const y0 = lo-pad, y1 = hi+pad;
+  const X = g => L + (W-L-R)*(g/maxG), Y = v => T + (H-T-B)*(1-(v-y0)/(y1-y0));
+  const yt = svpNiceTicks(y0, y1, 6), xt = svpNiceTicks(0, maxG, 8).filter(v=>Number.isInteger(v));
+  const grid = xt.map(v=>`<line class="svc-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${v}</text>`).join('')
+    + yt.filter(v=>Number.isInteger(v)).map(v=>`<line class="${v===0?'svs-med svtm-axis':'svc-grid'}" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${v>0?'+':''}${v}</text>`).join('');
+  const colorOf = t => teamAccent(t) || 'var(--accent)';
+  const order = series.slice().sort((a,b)=>((a.team===svpTR.hl)?1:0)-((b.team===svpTR.hl)?1:0));
+  const lines = order.map(s=>{
+    const on = s.team===svpTR.hl, dim = svpTR.hl && !on;
+    const path = s.pts.map((p,i)=>`${i?'L':'M'}${X(p.g).toFixed(1)},${Y(p.d).toFixed(1)}`).join('');
+    return `<path class="svr-line${on?' svr-on':''}${dim?' svr-dim':''}" d="${path}" style="stroke:${colorOf(s.team)}"><title>${esc(histName(s.team, svpTR.year))} ${s.W}–${s.L}${s.T?'–'+s.T:''}</title></path>`;
+  }).join('');
+  /* end-of-line labels, pushed apart so they never overlap */
+  const ends = series.map(s=>({s, y:Y(s.pts[s.pts.length-1].d)})).sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++) if(ends[i].y - ends[i-1].y < 13) ends[i].y = ends[i-1].y + 13;
+  const labels = ends.map(({s,y})=>{
+    const last = s.pts[s.pts.length-1], dim = svpTR.hl && s.team!==svpTR.hl;
+    return `<circle class="svr-end${dim?' svr-dim':''}" cx="${X(last.g).toFixed(1)}" cy="${Y(last.d).toFixed(1)}" r="4" style="fill:${colorOf(s.team)}"/>
+      <text class="svtm-lab${dim?' svr-dimtxt':''}" x="${(X(last.g)+10).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(histNick(s.team, svpTR.year))}${s.team===champ?' ★':''} ${s.W}–${s.L}${s.T?'–'+s.T:''}</text>`;
+  }).join('');
+  const names = series.map(s=>s.team).sort();
+  svpShell('teams', `
+    ${svpTeamViews('race')}
+    <div class="svpform">
+      <label>Season <select id="rcYear">${years.slice().reverse().map(y=>`<option value="${y}"${y===svpTR.year?' selected':''}>${y}</option>`).join('')}</select></label>
+      <label>Highlight <select id="rcHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===svpTR.hl?' selected':''}>${esc(histName(t, svpTR.year))}</option>`).join('')}</select></label>
+    </div>
+    <svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Games above .500 through the ${svpTR.year} season, every team">
+      ${grid}${lines}${labels}
+      <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">Games played →</text>
+      <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Below .500 · Wins minus losses · Above .500 →</text></svg>
+    <p class="smeta">The ${svpTR.year} regular season, one line per team: each win moves it up a step and each loss down one, so a line's height is wins minus losses
+      and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.</p>`);
+  wireTeamViews();
+  document.getElementById('rcYear').addEventListener('change', e=>{ svpTR.year = +e.target.value; svpTR.hl = ''; renderSavantRace(); });
+  document.getElementById('rcHl').addEventListener('change', e=>{ svpTR.hl = e.target.value; renderSavantRace(); });
+}
+
 function renderSavantTeams(){
   const rpgOf = svpLeagueSeries(false).rpg;
   const eraOpt = (e,i) => `<option value="e${i}"${String(svpTm.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
@@ -8736,6 +9010,7 @@ function renderSavantTeams(){
     + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
   const teamNames = [...new Set(svpTeamStats().map(a=>a.team))].sort();
   svpShell('teams', `
+    ${svpTeamViews('style')}
     <div class="svpform">
       <label>Season / era <select id="tmYear">${yearOpts}</select></label>
       <label>Highlight <select id="tmHl"><option value="">None</option>${teamNames.map(t=>`<option value="${esc(t)}"${t===svpTm.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
@@ -8782,6 +9057,7 @@ function renderSavantTeams(){
     hide();
   };
   draw();
+  wireTeamViews();
   document.getElementById('tmYear').addEventListener('change', e=>{ svpTm.year = e.target.value; svpTm.sel = null; renderSavantTeams(); });
   document.getElementById('tmHl').addEventListener('change', e=>{ svpTm.hl = e.target.value; draw(); });
   document.getElementById('tmSplit').addEventListener('change', e=>{ svpTm.split = e.target.checked; svpTm.sel = null; renderSavantTeams(); });
@@ -8793,6 +9069,9 @@ function renderSavant(h){
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
   if(h === '#/savant/teams') return renderSavantTeams();
+  if(h === '#/savant/teams/offense') return renderSavantOffense();
+  if(h === '#/savant/teams/luck') return renderSavantLuck();
+  if(h === '#/savant/teams/race') return renderSavantRace();
   return renderSavantPct();
 }
 
