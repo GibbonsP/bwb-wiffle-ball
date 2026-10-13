@@ -258,6 +258,12 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svs-dot:hover{fill:var(--clay);stroke:var(--clay);fill-opacity:.9}
 .ldr{font-weight:800;color:var(--ink);-webkit-text-stroke:.35px currentColor}
 .ldrnote{margin:10px 0 0;font-size:.76rem}
+#tmChart{position:relative}
+.svtm-dot{stroke:var(--card);stroke-width:2;fill-opacity:.92;cursor:pointer}
+.svtm-dot:hover,.svtm-on{stroke:var(--ink);stroke-width:2.5}
+.svtm-lab{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
+.svtm-q{fill:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.12em;opacity:.7}
+.svtm-axis{opacity:.9;stroke-dasharray:none;stroke:var(--line-strong)}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
 .svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
@@ -8031,8 +8037,8 @@ function svpShell(tab, inner){
   app.innerHTML = `
     <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
     <p class="pmeta">Percentile rankings for every qualified season, how the league's scoring has changed over time,
-      matched seasons, a scatter plot of any two stats, and a search across every player season.</p>
-    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}</div>
+      matched seasons, a scatter plot of any two stats, a search across every player season, and a map of every team's style.</p>
+    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}${t('teams','Team Map')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='pct' ? '#/savant' : '#/savant/'+b.dataset.svpt;
@@ -8556,11 +8562,182 @@ function renderSavantSearch(){
   app.querySelectorAll('[data-fv]').forEach(el=>el.addEventListener('input',()=>{ svpSr.f[+el.dataset.fv].v = el.value; fill(); }));
 }
 
+/* ------------------------------ team style map ------------------------------
+   Every team on two axes: how GOOD (regular-season win %) and how FUN. Fun is not
+   subjective here — it's how much happens in a team's games, measured three ways
+   from the box scores of every game it played (both teams' lines): runs per game,
+   home runs per game, and the share of plate appearances that aren't a strikeout
+   or a walk (balls in play). Each is turned into a z-score against the rest of the
+   league IN THE SAME SEASON, so a team's style isn't just its era's scoring level
+   (2017 games had 2.7× the runs of 2024), then the three are averaged. 0 = a
+   league-average game to watch; +1 is a full standard deviation more action. */
+const svpTm = {year:'all', split:false, hl:'', sel:null};
+function svpTeamStats(){
+  const acc = {};   // "team|year" -> game-level totals across both lineups
+  GIDS.forEach(id=>{
+    const g = GAMES[id];
+    if(g.phase!=='Regular' || svpIsForfeit(g) || !g.away.bat.length || !g.home.bat.length) return;
+    const y = +g.date.slice(0,4);
+    const all = [...g.away.bat, ...g.home.bat], sum = k => all.reduce((a,b)=>a+(b[k]||0), 0);
+    const runs = g.away.R + g.home.R, hr = sum('hr'), bb = sum('bb'), k = sum('k');
+    const pa = sum('ab') + bb + sum('hbp');
+    [g.away.team, g.home.team].forEach(t=>{
+      const key = t+'|'+y, a = acc[key] || (acc[key] = {team:t, year:y, n:0, r:0, hr:0, pa:0, k:0, bb:0});
+      a.n++; a.r += runs; a.hr += hr; a.pa += pa; a.k += k; a.bb += bb;
+    });
+  });
+  const rows = Object.values(acc).filter(a=>a.n>=5 && a.pa>0 && TEAMS[a.team] && TEAMS[a.team].seasons[a.year]);
+  const byYear = {};
+  rows.forEach(a=>{
+    a.rpg = a.r/a.n; a.hrpg = a.hr/a.n; a.act = 1 - (a.k+a.bb)/a.pa;
+    (byYear[a.year] = byYear[a.year] || []).push(a);
+  });
+  Object.values(byYear).forEach(list=>{
+    const z = key => {
+      const m = list.reduce((s,a)=>s+a[key],0)/list.length;
+      const sd = Math.sqrt(list.reduce((s,a)=>s+Math.pow(a[key]-m,2),0)/list.length) || 1;
+      return a => (a[key]-m)/sd;
+    };
+    const zr = z('rpg'), zh = z('hrpg'), za = z('act');
+    list.forEach(a=>{
+      a.fun = (zr(a)+zh(a)+za(a))/3;
+      const rec = TEAMS[a.team].seasons[a.year].record;
+      const reg = rec && rec.Regular;
+      a.W = reg ? reg.W : 0; a.L = reg ? reg.L : 0; a.T = reg ? (reg.T||0) : 0;
+      a.RF = reg ? reg.RF : 0; a.RA = reg ? reg.RA : 0;
+    });
+  });
+  return rows.filter(a=>a.W+a.L+a.T>0);
+}
+function svpTeamPoints(){
+  const yv = String(svpTm.year);
+  const years = yv==='all' ? SVP_YEARS
+    : yv[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
+  const rows = svpTeamStats().filter(a=>years.includes(a.year));
+  const mk = list => {
+    const n = list.reduce((s,a)=>s+a.n,0), g = list.reduce((s,a)=>s+a.W+a.L+a.T,0);
+    const W = list.reduce((s,a)=>s+a.W,0), L = list.reduce((s,a)=>s+a.L,0), T = list.reduce((s,a)=>s+a.T,0);
+    const last = list.reduce((a,b)=>b.year>a.year?b:a);
+    return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), W, L, T,
+      RF:list.reduce((s,a)=>s+a.RF,0), RA:list.reduce((s,a)=>s+a.RA,0),
+      win:(W+0.5*T)/g, fun:list.reduce((s,a)=>s+a.fun*a.n,0)/n,
+      rpg:list.reduce((s,a)=>s+a.r,0)/n, hrpg:list.reduce((s,a)=>s+a.hr,0)/n,
+      act:1-list.reduce((s,a)=>s+a.k+a.bb,0)/list.reduce((s,a)=>s+a.pa,0)};
+  };
+  if(svpTm.split || years.length===1) return rows.map(a=>mk([a]));
+  const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
+  return Object.values(by).map(mk);
+}
+function svpTeamTip(p){
+  const span = p.years.length>1 ? `${p.years[0]}–${p.years[p.years.length-1]}` : String(p.year);
+  return `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${span}</span></div>
+    <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
+    <div class="tt-r"><span>Win %</span><b>${(p.win*100).toFixed(1)}%</b></div>
+    <div class="tt-r"><span>Fun index</span><b>${p.fun>=0?'+':''}${p.fun.toFixed(2)}</b></div>
+    <div class="tt-s tt-l">${p.rpg.toFixed(1)} runs · ${p.hrpg.toFixed(1)} HR · ${(p.act*100).toFixed(0)}% balls in play, per game</div>`;
+}
+function svpTeamSVG(pts){
+  const W = 720, H = 500, L = 58, R = 18, T = 20, B = 52;
+  if(!pts.length) return '<p class="empty">No team data for that selection.</p>';
+  const xm = Math.max(0.6, Math.max(...pts.map(p=>Math.abs(p.fun)))*1.2);
+  const yLo = Math.max(0, Math.min(0.44, Math.min(...pts.map(p=>p.win))-0.05)), yHi = Math.min(1, Math.max(0.56, Math.max(...pts.map(p=>p.win))+0.05));
+  const X = v => L + (W-L-R)*(v+xm)/(2*xm), Y = v => T + (H-T-B)*(1-(v-yLo)/(yHi-yLo));
+  const xt = svpNiceTicks(-xm, xm, 6), yt = svpNiceTicks(yLo, yHi, 6);
+  const grid = xt.map(v=>`<line class="svc-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${v>0?'+':''}${(+v.toFixed(2))}</text>`).join('')
+    + yt.map(v=>`<line class="svc-grid" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${(v*100).toFixed(0)}%</text>`).join('');
+  const mid = `<line class="svs-med svtm-axis" x1="${X(0).toFixed(1)}" x2="${X(0).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+    <line class="svs-med svtm-axis" x1="${L}" x2="${W-R}" y1="${Y(0.5).toFixed(1)}" y2="${Y(0.5).toFixed(1)}"/>`;
+  const q = (x,y,anchor,txt) => `<text class="svtm-q" x="${x}" y="${y}" text-anchor="${anchor}">${txt}</text>`;
+  const quads = q(L+8, T+14, 'start', 'GOOD &amp; BORING') + q(W-R-8, T+14, 'end', 'GOOD &amp; FUN')
+    + q(L+8, H-B-8, 'start', 'BAD &amp; BORING') + q(W-R-8, H-B-8, 'end', 'BAD &amp; FUN');
+  const hl = svpTm.hl, many = pts.length>16;
+  const placed = [];
+  const order = pts.map((p,i)=>i).sort((a,b)=>((pts[a].team===hl)?1:0)-((pts[b].team===hl)?1:0));
+  const dots = order.map(i=>{
+    const p = pts[i], cx = X(p.fun), cy = Y(p.win), isH = p.team===hl, sel = svpTm.sel===i;
+    const c = teamAccent(p.team) || 'var(--accent)';
+    const showLab = !many || isH;
+    let lab = '';
+    if(showLab){
+      const txt = histNick(p.team, p.year) + (p.years.length===1 && (svpTm.split || many) ? ' ’'+String(p.year).slice(2) : '');
+      const w = txt.length*6.4+4;
+      const cands = [[cx+12, cy+4, 'start', cx+12, cx+12+w], [cx-12, cy+4, 'end', cx-12-w, cx-12],
+                     [cx, cy-13, 'middle', cx-w/2, cx+w/2], [cx, cy+20, 'middle', cx-w/2, cx+w/2]];
+      const fits = c => c[3]>=L && c[4]<=W-R && !placed.some(b=>Math.abs((b[0]+b[1])/2-(c[3]+c[4])/2)<(b[1]-b[0]+(c[4]-c[3]))/2 && Math.abs(b[2]-c[1])<12);
+      const pick = cands.find(fits) || cands[0];
+      placed.push([pick[3], pick[4], pick[1]]);
+      lab = `<text class="svtm-lab" x="${pick[0].toFixed(1)}" y="${pick[1].toFixed(1)}" text-anchor="${pick[2]}">${esc(txt)}</text>`;
+    }
+    return `<circle class="svtm-dot${isH||sel?' svtm-on':''}" data-i="${i}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${isH||sel?10:8}" style="fill:${c}"/>${lab}`;
+  }).join('');
+  return `<svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Teams by win percentage and fun index">
+    ${grid}${mid}${quads}${dots}
+    <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">← Boring · Fun index · Fun →</text>
+    <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Bad · Win % · Good →</text></svg>`;
+}
+function renderSavantTeams(){
+  const rpgOf = svpLeagueSeries(false).rpg;
+  const eraOpt = (e,i) => `<option value="e${i}"${String(svpTm.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
+  const yearOpts = `<option value="all"${svpTm.year==='all'?' selected':''}>All seasons</option>`
+    + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
+    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+  const teamNames = [...new Set(svpTeamStats().map(a=>a.team))].sort();
+  svpShell('teams', `
+    <div class="svpform">
+      <label>Season / era <select id="tmYear">${yearOpts}</select></label>
+      <label>Highlight <select id="tmHl"><option value="">None</option>${teamNames.map(t=>`<option value="${esc(t)}"${t===svpTm.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="svpchk"><input id="tmSplit" type="checkbox"${svpTm.split?' checked':''}> Split every team into its seasons</label>
+    </div>
+    <div id="tmChart"></div><p class="svpread" id="tmRead"></p>
+    <p class="smeta"><b>Up</b> is a better regular-season record. <b>Right</b> is a more fun team to watch: how many runs, home runs and
+      balls in play happen in its games, compared with the rest of the league that same season (so one era's scoring doesn't
+      decide it). 0 is a league-average game; +1 is a full standard deviation more action. Each dot is a franchise
+      ${svpTm.split?'season':'over the seasons selected'}. Hover for the numbers, click a dot to open the team.</p>`);
+  const draw = () => {
+    const pts = svpTeamPoints();
+    document.getElementById('tmChart').innerHTML = svpTeamSVG(pts) + '<div class="svstip" hidden></div>';
+    const svg = document.querySelector('.svtm'); if(!svg) return;
+    const rd = document.getElementById('tmRead');
+    const showSel = () => {
+      const p = pts[svpTm.sel];
+      rd.innerHTML = p ? `<b>${esc(histName(p.team, p.year))}</b> ${p.years.length>1?p.years[0]+'–'+p.years[p.years.length-1]:p.year}
+        — ${(p.win*100).toFixed(1)}% wins, fun ${p.fun>=0?'+':''}${p.fun.toFixed(2)} <button class="pname" data-t="${esc(p.team)}">Team page →</button>`
+        : '<span class="svpv">Click a dot to pin it.</span>';
+      rd.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+    };
+    showSel();
+    const show = c => {
+      const wrap = document.getElementById('tmChart'), tip = wrap.querySelector('.svstip');
+      tip.innerHTML = svpTeamTip(pts[+c.dataset.i]); tip.hidden = false;
+      const wr = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      const cx = cr.left + cr.width/2 - wr.left, cy = cr.top + cr.height/2 - wr.top;
+      let left = cx + 16; if(left + tip.offsetWidth > wr.width - 4) left = cx - 16 - tip.offsetWidth;
+      tip.style.left = Math.max(4, left)+'px';
+      tip.style.top = Math.max(4, Math.min(cy - tip.offsetHeight/2, wr.height - tip.offsetHeight - 4))+'px';
+    };
+    const hide = () => {
+      const tip = document.querySelector('#tmChart .svstip'); if(tip) tip.hidden = true;
+      const cur = svpTm.sel!=null && svg.querySelector(`circle[data-i="${svpTm.sel}"]`); if(cur) show(cur);
+    };
+    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return; svpTm.sel = +c.dataset.i; draw(); });
+    svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(c) show(c); });
+    svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')) hide(); });
+    hide();
+  };
+  draw();
+  document.getElementById('tmYear').addEventListener('change', e=>{ svpTm.year = e.target.value; svpTm.sel = null; renderSavantTeams(); });
+  document.getElementById('tmHl').addEventListener('change', e=>{ svpTm.hl = e.target.value; draw(); });
+  document.getElementById('tmSplit').addEventListener('change', e=>{ svpTm.split = e.target.checked; svpTm.sel = null; renderSavantTeams(); });
+}
+
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
   if(h === '#/savant/trends') return renderSavantTrends();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
+  if(h === '#/savant/teams') return renderSavantTeams();
   return renderSavantPct();
 }
 
