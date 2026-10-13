@@ -8081,8 +8081,8 @@ function svpShell(tab, inner){
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
     <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
-    <p class="pmeta">Percentile rankings for every qualified season, how the league's scoring has changed over time,
-      matched seasons, a scatter plot of any two stats, a search across every player season, and graphs of every team's style, scoring, luck and season.</p>
+    <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
+      matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
