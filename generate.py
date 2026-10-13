@@ -2096,23 +2096,23 @@ function yearAwards(pl, y){
    Counting stats lead among everyone who recorded one; rate stats (AVG, ERA, ...) lead only
    among QUALIFIED players that season — 9+ G batting, 12+ IP pitching, 30+ innings fielded in
    the regular season; the postseason is a few games, so its bar is the site's "worth showing"
-   floor of 3 G / 3 IP. Ties share the bold. Games played is never bolded (a full season ties too many people). Stats where leading is a bad thing (batter K,
-   hits/runs/walks allowed, losses, errors) are never bolded; ERA and WHIP lead by being lowest. */
+   floor of 3 G / 3 IP. Ties share the bold. Every stat in the table can be bolded, including games played and
+   the ones where leading isn't a compliment (batter K, runs allowed, errors); ERA and WHIP lead by being lowest. */
 const LEAD_Q = {
   Regular:  {bat:d=>d.G_bat>=SV_MING, pit:d=>d.IPouts>=SV_MINOUTS, fld:d=>d.INN>=30},
   Playoffs: {bat:d=>d.G_bat>=SV_MIN_SHOW_G, pit:d=>d.IPouts>=SV_MIN_SHOW_OUTS, fld:d=>d.G_fld>=SV_MIN_SHOW_G},
 };
 /* [label, value, kind] — kind: 'c' counting (max), 'r' rate (max among qualified), 'rl' rate (min among qualified) */
 const LEAD_SPEC = {
-  bat:[['PA',d=>d.PA,'c'],['AB',d=>d.AB,'c'],['R',d=>d.R,'c'],['H',d=>d.H,'c'],
-    ['2B',d=>d['2B'],'c'],['3B',d=>d['3B'],'c'],['HR',d=>d.HR,'c'],['RBI',d=>d.RBI,'c'],['BB',d=>d.BB,'c'],['HBP',d=>d.HBP,'c'],
+  bat:[['G',d=>d.G_bat,'c'],['PA',d=>d.PA,'c'],['AB',d=>d.AB,'c'],['R',d=>d.R,'c'],['H',d=>d.H,'c'],
+    ['2B',d=>d['2B'],'c'],['3B',d=>d['3B'],'c'],['HR',d=>d.HR,'c'],['RBI',d=>d.RBI,'c'],['BB',d=>d.BB,'c'],['K',d=>d.K,'c'],['HBP',d=>d.HBP,'c'],
     ['AVG',avg,'r'],['OBP',obp,'r'],['SLG',slg,'r'],['OPS',ops,'r'],
     ['OPS+',d=>opsPlusFor(d,[{year:d.year, pa:d.PA, post:d.type==='Playoffs'}]),'r']],
-  pit:[['GS',d=>d.GS_pit,'c'],['IP',d=>d.IPouts,'c'],['W',d=>d.W,'c'],['SV',d=>d.SV,'c'],
-    ['CG',d=>d.CG,'c'],['K',d=>d.pK,'c'],
+  pit:[['G',d=>d.G_pit,'c'],['GS',d=>d.GS_pit,'c'],['IP',d=>d.IPouts,'c'],['W',d=>d.W,'c'],['L',d=>d.L,'c'],['SV',d=>d.SV,'c'],
+    ['CG',d=>d.CG,'c'],['H',d=>d.pH,'c'],['R',d=>d.pR,'c'],['ER',d=>d.ER,'c'],['BB',d=>d.pBB,'c'],['K',d=>d.pK,'c'],
     ['ERA',era,'rl'],['WHIP',whip,'rl'],['K/3',k9,'r'],
     ['ERA+',d=>eraPlusFor(d,[{year:d.year, outs:d.IPouts, post:d.type==='Playoffs'}]),'r']],
-  fld:[['INN',d=>d.INN,'c'],['TC',d=>d.TC,'c'],['PO',d=>d.PO,'c'],['A',d=>d.A,'c'],['DP',d=>d.DP,'c'],
+  fld:[['G',d=>d.G_fld,'c'],['INN',d=>d.INN,'c'],['TC',d=>d.TC,'c'],['PO',d=>d.PO,'c'],['A',d=>d.A,'c'],['E',d=>d.E,'c'],['DP',d=>d.DP,'c'],
     ['FLD%',fld,'r']],
 };
 let LEAD_CACHE = null;
