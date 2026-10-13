@@ -139,6 +139,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .azitem{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;
   background:none;border:0;padding:6px 7px;border-radius:6px;width:100%;font:inherit}
 .azitem:hover{background:var(--accent-soft)}
+.azitem{flex-direction:row;align-items:center;gap:10px}
+.azt{display:flex;flex-direction:column;gap:1px;min-width:0;text-align:left}
 .azn{font-weight:600;color:var(--accent);font-size:.92rem}
 .azm{color:var(--muted);font-size:.75rem;font-variant-numeric:tabular-nums}
 
@@ -1612,7 +1614,7 @@ function renderDir(){
     return `<th class="${on?'sorted':''} ${t==='r'?'mono':''} ${t==='s'?'lft':''}" data-k="${k}">${lbl}${on?`<span class="ar">${sortDir<0?'▼':'▲'}</span>`:''}</th>`;
   }).join('');
   const body = rows.map(r=>'<tr>'+cols.map(([k,label,t],i)=>{
-    if(i===0) return `<td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td>`;
+    if(i===0) return `<td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>`;
     if(k==='team') return `<td class="lft tm">${teamHistoryChips(P[r.name])}</td>`;
     return `<td class="${t==='r'?'mono':''} ${t==='s'?'lft tm':''}">${cell(r[k],t,k)}</td>`;
   }).join('')+'</tr>').join('');
@@ -1623,9 +1625,9 @@ function renderDir(){
     <div class="azgrp"><h3 class="azh">${L}</h3>
       <div class="azcols">${azGroups[L].map(n=>{
         const y=P[n].years, tms=careerTeams(P[n]).map(t=>TEAMS[t.team]?TEAMS[t.team].nick:t.team);
-        return `<button class="azitem" data-p="${esc(n)}">
-          <span class="azn">${esc(nameLF(n))}</span>
-          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}${tms.length?` · ${esc(tms.join('/'))}`:''}</span>
+        return `<button class="azitem" data-p="${esc(n)}">${llHead(n)}
+          <span class="azt"><span class="azn">${esc(nameLF(n))}</span>
+          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}${tms.length?` · ${esc(tms.join('/'))}`:''}</span></span>
         </button>`;}).join('')}</div>
     </div>`).join('') || '<p class="empty">No players match.</p>';
 
