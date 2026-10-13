@@ -271,6 +271,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svtm-q{fill:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.12em;opacity:.7}
 .svtm-axis{opacity:.9;stroke-dasharray:none;stroke:var(--line-strong)}
 .svs-hlt{stroke:var(--ink);stroke-width:1.8;fill-opacity:.95}
+.svpclear{margin-left:12px;color:var(--muted)}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
 .svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
@@ -8384,10 +8385,11 @@ function svpScatterSVG(d){
 }
 function svpReadout(d){
   const p = d.pts[svpSc.sel];
-  if(!p) return '<span class="svpv">Click a dot to see who it is.</span>';
+  if(!p) return '<span class="svpv">Click a dot to pin it. Click it again, or the empty chart, to clear.</span>';
   const tm = p.row.team ? p.row.team.split(' / ').map(t=>TEAMS[t]?histNick(t,p.year):t).join(' / ') : '';
   return `<b>${esc(p.name)}</b> · ${p.year}${tm?' · '+esc(tm):''} — ${esc(d.sx.lab)} <b>${d.sx.fmt(p.x)}</b>, ${esc(d.sy.lab)} <b>${d.sy.fmt(p.y)}</b>
-    <button class="pname" data-p="${esc(p.name)}">View player →</button>`;
+    <button class="pname" data-p="${esc(p.name)}">View player →</button>
+    <button class="pname svpclear" data-clr="1" type="button">Clear ✕</button>`;
 }
 /* hover card for a dot: who, when, which club, the two plotted values, and the
    headline line for that side so a dot never needs a trip to the player page */
@@ -8447,9 +8449,11 @@ function renderSavantScatter(){
     document.getElementById('scChart').innerHTML = svpScatterSVG(d) + '<div class="svstip" hidden></div>';
     const rd = document.getElementById('scRead'); rd.innerHTML = svpReadout(d);
     rd.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
+    rd.querySelectorAll('[data-clr]').forEach(b=>b.addEventListener('click',()=>{ svpSc.sel = null; draw(); }));
     const svg = document.querySelector('.svscatter'); if(!svg) return;
-    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return;
-      svpSc.sel = +c.dataset.i; draw(); });
+    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]');
+      const next = c ? +c.dataset.i : null;                       // a click on empty chart, or on the pinned dot again, clears it
+      svpSc.sel = (next!==null && next!==svpSc.sel) ? next : null; draw(); });
     const show = c => {
       const wrap = document.getElementById('scChart'), tip = wrap.querySelector('.svstip');
       tip.innerHTML = svpTipHTML(d.pts[+c.dataset.i], d); tip.hidden = false;
@@ -8649,24 +8653,25 @@ function svpTeamTip(p){
 function svpTeamSVG(pts){
   const W = 720, H = 500, L = 58, R = 18, T = 20, B = 52;
   if(!pts.length) return '<p class="empty">No team data for that selection.</p>';
-  const xm = Math.max(0.6, Math.max(...pts.map(p=>Math.abs(p.fun)))*1.2);
-  const yLo = Math.max(0, Math.min(0.44, Math.min(...pts.map(p=>p.win))-0.05)), yHi = Math.min(1, Math.max(0.56, Math.max(...pts.map(p=>p.win))+0.05));
-  const X = v => L + (W-L-R)*(v+xm)/(2*xm), Y = v => T + (H-T-B)*(1-(v-yLo)/(yHi-yLo));
-  const xt = svpNiceTicks(-xm, xm, 6), yt = svpNiceTicks(yLo, yHi, 6);
+  /* x = how good (win %), y = how fun (the z-score index, centered on 0) */
+  const xLo = Math.max(0, Math.min(0.44, Math.min(...pts.map(p=>p.win))-0.05)), xHi = Math.min(1, Math.max(0.56, Math.max(...pts.map(p=>p.win))+0.05));
+  const ym = Math.max(0.6, Math.max(...pts.map(p=>Math.abs(p.fun)))*1.2);
+  const X = v => L + (W-L-R)*(v-xLo)/(xHi-xLo), Y = v => T + (H-T-B)*(1-(v+ym)/(2*ym));
+  const xt = svpNiceTicks(xLo, xHi, 6), yt = svpNiceTicks(-ym, ym, 6);
   const grid = xt.map(v=>`<line class="svc-grid" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${T}" y2="${H-B}"/>
-      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${v>0?'+':''}${(+v.toFixed(2))}</text>`).join('')
+      <text class="svc-t" x="${X(v).toFixed(1)}" y="${H-B+15}" text-anchor="middle">${(v*100).toFixed(0)}%</text>`).join('')
     + yt.map(v=>`<line class="svc-grid" x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
-      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${(v*100).toFixed(0)}%</text>`).join('');
-  const mid = `<line class="svs-med svtm-axis" x1="${X(0).toFixed(1)}" x2="${X(0).toFixed(1)}" y1="${T}" y2="${H-B}"/>
-    <line class="svs-med svtm-axis" x1="${L}" x2="${W-R}" y1="${Y(0.5).toFixed(1)}" y2="${Y(0.5).toFixed(1)}"/>`;
+      <text class="svc-t" x="${L-7}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${v>0?'+':''}${(+v.toFixed(2))}</text>`).join('');
+  const mid = `<line class="svs-med svtm-axis" x1="${X(0.5).toFixed(1)}" x2="${X(0.5).toFixed(1)}" y1="${T}" y2="${H-B}"/>
+    <line class="svs-med svtm-axis" x1="${L}" x2="${W-R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>`;
   const q = (x,y,anchor,txt) => `<text class="svtm-q" x="${x}" y="${y}" text-anchor="${anchor}">${txt}</text>`;
-  const quads = q(L+8, T+14, 'start', 'GOOD &amp; BORING') + q(W-R-8, T+14, 'end', 'GOOD &amp; FUN')
-    + q(L+8, H-B-8, 'start', 'BAD &amp; BORING') + q(W-R-8, H-B-8, 'end', 'BAD &amp; FUN');
+  const quads = q(L+8, T+14, 'start', 'BAD &amp; FUN') + q(W-R-8, T+14, 'end', 'GOOD &amp; FUN')
+    + q(L+8, H-B-8, 'start', 'BAD &amp; BORING') + q(W-R-8, H-B-8, 'end', 'GOOD &amp; BORING');
   const hl = svpTm.hl, many = pts.length>16;
   const placed = [];
   const order = pts.map((p,i)=>i).sort((a,b)=>((pts[a].team===hl)?1:0)-((pts[b].team===hl)?1:0));
   const dots = order.map(i=>{
-    const p = pts[i], cx = X(p.fun), cy = Y(p.win), isH = p.team===hl, sel = svpTm.sel===i;
+    const p = pts[i], cx = X(p.win), cy = Y(p.fun), isH = p.team===hl, sel = svpTm.sel===i;
     const c = teamAccent(p.team) || 'var(--accent)';
     const showLab = !many || isH;
     let lab = '';
@@ -8675,7 +8680,9 @@ function svpTeamSVG(pts){
       const w = txt.length*6.4+4;
       const cands = [[cx+12, cy+4, 'start', cx+12, cx+12+w], [cx-12, cy+4, 'end', cx-12-w, cx-12],
                      [cx, cy-13, 'middle', cx-w/2, cx+w/2], [cx, cy+20, 'middle', cx-w/2, cx+w/2]];
-      const fits = c => c[3]>=L && c[4]<=W-R && !placed.some(b=>Math.abs((b[0]+b[1])/2-(c[3]+c[4])/2)<(b[1]-b[0]+(c[4]-c[3]))/2 && Math.abs(b[2]-c[1])<12);
+      const fits = c => c[3]>=L && c[4]<=W-R
+        && !placed.some(b=>Math.abs((b[0]+b[1])/2-(c[3]+c[4])/2)<(b[1]-b[0]+(c[4]-c[3]))/2 && Math.abs(b[2]-c[1])<12)
+        && !pts.some((q,j)=>j!==i && X(q.win)>c[3]-10 && X(q.win)<c[4]+10 && Math.abs(Y(q.fun)-(c[1]-4))<12);   // and doesn't sit on another dot
       const pick = cands.find(fits) || cands[0];
       placed.push([pick[3], pick[4], pick[1]]);
       lab = `<text class="svtm-lab" x="${pick[0].toFixed(1)}" y="${pick[1].toFixed(1)}" text-anchor="${pick[2]}">${esc(txt)}</text>`;
@@ -8684,8 +8691,8 @@ function svpTeamSVG(pts){
   }).join('');
   return `<svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Teams by win percentage and fun index">
     ${grid}${mid}${quads}${dots}
-    <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">← Boring · Fun index · Fun →</text>
-    <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Bad · Win % · Good →</text></svg>`;
+    <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">← Bad · Win % · Good →</text>
+    <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Boring · Fun index · Fun →</text></svg>`;
 }
 function renderSavantTeams(){
   const rpgOf = svpLeagueSeries(false).rpg;
@@ -8701,10 +8708,10 @@ function renderSavantTeams(){
       <label class="svpchk"><input id="tmSplit" type="checkbox"${svpTm.split?' checked':''}> Split every team into its seasons</label>
     </div>
     <div id="tmChart"></div><p class="svpread" id="tmRead"></p>
-    <p class="smeta"><b>Up</b> is a better regular-season record. <b>Right</b> is a more fun team to watch: how many runs, home runs and
+    <p class="smeta"><b>Right</b> is a better regular-season record. <b>Up</b> is a more fun team to watch: how many runs, home runs and
       balls in play happen in its games, compared with the rest of the league that same season (so one era's scoring doesn't
       decide it). 0 is a league-average game; +1 is a full standard deviation more action. Each dot is a franchise
-      ${svpTm.split?'season':'over the seasons selected'}. Hover for the numbers, click a dot to open the team.</p>`);
+      ${svpTm.split?'season':'over the seasons selected'}. Hover for the numbers; click a dot to pin it and get a link to the team.</p>`);
   const draw = () => {
     const pts = svpTeamPoints();
     document.getElementById('tmChart').innerHTML = svpTeamSVG(pts) + '<div class="svstip" hidden></div>';
@@ -8713,9 +8720,11 @@ function renderSavantTeams(){
     const showSel = () => {
       const p = pts[svpTm.sel];
       rd.innerHTML = p ? `<b>${esc(histName(p.team, p.year))}</b> ${p.years.length>1?p.years[0]+'–'+p.years[p.years.length-1]:p.year}
-        — ${(p.win*100).toFixed(1)}% wins, fun ${p.fun>=0?'+':''}${p.fun.toFixed(2)} <button class="pname" data-t="${esc(p.team)}">Team page →</button>`
-        : '<span class="svpv">Click a dot to pin it.</span>';
+        — ${(p.win*100).toFixed(1)}% wins, fun ${p.fun>=0?'+':''}${p.fun.toFixed(2)} <button class="pname" data-t="${esc(p.team)}">Team page →</button>
+        <button class="pname svpclear" data-clr="1" type="button">Clear ✕</button>`
+        : '<span class="svpv">Click a dot to pin it. Click it again, or the empty chart, to clear.</span>';
       rd.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+      rd.querySelectorAll('[data-clr]').forEach(b=>b.addEventListener('click',()=>{ svpTm.sel = null; draw(); }));
     };
     showSel();
     const show = c => {
@@ -8731,7 +8740,9 @@ function renderSavantTeams(){
       const tip = document.querySelector('#tmChart .svstip'); if(tip) tip.hidden = true;
       const cur = svpTm.sel!=null && svg.querySelector(`circle[data-i="${svpTm.sel}"]`); if(cur) show(cur);
     };
-    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]'); if(!c) return; svpTm.sel = +c.dataset.i; draw(); });
+    svg.addEventListener('click', e=>{ const c = e.target.closest('circle[data-i]');
+      const next = c ? +c.dataset.i : null;
+      svpTm.sel = (next!==null && next!==svpTm.sel) ? next : null; draw(); });
     svg.addEventListener('mouseover', e=>{ const c = e.target.closest('circle[data-i]'); if(c) show(c); });
     svg.addEventListener('mouseout', e=>{ if(e.target.closest('circle[data-i]')) hide(); });
     hide();
