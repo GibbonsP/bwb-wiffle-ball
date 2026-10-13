@@ -9005,7 +9005,7 @@ function renderSavantRace(){
   const years = SVP_YEARS.filter(y=>svpRaceSeries(y).length);
   if(svpTR.year==null || !years.includes(svpTR.year)) svpTR.year = years[years.length-1];
   const allSeries = svpRaceSeries(svpTR.year);
-  const teamSeries = allSeries.filter(s=>(!svpTmTeam || s.team===svpTmTeam) && svpGroupOK(s.team, svpTR.year));
+  const teamSeries = allSeries.filter(s=>!svpTmTeam || s.team===svpTmTeam);
   const series = teamSeries.length ? teamSeries : allSeries;   // a team that sat out that year: show everyone
   const champ = ((CHAMPS||[]).find(c=>c.y===svpTR.year)||{}).full;
   const W = 720, H = 500, L = 52, R = 190, T = 20, B = 46;
@@ -9048,7 +9048,6 @@ function renderSavantRace(){
     <div class="svpform">
       <label>Season <select id="rcYear">${years.slice().reverse().map(y=>`<option value="${y}"${y===svpTR.year?' selected':''}>${y}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('rcTeam', TEAMNAMES.filter(t=>TEAMS[t].seasons[svpTR.year]))}
-      ${svpGroupSelectHTML('rcGroup')}
       <label>Highlight <select id="rcHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===svpTR.hl?' selected':''}>${esc(histName(t, svpTR.year))}</option>`).join('')}</select></label>
     </div>
     <svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Games above .500 through the ${svpTR.year} season, every team">
@@ -9059,7 +9058,6 @@ function renderSavantRace(){
       and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.</p>`);
   wireTeamViews();
   document.getElementById('rcYear').addEventListener('change', e=>{ svpTR.year = +e.target.value; svpTR.hl = ''; renderSavantRace(); });
-  document.getElementById('rcGroup').addEventListener('change', e=>{ svpTmGroup = e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcHl').addEventListener('change', e=>{ svpTR.hl = e.target.value; renderSavantRace(); });
 }
