@@ -262,6 +262,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svscatter{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
 .svs-dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.2;cursor:pointer}
 .svs-dot:hover{fill:var(--clay);stroke:var(--clay);fill-opacity:.9}
+.ldr{font-weight:700;color:var(--clay)}
+.ldrnote{margin:10px 0 0;font-size:.76rem}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
 .svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
@@ -2083,12 +2085,70 @@ function yearAwards(pl, y){
   return out.join(', ');
 }
 
+/* League-leading seasons are set in bold on a player's Regular Season and Postseason tables.
+   Counting stats lead among everyone who recorded one; rate stats (AVG, ERA, ...) lead only
+   among QUALIFIED players that season — 9+ G batting, 12+ IP pitching, 30+ innings fielded in
+   the regular season; the postseason is a few games, so its bar is the site's "worth showing"
+   floor of 3 G / 3 IP. Ties share the bold. Games played is never bolded (a full season ties too many people). Stats where leading is a bad thing (batter K,
+   hits/runs/walks allowed, losses, errors) are never bolded; ERA and WHIP lead by being lowest. */
+const LEAD_Q = {
+  Regular:  {bat:d=>d.G_bat>=SV_MING, pit:d=>d.IPouts>=SV_MINOUTS, fld:d=>d.INN>=30},
+  Playoffs: {bat:d=>d.G_bat>=SV_MIN_SHOW_G, pit:d=>d.IPouts>=SV_MIN_SHOW_OUTS, fld:d=>d.G_fld>=SV_MIN_SHOW_G},
+};
+/* [label, value, kind] — kind: 'c' counting (max), 'r' rate (max among qualified), 'rl' rate (min among qualified) */
+const LEAD_SPEC = {
+  bat:[['PA',d=>d.PA,'c'],['AB',d=>d.AB,'c'],['R',d=>d.R,'c'],['H',d=>d.H,'c'],
+    ['2B',d=>d['2B'],'c'],['3B',d=>d['3B'],'c'],['HR',d=>d.HR,'c'],['RBI',d=>d.RBI,'c'],['BB',d=>d.BB,'c'],['HBP',d=>d.HBP,'c'],
+    ['AVG',avg,'r'],['OBP',obp,'r'],['SLG',slg,'r'],['OPS',ops,'r'],
+    ['OPS+',d=>opsPlusFor(d,[{year:d.year, pa:d.PA, post:d.type==='Playoffs'}]),'r']],
+  pit:[['GS',d=>d.GS_pit,'c'],['IP',d=>d.IPouts,'c'],['W',d=>d.W,'c'],['SV',d=>d.SV,'c'],
+    ['CG',d=>d.CG,'c'],['K',d=>d.pK,'c'],
+    ['ERA',era,'rl'],['WHIP',whip,'rl'],['K/3',k9,'r'],
+    ['ERA+',d=>eraPlusFor(d,[{year:d.year, outs:d.IPouts, post:d.type==='Playoffs'}]),'r']],
+  fld:[['INN',d=>d.INN,'c'],['TC',d=>d.TC,'c'],['PO',d=>d.PO,'c'],['A',d=>d.A,'c'],['DP',d=>d.DP,'c'],
+    ['FLD%',fld,'r']],
+};
+let LEAD_CACHE = null;
+function leagueLeaders(){
+  if(LEAD_CACHE) return LEAD_CACHE;
+  LEAD_CACHE = {Regular:{}, Playoffs:{}};
+  ['Regular','Playoffs'].forEach(type=>{
+    NAMES.forEach(n=>P[n].seasons.forEach(s=>{
+      if(s.type!==type || s.split) return;
+      const yr = LEAD_CACHE[type][s.year] || (LEAD_CACHE[type][s.year] = {});
+      Object.keys(LEAD_SPEC).forEach(sec=>LEAD_SPEC[sec].forEach(([lab,fn,kind])=>{
+        const isRate = kind!=='c';
+        if(isRate && !LEAD_Q[type][sec](s)) return;
+        const v = fn(s);
+        if(!isFinite(v) || (!isRate && v<=0)) return;
+        const key = sec+'|'+lab, cur = yr[key];
+        if(cur===undefined || (kind==='rl' ? v<cur : v>cur)) yr[key] = v;
+      }));
+    }));
+  });
+  return LEAD_CACHE;
+}
+function isLeagueLeader(d, sec, lab, type){
+  if(d.year==null || d.split || d.type!==type) return false;
+  const spec = LEAD_SPEC[sec].find(x=>x[0]===lab);
+  if(!spec) return false;
+  if(spec[2]!=='c' && !LEAD_Q[type][sec](d)) return false;
+  const v = spec[1](d), best = ((leagueLeaders()[type]||{})[d.year]||{})[sec+'|'+lab];
+  return isFinite(v) && best!==undefined && Math.abs(v-best) < 1e-9 && (spec[2]!=='c' || v>0);
+}
+
 function phaseBlock(pl, type){
   const rows = byYear(pl, type);
   if(!rows.length) return '';
   const meta = PHASE_META[type];
   const career = sumRows(rows.filter(d=>!d.split));   // split rows would double-count
   const yrs = yearsOf(pl, type);
+  let nLead = 0;
+  const leadCols = (cols, sec) => (type==='Regular' || type==='Playoffs') ? cols.map(c=>{
+    if(!LEAD_SPEC[sec].some(x=>x[0]===c.l)) return c;
+    const f = c.f;
+    return {...c, f:d=>{ const v = f(d); if(!isLeagueLeader(d, sec, c.l, type)) return v; nLead++; return `<b class="ldr">${v}</b>`; }};
+  }) : cols;
   const seasonCols = [{l:'Season',f:d=>{
     const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
     return d.year+(d.est?'<span class="estd" title="estimated">†</span>':'')+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
@@ -2113,7 +2173,7 @@ function phaseBlock(pl, type){
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
-  const bat = statTable('Batting', batCols, rows, career, meta.tot, meta.cls);
+  const bat = statTable('Batting', leadCols(batCols,'bat'), rows, career, meta.tot, meta.cls);
 
   let pit='';
   if(career.IPouts>0){
@@ -2130,7 +2190,7 @@ function phaseBlock(pl, type){
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
       ...eraPlusCol, ...awCol];
-    pit = statTable('Pitching', pitCols, rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls);
+    pit = statTable('Pitching', leadCols(pitCols,'pit'), rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls);
   }
 
   let fldT='';
@@ -2138,7 +2198,7 @@ function phaseBlock(pl, type){
     const fCols = [...seasonCols,
       {l:'G',f:d=>d.G_fld},{l:'INN',f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},
       {l:'A',f:d=>d.A},{l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-    fldT = statTable('Fielding', fCols, rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls);
+    fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls);
   }
   const span = yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`;
   /* Exhibition is a generic phase that can hold several one-off named events
@@ -2154,7 +2214,8 @@ function phaseBlock(pl, type){
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
-    ${bat}${pit}${fldT}</div>`;
+    ${bat}${pit}${fldT}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold red</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
+      Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
 }
 
 /* ---- Baseball-Savant-style percentile rankings (per regular season) ---- */
