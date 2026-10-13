@@ -815,6 +815,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt{color:var(--muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
+.lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
@@ -4191,6 +4193,14 @@ function svBarW(items, low){
 /* it.tm is trusted, pre-escaped HTML built by the caller (so a caller can embed
    a clickable date/box-score link, not just plain text) — every producer below
    escapes its own dynamic pieces before handing tm to this function. */
+/* Leaders-page headshots: turned on only while the Leaders page is showing a season from 2026 on
+   (route() turns it off again for every other page that shares llist) */
+let llistPhotos = false;
+const llHead = n => {
+  const pl = P[n];
+  return pl && pl.photo ? `<img class="lphoto" src="${pl.photo}" alt="">`
+    : `<span class="lphoto lphoto-blank">${esc(n.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>`;
+};
 const llist = (t, items, fmt, low) => {
   const w = svBarW(items, low);
   /* a split season keeps both team names in the text ("NickA/NickB") but shows
@@ -4199,7 +4209,7 @@ const llist = (t, items, fmt, low) => {
      finished the year with */
   const logos = it => logoIcon(it.logo2 || it.logo, '');
   return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>
-  `<li style="--w:${w(it.v).toFixed(1)}%">${logos(it)}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
+  `<li style="--w:${w(it.v).toFixed(1)}%">${llistPhotos?llHead(it.n):''}${logos(it)}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
     it.tm?`<span class="lt">${it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`).join('')}</ol></div>`;
 };
 
@@ -4209,6 +4219,7 @@ function renderLeaders(){
   const yrs = ALL_YEARS.slice();
   const isCareer = leadYear==='career';
   if(!isCareer && !yrs.includes(leadYear)) leadYear = yrs[yrs.length-1];
+  llistPhotos = !isCareer && leadYear>=2026;
   const isPost = leadPhase==='post';
   const chips = `<div class="chips">
     <button data-ly="career" aria-pressed="${isCareer}">Career</button>
@@ -8951,6 +8962,7 @@ function route(){
   const raw = location.hash || '';
   const h = raw.replace(/#h-[\w-]+$/,'');   // ignore in-page anchor
   ['--tc','--tp','--ts'].forEach(v=>app.style.removeProperty(v));  // clear franchise tint
+  llistPhotos = false;
   dispatch(h);
   document.querySelectorAll('table.sortable').forEach(makeSortable);
   // scroll-to-top belongs to real navigation only (this fires on hashchange); in-page
