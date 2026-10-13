@@ -825,6 +825,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
 .tscroll table .lphoto{width:30px;height:30px}
+.detail tfoot tr.teamtotrow td{font-weight:400;border-top:1px solid var(--line)}
+.detail tfoot tr.teamtotrow:first-of-type td{border-top:0}
+.detail tfoot tr.teamtotrow td:first-child{color:var(--muted)}
 .plcell{display:inline-flex;align-items:center;gap:9px}
 .dir .lphoto{width:30px;height:30px}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
@@ -2035,7 +2038,9 @@ function openImageEditor(title, currentUrl, maxDim, onSave){
 }
 
 /* column spec: {l label, m mono?, f value fn, lft left-align?, noTot blank in totals row, cls extra td/th class} */
-function statTable(title, cols, rows, career, totLabel, cls, sortable){
+/* `extra` (optional) adds rows under the total — used for a player's per-team totals, the way
+   Baseball-Reference lists "NYY (3 yrs)" beneath a career line. Each item: {first, tm, d}. */
+function statTable(title, cols, rows, career, totLabel, cls, sortable, extra){
   const lft = c => (c.lft || ['Season','Tm','Player','Opp','Date'].includes(c.l)) ? 'lft' : '';
   const cc = c => `${c.m?'mono':''} ${lft(c)} ${c.cls||''}`;
   const th = cols.map(c=>`<th class="${cc(c)}">${c.l}</th>`).join('');
@@ -2044,7 +2049,7 @@ function statTable(title, cols, rows, career, totLabel, cls, sortable){
   return `<section class="stat ${cls||''}"><h4>${title}</h4><div class="tscroll"><table class="detail${sortable?' sortable':''}">
     <thead><tr>${th}</tr></thead>
     <tbody>${rows.map(tr).join('')}</tbody>
-    <tfoot>${foot}</tfoot>
+    <tfoot>${foot}${(extra||[]).map(x=>'<tr class="teamtotrow">'+cols.map((c,i)=>`<td class="${cc(c)}">${i===0?x.first:c.l==='Tm'?x.tm:(c.noTot?'':c.f(x.d))}</td>`).join('')+'</tr>').join('')}</tfoot>
   </table></div></section>`;
 }
 /* click-to-sort for tables with no inherent row order (rosters, leaderboard-style) */
@@ -2158,6 +2163,19 @@ function phaseBlock(pl, type){
   const meta = PHASE_META[type];
   const career = sumRows(rows.filter(d=>!d.split));   // split rows would double-count
   const yrs = yearsOf(pl, type);
+  /* career totals broken out by club, for a player who suited up for more than one: split-season
+     rows count for their own club, the combined "2TM" row is left out so nothing double-counts */
+  const teamTotalsFor = has => {
+    const by = {};
+    rows.filter(d=>!d.tot && d.team && has(d)).forEach(d=>(by[d.team] = by[d.team] || []).push(d));
+    if(Object.keys(by).length<2) return [];
+    return Object.keys(by).map(t=>{
+      const rs = by[t], ys = rs.map(r=>r.year), n = new Set(ys).size, d = sumRows(rs);
+      d._wbat = rs.map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'}));
+      d._wpit = rs.map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'}));
+      return {first:`${n} yr${n===1?'':'s'}`, tm:teamCell({team:t, year:Math.max(...ys)}), d, order:Math.min(...ys)};
+    }).sort((a,b)=>a.order-b.order);
+  };
   let nLead = 0;
   const leadCols = (cols, sec) => (type==='Regular' || type==='Playoffs') ? cols.map(c=>{
     if(!LEAD_SPEC[sec].some(x=>x[0]===c.l)) return c;
@@ -2178,7 +2196,7 @@ function phaseBlock(pl, type){
   const opsPlusCol = type==='NWLA' ? [] : [{l:'OPS+',m:1,f:d=>{
     const v = d.year!=null
       ? opsPlusFor(d, [{year:d.year, pa:d.PA, post:type==='Playoffs'}])
-      : opsPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'})));
+      : opsPlusFor(d, d._wbat || rows.filter(r=>!r.split).map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'})));
     return isFinite(v)?String(v):'—';
   }}];
   const batCols = [...seasonCols,
@@ -2188,14 +2206,14 @@ function phaseBlock(pl, type){
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
-  const bat = statTable('Batting', leadCols(batCols,'bat'), rows, career, meta.tot, meta.cls);
+  const bat = statTable('Batting', leadCols(batCols,'bat'), rows, career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.G_bat>0||d.PA>0));
 
   let pit='';
   if(career.IPouts>0){
     const eraPlusCol = type==='NWLA' ? [] : [{l:'ERA+',m:1,f:d=>{
       const v = d.year!=null
         ? eraPlusFor(d, [{year:d.year, outs:d.IPouts, post:type==='Playoffs'}])
-        : eraPlusFor(d, rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
+        : eraPlusFor(d, d._wpit || rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
       return isFinite(v)?String(v):'—';
     }}];
     const gsCol = [{l:'GS',f:d=>d.GS_pit}];
@@ -2205,7 +2223,7 @@ function phaseBlock(pl, type){
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
       ...eraPlusCol, ...awCol];
-    pit = statTable('Pitching', leadCols(pitCols,'pit'), rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls);
+    pit = statTable('Pitching', leadCols(pitCols,'pit'), rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.IPouts>0));
   }
 
   let fldT='';
@@ -2213,7 +2231,7 @@ function phaseBlock(pl, type){
     const fCols = [...seasonCols,
       {l:'G',f:d=>d.G_fld},{l:'INN',f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},
       {l:'A',f:d=>d.A},{l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-    fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls);
+    fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.TC>0||d.G_fld>0));
   }
   const span = yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`;
   /* Exhibition is a generic phase that can hold several one-off named events
