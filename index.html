@@ -264,6 +264,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svtm-lab{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
 .svtm-q{fill:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:11px;letter-spacing:.12em;opacity:.7}
 .svtm-axis{opacity:.9;stroke-dasharray:none;stroke:var(--line-strong)}
+.svs-hlt{stroke:var(--ink);stroke-width:1.8;fill-opacity:.95}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
 .svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
@@ -8317,7 +8318,7 @@ const SVP_ERAS = [
 const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
 
 /* --------------------------------- scatter ---------------------------------- */
-const svpSc = {mode:'bat', phase:'Regular', year:'all', team:'', x:'ISO', y:'wOBA', hl:'', sel:null};
+const svpSc = {mode:'bat', phase:'Regular', year:'all', team:'', hlTeam:'', x:'ISO', y:'wOBA', hl:'', sel:null};
 function svpNiceTicks(lo, hi, n){
   const raw = (hi-lo)/n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/mag;
   const step = (f<=1?1:f<=2?2:f<=5?5:10)*mag;
@@ -8337,7 +8338,7 @@ function svpScatterData(){
     if(svpSc.team && !(e.row.team||'').split(' / ').includes(svpSc.team)) return;   // team filter: only that club's dots
     const x = sx.fn(e.row), yv = sy.fn(e.row);
     if(isFinite(x) && isFinite(yv)) pts.push({name:e.name, year:y, row:e.row, x, y:yv,
-      inTeam: true});
+      inTeam: true, hlt: !!svpSc.hlTeam && (e.row.team||'').split(' / ').includes(svpSc.hlTeam)});
   }));
   return {sx, sy, pts, multi: years.length>1};
 }
@@ -8362,11 +8363,12 @@ function svpScatterSVG(d){
     <text class="svc-t" x="${W-R-4}" y="${(Y(my)-4).toFixed(1)}" text-anchor="end">median ${sy.fmt(my)}</text>`;
   const hl = svpSc.hl.trim().toLowerCase();
   const isHl = p => hl && p.name.toLowerCase()===hl;
-  const rank = p => (isHl(p)?2:0) + (p.inTeam?1:0);
+  const rank = p => (isHl(p)?2:0) + (p.hlt?1:0);
+  const tcol = svpSc.hlTeam ? (teamAccent(svpSc.hlTeam) || 'var(--clay)') : null;
   const order = pts.map((p,i)=>i).sort((a,b)=>rank(pts[a])-rank(pts[b]));
   const dots = order.map(i=>{
     const p = pts[i], h = isHl(p), s = svpSc.sel===i;
-    return `<circle class="svs-dot${h?' svs-hl':''}${s?' svs-sel':''}${p.inTeam?'':' svs-dim'}" data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${h||s?7:5}"/>`
+    return `<circle class="svs-dot${h?' svs-hl':''}${s?' svs-sel':''}${p.hlt?' svs-hlt':''}" data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${h||s||p.hlt?7:5}"${p.hlt&&!h&&!s?` style="fill:${tcol}"`:''}/>`
       + (h ? `<text class="svs-lab" x="${(X(p.x)+10).toFixed(1)}" y="${(Y(p.y)+3).toFixed(1)}">${esc(p.name)}${d.multi?' ’'+String(p.year).slice(2):''}</text>` : '');
   }).join('');
   return `<svg class="svscatter" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(sy.lab)} versus ${esc(sx.lab)}">
@@ -8424,6 +8426,7 @@ function renderSavantScatter(){
       <label>Y axis <select id="scY">${opts(svpSc.y)}</select></label>
       <label>Season / era <select id="scYear">${yearOpts}</select></label>
       <label>Team <select id="scTeam">${teamOpts}</select></label>
+      <label>Highlight team <select id="scHlTeam"><option value="">None</option>${teamList.map(t=>`<option value="${esc(t)}"${t===svpSc.hlTeam?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
       <label>Highlight <input id="scHl" list="scNames" placeholder="Player name" value="${esc(svpSc.hl)}"></label>
       <datalist id="scNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     </div>
@@ -8431,7 +8434,7 @@ function renderSavantScatter(){
     <p class="smeta">Every qualified ${svpSc.mode==='bat'?'hitter':'pitcher'} ${svpSc.phase==='Playoffs'?'postseason':'regular-season'} line
       (${svpSc.phase==='Playoffs' ? (svpSc.mode==='bat'?`${SV_MIN_SHOW_G}+ G`:`${SV_MIN_SHOW_OUTS/3}+ IP`)+', a lower bar since a postseason is only a few games'
         : (svpSc.mode==='bat'?`${SV_MING}+ G`:`${SV_MINOUTS/3}+ IP`)}).
-      ${svpSc.team?`Showing only ${esc(svpSc.team)}. `:''}Dashed lines are the median of the dots shown on each axis. Pick any two stats; rate stats are each season’s own numbers, so
+      ${svpSc.team?`Showing only ${esc(svpSc.team)}. `:''}${svpSc.hlTeam?`${esc(svpSc.hlTeam)} is highlighted in its team color. `:''}Dashed lines are the median of the dots shown on each axis. Pick any two stats; rate stats are each season’s own numbers, so
       comparing across years mixes scoring environments — use <b>OPS+, wOBA, wRC+</b> or <b>ERA+</b> to level it.</p>`);
   const draw = () => {
     const d = svpScatterData();
@@ -8467,8 +8470,9 @@ function renderSavantScatter(){
   on('scY', e=>{ svpSc.y = e.target.value; svpSc.sel = null; draw(); });
   on('scYear', e=>{ svpSc.year = e.target.value; svpSc.sel = null; renderSavantScatter(); });
   on('scTeam', e=>{ svpSc.team = e.target.value; svpSc.sel = null; renderSavantScatter(); });
+  on('scHlTeam', e=>{ svpSc.hlTeam = e.target.value; renderSavantScatter(); });
   app.querySelectorAll('[data-scph]').forEach(b=>b.addEventListener('click',()=>{
-    svpSc.phase = b.dataset.scph; svpSc.sel = null; svpSc.team = ''; renderSavantScatter(); }));
+    svpSc.phase = b.dataset.scph; svpSc.sel = null; svpSc.team = ''; svpSc.hlTeam = ''; renderSavantScatter(); }));
   document.getElementById('scSwap').addEventListener('click',()=>{ const t = svpSc.x; svpSc.x = svpSc.y; svpSc.y = t; svpSc.sel = null; renderSavantScatter(); });
   document.getElementById('scHl').addEventListener('input', e=>{ svpSc.hl = e.target.value; draw(); });
 }
