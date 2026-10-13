@@ -8467,16 +8467,16 @@ function renderSavantScatter(){
 }
 
 /* ---------------------------------- search ---------------------------------- */
-const svpSr = {mode:'bat', from:null, to:null, qual:true, team:'', f:[{s:'',op:'>=',v:''},{s:'',op:'>=',v:''},{s:'',op:'>=',v:''}], sort:{bat:'wRC+', pit:'ERA+'}, dir:{bat:-1, pit:-1}};
+const svpSr = {mode:'bat', phase:'Regular', from:null, to:null, qual:true, team:'', f:[{s:'',op:'>=',v:''},{s:'',op:'>=',v:''},{s:'',op:'>=',v:''}], sort:{bat:'wRC+', pit:'ERA+'}, dir:{bat:-1, pit:-1}};
 function svpSearchRows(){
   const mode = svpSr.mode, stats = svpStats(mode);
   const lo = svpSr.from!=null ? svpSr.from : SVP_YEARS[0], hi = svpSr.to!=null ? svpSr.to : SVP_YEARS[SVP_YEARS.length-1];
   const filters = svpSr.f.filter(f=>f.s && f.v!=='' && isFinite(+f.v)).map(f=>({st:stats.find(s=>s.lab===f.s), op:f.op, v:+f.v})).filter(f=>f.st);
   const rows = [];
-  SVP_YEARS.filter(y=>y>=lo && y<=hi).forEach(y=>svpEntries(y).forEach(e=>{
+  SVP_YEARS.filter(y=>y>=lo && y<=hi).forEach(y=>svpEntries(y, svpSr.phase).forEach(e=>{
     const r = e.row;
     if(mode==='bat' ? !(r.G_bat>0 && r.PA>0) : !(r.IPouts>0)) return;
-    if(svpSr.qual && !svpQual(mode, r)) return;
+    if(svpSr.qual && !svpQualPhase(mode, r, svpSr.phase)) return;
     if(svpSr.team && !(r.team||'').split(' / ').includes(svpSr.team)) return;
     for(const f of filters){
       const v = f.st.fn(r) * (f.st.pct ? 100 : 1);
@@ -8513,23 +8513,25 @@ function renderSavantSearch(){
   const mode = svpSr.mode, stats = svpStats(mode);
   const lo = svpSr.from!=null ? svpSr.from : SVP_YEARS[0], hi = svpSr.to!=null ? svpSr.to : SVP_YEARS[SVP_YEARS.length-1];
   const yopts = sel => SVP_YEARS.map(y=>`<option value="${y}"${y===sel?' selected':''}>${y}</option>`).join('');
-  const teams = [...new Set(NAMES.flatMap(n=>P[n].seasons.filter(s=>s.type==='Regular'&&!s.split&&s.team).flatMap(s=>s.team.split(' / '))))].filter(t=>TEAMS[t]).sort();
+  const teams = [...new Set(NAMES.flatMap(n=>P[n].seasons.filter(s=>s.type===svpSr.phase&&!s.split&&s.team).flatMap(s=>s.team.split(' / '))))].filter(t=>TEAMS[t]).sort();
   const frow = (f,i) => `<div class="svpfrow"><select data-fs="${i}"><option value="">Filter by stat…</option>${
       stats.map(s=>`<option value="${esc(s.lab)}"${s.lab===f.s?' selected':''}>${esc(s.lab)}</option>`).join('')}</select>
     <select data-fo="${i}"><option value="&gt;="${f.op==='>='?' selected':''}>at least</option><option value="&lt;="${f.op==='<='?' selected':''}>at most</option></select>
     <input data-fv="${i}" type="number" step="any" inputmode="decimal" placeholder="${(stats.find(s=>s.lab===f.s)||{}).pct?'e.g. 15 for 15%':'value'}" value="${esc(f.v)}"></div>`;
   svpShell('search', `
     <div class="chips svpmodes"><button data-srm="bat" aria-pressed="${mode==='bat'}">Batting</button>
-      <button data-srm="pit" aria-pressed="${mode==='pit'}">Pitching</button></div>
+      <button data-srm="pit" aria-pressed="${mode==='pit'}">Pitching</button>
+      <button class="svpsep" data-srph="Regular" aria-pressed="${svpSr.phase==='Regular'}">Regular Season</button>
+      <button data-srph="Playoffs" aria-pressed="${svpSr.phase==='Playoffs'}">Postseason</button></div>
     <div class="svpform">
       <label>From <select id="srFrom">${yopts(lo)}</select></label>
       <label>To <select id="srTo">${yopts(hi)}</select></label>
       <label>Team <select id="srTeam"><option value="">Any team</option>${teams.map(t=>`<option value="${esc(t)}"${t===svpSr.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
-      <label class="svpchk"><input id="srQual" type="checkbox"${svpSr.qual?' checked':''}> Qualified only (${mode==='bat'?SV_MING+'+ G':SV_MINOUTS/3+'+ IP'})</label>
+      <label class="svpchk"><input id="srQual" type="checkbox"${svpSr.qual?' checked':''}> Qualified only (${svpSr.phase==='Playoffs' ? (mode==='bat'?SV_MIN_SHOW_G+'+ G':SV_MIN_SHOW_OUTS/3+'+ IP') : (mode==='bat'?SV_MING+'+ G':SV_MINOUTS/3+'+ IP')})</label>
     </div>
     <div class="svpfilters">${svpSr.f.map(frow).join('')}</div>
     <div id="srRes"></div>
-    <p class="note">Search runs over regular-season lines, one row per player-season. Rate stats like K% and BB% are entered in whole
+    <p class="note">Search runs over ${svpSr.phase==='Playoffs'?'postseason':'regular-season'} lines, one row per player-season${svpSr.phase==='Playoffs'?' (a postseason is only a few games, so its qualification bar is lower)':''}. Rate stats like K% and BB% are entered in whole
       percent. Team matches any club a player appeared for that season.</p>`);
   const fill = () => {
     document.getElementById('srRes').innerHTML = svpSearchResults();
@@ -8541,6 +8543,8 @@ function renderSavantSearch(){
       fill(); }));
   };
   fill();
+  app.querySelectorAll('[data-srph]').forEach(b=>b.addEventListener('click',()=>{
+    svpSr.phase = b.dataset.srph; svpSr.team = ''; renderSavantSearch(); }));
   app.querySelectorAll('[data-srm]').forEach(b=>b.addEventListener('click',()=>{ svpSr.mode = b.dataset.srm; svpSr.f.forEach(f=>{f.s='';f.v='';}); renderSavantSearch(); }));
   document.getElementById('srFrom').addEventListener('change',e=>{ svpSr.from = +e.target.value; if(svpSr.to!=null && svpSr.from>svpSr.to) svpSr.to = svpSr.from; renderSavantSearch(); });
   document.getElementById('srTo').addEventListener('change',e=>{ svpSr.to = +e.target.value; if(svpSr.from!=null && svpSr.to<svpSr.from) svpSr.from = svpSr.to; renderSavantSearch(); });
