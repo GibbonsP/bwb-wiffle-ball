@@ -816,6 +816,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
+.plcell{display:inline-flex;align-items:center;gap:9px}
+.dir .lphoto{width:30px;height:30px}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
@@ -4285,7 +4287,7 @@ function renderLeaders(){
       return `<th class="${on?'sorted':''} ${t==='r'?'mono':''} ${t==='s'?'lft':''}" data-k="${k}">${label}${on?`<span class="ar">${leadSortDir<0?'▼':'▲'}</span>`:''}</th>`;
     }).join('');
     const body = rows.map(r=>'<tr>'+cols.map(([k,label,t],i)=>{
-      if(i===0) return `<td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td>`;
+      if(i===0) return `<td class="lft"><span class="plcell">${llistPhotos?llHead(r.name):''}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>`;
       return `<td class="${t==='r'?'mono':''} ${t==='s'?'lft tm':''}">${fullCell(r,k,t)}</td>`;
     }).join('')+'</tr>').join('');
     return `<div class="segs" role="group" aria-label="Stat group">
