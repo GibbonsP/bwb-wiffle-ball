@@ -262,6 +262,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svscatter{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
 .svs-dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.2;cursor:pointer}
 .svs-dot:hover{fill:var(--clay);stroke:var(--clay);fill-opacity:.9}
+.svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
+.svpsep{margin-left:14px}
 .svs-hl,.svs-sel{fill:var(--clay);stroke:var(--clay);fill-opacity:.95}
 .svs-med{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4;opacity:.6}
 .svs-lab{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px}
@@ -2195,7 +2197,7 @@ const SV_PCTF = v => (v*100).toFixed(1)+'%';
 const SV_BAT = [
   ['AVG', c=>avg(c), rate, false], ['OBP', c=>obp(c), rate, false],
   ['SLG', c=>slg(c), rate, false],
-  ['OPS+', c=>opsPlusFor(c, [{year:c.year, pa:c.PA}]), v=>isFinite(v)?String(v):'—', false],
+  ['OPS+', c=>opsPlusFor(c, [{year:c.year, pa:c.PA, post:c.type==='Playoffs'}]), v=>isFinite(v)?String(v):'—', false],
   ['ISO', SV_ISO, rate, false], ['BB%', c=>c.PA?c.BB/c.PA:NaN, SV_PCTF, false],
   ['K%',  c=>c.PA?c.K/c.PA:NaN,  SV_PCTF, true], ['HR%', c=>c.PA?c.HR/c.PA:NaN, SV_PCTF, false],
 ];
@@ -7958,10 +7960,10 @@ function wireB0(){
 /* the Savant page's own metric lists: the player-page percentile sliders (SV_BAT /
    SV_PIT) plus wOBA, wRC+ and ERA+, which live on this page only for now */
 const SVP_BAT = SV_BAT.flatMap(m=>m[0]==='OPS+' ? [m,
-  ['wOBA', c=>c.year!=null ? wobaFor(c, c.year) : NaN, rate, false],
-  ['wRC+', c=>c.year!=null ? wrcPlusFor(c, c.year) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
+  ['wOBA', c=>c.year!=null ? wobaFor(c, c.year, c.type==='Playoffs') : NaN, rate, false],
+  ['wRC+', c=>c.year!=null ? wrcPlusFor(c, c.year, c.type==='Playoffs') : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
 const SVP_PIT = SV_PIT.flatMap(m=>m[0]==='ERA' ? [m,
-  ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts}]) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
+  ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts, post:c.type==='Playoffs'}]) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
 const SVP_YEARS = [...new Set(NAMES.flatMap(n=>svSeasons(P[n])))].sort((a,b)=>a-b);
 let svpYear = null, svpMode = 'bat', svpPost = false;
 const svpHead = {bat: SVP_BAT.findIndex(m=>m[0]==='wRC+'), pit: SVP_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
@@ -7989,8 +7991,12 @@ const svpPill = p => p==null ? '<span class="svpv">—</span>'
   : `<span class="svpill" style="background:${svColor(p)};color:${svpPillInk(p)}">${p}</span>`;
 
 /* ---------------------------- percentile rankings --------------------------- */
-function svpEntries(year){
-  return NAMES.map(n=>({name:n, row:svRegRow(P[n], year)})).filter(e=>e.row);
+/* a player's one non-split line for a year in either phase */
+function svpPhaseRow(pl, y, phase){
+  return phase==='Playoffs' ? (pl.seasons.find(s=>s.type==='Playoffs' && !s.split && s.year===y) || null) : svRegRow(pl, y);
+}
+function svpEntries(year, phase){
+  return NAMES.map(n=>({name:n, row:svpPhaseRow(P[n], year, phase||'Regular')})).filter(e=>e.row);
 }
 function svpRankTable(year, mode){
   const metrics = mode==='bat' ? SVP_BAT : SVP_PIT;
@@ -8228,20 +8234,30 @@ function svpStats(mode){
     ['G', c=>c.G_bat, svpInt], ['PA', c=>c.PA, svpInt], ['AB', c=>c.AB, svpInt], ['R', c=>c.R, svpInt],
     ['H', c=>c.H, svpInt], ['HR', c=>c.HR, svpInt],
     ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt],
-    ['wRAA', c=>wrAAFor(c, c.year), svpOne],
+    ['wRAA', c=>wrAAFor(c, c.year, c.type==='Playoffs'), svpOne],
   ] : [
     ['G', c=>c.G_pit, svpInt], ['GS', c=>c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
     ['W', c=>c.W, svpInt], ['L', c=>c.L, svpInt], ['SV', c=>c.SV, svpInt],
     ['K', c=>c.pK, svpInt], ['BB', c=>c.pBB, svpInt], ['H', c=>c.pH, svpInt], ['R', c=>c.pR, svpInt],
-    ['RAA', c=>{ const r = leagueRatesFor(c.year); return r ? (r.era - era(c)) * c.IPouts/9 : NaN; }, svpOne],
+    ['RAA', c=>{ const r = leagueRatesFor(c.year, c.type==='Playoffs'); return r ? (r.era - era(c)) * c.IPouts/9 : NaN; }, svpOne],
   ];
   return base.concat(extra.map(([lab,fn,fmt])=>({lab, fn, fmt, low:false, pct:false})));
 }
 const svpQual = (mode, r) => mode==='bat' ? r.G_bat>=SV_MING : r.IPouts>=SV_MINOUTS;
+/* postseason samples are a handful of games, so the bar drops to the site's existing
+   "worth showing" floor (3 G / 3 IP) instead of a full regular-season qualification */
+const svpQualPhase = (mode, r, phase) => phase==='Playoffs'
+  ? (mode==='bat' ? r.G_bat>=SV_MIN_SHOW_G : r.IPouts>=SV_MIN_SHOW_OUTS) : svpQual(mode, r);
+/* scoring-level eras, named by what the league's runs per team-game actually did */
+const SVP_ERAS = [
+  {label:'High-scoring', from:2017, to:2020},
+  {label:'Low-scoring',  from:2021, to:2024},
+  {label:'Rebound',      from:2025, to:2026},
+];
 const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
 
 /* --------------------------------- scatter ---------------------------------- */
-const svpSc = {mode:'bat', year:'all', x:'ISO', y:'wOBA', hl:'', sel:null};
+const svpSc = {mode:'bat', phase:'Regular', year:'all', team:'', x:'ISO', y:'wOBA', hl:'', sel:null};
 function svpNiceTicks(lo, hi, n){
   const raw = (hi-lo)/n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/mag;
   const step = (f<=1?1:f<=2?2:f<=5?5:10)*mag;
@@ -8251,14 +8267,18 @@ function svpNiceTicks(lo, hi, n){
 function svpScatterData(){
   const stats = svpStats(svpSc.mode);
   const sx = stats.find(s=>s.lab===svpSc.x) || stats[0], sy = stats.find(s=>s.lab===svpSc.y) || stats[1];
-  const years = svpSc.year==='all' ? SVP_YEARS : [+svpSc.year];
+  const yv_ = String(svpSc.year);
+  const years = yv_==='all' ? SVP_YEARS
+    : yv_[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+yv_.slice(1)].from && y<=SVP_ERAS[+yv_.slice(1)].to)
+    : [+yv_];
   const pts = [];
-  years.forEach(y=>svpEntries(y).forEach(e=>{
-    if(!svpQual(svpSc.mode, e.row)) return;
+  years.forEach(y=>svpEntries(y, svpSc.phase).forEach(e=>{
+    if(!svpQualPhase(svpSc.mode, e.row, svpSc.phase)) return;
     const x = sx.fn(e.row), yv = sy.fn(e.row);
-    if(isFinite(x) && isFinite(yv)) pts.push({name:e.name, year:y, row:e.row, x, y:yv});
+    if(isFinite(x) && isFinite(yv)) pts.push({name:e.name, year:y, row:e.row, x, y:yv,
+      inTeam: !svpSc.team || (e.row.team||'').split(' / ').includes(svpSc.team)});
   }));
-  return {sx, sy, pts};
+  return {sx, sy, pts, multi: years.length>1};
 }
 function svpScatterSVG(d){
   const W = 720, H = 470, L = 62, R = 18, T = 14, B = 48;
@@ -8281,11 +8301,12 @@ function svpScatterSVG(d){
     <text class="svc-t" x="${W-R-4}" y="${(Y(my)-4).toFixed(1)}" text-anchor="end">median ${sy.fmt(my)}</text>`;
   const hl = svpSc.hl.trim().toLowerCase();
   const isHl = p => hl && p.name.toLowerCase()===hl;
-  const order = pts.map((p,i)=>i).sort((a,b)=>(isHl(pts[a])?1:0)-(isHl(pts[b])?1:0));
+  const rank = p => (isHl(p)?2:0) + (p.inTeam?1:0);
+  const order = pts.map((p,i)=>i).sort((a,b)=>rank(pts[a])-rank(pts[b]));
   const dots = order.map(i=>{
     const p = pts[i], h = isHl(p), s = svpSc.sel===i;
-    return `<circle class="svs-dot${h?' svs-hl':''}${s?' svs-sel':''}" data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${h||s?7:5}"/>`
-      + (h ? `<text class="svs-lab" x="${(X(p.x)+10).toFixed(1)}" y="${(Y(p.y)+3).toFixed(1)}">${esc(p.name)}${svpSc.year==='all'?' ’'+String(p.year).slice(2):''}</text>` : '');
+    return `<circle class="svs-dot${h?' svs-hl':''}${s?' svs-sel':''}${p.inTeam?'':' svs-dim'}" data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${h||s?7:5}"/>`
+      + (h ? `<text class="svs-lab" x="${(X(p.x)+10).toFixed(1)}" y="${(Y(p.y)+3).toFixed(1)}">${esc(p.name)}${d.multi?' ’'+String(p.year).slice(2):''}</text>` : '');
   }).join('');
   return `<svg class="svscatter" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(sy.lab)} versus ${esc(sx.lab)}">
     ${grid}${medians}${dots}
@@ -8304,8 +8325,8 @@ function svpReadout(d){
 function svpTipHTML(p, d){
   const r = p.row, tm = r.team ? r.team.split(' / ').map(t=>TEAMS[t]?histNick(t,p.year):t).join(' / ') : '';
   const line = svpSc.mode==='bat'
-    ? `${rate(avg(r))}/${rate(obp(r))}/${rate(slg(r))} · wRC+ ${(v=>isFinite(v)?v:'—')(wrcPlusFor(r, p.year))}`
-    : `${two(era(r))} ERA · ${two(whip(r))} WHIP · ${(v=>isFinite(v)?v:'—')(eraPlusFor(r,[{year:p.year, outs:r.IPouts}]))} ERA+`;
+    ? `${rate(avg(r))}/${rate(obp(r))}/${rate(slg(r))} · wRC+ ${(v=>isFinite(v)?v:'—')(wrcPlusFor(r, p.year, r.type==='Playoffs'))}`
+    : `${two(era(r))} ERA · ${two(whip(r))} WHIP · ${(v=>isFinite(v)?v:'—')(eraPlusFor(r,[{year:p.year, outs:r.IPouts, post:r.type==='Playoffs'}]))} ERA+`;
   const vol = svpSc.mode==='bat' ? `${r.G_bat} G · ${r.PA} PA` : `${r.G_pit} G · ${ipStr(r.IPouts)} IP`;
   return `<div class="tt-h"><b>${esc(p.name)}</b><span>${p.year}</span></div>
     <div class="tt-s">${tm?esc(tm)+' · ':''}${vol}</div>
@@ -8318,23 +8339,38 @@ function renderSavantScatter(){
   if(!stats.some(s=>s.lab===svpSc.x)) svpSc.x = svpDefaultAxes[svpSc.mode].x;
   if(!stats.some(s=>s.lab===svpSc.y)) svpSc.y = svpDefaultAxes[svpSc.mode].y;
   const opts = sel => stats.map(s=>`<option value="${esc(s.lab)}"${s.lab===sel?' selected':''}>${esc(s.lab)}</option>`).join('');
+  const rpgOf = svpLeagueSeries(false).rpg;
+  const eraOpt = (e,i) => {
+    const rs = SVP_YEARS.filter(y=>y>=e.from && y<=e.to && rpgOf[y]).map(y=>rpgOf[y].r/rpgOf[y].g);
+    const rng = rs.length ? ` · ${Math.min(...rs).toFixed(1)}–${Math.max(...rs).toFixed(1)} R/G` : '';
+    return `<option value="e${i}"${String(svpSc.year)==='e'+i?' selected':''}>${e.label} ${e.from}–${e.to}${rng}</option>`;
+  };
   const yearOpts = `<option value="all"${svpSc.year==='all'?' selected':''}>All seasons</option>`
-    + SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpSc.year)?' selected':''}>${y}</option>`).join('');
+    + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
+    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpSc.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+  const teamList = [...new Set(NAMES.flatMap(n=>P[n].seasons.filter(s=>s.type===svpSc.phase && !s.split && s.team).flatMap(s=>s.team.split(' / '))))]
+    .filter(t=>TEAMS[t]).sort();
+  const teamOpts = `<option value="">All teams</option>` + teamList.map(t=>`<option value="${esc(t)}"${t===svpSc.team?' selected':''}>${esc(t)}</option>`).join('');
   const names = [...new Set(svpScatterData().pts.map(p=>p.name))].sort();
   svpShell('scatter', `
     <div class="chips svpmodes"><button data-scm="bat" aria-pressed="${svpSc.mode==='bat'}">Batting</button>
-      <button data-scm="pit" aria-pressed="${svpSc.mode==='pit'}">Pitching</button></div>
+      <button data-scm="pit" aria-pressed="${svpSc.mode==='pit'}">Pitching</button>
+      <button class="svpsep" data-scph="Regular" aria-pressed="${svpSc.phase==='Regular'}">Regular Season</button>
+      <button data-scph="Playoffs" aria-pressed="${svpSc.phase==='Playoffs'}">Postseason</button></div>
     <div class="svpform">
       <label>X axis <select id="scX">${opts(svpSc.x)}</select></label>
       <button class="svpswap" id="scSwap" type="button" title="Swap axes" aria-label="Swap axes">⇄</button>
       <label>Y axis <select id="scY">${opts(svpSc.y)}</select></label>
-      <label>Season <select id="scYear">${yearOpts}</select></label>
+      <label>Season / era <select id="scYear">${yearOpts}</select></label>
+      <label>Team <select id="scTeam">${teamOpts}</select></label>
       <label>Highlight <input id="scHl" list="scNames" placeholder="Player name" value="${esc(svpSc.hl)}"></label>
       <datalist id="scNames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     </div>
     <div id="scChart"></div><p class="svpread" id="scRead"></p>
-    <p class="smeta">Every qualified ${svpSc.mode==='bat'?`hitter (${SV_MING}+ G)`:`pitcher (${SV_MINOUTS/3}+ IP)`} season${svpSc.year==='all'?' since '+SVP_YEARS[0]:' in '+svpSc.year}.
-      Dashed lines are the median of the field on each axis. Pick any two stats; rate stats are each season’s own numbers, so
+    <p class="smeta">Every qualified ${svpSc.mode==='bat'?'hitter':'pitcher'} ${svpSc.phase==='Playoffs'?'postseason':'regular-season'} line
+      (${svpSc.phase==='Playoffs' ? (svpSc.mode==='bat'?`${SV_MIN_SHOW_G}+ G`:`${SV_MIN_SHOW_OUTS/3}+ IP`)+', a lower bar since a postseason is only a few games'
+        : (svpSc.mode==='bat'?`${SV_MING}+ G`:`${SV_MINOUTS/3}+ IP`)}).
+      ${svpSc.team?`Filtering to ${esc(svpSc.team)}: its seasons are solid, the rest of the field stays faded for context. `:''}Dashed lines are the median of the whole field on each axis. Pick any two stats; rate stats are each season’s own numbers, so
       comparing across years mixes scoring environments — use <b>OPS+, wOBA, wRC+</b> or <b>ERA+</b> to level it.</p>`);
   const draw = () => {
     const d = svpScatterData();
@@ -8369,6 +8405,9 @@ function renderSavantScatter(){
   on('scX', e=>{ svpSc.x = e.target.value; svpSc.sel = null; draw(); });
   on('scY', e=>{ svpSc.y = e.target.value; svpSc.sel = null; draw(); });
   on('scYear', e=>{ svpSc.year = e.target.value; svpSc.sel = null; renderSavantScatter(); });
+  on('scTeam', e=>{ svpSc.team = e.target.value; svpSc.sel = null; renderSavantScatter(); });
+  app.querySelectorAll('[data-scph]').forEach(b=>b.addEventListener('click',()=>{
+    svpSc.phase = b.dataset.scph; svpSc.sel = null; svpSc.team = ''; renderSavantScatter(); }));
   document.getElementById('scSwap').addEventListener('click',()=>{ const t = svpSc.x; svpSc.x = svpSc.y; svpSc.y = t; svpSc.sel = null; renderSavantScatter(); });
   document.getElementById('scHl').addEventListener('input', e=>{ svpSc.hl = e.target.value; draw(); });
 }
