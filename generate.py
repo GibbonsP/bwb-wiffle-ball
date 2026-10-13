@@ -280,6 +280,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svr-on{stroke-width:3.6;opacity:1}
 .svr-dim{opacity:.16}
 .svr-dimtxt{opacity:.35}
+.svr-conn{fill:none;stroke-width:1.4;opacity:.7}
 .svr-end{stroke:var(--card);stroke-width:1.5}
 #txExtra{margin-top:18px}
 .svs-dim{fill:var(--muted);stroke:var(--muted);fill-opacity:.18;stroke-opacity:.35}
@@ -8981,7 +8982,7 @@ function renderSavantRace(){
   const teamSeries = allSeries.filter(s=>!svpTmTeam || s.team===svpTmTeam);
   const series = teamSeries.length ? teamSeries : allSeries;   // a team that sat out that year: show everyone
   const champ = ((CHAMPS||[]).find(c=>c.y===svpTR.year)||{}).full;
-  const W = 720, H = 500, L = 52, R = 150, T = 20, B = 46;
+  const W = 720, H = 500, L = 52, R = 190, T = 20, B = 46;
   const maxG = Math.max(...series.map(s=>s.pts.length-1));
   const ds = series.flatMap(s=>s.pts.map(p=>p.d));
   const lo = Math.min(...ds, 0), hi = Math.max(...ds, 0), pad = Math.max(1, (hi-lo)*0.08);
@@ -9000,12 +9001,20 @@ function renderSavantRace(){
     return `<path class="svr-line${on?' svr-on':''}${dim?' svr-dim':''}" d="${path}" style="stroke:${colorOf(s.team)}"><title>${esc(histName(s.team, svpTR.year))} ${s.W}–${s.L}${s.T?'–'+s.T:''}</title></path>`;
   }).join('');
   /* end-of-line labels, pushed apart so they never overlap */
-  const ends = series.map(s=>({s, y:Y(s.pts[s.pts.length-1].d)})).sort((a,b)=>a.y-b.y);
-  for(let i=1;i<ends.length;i++) if(ends[i].y - ends[i-1].y < 13) ends[i].y = ends[i-1].y + 13;
-  const labels = ends.map(({s,y})=>{
+  const ends = series.map(s=>({s, y0:Y(s.pts[s.pts.length-1].d), y:Y(s.pts[s.pts.length-1].d)})).sort((a,b)=>a.y-b.y);
+  const GAP = 32;   // a logo is ~30px tall
+  for(let i=1;i<ends.length;i++) if(ends[i].y - ends[i-1].y < GAP) ends[i].y = ends[i-1].y + GAP;
+  for(let i=ends.length-2;i>=0;i--) if(ends[ends.length-1].y > H-B+14 && ends[i+1].y - ends[i].y < GAP) ends[i].y = ends[i+1].y - GAP;   // keep the stack on the chart
+  const kit = svpLogoKit();
+  const labels = ends.map(({s,y0,y})=>{
     const last = s.pts[s.pts.length-1], dim = svpTR.hl && s.team!==svpTR.hl;
-    return `<circle class="svr-end${dim?' svr-dim':''}" cx="${X(last.g).toFixed(1)}" cy="${Y(last.d).toFixed(1)}" r="4" style="fill:${colorOf(s.team)}"/>
-      <text class="svtm-lab${dim?' svr-dimtxt':''}" x="${(X(last.g)+10).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(histNick(s.team, svpTR.year))}${s.team===champ?' ★':''} ${s.W}–${s.L}${s.T?'–'+s.T:''}</text>`;
+    const ex = X(last.g), lx = ex + 34, col = colorOf(s.team);
+    const logo = teamLogoForYear(s.team, svpTR.year), lid = logo ? kit.ref(logo) : null;
+    return `<path class="svr-conn${dim?' svr-dim':''}" d="M${ex.toFixed(1)},${y0.toFixed(1)} L${(ex+10).toFixed(1)},${y0.toFixed(1)} L${(lx-16).toFixed(1)},${y.toFixed(1)}" style="stroke:${col}"/>
+      ${lid ? `<circle class="svtm-lg${dim?' svr-dim':''}" cx="${lx.toFixed(1)}" cy="${y.toFixed(1)}" r="16" style="stroke:${col}"/>
+        <use class="${dim?'svr-dim':''}" href="#${lid}" transform="translate(${(lx-13).toFixed(1)} ${(y-13).toFixed(1)}) scale(.87)"/>`
+        : `<circle class="svr-end${dim?' svr-dim':''}" cx="${lx.toFixed(1)}" cy="${y.toFixed(1)}" r="6" style="fill:${col}"/>`}
+      <text class="svtm-lab${dim?' svr-dimtxt':''}" x="${(lx+22).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(histNick(s.team, svpTR.year))}${s.team===champ?' ★':''} ${s.W}–${s.L}${s.T?'–'+s.T:''}</text>`;
   }).join('');
   const names = series.map(s=>s.team).sort();
   svpShell('teams', `
@@ -9016,7 +9025,7 @@ function renderSavantRace(){
       <label>Highlight <select id="rcHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===svpTR.hl?' selected':''}>${esc(histName(t, svpTR.year))}</option>`).join('')}</select></label>
     </div>
     <svg class="svscatter svtm" viewBox="0 0 ${W} ${H}" role="img" aria-label="Games above .500 through the ${svpTR.year} season, every team">
-      ${grid}${lines}${labels}
+      ${grid}${lines}${labels}${kit.defs()}
       <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">Games played →</text>
       <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Below .500 · Wins minus losses · Above .500 →</text></svg>
     <p class="smeta">The ${svpTR.year} regular season, one line per team: each win moves it up a step and each loss down one, so a line's height is wins minus losses
