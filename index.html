@@ -8741,7 +8741,7 @@ function svpTeamSVG(pts){
 let svpTmTeam = '';
 const svpTeamSelectHTML = (id, names) => `<label>Team <select id="${id}"><option value="">All teams</option>${
   names.map(t=>`<option value="${esc(t)}"${t===svpTmTeam?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
-const SVP_TEAM_VIEWS = [['style','Playstyle Map',''],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
+const SVP_TEAM_VIEWS = [['style','Playstyle Map',''],['offstyle','Offensive Style','/offstyle'],['pitstyle','Pitching Style','/pitstyle'],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
 /* team-logo dots: each distinct logo is defined once in <defs> and <use>d per dot, so a split-by-season
    chart with dozens of dots doesn't repeat the (large, data-URI) images */
 function svpLogoKit(){
@@ -8854,7 +8854,7 @@ function svpTxPlot(pts, cfg){
     <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">${esc(cfg.yl)}</text></svg>`;
 }
 /* shared render + interaction for those two views */
-function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor){
+function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
   const names = [...new Set(svpTeamSeasons().map(a=>a.team))].sort();
   svpShell('teams', `
     ${svpTeamViews(view)}
@@ -8869,7 +8869,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor){
     <div id="txExtra"></div>`);
   wireTeamViews();
   const draw = () => {
-    const pts = svpTeamAgg(st.year, st.split);
+    const pts = (aggFn || svpTeamAgg)(st.year, st.split);
     if(extraFor){
       const ex = document.getElementById('txExtra'); ex.innerHTML = extraFor(pts);
       ex.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
@@ -8903,7 +8903,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor){
     hide();
   };
   draw();
-  document.getElementById('txTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; st.sel = null; svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor); });
+  document.getElementById('txTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; st.sel = null; svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn); });
   document.getElementById('txYear').addEventListener('change', e=>{ st.year = e.target.value; st.sel = null; draw(); });
   document.getElementById('txHl').addEventListener('change', e=>{ st.hl = e.target.value; draw(); });
   document.getElementById('txSplit').addEventListener('change', e=>{ st.split = e.target.checked; st.sel = null; draw(); });
@@ -9030,6 +9030,95 @@ function renderSavantRace(){
   document.getElementById('rcHl').addEventListener('change', e=>{ svpTR.hl = e.target.value; renderSavantRace(); });
 }
 
+/* ---------------------- offensive style and pitching style maps ----------------------
+   Same idea as the Playstyle Map, but about HOW a team hits or pitches, not how much it wins. Built from the
+   team's own season stat lines (every player on the roster, summed), then standardized against the other clubs
+   in the SAME season, so the axes mean "compared with the rest of the league that year".
+   Offense: power = home run rate; discipline = walk rate minus strikeout rate (free-swinging <-> patient).
+   Pitching: strikeouts = strikeout rate; control = how few walks it allows. (Home runs, not extra-base hits, are
+   the power measure because recorded doubles and triples all but disappear after 2020.) */
+function svpStyleSeasons(kind){
+  const rows = [];
+  TEAMNAMES.forEach(t=>Object.entries(TEAMS[t].seasons).forEach(([y,s])=>{
+    const lines = (s.roster||[]).map(e=>e.regular).filter(Boolean);
+    if(!lines.length) return;
+    const c = sumRows(lines), reg = (s.record||{}).Regular || {};
+    const base = {team:t, year:+y, W:reg.W||0, L:reg.L||0, T:reg.T||0, RF:reg.RF||0, RA:reg.RA||0};
+    if(kind==='off'){
+      if(c.PA<60) return;
+      rows.push({...base, n:c.PA, a:c.HR/c.PA, b:c.BB/c.PA, k:c.K/c.PA});
+    } else {
+      const bf = c.IPouts + c.pH + c.pBB + c.pHB;
+      if(c.IPouts<90 || !bf) return;
+      rows.push({...base, n:bf, a:c.pK/bf, b:c.pBB/bf, era:era(c)});
+    }
+  }));
+  const byYear = {}; rows.forEach(r=>(byYear[r.year] = byYear[r.year] || []).push(r));
+  Object.values(byYear).forEach(list=>{
+    const z = key => {
+      const m = list.reduce((s,a)=>s+a[key],0)/list.length;
+      const sd = Math.sqrt(list.reduce((s,a)=>s+Math.pow(a[key]-m,2),0)/list.length) || 1;
+      return a => (a[key]-m)/sd;
+    };
+    const za = z('a'), zb = z('b'), zk = kind==='off' ? z('k') : null;
+    list.forEach(r=>{
+      if(kind==='off'){ r.sx = (zb(r) - zk(r))/2; r.sy = za(r); }      // x: free-swinging -> patient, y: power
+      else { r.sx = za(r); r.sy = -zb(r); }                              // x: strikeouts, y: control (fewer walks = up)
+    });
+  });
+  return rows;
+}
+function svpStyleAgg(kind, sel, split){
+  const years = svpYearsFor(sel), rows = svpStyleSeasons(kind).filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam));
+  const mk = list => {
+    const n = list.reduce((s,a)=>s+a.n,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
+    const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+(a[k]||0)*a.n,0)/n;
+    return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), W:sum('W'), L:sum('L'), T:sum('T'),
+      RF:sum('RF'), RA:sum('RA'), sx:wt('sx'), sy:wt('sy'), a:wt('a'), b:wt('b'), k:wt('k'), era:wt('era')};
+  };
+  if(split || svpTmTeam || years.length===1) return rows.map(a=>mk([a]));
+  const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
+  return Object.values(by).map(mk);
+}
+const svpSigma = v => (v>0?'+':v<0?'−':'')+Math.abs(+v.toFixed(2))+'σ';
+const svpPc1 = v => (v*100).toFixed(1)+'%';
+
+const svpTOS = {year:'all', split:false, hl:'', sel:null};
+function renderSavantOffStyle(){
+  svpTxView('offstyle', svpTOS,
+    pts => ({x:p=>p.sx, y:p=>p.sy, xf:svpSigma, yf:svpSigma, mid:[0,0], keepX:[0], keepY:[0],
+      quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS'], aria:'Teams by home run rate and plate discipline',
+      xl:'← Free-swinging · Plate discipline · Patient →', yl:'← Little power · Power (HR rate) · More power →'}),
+    p => `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${spanOf(p)}</span></div>
+      <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
+      <div class="tt-r"><span>Power</span><b>${svpSigma(p.sy)}</b></div>
+      <div class="tt-r"><span>Discipline</span><b>${svpSigma(p.sx)}</b></div>
+      <div class="tt-s tt-l">HR ${svpPc1(p.a)} · BB ${svpPc1(p.b)} · K ${svpPc1(p.k)} of plate appearances</div>`,
+    p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — power ${svpSigma(p.sy)}, discipline ${svpSigma(p.sx)} (HR ${svpPc1(p.a)}, BB ${svpPc1(p.b)}, K ${svpPc1(p.k)})`,
+    `How a lineup hits, measured against the rest of the league <i>that same season</i> in standard deviations (σ). <b>Up</b> is more power: the share of
+      plate appearances that end in a home run. <b>Right</b> is more patient: walks drawn minus strikeouts, so the left side is free-swingers who whiff or put it in play early and
+      the right side works counts and takes walks. <b>Patient power</b> hits for power and rarely wastes an at-bat; <b>boom or bust</b> swings hard, homers and strikes out;
+      <b>table-setters</b> get on base without power. 0 is the league-average lineup.`,
+    undefined, (sel,split)=>svpStyleAgg('off', sel, split));
+}
+const svpTPS = {year:'all', split:false, hl:'', sel:null};
+function renderSavantPitStyle(){
+  svpTxView('pitstyle', svpTPS,
+    pts => ({x:p=>p.sx, y:p=>p.sy, xf:svpSigma, yf:svpSigma, mid:[0,0], keepX:[0], keepY:[0],
+      quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS'], aria:'Teams by strikeout rate and walks allowed',
+      xl:'← Fewer strikeouts · Strikeout rate · More strikeouts →', yl:'← Wild · Control (walks allowed) · Precise →'}),
+    p => `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${spanOf(p)}</span></div>
+      <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
+      <div class="tt-r"><span>Strikeouts</span><b>${svpSigma(p.sx)}</b></div>
+      <div class="tt-r"><span>Control</span><b>${svpSigma(p.sy)}</b></div>
+      <div class="tt-s tt-l">K ${svpPc1(p.a)} · BB ${svpPc1(p.b)} of batters faced · ${two(p.era)} ERA</div>`,
+    p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — strikeouts ${svpSigma(p.sx)}, control ${svpSigma(p.sy)} (K ${svpPc1(p.a)}, BB ${svpPc1(p.b)}, ${two(p.era)} ERA)`,
+    `How a staff pitches, measured against the rest of the league <i>that same season</i> in standard deviations (σ). <b>Right</b> is more strikeouts per batter faced.
+      <b>Up</b> is better control: fewer walks allowed, so the bottom is wild. <b>Dominant</b> staffs miss bats and throw strikes; <b>pitch-to-contact</b> staffs
+      throw strikes and let the defense work; <b>wild power arms</b> strike out a lot but walk a lot too. 0 is the league-average staff.`,
+    undefined, (sel,split)=>svpStyleAgg('pit', sel, split));
+}
+
 function renderSavantTeams(){
   const rpgOf = svpLeagueSeries(false).rpg;
   const eraOpt = (e,i) => `<option value="e${i}"${String(svpTm.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
@@ -9100,6 +9189,8 @@ function renderSavant(h){
   if(h === '#/savant/search') return renderSavantSearch();
   if(h === '#/savant/teams') return renderSavantTeams();
   if(h === '#/savant/teams/offense') return renderSavantOffense();
+  if(h === '#/savant/teams/offstyle') return renderSavantOffStyle();
+  if(h === '#/savant/teams/pitstyle') return renderSavantPitStyle();
   if(h === '#/savant/teams/luck') return renderSavantLuck();
   if(h === '#/savant/teams/race') return renderSavantRace();
   return renderSavantPct();
