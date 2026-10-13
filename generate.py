@@ -8899,7 +8899,7 @@ const svpTO = {year:'all', split:false, hl:'', sel:null};
 function renderSavantOffense(){
   svpTxView('offense', svpTO,
     pts => ({x:p=>p.off, y:p=>p.def, xf:v=>svpPctS(v), yf:v=>svpPctS(v), mid:[0,0], diag:true, keepX:[0], keepY:[0],
-      quads:['PITCHING-FIRST','ELITE','STRUGGLING','SLUGGERS'], aria:'Teams by runs scored and runs allowed against the league',
+      quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST'], aria:'Teams by runs scored and runs allowed against the league',
       xl:'← Scores fewer · Runs scored vs league · Scores more →', yl:'← Allows more · Runs allowed vs league · Allows fewer →'}),
     p => `<div class="tt-h"><b>${esc(histName(p.team, p.year))}</b><span>${spanOf(p)}</span></div>
       <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
