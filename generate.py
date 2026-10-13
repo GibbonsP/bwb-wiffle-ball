@@ -8738,7 +8738,7 @@ function svpTeamSVG(pts){
 /* ------------------------- more team graphs: offense/defense, luck, season race -------------------------
    All three read straight off each franchise's own season records (W-L-T, runs for/against) and, for
    the race, its game-by-game results — no box scores needed, so they cover every season. */
-const SVP_TEAM_VIEWS = [['style','Fun Map',''],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
+const SVP_TEAM_VIEWS = [['style','Playstyle Map',''],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
 function svpTeamViews(active){
   return `<div class="chips svpmodes svptv">${SVP_TEAM_VIEWS.map(([k,l])=>
     `<button data-tmv="${k}" aria-pressed="${active===k}">${l}</button>`).join('')}</div>`;
