@@ -105,6 +105,11 @@ for name, lst in by_player.items():
         tot = {k: sum(row[k] for _,row in lst) for k in AGG}
         out.append(dict(tot, year=2016, type='Regular', team=None, teamPartial=False, tot=True, nTeams=len(lst), est=True))
         counted = [tot]
+    # jersey number: 2016 predates the number records, so use the oldest number on file for the player
+    oldest = next((str(x['num']) for x in sorted(pl['seasons'], key=lambda x: x['year']) if x.get('num') not in (None, '')), None)
+    if oldest:
+        for row in out:
+            if not row.get('tot'): row['num'] = oldest
     pl['seasons'].extend(out)
     pl['seasons'].sort(key=lambda s: (s['year'], s['type'], 0 if s.get('split') else (2 if s.get('tot') else 1)))
     pl['years'] = sorted(set(pl['years']) | {2016})
