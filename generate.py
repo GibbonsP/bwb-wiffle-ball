@@ -103,6 +103,7 @@ header.mast{background:var(--brandbar)}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
 .aday{display:inline-flex;align-items:center;gap:8px;margin:6px 0 0 12px;font-size:.75rem;color:var(--muted);vertical-align:middle}
 .aday select{padding:9px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;max-width:100%}
+.arec{font-size:.75rem;color:var(--muted);margin:6px 0 0 2px}
 .aday.on select{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent);font-weight:600}
 .segs{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
 .segs button{padding:10px 15px;background:var(--card);border:0;font-size:.75rem;
@@ -7317,14 +7318,42 @@ function arcadePastDays(){
 const arcadeDayLabel = key => new Date(key+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
 /* "Past days" picker shown beside each game's Today/Practice switch; a ● marks days that already have
    saved progress in that game. storagePrefix is that game's own localStorage prefix. */
+function arcadeDaySummary(prefix, key){
+  let raw=null; try{ raw = localStorage.getItem(prefix+key); }catch(e){}
+  if(!raw) return null;
+  try{
+    const o = JSON.parse(raw);
+    if(prefix==='bwb-grid-'){
+      const a = Object.values(o||{}), ok = a.filter(x=>x&&x.correct).length;
+      return a.length ? {text:`${ok}/9`, done: a.length>=9} : null;
+    }
+    if(prefix==='bwb-statpad-'){
+      const n = Object.keys(o.answers||{}).length; if(!n) return null;
+      const tot = pickStatpad(mulberry32(gridSeedFromString('bwb-statpad-'+key))).rows.length;
+      return {text:`${n}/${tot} rows`, done: n>=tot};
+    }
+    if(prefix==='bwb-b0v7-'){
+      return o.picks&&o.picks.length ? (o.locked ? {text:'Season played', done:true} : {text:`${o.picks.length} picked`, done:false}) : null;
+    }
+    if(prefix==='bwb-guess-'){
+      const g = Array.isArray(o)?o:[]; if(!g.length) return null;
+      const pz = newGuessPuzzle(mulberry32(gridSeedFromString('bwb-guess-'+key)), key);
+      if(g.includes(pz.name)) return {text:`Got it in ${g.length}`, done:true};
+      return g.length>=GUESS_MAX ? {text:'Missed', done:true} : {text:`${g.length} miss${g.length===1?'':'es'}`, done:false};
+    }
+  }catch(e){}
+  return null;
+}
 function arcadeDayPicker(storagePrefix){
   const days = arcadePastDays(); if(!days.length) return '';
-  const played = k => { try{ return !!localStorage.getItem(storagePrefix+k); }catch(e){ return false; } };
+  const sums = days.map(k=>arcadeDaySummary(storagePrefix,k));
+  const played = sums.filter(Boolean).length, finished = sums.filter(x=>x&&x.done).length;
   return `<label class="aday${arcadeDay?' on':''}"><span>Past days</span>
     <select data-aday aria-label="Play a puzzle from a previous day">
       <option value="">Pick a day…</option>
-      ${days.map(k=>`<option value="${k}"${arcadeDay===k?' selected':''}>${arcadeDayLabel(k)}${played(k)?' ●':''}</option>`).join('')}
-    </select></label>`;
+      ${days.map((k,i)=>`<option value="${k}"${arcadeDay===k?' selected':''}>${arcadeDayLabel(k)}${sums[i]?` — ${sums[i].text}${sums[i].done?' ✓':' …'}`:''}</option>`).join('')}
+    </select></label>
+    <div class="arec">Your record: ${played} of ${days.length} past days played · ${finished} finished</div>`;
 }
 function wireArcadeDayPicker(apply){
   app.querySelectorAll('[data-aday]').forEach(sel=>sel.addEventListener('change',()=>{
@@ -9520,11 +9549,12 @@ function renderSavant(h){
    and the daily answer is seeded by date the same way Grid and Stat Pad are. */
 const GUESS_MAX = 5;
 let guessMode = 'daily', guessDaily = null, guessPractice = null, guessError = null;
+let _guessPool=null;
 function guessEligible(){
-  return NAMES.filter(n=>{
+  return _guessPool || (_guessPool = NAMES.filter(n=>{
     const pl = P[n], c = pl.careerReg;
     return svSeasons(pl).length>=2 && c && (c.G_bat>=SV_MING || c.IPouts>=SV_MINOUTS);
-  });
+  }));
 }
 function newGuessPuzzle(rng, key){
   const pool = guessEligible();
