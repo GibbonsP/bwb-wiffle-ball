@@ -107,6 +107,7 @@ for name, lst in by_player.items():
         counted = [tot]
     # jersey number: 2016 predates the number records, so use the oldest number on file for the player
     oldest = next((str(x['num']) for x in sorted(pl['seasons'], key=lambda x: x['year']) if x.get('num') not in (None, '')), None)
+    oldest = {'Will DeLuca':'5','Ava Cefaloni':'6','Chris Gabie':'31','Donne Pizzutello':'6','Landon Krueger':'1','Michael Connors':'3','Vito Defonce':'2'}.get(name, oldest)   # 2016-only players: numbers from the commissioner
     if oldest:
         for row in out:
             if not row.get('tot'): row['num'] = oldest
