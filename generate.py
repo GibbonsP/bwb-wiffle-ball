@@ -5269,7 +5269,9 @@ function renderRecords(){
     let games = [];
     t.years.forEach(y=>{
       const s = t.seasons[y]; if(!s || !inEra(+y)) return;
-      (s.games||[]).forEach(g=>{ if(g.phase==='Regular') games.push(g); });
+      const reg = (s.games||[]).filter(g=>g.phase==='Regular'), off = (s.record||{}).Regular;
+      if(off && off.W+off.L+(off.T||0) > reg.length) return;   // forfeits missing from the list (2016): any streak would be unreliable
+      reg.forEach(g=>games.push(g));
     });
     games = dropForfeitDays(games);
     games.sort((a,b)=>(a.dt||a.date).localeCompare(b.dt||b.date));
@@ -5632,7 +5634,7 @@ function renderGames(){
   const body=list.map(id=>{
     const g=GAMES[id], a=g.away.R, hh=g.home.R, yr=+g.date.slice(0,4);
     return `<tr>
-      <td class="lft"><button class="pname" data-g="${id}">${g.date}</button></td>
+      <td class="lft">${g.noBox ? `<span class="mono">${g.date}</span>` : `<button class="pname" data-g="${id}">${g.date}</button>`}</td>
       <td class="lft ${a>hh?'wteam':''}">${gamesTeamCell(g.away.team, yr)}</td>
       <td class="mono b">${a}–${hh}</td>
       <td class="lft ${hh>a?'wteam':''}">${gamesTeamCell(g.home.team, yr)}</td>
@@ -5642,7 +5644,8 @@ function renderGames(){
   app.innerHTML=`${viewToggle}${chips}
     <div class="tscroll"><table class="dir"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
-    <tbody>${body}</tbody></table></div>`;
+    <tbody>${body}</tbody></table></div>
+    ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
   app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
@@ -5700,6 +5703,16 @@ function boxScore(gid){
   setNav('games');
   const yr = +g.date.slice(0,4);
   const a=g.away.R, hh=g.home.R;
+  if(g.noBox){
+    const mt = team => `<span class="muteam">${logoIcon(teamLogoForYear(team, yr), '', 'llogo-lg')}${histTeamLink(team, yr)}</span>`;
+    app.innerHTML=`<button class="back" id="back">← All games</button>
+      <div class="phead"><h2>${mt(g.away.team)}<span class="vs">${a}–${hh}</span>${mt(g.home.team)}</h2></div>
+      <p class="pmeta">${esc(g.div)} · ${g.date}</p>
+      <p class="note">Only the final score of this game was recorded — there is no box score.</p>`;
+    document.getElementById('back').addEventListener('click',()=>{ location.hash='#/games'; });
+    app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
+    return;
+  }
   const bs=s=>s.bat.reduce((x,b)=>x+b.r,0);
   const untied = (g.away.bat.length && bs(g.away)!==a) || (g.home.bat.length && bs(g.home)!==hh);
   const muTeam = (team, y) => {
@@ -7648,7 +7661,7 @@ function b0League(){
   NAMES.forEach(n=>{ P[n].seasons.forEach(s=>{ if(s.type==='Regular' && !s.split) rows.push(s); }); });
   const tot = sumRows(rows);
   let runs=0, games=0;
-  GIDS.forEach(gid=>{ const g=GAMES[gid]; if(g.phase==='Regular'){ runs+=g.away.R+g.home.R; games+=2; } });
+  GIDS.forEach(gid=>{ const g=GAMES[gid]; if(g.phase==='Regular' && !g.noBox){ runs+=g.away.R+g.home.R; games+=2; } });
   B0_AVG = {
     avg: avg(tot), slg: slg(tot), ops: ops(tot), era: era(tot),
     bbRate: tot.PA ? tot.BB/tot.PA : 0, hbpRate: tot.PA ? tot.HBP/tot.PA : 0,
@@ -7675,7 +7688,7 @@ let B0_RUNS_POOL = null;
    repeated placeholders, not real single-game outcomes to sample from. */
 function b0RunsPool(){
   if(B0_RUNS_POOL) return B0_RUNS_POOL;
-  const regGames = GIDS.map(gid=>GAMES[gid]).filter(g=>g.phase==='Regular');
+  const regGames = GIDS.map(gid=>GAMES[gid]).filter(g=>g.phase==='Regular' && !g.noBox);
   const byDate = {};
   regGames.forEach(g=>{ (byDate[g.date] = byDate[g.date] || []).push(g); });
   const badDates = new Set();
