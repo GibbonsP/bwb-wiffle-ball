@@ -2060,26 +2060,42 @@ function statTable(title, cols, rows, career, totLabel, cls, sortable, extra){
     <tfoot>${foot}${(extra||[]).map(x=>'<tr class="teamtotrow">'+cols.map((c,i)=>`<td class="${cc(c)}">${i===0?x.first:c.l==='Tm'?x.tm:(c.noTot?'':c.f(x.d))}</td>`).join('')+'</tr>').join('')}</tfoot>
   </table></div></section>`;
 }
-/* click-to-sort for tables with no inherent row order (rosters, leaderboard-style) */
+/* click-to-sort for tables with no inherent row order (rosters, leaderboard-style) and for a player's
+   season tables. A season table lists a traded player's per-team rows right above that year's combined
+   "2TM" row, so rows are sorted as groups — each year's team rows travel with their combined row, and the
+   combined row's value is the one compared. Blanks and dashes sink to the bottom whichever way you sort. */
 function makeSortable(tbl){
   if(tbl.dataset.sortWired) return; tbl.dataset.sortWired = '1';
   const heads = [...tbl.tHead.rows[0].cells];
   const body = tbl.tBodies[0];
+  const grouped = !!body.querySelector('tr.splitrow');
+  const num = t => { const m = String(t).replace(/[,–—%]/g,'').match(/-?\d*\.?\d+/); return m?parseFloat(m[0]):NaN; };
+  const unitsOf = rows => {
+    if(!grouped) return rows.map(r=>({rows:[r], key:r}));
+    const out = []; let pend = [];
+    rows.forEach(r=>{
+      if(r.classList.contains('splitrow')) pend.push(r);
+      else { out.push({rows:[...pend, r], key:r}); pend = []; }
+    });
+    if(pend.length) out.push({rows:pend, key:pend[pend.length-1]});
+    return out;
+  };
   heads.forEach((th, ci)=>{
     th.classList.add('sortcol');
     th.addEventListener('click', ()=>{
       const dir = th.dataset.dir === 'desc' ? 'asc' : 'desc';
       heads.forEach(h=>{ h.removeAttribute('data-dir'); const a=h.querySelector('.ar'); if(a) a.remove(); });
       th.dataset.dir = dir;
-      const num = t => { const m = String(t).replace(/[,–—%]/g,'').match(/-?\d*\.?\d+/); return m?parseFloat(m[0]):NaN; };
-      const rows = [...body.rows];
-      rows.sort((r1,r2)=>{
-        const a=(r1.cells[ci]||{}).textContent||'', b=(r2.cells[ci]||{}).textContent||'';
-        const na=num(a), nb=num(b);
-        const cmp = (!isNaN(na)&&!isNaN(nb)) ? na-nb : a.trim().toLowerCase().localeCompare(b.trim().toLowerCase());
+      const units = unitsOf([...body.rows]);
+      units.sort((u1,u2)=>{
+        const a=(u1.key.cells[ci]||{}).textContent||'', b=(u2.key.cells[ci]||{}).textContent||'';
+        const na=num(a), nb=num(b), aok=!isNaN(na), bok=!isNaN(nb);
+        if(aok && bok) return dir==='asc' ? na-nb : nb-na;
+        if(aok !== bok) return aok ? -1 : 1;
+        const cmp = a.trim().toLowerCase().localeCompare(b.trim().toLowerCase());
         return dir==='asc' ? cmp : -cmp;
       });
-      rows.forEach(r=>body.appendChild(r));
+      units.forEach(u=>u.rows.forEach(r=>body.appendChild(r)));
       const ar = document.createElement('span'); ar.className='ar'; ar.textContent = dir==='desc'?' ▼':' ▲';
       th.appendChild(ar);
     });
@@ -2214,7 +2230,7 @@ function phaseBlock(pl, type){
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
-  const bat = statTable('Batting', leadCols(batCols,'bat'), rows, career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.G_bat>0||d.PA>0));
+  const bat = statTable('Batting', leadCols(batCols,'bat'), rows, career, meta.tot, meta.cls, true, teamTotalsFor(d=>d.G_bat>0||d.PA>0));
 
   let pit='';
   if(career.IPouts>0){
@@ -2231,7 +2247,7 @@ function phaseBlock(pl, type){
       {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
       ...eraPlusCol, ...awCol];
-    pit = statTable('Pitching', leadCols(pitCols,'pit'), rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.IPouts>0));
+    pit = statTable('Pitching', leadCols(pitCols,'pit'), rows.filter(d=>d.IPouts>0), career, meta.tot, meta.cls, true, teamTotalsFor(d=>d.IPouts>0));
   }
 
   let fldT='';
@@ -2239,7 +2255,7 @@ function phaseBlock(pl, type){
     const fCols = [...seasonCols,
       {l:'G',f:d=>d.G_fld},{l:'INN',f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},
       {l:'A',f:d=>d.A},{l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-    fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls, false, teamTotalsFor(d=>d.TC>0||d.G_fld>0));
+    fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls, true, teamTotalsFor(d=>d.TC>0||d.G_fld>0));
   }
   const span = yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`;
   /* Exhibition is a generic phase that can hold several one-off named events
