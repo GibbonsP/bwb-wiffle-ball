@@ -2255,7 +2255,7 @@ function phaseBlock(pl, type){
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
-    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, runs, strikeouts, and hits and walks allowed are estimated; games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
+    ${bat}${pit}${fldT}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
       Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
 }
 
