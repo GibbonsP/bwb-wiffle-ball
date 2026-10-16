@@ -1323,7 +1323,7 @@ function teamOfPlayer(x, year, isCareer){
   if(team.includes(' / ')){
     const teams = team.split(' / ');
     return {label: esc(teams.map(t=>TEAMS[t]?TEAMS[t].nick:t).join('/')),
-      logo: teamLogoForYear(teams[0], yr), logo2: teams[1] ? teamLogoForYear(teams[1], yr) : null};
+      logo: teamLogoForYear(teams[0], yr), logo2: teamLogoForYear(teams[teams.length-1], yr)};   // the LAST club of a 2-, 3-team season
   }
   return {label: esc(TEAMS[team] ? histName(team, yr) : team), logo: TEAMS[team] ? teamLogoForYear(team, yr) : null, logo2:null};
 }
