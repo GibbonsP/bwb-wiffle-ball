@@ -706,6 +706,9 @@ td.res-L{color:var(--clay);font-weight:700}
 .officetitles{list-style:none;margin:0;padding:0;color:var(--muted);font-size:.76rem;line-height:1.5}
 .vs{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-weight:600;padding:0 .35em}
 .wteam{font-weight:700}
+/* Games log: the link buttons are semibold by default, which made both sides look bold — only the winner is */
+.glog td .pname{font-weight:400}
+.glog td.wteam .pname{font-weight:700}
 .linescore td.b,.linescore th.b{border-left:2px solid var(--line-strong)}
 .aka{color:var(--muted);font-size:.82rem;margin:2px 0 18px;line-height:1.9}
 .aka2{color:var(--muted);font-size:.8rem}
@@ -5694,9 +5697,16 @@ function renderGames(){
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
+  /* an All-Star side is a division ("North Division", "Brookside Division") — link to its
+     division page; the 2026 All-Time Panthers/Kraken exhibition sides link to their franchises */
+  const ALLTIME_SIDE = {'All-Time Panthers':'Brookside Panthers', 'All-Time Kraken':'Brookside Kraken'};
   const gamesTeamCell = (team, y) => {
-    const logo = teamLogoForYear(team, y);
-    return `<span class="tmcell">${logoIcon(logo)}${histTeamLink(team, y)}</span>`;
+    const logo = teamLogoForYear(ALLTIME_SIDE[team] || team, y);
+    const dv = /^(North|South|Brookside|Brentwood) Division$/.exec(team);
+    const link = dv ? `<button class="pname" data-div="${esc(canonicalDivision(dv[1]))}">${esc(team)}</button>`
+      : ALLTIME_SIDE[team] ? `<button class="pname" data-t="${esc(ALLTIME_SIDE[team])}">${esc(team)}</button>`
+      : histTeamLink(team, y);
+    return `<span class="tmcell">${logoIcon(logo)}${link}</span>`;
   };
   const body=list.map(id=>{
     const g=GAMES[id], a=g.away.R, hh=g.home.R, yr=+g.date.slice(0,4);
@@ -5709,7 +5719,7 @@ function renderGames(){
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
   app.innerHTML=`${viewToggle}${chips}
-    <div class="tscroll"><table class="dir"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
+    <div class="tscroll"><table class="dir glog"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
     ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
@@ -5717,6 +5727,7 @@ function renderGames(){
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
+  app.querySelectorAll('.pname[data-div]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/div/'+encodeURIComponent(b.dataset.div); }));
 }
 
 const BOX_BAT=[
