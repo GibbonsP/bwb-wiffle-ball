@@ -1051,6 +1051,16 @@ for yr, a in asg.items():
                 players[k]['honors']['asg'].append(
                     {'year': int(yr), 'squad': sq['name'], 'cap': bool(re.search(r'\(c\)', raw, re.I))})
 
+def _games_with(p, tm, y):
+    # games the player appeared in for that club that year (regular season + postseason);
+    # None when there are no stat rows to check (pre-stats seasons) so the credit stands
+    rows = [s for s in p['seasons'] if s.get('year') == y and s.get('team') == tm
+            and s.get('type') in ('Regular', 'Playoffs') and not s.get('tot')]
+    if not rows:
+        return None
+    return sum(max(s.get('G_bat') or 0, s.get('G_pit') or 0) for s in rows)
+
+MIN_RING_GAMES = 3   # a World Series ring is only credited to players who played 3+ games that season
 for c in champs:
     notable = {pkey(x) for x in c['pl']}
     for name, p in players.items():
@@ -1058,6 +1068,10 @@ for c in champs:
         if not won and c['tm']:
             ty = p['teamsByYear'].get(c['y']) or {}
             won = ty.get('team') == c['tm']
+        if won and c['tm']:
+            g = _games_with(p, c['tm'], c['y'])
+            if g is not None and g < MIN_RING_GAMES:
+                won = False
         if won:
             p['honors']['rings'].append({'year': c['y'], 'team': c['tm'] or c['full']})
 
