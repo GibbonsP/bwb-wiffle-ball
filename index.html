@@ -724,9 +724,9 @@ a{color:var(--accent)}
 .cscore{color:var(--muted);font-size:.88rem;font-variant-numeric:tabular-nums}
 .champphoto{display:block;max-width:100%;height:auto;max-height:520px;width:auto;
   margin:0 auto 12px;border-radius:10px;box-shadow:var(--shadow);object-fit:contain}
-.champroster{margin:0;padding-left:1.3em;font-size:.87rem;columns:2;column-gap:20px}
-.champroster li{margin:2px 0;break-inside:avoid}
-@media (max-width:480px){.champroster{columns:1}}
+.champroster{margin:0;padding:0;list-style:none;font-size:.87rem;display:flex;flex-wrap:wrap;
+  justify-content:center;gap:4px 22px;text-align:center}
+.champroster li{margin:0}
 .asgyear{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:14px 16px;
   margin-bottom:12px;box-shadow:var(--shadow)}
 .asgyear h4{margin:0 0 10px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem}
