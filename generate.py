@@ -2209,9 +2209,9 @@ function phaseBlock(pl, type){
     return isFinite(v)?String(v):'—';
   }}];
   const batCols = [...seasonCols,
-    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
+    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.est?'—':d.R},
     {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},
-    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},{l:'HBP',f:d=>d.HBP},
+    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},{l:'HBP',f:d=>d.HBP},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
@@ -2225,7 +2225,7 @@ function phaseBlock(pl, type){
         : eraPlusFor(d, d._wpit || rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
       return isFinite(v)?String(v):'—';
     }}];
-    const gsCol = [{l:'GS',f:d=>d.GS_pit}];
+    const gsCol = [{l:'GS',f:d=>d.est?'—':d.GS_pit}];
     const pitCols = [...seasonCols,
       {l:'G',f:d=>d.G_pit},...gsCol,{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
@@ -2256,7 +2256,7 @@ function phaseBlock(pl, type){
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
-    ${bat}${pit}${fldT}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
+    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, and hits and walks allowed are estimated, and runs, batting strikeouts and games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
       Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
 }
 
@@ -2314,10 +2314,10 @@ const SV_PIT = [
 ];
 /* one non-split Regular row per year for a player */
 function svRegRow(pl, y){
-  return pl.seasons.find(s=>s.type==='Regular' && !s.split && s.year===y) || null;
+  return pl.seasons.find(s=>s.type==='Regular' && !s.split && !s.est && s.year===y) || null;
 }
 function svSeasons(pl){
-  return [...new Set(pl.seasons.filter(s=>s.type==='Regular'&&!s.split).map(s=>s.year))]
+  return [...new Set(pl.seasons.filter(s=>s.type==='Regular'&&!s.split&&!s.est).map(s=>s.year))]
     .sort((a,b)=>a-b);
 }
 /* unqualified: this subject falls short of the real qualification bar, so
@@ -2382,7 +2382,7 @@ function svHasShowableYear(pl){
   });
 }
 function savantCard(pl){
-  if(!pl.seasons.some(s=>s.type==='Regular'&&!s.split)) return '';
+  if(!svSeasons(pl).length) return '';   // a 2016-only player has nothing to rank
   const playBtn = (svPlayableYears(pl).length>=2 && svHasShowableYear(pl))
     ? `<button class="cardbtn cardbtn-ghost" id="svPlayBtn" type="button">▶ Play</button>` : '';
   return `<section class="savant" id="savantCard">
@@ -3527,7 +3527,7 @@ function renderTeams(){
     <h3 class="hsub">All-Time Team Pitching</h3>
     ${teamStatTable(T_PIT_COLS, statRows)}
     <p class="note">Batting and pitching are the sum of every season's roster lines, regular season,
-    ${RANGE} — so the totals cover the stat-database era only and won't match the pre-2017 win totals above.
+    ${RANGE} — so the totals cover the stat-database era only and won't match the pre-2016 win totals above.
     Open a team for year-by-year detail.</p>`;
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     teamYear=null; location.hash='#/t/'+encodeURIComponent(b.dataset.t);
@@ -3554,6 +3554,8 @@ function standRow(name, y){
     const v = r.vs[x.opp] || (r.vs[x.opp]={W:0,L:0,T:0});
     v[x.res]++;
   });
+  const off = (s.record||{}).Regular;
+  if(off && off.W+off.L+(off.T||0) > r.W+r.L+r.T){ r.W = off.W; r.L = off.L; r.T = off.T||0; }   // forfeits aren't in the game list
   r.PCT = (r.W+r.L) ? r.W/(r.W+r.L) : 0;
   r.DIFF = r.RF - r.RA;
   return r;
@@ -4454,9 +4456,9 @@ function rosterBatting(roster, ph, label, weights, photos){
   rows.sort((a,b)=>b.PA-a.PA);
   const cols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
+    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.est?'—':d.R},{l:'H',f:d=>d.H},
     {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
-    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
+    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
@@ -4468,7 +4470,7 @@ function rosterPitching(roster, ph, label, weights, photos){
   rows.sort((a,b)=>b.IPouts-a.IPouts);
   const cols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+    {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.est?'—':d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
     {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
     {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
@@ -4553,7 +4555,7 @@ function playoffResultFor(name, y){
   const side = p[sideKey];
   const seed = side.seeds.find(s=>s.full===name);
   const round1 = y>=2025 ? 'DS' : 'WC';
-  if(seed.nick !== side.winner) return {label:`LOST ${round1}`, seriesKey:sideKey};
+  if(seed.nick !== side.winner) return {label:`LOST ${round1}`, seriesKey:(side.series||[]).length ? sideKey : null};   // 2016 has no recorded series
   const finalists = ['brookside','brentwood'].map(sk=>{
     const sd = p[sk] || {};
     return (sd.seeds||[]).find(s=>s.nick===sd.winner) || {nick:sd.winner, full:null};
@@ -4569,7 +4571,7 @@ function playoffResultFor(name, y){
   });
   const champ = p.championFull===name;
   const score = gids.length ? ` ${champ?myWins:oppWins}-${champ?oppWins:myWins}` : '';
-  return {label:`${champ?'WON':'LOST'} WS${score}`, seriesKey:'final'};
+  return {label:`${champ?'WON':'LOST'} WS${score}`, seriesKey:(p.finalSeries||[]).length ? 'final' : null};
 }
 /* one combined cell for a W-L split plus its own PCT, muted and parenthetical
    so the primary W-L reads first — used for Home/Away and vs-division splits,
@@ -5020,7 +5022,7 @@ function renderHistoricalTeam(d){
     ${teamLeadershipHtml(name)}
     ${historicalLogoHistory(d)}
     ${teamAccolades(name)}
-    <p class="note">This franchise folded before the stat database begins in 2017, so no rosters or
+    <p class="note">This franchise folded before the stat database begins in 2016, so no rosters or
     box scores are on record for it here — only the league's win-loss and title record from the
     Franchise Summary.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/teams'; });
@@ -5049,11 +5051,11 @@ NOHIT.forEach(x=>{ (NOHIT_BY_PITCHER[x.pitcher] = NOHIT_BY_PITCHER[x.pitcher] ||
 function renderRecords(){
   setNav('records');
   const lastYr = DB.seasonRange[1];
-  const inEra = y => recordsEra==='all' ? true : recordsEra==='early' ? (y>=2017 && y<=2021) : y>=2022;
-  const eraLabel = recordsEra==='early' ? '2017–2021' : recordsEra==='modern' ? `2022–${lastYr}` : RANGE;
+  const inEra = y => recordsEra==='all' ? true : recordsEra==='early' ? (y>=2016 && y<=2021) : y>=2022;
+  const eraLabel = recordsEra==='early' ? '2016–2021' : recordsEra==='modern' ? `2022–${lastYr}` : RANGE;
   const eraChips = `<div class="chips" role="group" aria-label="Era">
     <button data-era="all" aria-pressed="${recordsEra==='all'}">All Years</button>
-    <button data-era="early" aria-pressed="${recordsEra==='early'}">2017–2021 Era</button>
+    <button data-era="early" aria-pressed="${recordsEra==='early'}">2016–2021 Era</button>
     <button data-era="modern" aria-pressed="${recordsEra==='modern'}">2022–${lastYr} Era</button>
   </div>`;
   const ipfmt = v => ipStr(Math.round(v*3));
@@ -6282,7 +6284,7 @@ function renderChampsPage(){
     ${champsSection()}
     <p class="note">Compiled from the league's championship page
       (<a href="${CHAMP_SRC}" target="_blank" rel="noopener">bwbwiffleball.blogspot.com</a>).
-      Seasons before 2017 predate the stat database; franchise links use the current franchise name where a
+      Seasons before 2016 predate the stat database; franchise links use the current franchise name where a
       team has been renamed (e.g. Brookside Eagles → Brookside Kraken). Scores are the title-game results as recorded.</p>`;
   wireHonors();
 }
@@ -6298,7 +6300,7 @@ function renderAwards(){
   </div>`;
   const note = awardsTab==='asg'
     ? `<p class="note">All-Star history from the league's own ASG records. Names link to a player or
-       franchise page where one exists in the database (2017 on). <span class="cap">C</span> marks an
+       franchise page where one exists in the database (2016 on). <span class="cap">C</span> marks an
        All-Star captain.</p>`
     : awardsTab==='series'
     ? `<p class="note">Player of the Series (one per 3-game regular-season series) and Player of the Week
@@ -6308,9 +6310,9 @@ function renderAwards(){
     : awardsTab==='nwla'
     ? `<p class="note">BWB's placements at the NWLA national tournament, from the league's own record —
        separate from the Brookside Beavers' own tournament trips. Names link to a player or franchise
-       page where one exists in the database (2017 on).</p>`
+       page where one exists in the database (2016 on).</p>`
     : `<p class="note">Annual awards from the league's own award records. Names link to a player or
-       franchise page where one exists in the database (2017 on). World Series champions have their own tab.</p>`;
+       franchise page where one exists in the database (2016 on). World Series champions have their own tab.</p>`;
   const body = awardsTab==='asg' ? asgSection() : awardsTab==='series' ? seriesAwardsSection()
     : awardsTab==='nwla' ? nwlaAwardsSection() : awardsSection();
   app.innerHTML = `
@@ -8183,7 +8185,7 @@ function svpLeagueSeries(post){
     ['HR%', lg=>lg.PA?lg.HR/lg.PA:NaN, pct], ['BB%', lg=>lg.PA?lg.BB/lg.PA:NaN, pct], ['K%', lg=>lg.PA?lg.K/lg.PA:NaN, pct],
     ['ERA', lg=>era(lg), two], ['WHIP', lg=>whip(lg), two], ['K/3', lg=>k9(lg), two],
   ];
-  const years = Object.keys(lgMap).map(Number).filter(y=>lgMap[y].PA>0).sort((a,b)=>a-b);
+  const years = Object.keys(lgMap).map(Number).filter(y=>lgMap[y].PA>0 && SVP_YEARS.includes(y)).sort((a,b)=>a-b);
   return {years, rpg, lgMap, defs, series: defs.map(([lab,fn,fmt])=>({lab, fmt,
     pts: years.map(y=>({y, v: fn(lgMap[y], y)})).filter(p=>isFinite(p.v))}))};
 }
@@ -8362,7 +8364,7 @@ const svpQualPhase = (mode, r, phase) => phase==='Playoffs'
   ? (mode==='bat' ? r.G_bat>=SV_MIN_SHOW_G : r.IPouts>=SV_MIN_SHOW_OUTS) : svpQual(mode, r);
 /* the same two eras the Records tab uses */
 const SVP_ERAS = [
-  {from:2017, to:2021},
+  {from:2016, to:2021},
   {from:2022, to:SVP_YEARS[SVP_YEARS.length-1]},
 ];
 const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
