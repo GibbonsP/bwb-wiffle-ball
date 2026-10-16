@@ -2192,7 +2192,7 @@ function phaseBlock(pl, type){
   }) : cols;
   const seasonCols = [{l:'Season',f:d=>{
     const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
-    return d.year+(d.est?'<span class="estd" title="estimated">†</span>':'')+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
+    return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
   }},{l:'Tm',f:teamCell,noTot:1}];
   const awCol = type==='Regular'
     ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year)}] : [];
