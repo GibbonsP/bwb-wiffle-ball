@@ -1486,6 +1486,36 @@ function nwlaHomeCard(){
       </div>
     </div>`;
 }
+/* Savant on the home page: this season's top hitters (by wRC+) and pitchers (by ERA+) with the same percentile pills
+   the Savant page uses, ranked against that season's qualified field */
+function savantHomeHTML(){
+  if(typeof SVP_YEARS==='undefined' || !SVP_YEARS.length) return '';
+  const y = SVP_YEARS[SVP_YEARS.length-1];
+  const table = (mode, title, labs) => {
+    const metrics = mode==='bat' ? SVP_BAT : SVP_PIT;
+    const qual = svpEntries(y).filter(e=>svpQual(mode, e.row));
+    if(qual.length<3) return '';
+    const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row)).filter(isFinite));
+    const cols = labs.map(l=>metrics.findIndex(m=>m[0]===l));
+    const rows = qual.map(e=>({e, cells: cols.map(i=>{ const [,fn,fmt,low] = metrics[i], v = fn(e.row);
+      return {p: isFinite(v) ? svPct(vals[i], v, low) : null, v, txt: isFinite(v) ? fmt(v) : '—'}; })}))
+      .sort((a,b)=>((b.cells[0].p||0)-(a.cells[0].p||0)) || ((b.cells[0].v||0)-(a.cells[0].v||0))).slice(0,5);
+    const body = rows.map(r=>`<tr><td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
+      <td class="lft svptm">${teamCell(r.e.row)}</td>
+      ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`).join('');
+    return `<h4 class="svph4">${title} · vs ${qual.length} qualified</h4>
+      <div class="tscroll"><table class="detail svptable svphome"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
+      ${cols.map(i=>`<th>${esc(metrics[i][0])}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+  };
+  const hit = table('bat', 'Hitters, by wRC+', ['wRC+','wOBA','OPS+','BB%','K%','HR%']);
+  const pit = table('pit', 'Pitchers, by ERA+', ['ERA+','ERA','WHIP','K/3','K%']);
+  if(!hit && !pit) return '';
+  return `<h3 class="hsub">Savant · ${y} percentile leaders</h3>
+    <p class="smeta">Each pill is a player's percentile among ${y}'s qualified players —
+      <span style="color:${svColor(100)}">red</span> is league-best, <span style="color:${svColor(0)}">blue</span> is trailing — with the number beneath.</p>
+    ${hit}${pit}
+    <p class="note"><button class="pname" data-go="savant">Full Savant rankings, league trends and team graphs →</button></p>`;
+}
 function renderHome(){
   setNav('home');
   const ll=(t,items,fmt,low)=>{
@@ -1643,6 +1673,7 @@ function renderHome(){
       allowfullscreen></iframe></div>`;
 
   const nwlaCard = nwlaHomeCard();
+  const savantHome = savantHomeHTML();
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
@@ -1653,6 +1684,7 @@ function renderHome(){
     ${standingsSnap}
     <h3 class="hsub">${LY} season leaders</h3>
     <div class="llgrid">${yGrid}</div>
+    ${savantHome}
     <h3 class="hsub">Career leaders · regular season</h3>
     <div class="llsliders">${cGrid}</div>
     <h3 class="hsub">Latest games</h3>
