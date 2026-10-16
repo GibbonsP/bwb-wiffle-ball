@@ -900,6 +900,20 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .sparkcard .spv{font-family:"IBM Plex Mono",monospace;font-size:1.05rem;font-weight:600}
 .sparkcard .spv small{color:var(--muted);font-weight:400;font-size:.7rem;margin-left:6px}
 svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
+.nwlacard{display:grid;grid-template-columns:104px 1fr;gap:18px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 24px;box-shadow:var(--shadow)}
+@media(max-width:560px){.nwlacard{grid-template-columns:1fr}.nwlalogo{margin:0 auto}}
+.nwlalogo{width:104px;height:104px;object-fit:contain}
+.nwlameta{margin:0 0 6px;font-size:.95rem;line-height:1.5}
+.nwlameta .trophy{color:var(--gold);vertical-align:-.12em}
+.nwlaphases{display:flex;flex-wrap:wrap;gap:6px 10px;margin:0 0 10px;font-size:.78rem;color:var(--muted)}
+.nwlaphases b{color:var(--ink);font-weight:600}
+.nwlagames{list-style:none;margin:0;padding:0;columns:2 300px;column-gap:18px}
+.nwlagames li{break-inside:avoid;display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem;flex-wrap:wrap}
+.nwlagames .nopp{flex:1;min-width:0}
+.nwlagames .pname{font-size:.78rem;white-space:nowrap}
+.nr{font-family:"IBM Plex Mono",monospace;width:1.1em}
+.nr-W{color:var(--accent)}
+.nr-L{color:var(--clay)}
 .recent{list-style:none;padding:0;margin:0 0 22px;font-size:.88rem}
 .recent li{padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
 .recent li>span{color:var(--muted)}
@@ -1452,6 +1466,30 @@ function cell(v,type,key){
 }
 
 let tickerIdx = 0;
+/* home-page card for the Beavers' most recent NWLA National Tournament trip: result, MVP and every game */
+function nwlaHomeCard(){
+  const list = (typeof BV_LIST!=='undefined' ? BV_LIST : []).slice().sort((a,b)=>(b.meta.date||'').localeCompare(a.meta.date||''));
+  const t = list[0]; if(!t) return '';
+  const m = t.meta, logo = t.eventLogo || t.logo;
+  const phases = [...new Set(t.games.map(g=>g.phase))].map(ph=>{
+    const gs = t.games.filter(g=>g.phase===ph);
+    return `<span class="nwlaph"><b>${esc(ph)}</b> ${gs.filter(g=>g.res==='W').length}–${gs.filter(g=>g.res==='L').length}</span>`;
+  }).join('');
+  const rows = t.games.map(g=>`<li><span class="gtag">${esc(g.phase)}</span>
+      <b class="nr nr-${g.res}">${g.res}</b> <span class="nopp">${g.ha==='H'?'vs':'@'} ${esc(g.opp)}</span>
+      <b class="mono">${g.rf}–${g.ra}</b> <button class="pname" data-bv="${esc(g.gid)}">Box score →</button></li>`).join('');
+  return `<h3 class="hsub">${esc(bvTournamentLabel(t))}</h3>
+    <div class="nwlacard">
+      ${logo ? `<img class="nwlalogo" src="${logo}" alt="">` : ''}
+      <div class="nwlabody">
+        <p class="nwlameta"><button class="pname" data-beavers>Brookside Beavers</button> went <b>${m.record.W}–${m.record.L}</b>
+          at the ${esc(m.event||'tournament')} in ${esc(m.location||'')}${m.dateLabel?` · ${esc(m.dateLabel)}`:''}${m.mvp?` · ${TROPHY} MVP: ${bvName(m.mvp)}`:''}</p>
+        <p class="nwlaphases">${phases}</p>
+        <ul class="nwlagames">${rows}</ul>
+        <p class="note"><button class="pname" data-bvt="${esc(m.date)}">Full tournament page, rosters and stats →</button></p>
+      </div>
+    </div>`;
+}
 function renderHome(){
   setNav('home');
   const ll=(t,items,fmt,low)=>{
@@ -1608,11 +1646,13 @@ function renderHome(){
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       allowfullscreen></iframe></div>`;
 
+  const nwlaCard = nwlaHomeCard();
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
     ${champbar}
     ${bracketSnap}
+    ${nwlaCard}
     ${trailerHTML}
     ${standingsSnap}
     <h3 class="hsub">${LY} season leaders</h3>
@@ -1655,6 +1695,7 @@ function renderHome(){
       if(e.key==='ArrowRight'){ tr.scrollBy({left:w,behavior:'smooth'}); e.preventDefault(); }
       else if(e.key==='ArrowLeft'){ tr.scrollBy({left:-w,behavior:'smooth'}); e.preventDefault(); } });
   });
+  app.querySelectorAll('[data-bvt]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/beavers/t/'+encodeURIComponent(b.dataset.bvt); }));
   app.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/'+b.dataset.go; }));
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
