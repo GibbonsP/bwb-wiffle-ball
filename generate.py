@@ -2209,7 +2209,7 @@ function phaseBlock(pl, type){
     return isFinite(v)?String(v):'—';
   }}];
   const batCols = [...seasonCols,
-    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.est?'—':d.R},
+    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
     {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},
     {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},{l:'HBP',f:d=>d.HBP},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
@@ -2256,7 +2256,7 @@ function phaseBlock(pl, type){
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
-    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, and hits and walks allowed are estimated, and runs, batting strikeouts and games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
+    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, runs, and hits and walks allowed are estimated; batting strikeouts and games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
       Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
 }
 
@@ -4456,7 +4456,7 @@ function rosterBatting(roster, ph, label, weights, photos){
   rows.sort((a,b)=>b.PA-a.PA);
   const cols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.est?'—':d.R},{l:'H',f:d=>d.H},
+    {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
     {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
@@ -5269,9 +5269,7 @@ function renderRecords(){
     let games = [];
     t.years.forEach(y=>{
       const s = t.seasons[y]; if(!s || !inEra(+y)) return;
-      const reg = (s.games||[]).filter(g=>g.phase==='Regular'), off = (s.record||{}).Regular;
-      if(off && off.W+off.L+(off.T||0) > reg.length) return;   // forfeits missing from the list (2016): any streak would be unreliable
-      reg.forEach(g=>games.push(g));
+      (s.games||[]).forEach(g=>{ if(g.phase==='Regular') games.push(g); });
     });
     games = dropForfeitDays(games);
     games.sort((a,b)=>(a.dt||a.date).localeCompare(b.dt||b.date));

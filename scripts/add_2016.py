@@ -32,6 +32,21 @@ pred = {(r['Player'], r['Team']): r for r in csv.DictReader(open('2016_predicted
 rows = [r for r in raw if '/' not in r['Team']]          # one row per player per team
 assert len(rows) == len(pred) == 31
 
+# runs scored were not recorded for 2016: estimate as HR (a home run always scores the hitter) plus a share of
+# the hitter's other times on base, using the midpoint of the 2017 and 2018 league rates of that share
+def _k(year):
+    t = {k: 0 for k in ('R','H','HR','BB','HBP')}
+    for p in P.values():
+        for s in p['seasons']:
+            if s['type']=='Regular' and s['year']==year and not s.get('split') and not s.get('tot') and not s.get('est'):
+                for k in t: t[k] += s[k]
+    return (t['R'] - t['HR']) / (t['H'] - t['HR'] + t['BB'] + t['HBP'])
+K_RUNS = (_k(2017) + _k(2018)) / 2
+_exp = {(r['Player'], r['Team']): num(r['HR']) + K_RUNS * (num(r['H']) - num(r['HR']) + num(r['BB']) + num(r['HBP'])) for r in rows}
+_fl = {k: int(v) for k, v in _exp.items()}
+for k in sorted(_exp, key=lambda k: -(_exp[k] - _fl[k]))[:round(sum(_exp.values())) - sum(_fl.values())]: _fl[k] += 1
+R16 = _fl      # (player, team) -> estimated runs, rounded so the league total is preserved
+
 def season_row(r):
     pr = pred[(r['Player'], r['Team'])]
     GP, AB, H, HR = int(num(r['GP'])), int(num(r['AB'])), int(num(r['H'])), int(num(r['HR']))
@@ -43,7 +58,7 @@ def season_row(r):
     pbb = (c['pBB']/(c['IPouts']/3)) if c and c['IPouts'] else RPBB
     BB, HBP = int(num(r['BB'])), int(num(r['HBP']))
     row = {k: 0 for k in AGG}
-    row.update({'G_bat':GP, 'GS_bat':GP, 'AB':AB, '1B':b1, '2B':b2, '3B':b3, 'HR':HR, 'RBI':int(num(r['RBI'])), 'BB':BB, 'HBP':HBP,
+    row.update({'G_bat':GP, 'GS_bat':GP, 'AB':AB, 'R':R16[(r['Player'], r['Team'])], '1B':b1, '2B':b2, '3B':b3, 'HR':HR, 'RBI':int(num(r['RBI'])), 'BB':BB, 'HBP':HBP,
         'H':H, 'TB':b1 + 2*b2 + 3*b3 + 4*HR, 'PA':AB + BB + HBP,
         'G_pit':(min(GP, max(1, math.ceil(outs/9))) if outs else 0), 'IPouts':outs, 'pR':int(num(r['ER'])), 'ER':int(num(r['ER'])),
         'pH':round(ipn*php), 'pBB':round(ipn*pbb), 'pK':int(num(r['SO'])),
