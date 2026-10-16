@@ -830,6 +830,21 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   padding-left:12px;border-left:5px solid var(--clay)}
 .hsub:first-of-type{margin-top:8px}
 .llgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px;margin-bottom:38px}
+.llsliders{margin-bottom:38px}
+.llslider{margin:0 0 22px;position:relative}
+.llslide-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 9px}
+.llslide-head h4{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.02rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink);font-weight:600}
+.llslide-hint{color:var(--muted);font-size:.72rem;letter-spacing:.03em}
+.lltrack{display:flex;gap:13px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 14px;cursor:grab;
+  scrollbar-width:thin;scrollbar-color:var(--line-strong) var(--line);overscroll-behavior-x:contain;outline-offset:2px}
+.lltrack.drag{cursor:grabbing;scroll-snap-type:none;user-select:none;-webkit-user-select:none}
+.lltrack::-webkit-scrollbar{height:8px}
+.lltrack::-webkit-scrollbar-track{background:var(--line);border-radius:4px}
+.lltrack::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px}
+.lltrack::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+.lltrack .llist{flex:0 0 calc((100% - 39px)/4);min-width:250px;scroll-snap-align:start}
+@media(max-width:560px){.lltrack .llist{flex-basis:84%;min-width:0}}
 .llist{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:12px 13px 14px;
   box-shadow:var(--shadow)}
 .llist h4{margin:0 0 8px;font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
@@ -1457,16 +1472,41 @@ function renderHome(){
   const cReg = f => NAMES.map(n=>({n, v:f(P[n].careerReg)}));
   const cPool = flt => NAMES.map(n=>({n, c:P[n].careerReg})).filter(flt);
   const cRank = (arr, dir) => withTeam(rank(arr, dir), null, true);
-  const cGrid = [
+  /* career leaders as two horizontal sliders (offense / pitching) — each card is one stat's top 7,
+     ordered most to least important */
+  const cOffense = [
     ll('Home runs', cRank(cReg(c=>c.HR), 1), v=>v),
-    ll('RBI', cRank(cReg(c=>c.RBI), 1), v=>v),
     ll('Hits', cRank(cReg(c=>c.H), 1), v=>v),
-    ll('OPS · 150+ PA', cRank(cPool(x=>x.c.PA>=150).map(x=>({n:x.n, v:ops(x.c)})), 1), rate),
+    ll('RBI', cRank(cReg(c=>c.RBI), 1), v=>v),
     ll('Batting average · 150+ AB', cRank(cPool(x=>x.c.AB>=150).map(x=>({n:x.n, v:x.c.H/x.c.AB})), 1), rate),
+    ll('OPS · 150+ PA', cRank(cPool(x=>x.c.PA>=150).map(x=>({n:x.n, v:ops(x.c)})), 1), rate),
+    ll('OPS+ · 150+ PA', cRank(NAMES.filter(n=>P[n].careerReg.PA>=150).map(n=>({n, v:opsPlusFor(P[n].careerReg, careerWeights(P[n], false))})).filter(x=>isFinite(x.v)), 1), v=>v),
+    ll('Runs', cRank(cReg(c=>c.R), 1), v=>v),
+    ll('On-base % · 150+ PA', cRank(cPool(x=>x.c.PA>=150).map(x=>({n:x.n, v:obp(x.c)})), 1), rate),
+    ll('Slugging · 150+ AB', cRank(cPool(x=>x.c.AB>=150).map(x=>({n:x.n, v:slg(x.c)})), 1), rate),
+    ll('Doubles', cRank(cReg(c=>c['2B']), 1), v=>v),
+    ll('Walks', cRank(cReg(c=>c.BB), 1), v=>v),
+    ll('Games played', cRank(cReg(c=>c.G_bat), 1), v=>v),
+  ];
+  const cPitching = [
     ll('Wins', cRank(cReg(c=>c.W), 1), v=>v),
-    ll('Strikeouts', cRank(cReg(c=>c.pK), 1), v=>v),
     ll('ERA · 60+ IP', cRank(cPool(x=>x.c.IPouts>=180).map(x=>({n:x.n, v:era(x.c)})), -1), two, true),
-  ].join('');
+    ll('ERA+ · 60+ IP', cRank(NAMES.filter(n=>P[n].careerReg.IPouts>=180).map(n=>({n, v:eraPlusFor(P[n].careerReg, careerWeightsPit(P[n], false))})).filter(x=>isFinite(x.v)), 1), v=>v),
+    ll('Strikeouts', cRank(cReg(c=>c.pK), 1), v=>v),
+    ll('WHIP · 60+ IP', cRank(cPool(x=>x.c.IPouts>=180).map(x=>({n:x.n, v:whip(x.c)})), -1), two, true),
+    ll('Total no-hitters', cRank(NAMES.map(n=>({n, v:(NOHIT_BY_PITCHER[n]||[]).length})).filter(x=>x.v>0), 1), v=>v),
+    ll('Win % · 20+ decisions', cRank(cPool(x=>x.c.W+x.c.L>=20).map(x=>({n:x.n, v:x.c.W/(x.c.W+x.c.L)})), 1), rate),
+    ll('Innings pitched', cRank(cReg(c=>c.IPouts/3), 1), v=>ipStr(Math.round(v*3))),
+    ll('Strikeouts per 3 IP · 60+ IP', cRank(cPool(x=>x.c.IPouts>=180).map(x=>({n:x.n, v:k9(x.c)})), 1), two),
+    ll('Complete games', cRank(cReg(c=>c.CG), 1), v=>v),
+    ll('Saves', cRank(cReg(c=>c.SV), 1), v=>v),
+    ll('Games started', cRank(cReg(c=>c.GS_pit), 1), v=>v),
+  ];
+  const slider = (id, title, cards) => `<div class="llslider" data-sl="${id}">
+      <div class="llslide-head"><h4>${title}</h4><span class="llslide-hint">Drag or scroll sideways →</span></div>
+      <div class="lltrack" tabindex="0" aria-label="${title} career leaders — scroll sideways">${cards.join('')}</div>
+    </div>`;
+  const cGrid = slider('off','Offense',cOffense) + slider('pit','Pitching',cPitching);
 
   // ---- most recent regular season ----
   const LY = Math.max(...NAMES.flatMap(n=>P[n].seasons.filter(s=>s.type==='Regular').map(s=>s.year)));
@@ -1578,7 +1618,7 @@ function renderHome(){
     <h3 class="hsub">${LY} season leaders</h3>
     <div class="llgrid">${yGrid}</div>
     <h3 class="hsub">Career leaders · regular season</h3>
-    <div class="llgrid">${cGrid}</div>
+    <div class="llsliders">${cGrid}</div>
     <h3 class="hsub">Latest games</h3>
     <ul class="recent">${recent}</ul>
     <h3 class="hsub">Follow BWB Wiffleball</h3>
@@ -1601,6 +1641,20 @@ function renderHome(){
         <span><b>ProWiffleball</b><span>Live stats &amp; box scores</span></span>
       </a>
     </div>`;
+  /* career-leader sliders: scrollbar + click-and-drag with the mouse (like the games ticker at the
+     top); touch and trackpads just use native sideways scrolling */
+  app.querySelectorAll('.lltrack').forEach(tr=>{
+    let down=false, moved=0, startX=0, startL=0;
+    tr.addEventListener('pointerdown', e=>{ if(e.pointerType==='mouse' && e.button===0){ down=true; moved=0; startX=e.clientX; startL=tr.scrollLeft; } });
+    tr.addEventListener('pointermove', e=>{ if(!down) return; const dx=e.clientX-startX; moved=Math.max(moved,Math.abs(dx));
+      if(moved>5) tr.classList.add('drag'); tr.scrollLeft=startL-dx; });
+    const end=()=>{ down=false; tr.classList.remove('drag'); };
+    addEventListener('pointerup', end); tr.addEventListener('pointerleave', end);
+    tr.addEventListener('click', e=>{ if(moved>5){ e.preventDefault(); e.stopPropagation(); moved=0; } }, true);   // a drag isn't a click on a player name
+    tr.addEventListener('keydown', e=>{ const w=(tr.querySelector('.llist')||{offsetWidth:260}).offsetWidth+13;
+      if(e.key==='ArrowRight'){ tr.scrollBy({left:w,behavior:'smooth'}); e.preventDefault(); }
+      else if(e.key==='ArrowLeft'){ tr.scrollBy({left:-w,behavior:'smooth'}); e.preventDefault(); } });
+  });
   app.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/'+b.dataset.go; }));
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
