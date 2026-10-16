@@ -375,6 +375,7 @@ td.awc{font-size:.76rem;font-weight:600;color:var(--accent);letter-spacing:.02em
 .acc-pennant .acc-yr{color:#fff}
 .acc-pennant .acc-star{color:var(--gold);font-size:.72rem;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
 .acc-divlogo{width:22px;height:22px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.acc-divlogo.wide{width:46px;height:22px;filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.4))}   /* white wordmark: the red/blue art vanishes on a same-colour pennant */
 .stand .rk{display:inline-block;min-width:1.6em;color:var(--ink);font-variant-numeric:tabular-nums;
   font-size:.8rem;margin-right:2px}
 /* fixed layout so every division's table sizes its columns the same way —
@@ -389,6 +390,7 @@ table.stand{table-layout:fixed}
 .divh:first-of-type{margin-top:6px}
 .divh .pname.divlink{font:inherit;color:inherit;letter-spacing:inherit}
 .divlogo{height:48px;width:auto}
+.divlogo.wide{height:40px}
 sup.seed{font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:top}
 sup.seed.z{color:var(--accent)}
 sup.seed.x{color:var(--clay)}
@@ -849,6 +851,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
+.llogo-bg.wide,img.llogo.wide{width:auto;aspect-ratio:2.1/1;object-fit:contain}
 .tmcell{display:inline-flex;align-items:center;gap:6px}
 .llogo-sm{width:24px;height:24px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-lg{width:38px;height:38px;object-fit:contain;flex:none;border-radius:7px;vertical-align:middle}
@@ -936,6 +939,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .tlogo{width:92px;height:92px;border-radius:14px;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:14px;background:var(--card)}
 .thero .tlogo{background:rgba(255,255,255,.15)}
+.tlogo.wide{width:auto;height:64px;max-width:44vw;object-fit:contain;border-radius:0;box-shadow:none;background:none;margin-right:16px}
 .logohist{margin:0 0 22px}
 .logohist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .logohist-row{display:flex;gap:12px;flex-wrap:wrap}
@@ -3328,9 +3332,12 @@ const LOGO_CLASS = new Map();
    logo might repeat many times on one page; identical markup/behavior
    (same class list, same alt text via aria-label) for anything that reads
    the class off the element, just backed by CSS instead of a raw src. */
+/* the North/South division wordmarks are ~2:1 rather than square — flag them so
+   every logo slot lets them run wider instead of shrinking them to a 26px box */
+const WIDE_LOGOS = new Set(['North','South'].map(k=>(DB.divisionLogos||{})[k]).filter(Boolean));
 function logoIcon(uri, alt, cls){
   if(!uri) return '';
-  cls = cls || 'llogo';
+  cls = (cls || 'llogo') + (WIDE_LOGOS.has(uri) ? ' wide' : '');
   const lc = LOGO_CLASS.get(uri);
   return lc ? `<span class="${cls} llogo-bg ${lc}" role="img" aria-label="${esc(alt||'')}"></span>`
     : `<img class="${cls}" src="${uri}" alt="${esc(alt||'')}">`;
@@ -3945,7 +3952,7 @@ function renderStandings(){
       const dlogo = (DB.divisionLogos||{})[dn];
       const isDiv = /^(North|South|Brookside|Brentwood)$/.test(dn);
       const dnLabel = `${esc(dn)}${isDiv?' Division':''}`;
-      return `<h4 class="divh">${dlogo?`<img class="divlogo" src="${dlogo}" alt="">`:''}${
+      return `<h4 class="divh">${dlogo?`<img class="divlogo${/^(North|South)$/.test(dn)?' wide':''}" src="${dlogo}" alt="${esc(dn)} Division">`:''}${
         isDiv ? `<button type="button" class="pname divlink" data-div="${esc(canonicalDivision(dn))}">${dnLabel}</button>` : dnLabel}</h4>
         <div class="tscroll"><table class="dir stand">${thead}
         <tbody>${drows.map((r,i)=>trow(r,i,gb,mk[r.name])).join('')}</tbody></table></div>`;
@@ -4215,13 +4222,15 @@ function renderDivision(canonical){
       <th class="lft">Team</th><th>Seasons</th><th class="lft">Years</th></tr></thead>
     <tbody>${memberRows}</tbody></table></div>`;
 
-  const dlogo = (DB.divisionLogos||{})[canonical];
+  const dlogoKey = divisionEraName(canonical, divYear);
+  const dlogo = (DB.divisionLogos||{})[dlogoKey] || (DB.divisionLogos||{})[canonical];
+  const dwide = /^(North|South)$/.test(dlogoKey) && (DB.divisionLogos||{})[dlogoKey];
   const oldName = canonical==='Brookside' ? 'North' : 'South';
   const hadOldName = years.some(y=>y<2021);
 
   app.innerHTML = `
     <button class="back" id="back">← Standings</button>
-    <div class="phead"><div class="hero-row">${dlogo?`<img class="tlogo" src="${dlogo}" alt="">`:''}<h2>${esc(canonical)} Division</h2></div>
+    <div class="phead"><div class="hero-row">${dlogo?`<img class="tlogo${dwide?' wide':''}" src="${dlogo}" alt="${esc(dlogoKey)} Division">`:''}<h2>${esc(canonical)} Division</h2></div>
     <span class="yrs">${years[0]}–${years[years.length-1]}${hadOldName?` · known as the ${oldName} Division through 2020`:''}</span></div>
     ${chips}
     ${standTable}
@@ -4930,13 +4939,13 @@ function teamAccolades(name){
     `<div class="acc-trophy">${TROPHY3}<span class="acc-yr">${y}</span></div>`).join('')}</div>`;
   /* titles (flat team color) vs pennants (two-tone franchise gradient) are
      the same downward-pennant shape but styled distinctly. Each shows its
-     division's logo when one is on file (Brookside/Brentwood, 2021 on) —
-     North/South (2017–2020) have none uploaded yet, so those fall back to
-     a plain pennant (still starred, for pennants, as the fallback marker) */
+     division's logo when one is on file (North/South wordmarks through 2020,
+     Brookside/Brentwood from 2021); a division with no logo falls back to a
+     plain pennant (still starred, for pennants, as the fallback marker) */
   const pennants = (entries, cls) => `<div class="acc-grid">${entries.map(e=>{
     const logo = e.div && (DB.divisionLogos||{})[e.div];
     const star = (!logo && cls==='pennant') ? '<span class="acc-star">★</span>' : '';
-    const inner = `${logo?`<img class="acc-divlogo" src="${logo}" alt="${esc(e.div)}">`:''}${star}<span class="acc-yr">${e.year}</span>`;
+    const inner = `${logo?`<img class="acc-divlogo${/^(North|South)$/.test(e.div)?' wide':''}" src="${logo}" alt="${esc(e.div)}">`:''}${star}<span class="acc-yr">${e.year}</span>`;
     return e.div
       ? `<button type="button" class="acc-pennant ${cls}" data-div="${esc(canonicalDivision(e.div))}">${inner}</button>`
       : `<div class="acc-pennant ${cls}">${inner}</div>`;
