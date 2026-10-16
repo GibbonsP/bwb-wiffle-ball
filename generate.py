@@ -1431,7 +1431,7 @@ function renderHome(){
     const w = svBarW(items, low);
     return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>{
       const logo = logoIcon(it.logo2 || it.logo, '');
-      return `<li style="--w:${w(it.v).toFixed(1)}%">${logo}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
+      return `<li style="--w:${w(it.v).toFixed(1)}%">${llHead(it.n)}${logo}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
         it.tm?`<span class="lt">${it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`;
     }).join('')}</ol></div>`;
   };
