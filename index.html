@@ -156,6 +156,11 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   font-size:clamp(1.8rem,5.4vw,2.8rem);color:inherit;position:relative}
 .thero .tsub{margin:5px 0 0;font-size:.85rem;letter-spacing:.03em;opacity:.9;position:relative}
 .thero .tsub b{font-weight:700}
+.tsocial{position:absolute;top:16px;right:18px;display:flex;gap:8px;z-index:1}
+.tsocial a{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;
+  color:inherit;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);transition:background .15s}
+.tsocial a:hover{background:rgba(255,255,255,.3)}
+@media(max-width:520px){.tsocial{position:relative;top:auto;right:auto;margin-top:12px}.tsocial a{width:34px;height:34px}}
 .clubdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px;
   vertical-align:middle;background:var(--cd,var(--line-strong))}
 .stlogo{width:44px;height:44px;object-fit:contain;margin-right:9px;vertical-align:middle}
@@ -4941,6 +4946,22 @@ function teamAccolades(name){
     ${hasAwards ? `<button class="pname" data-tawards="${esc(name)}">Awards →</button>` : ''}
   </section>`;
 }
+/* team social links shown as icons in the team page header — keyed by franchise
+   name; add {ig, yt} for any club that has its own accounts */
+const TEAM_SOCIAL = {
+  'Brookside Panthers': { ig:'https://www.instagram.com/bwbpanthers/', yt:'https://www.youtube.com/@BWBPanthers' },
+};
+function teamSocialIcons(name){
+  const so = TEAM_SOCIAL[name]; if(!so) return '';
+  const ig = so.ig ? `<a href="${esc(so.ig)}" target="_blank" rel="noopener" aria-label="${esc(name)} on Instagram">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.3"/>
+        <circle cx="17.4" cy="6.6" r="1.15" fill="currentColor" stroke="none"/></svg></a>` : '';
+  const yt = so.yt ? `<a href="${esc(so.yt)}" target="_blank" rel="noopener" aria-label="${esc(name)} on YouTube">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="2" y="5" width="20" height="14" rx="4.5"/><path d="M10 9.2v5.6l5.1-2.8z" fill="currentColor" stroke="none"/></svg></a>` : '';
+  return `<div class="tsocial">${ig}${yt}</div>`;
+}
 function teamDetail(name){
   const t = TEAMS[name];
   if(!t){
@@ -4963,6 +4984,7 @@ function teamDetail(name){
       <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
       <p class="tsub"><b>${fr.W}–${fr.L}</b> regular · ${t.years.length} season${t.years.length>1?'s':''}
         · ${t.firstYear}–${t.lastYear}${t.aka&&t.aka.length?` · aka ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}`:''}</p>
+      ${teamSocialIcons(name)}
     </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
       <span class="yrs">${t.years.length} season${t.years.length>1?'s':''} · ${t.firstYear}–${t.lastYear}
       · ${fr.W}–${fr.L} regular (${rate(g?fr.W/g:NaN)})</span></div>
