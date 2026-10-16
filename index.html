@@ -95,6 +95,9 @@ header.mast{background:var(--brandbar)}
   border-radius:10px;background:var(--card);color:var(--ink);font-size:.95rem}
 .search input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
+.aday{display:inline-flex;align-items:center;gap:8px;margin:6px 0 0 12px;font-size:.75rem;color:var(--muted);vertical-align:middle}
+.aday select{padding:9px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;max-width:100%}
+.aday.on select{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent);font-weight:600}
 .segs{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
 .segs button{padding:10px 15px;background:var(--card);border:0;font-size:.75rem;
   letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -7291,9 +7294,36 @@ function pickGrid(rng){
   return {rows: pool.slice(0,3), cols: pool.slice(3,6)};  // pathological fallback, never hit in practice
 }
 function newPracticeGrid(){ const {rows, cols} = pickGrid(Math.random); return {rows, cols, answers:{}}; }
-function gridDailyKey(){
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/* every daily puzzle (Grid, Stat Pad, 15-0, Guess the Player) is seeded by its date key, so any past
+   day's puzzle can be rebuilt on demand. arcadeDay is the day currently being played across all four
+   games — null means today's — and each day keeps its own saved progress under the same storage key. */
+const ARCADE_LAUNCH = '2026-09-19';
+let arcadeDay = null;
+const arcadeDateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const arcadeTodayKey = () => arcadeDateKey(new Date());
+function gridDailyKey(){ return arcadeDay || arcadeTodayKey(); }
+const arcadeIsToday = key => key === arcadeTodayKey();
+function arcadePastDays(){
+  const out = [], d = new Date(); d.setHours(12,0,0,0);
+  for(;;){ d.setDate(d.getDate()-1); const k = arcadeDateKey(d); if(k < ARCADE_LAUNCH) break; out.push(k); }
+  return out;
+}
+const arcadeDayLabel = key => new Date(key+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+/* "Past days" picker shown beside each game's Today/Practice switch; a ● marks days that already have
+   saved progress in that game. storagePrefix is that game's own localStorage prefix. */
+function arcadeDayPicker(storagePrefix){
+  const days = arcadePastDays(); if(!days.length) return '';
+  const played = k => { try{ return !!localStorage.getItem(storagePrefix+k); }catch(e){ return false; } };
+  return `<label class="aday${arcadeDay?' on':''}"><span>Past days</span>
+    <select data-aday aria-label="Play a puzzle from a previous day">
+      <option value="">Pick a day…</option>
+      ${days.map(k=>`<option value="${k}"${arcadeDay===k?' selected':''}>${arcadeDayLabel(k)}${played(k)?' ●':''}</option>`).join('')}
+    </select></label>`;
+}
+function wireArcadeDayPicker(apply){
+  app.querySelectorAll('[data-aday]').forEach(sel=>sel.addEventListener('change',()=>{
+    arcadeDay = sel.value || null; apply();
+  }));
 }
 let gridMode = 'daily', gridDaily = null, gridPractice = null, gridActiveCell = null, gridError = null;
 function getDailyGrid(){
@@ -7421,15 +7451,15 @@ function renderGrid(){
   }).join('');
   const topRow = `<tr><th class="gcorner"></th>${puzzle.cols.map(cc=>`<th class="gtop">${gridHeadHTML(cc)}</th>`).join('')}</tr>`;
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${gridMode==='daily'?`Today's Grid · ${puzzle.key}`:'Practice Grid'}</span></div>
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${gridMode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Grid":'Grid'} · ${puzzle.key}`:'Practice Grid'}</span></div>
     ${arcadeTabBar('grid')}
     <p class="lead">Every square needs one BWB Wiffleball player who fits <b>both</b> its row and column category —
       one guess per square, right or wrong. Landing a square shows how many players in league history actually
       qualify for it; fewer means you found a rarer answer.</p>
     <div class="segs" role="group" aria-label="Grid mode">
-      <button data-gm="daily" aria-pressed="${gridMode==='daily'}">Today's Grid</button>
+      <button data-gm="daily" aria-pressed="${gridMode==='daily' && !arcadeDay}">Today's Grid</button>
       <button data-gm="practice" aria-pressed="${gridMode==='practice'}">Practice Grid</button>
-    </div>
+    </div>${arcadeDayPicker('bwb-grid-')}
     ${gridMode==='practice'?'<p class="note"><button class="pname" id="gridShuffle">Shuffle a new practice grid →</button></p>':''}
     <div class="gscoreboard">${solved} / 9 correct${attempted>solved?` · ${attempted-solved} missed`:''}</div>
     <div class="tscroll"><table class="gtable"><thead>${topRow}</thead><tbody>${rowsHTML}</tbody></table></div>
@@ -7443,8 +7473,10 @@ function renderGrid(){
 }
 function wireGrid(){
   wireArcadeTabBar();
+  wireArcadeDayPicker(()=>{ gridMode='daily'; gridActiveCell=null; gridError=null; renderGrid(); });
   app.querySelectorAll('[data-gm]').forEach(b=>b.addEventListener('click',()=>{
     gridMode = b.dataset.gm; gridActiveCell = null; gridError = null;
+    if(gridMode==='daily') arcadeDay = null;
     if(gridMode==='practice' && !gridPractice) gridPractice = newPracticeGrid();
     renderGrid();
   }));
@@ -7754,16 +7786,16 @@ function renderStatpad(){
   const rowsHTML = puzzle.rows.map((_,ri)=>statpadRowHTML(puzzle, ri)).join('');
   const revealHTML = done ? statpadRevealHTML(puzzle) : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${statpadMode==='daily'?`Today's Pad · ${puzzle.key}`:'Practice Pad'}</span></div>
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${statpadMode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Pad":'Pad'} · ${puzzle.key}`:'Practice Pad'}</span></div>
     ${arcadeTabBar('statpad')}
     <p class="lead">Target stat: <b>${esc(meta.label)}</b>, single season. Submit one player — and the year — per
       row that meets its requirements: a "career" tag means true anytime in their career, a "that season" tag
       means it has to hold in the year you submit. Your score for a row is that player's real ${esc(meta.label)}
       total in the year you pick, so the goal is finding the <i>best</i> valid year, not just any valid one.</p>
     <div class="segs" role="group" aria-label="Stat Pad mode">
-      <button data-spm="daily" aria-pressed="${statpadMode==='daily'}">Today's Pad</button>
+      <button data-spm="daily" aria-pressed="${statpadMode==='daily' && !arcadeDay}">Today's Pad</button>
       <button data-spm="practice" aria-pressed="${statpadMode==='practice'}">Practice Pad</button>
-    </div>
+    </div>${arcadeDayPicker('bwb-statpad-')}
     ${statpadMode==='practice'?'<p class="note"><button class="pname" id="statpadShuffle">Shuffle a new practice pad →</button></p>':''}
     <div class="gscoreboard">${total} total ${esc(meta.label)} · ${filled}/5 rows filled · ${puzzle.guesses||0} guess${puzzle.guesses===1?'':'es'}</div>
     <div class="statpad">${rowsHTML}</div>
@@ -7783,8 +7815,10 @@ function renderStatpad(){
 }
 function wireStatpad(){
   wireArcadeTabBar();
+  wireArcadeDayPicker(()=>{ statpadMode='daily'; statpadReopenRow=null; statpadErrorRow=null; renderStatpad(); });
   app.querySelectorAll('[data-spm]').forEach(b=>b.addEventListener('click',()=>{
     statpadMode = b.dataset.spm; statpadReopenRow=null; statpadErrorRow=null;
+    if(statpadMode==='daily') arcadeDay = null;
     if(statpadMode==='practice' && !statpadPractice) statpadPractice = newPracticeStatpad();
     renderStatpad();
   }));
@@ -8213,7 +8247,7 @@ function renderB0(){
   const lockGateHTML = (draftDone && !puzzle.locked)
     ? '<p class="note"><button type="button" class="pname" id="b0Lock">Lock in this team →</button></p>' : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${b0Mode==='daily'?`Today's Draft · ${puzzle.key}`:'Practice Draft'}</span></div>
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${b0Mode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Draft":'Draft'} · ${puzzle.key}`:'Practice Draft'}</span></div>
     ${arcadeTabBar('b0')}
     <p class="lead">Five rounds, one real BWB team-and-year dealt each round — draft exactly one player from that
       season's actual roster before moving to the next round (no player twice, even in a different year). Two of
@@ -8222,9 +8256,9 @@ function renderB0(){
       they still hit for you too. No budget, no cap — every player's a free pick; the ${B0_GAMES}-game simulation
       is where the real difficulty lives. Lock in once all 5 are drafted to chase a perfect ${B0_GAMES}-0.</p>
     <div class="segs" role="group" aria-label="15-0 mode">
-      <button data-b0m="daily" aria-pressed="${b0Mode==='daily'}">Today's Draft</button>
+      <button data-b0m="daily" aria-pressed="${b0Mode==='daily' && !arcadeDay}">Today's Draft</button>
       <button data-b0m="practice" aria-pressed="${b0Mode==='practice'}">Practice Draft</button>
-    </div>
+    </div>${arcadeDayPicker('bwb-b0v7-')}
     ${b0Mode==='practice'?'<p class="note"><button class="pname" id="b0Shuffle">Deal a new practice draft →</button></p>':''}
     <div class="segs" role="group" aria-label="Stat visibility">
       <button data-b0v="show" aria-pressed="${b0ShowStats}">Draft — stats shown</button>
@@ -8239,8 +8273,10 @@ function renderB0(){
 }
 function wireB0(){
   wireArcadeTabBar();
+  wireArcadeDayPicker(()=>{ b0Mode='daily'; renderB0(); });
   app.querySelectorAll('[data-b0m]').forEach(b=>b.addEventListener('click',()=>{
     b0Mode = b.dataset.b0m;
+    if(b0Mode==='daily') arcadeDay = null;
     if(b0Mode==='practice' && !b0Practice) b0Practice = newPracticeB0();
     renderB0();
   }));
@@ -9581,14 +9617,14 @@ function renderGuess(){
     </div>
     ${guessMode==='daily' ? shareResultButton('guessShare') : ''}` : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${guessMode==='daily'?`Today's Player · ${pz.key}`:'Practice Player'}</span></div>
+    <div class="phead"><h2>Arcade</h2><span class="yrs">${guessMode==='daily'?`${arcadeIsToday(pz.key)?"Today's Player":'Player'} · ${pz.key}`:'Practice Player'}</span></div>
     ${arcadeTabBar('guess')}
     <p class="lead">Guess the mystery BWB player. You start with one hint; every wrong guess unlocks a more revealing
       one, down to a near giveaway on the fifth. Fewer hints is a better score.</p>
     <div class="segs" role="group" aria-label="Guess the Player mode">
-      <button data-gpm="daily" aria-pressed="${guessMode==='daily'}">Today's Player</button>
+      <button data-gpm="daily" aria-pressed="${guessMode==='daily' && !arcadeDay}">Today's Player</button>
       <button data-gpm="practice" aria-pressed="${guessMode==='practice'}">Practice</button>
-    </div>
+    </div>${arcadeDayPicker('bwb-guess-')}
     ${guessMode==='practice' && done ? '<p class="note"><button class="pname" id="guessAgain">Play another player →</button></p>' : ''}
     <div class="gscoreboard">${done ? (solved?'Solved':'Not this time') : `Hint ${shown} of ${GUESS_MAX}`}${pz.guesses.length&&!solved?` · ${pz.guesses.length} miss${pz.guesses.length===1?'':'es'}`:''}</div>
     <div class="gplay">${photo}<ol class="ghints">${hintHTML}</ol></div>
@@ -9599,8 +9635,10 @@ function renderGuess(){
       for the Savant rankings. Hints come straight from the player's real record.</p>`;
   wireArcadeTabBar();
   wirePlayerLinks();
+  wireArcadeDayPicker(()=>{ guessMode='daily'; guessError=null; renderGuess(); });
   app.querySelectorAll('[data-gpm]').forEach(b=>b.addEventListener('click',()=>{
     guessMode = b.dataset.gpm; guessError = null;
+    if(guessMode==='daily') arcadeDay = null;
     if(guessMode==='practice' && !guessPractice) guessPractice = newGuessPuzzle(Math.random, 'practice');
     renderGuess();
   }));
