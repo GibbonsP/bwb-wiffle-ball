@@ -2308,7 +2308,13 @@ const SV_PIT = [
 /* 2016 has no pitching hits or walks allowed — they're extrapolated from each pitcher's own later rates — so
    anything built on them (WHIP, walks and strikeouts per batter, opponent average) would just rank the
    extrapolation itself. Those stay blank for estimated seasons; ERA, ERA+ and K/3 are real and still rank. */
-['WHIP','BB/3','K%','BB%','K-BB%','OPP AVG'].forEach(lab=>{ const m = SV_PIT.find(x=>x[0]===lab); const f = m[1]; m[1] = c=>c.est ? NaN : f(c); });
+const SV_BF_RATIO = (()=>{                       // batters faced per out, league-wide (midpoint of 2017 and 2018)
+  const r = y => { const l = LEAGUE_BY_YEAR[y]; return l && l.IPouts ? (l.IPouts + l.pH + l.pBB + l.pHB)/l.IPouts : 0; };
+  return (r(2017) + r(2018)) / 2;
+})();
+{ const m = SV_PIT.find(x=>x[0]==='K%'); const f = m[1];
+  m[1] = c=>c.est ? (c.IPouts ? c.pK/(c.IPouts*SV_BF_RATIO) : NaN) : f(c); }   // 2016: strikeouts per estimated batter faced
+['WHIP','BB/3','BB%','K-BB%','OPP AVG'].forEach(lab=>{ const m = SV_PIT.find(x=>x[0]===lab); const f = m[1]; m[1] = c=>c.est ? NaN : f(c); });
 /* one non-split Regular row per year for a player */
 function svRegRow(pl, y){
   return pl.seasons.find(s=>s.type==='Regular' && !s.split && s.year===y) || null;
@@ -8166,7 +8172,7 @@ function renderSavantPct(){
       Each pill is the player's percentile among that field in that stat —
       <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing —
       with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better.
-      Click a column to sort.${SVP_EST_YEARS.has(svpYear)?` <b>${svpYear}</b> has no box scores: its doubles, triples, runs and strikeouts are estimated, and the stats built on pitching hits and walks allowed (WHIP, K% and BB% against, opponent average) aren't ranked.`:''}</p>
+      Click a column to sort.${SVP_EST_YEARS.has(svpYear)?` <b>${svpYear}</b> has no box scores: its doubles, triples, runs and strikeouts are estimated, and the stats built on pitching hits and walks allowed (WHIP, BB% against, K-BB%, opponent average) aren't ranked, and K% uses the league's typical batters faced per out.`:''}</p>
     ${t.n ? t.html : '<p class="empty">No qualified players that year.</p>'}`);
   app.querySelectorAll('[data-svpy]').forEach(b=>b.addEventListener('click',()=>{ svpYear = +b.dataset.svpy; renderSavantPct(); }));
   app.querySelectorAll('[data-svpm]').forEach(b=>b.addEventListener('click',()=>{ svpMode = b.dataset.svpm; renderSavantPct(); }));
@@ -8178,7 +8184,7 @@ function renderSavantPct(){
 }
 
 /* ------------------------------ league trends ------------------------------ */
-const svpIsForfeit = g => !g.away.bat.length && !g.home.bat.length && !(g.away.pit||[]).length && !(g.home.pit||[]).length;
+const svpIsForfeit = g => !g.noBox && !g.away.bat.length && !g.home.bat.length && !(g.away.pit||[]).length && !(g.home.pit||[]).length;
 function svpLeagueSeries(post){
   const lgMap = post ? LEAGUE_BY_YEAR_POST : LEAGUE_BY_YEAR;
   const rpg = {};
@@ -8809,16 +8815,17 @@ function wireTeamViews(){
     location.hash = '#/savant/teams'+v[2];
   }));
 }
-function svpYearsFor(sel){
-  const v = String(sel);
-  return v==='all' ? SVP_FULL_YEARS
-    : v[0]==='e' ? SVP_FULL_YEARS.filter(y=>y>=SVP_ERAS[+v.slice(1)].from && y<=SVP_ERAS[+v.slice(1)].to) : [+v];
+function svpYearsFor(sel, pool){
+  const v = String(sel); pool = pool || SVP_FULL_YEARS;
+  return v==='all' ? pool
+    : v[0]==='e' ? pool.filter(y=>y>=SVP_ERAS[+v.slice(1)].from && y<=SVP_ERAS[+v.slice(1)].to) : [+v];
 }
-function svpYearOptions(sel){
+function svpYearOptions(sel, pool){
+  pool = pool || SVP_FULL_YEARS;
   const eraOpt = (e,i) => `<option value="e${i}"${String(sel)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
   return `<option value="all"${sel==='all'?' selected':''}>All seasons</option>`
     + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
-    + `<optgroup label="Single season">${SVP_FULL_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+    + `<optgroup label="Single season">${pool.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
 }
 
 /* one row per franchise-season: scoring relative to that year's league, and Pythagenpat expected wins */
@@ -8827,27 +8834,29 @@ function svpTeamSeasons(){
   TEAMNAMES.forEach(t=>Object.entries(TEAMS[t].seasons).forEach(([y,s])=>{
     const r = s.record && s.record.Regular; if(!r) return;
     const G = r.W + r.L + (r.T||0); if(!G) return;
-    rows.push({team:t, year:+y, G, W:r.W, L:r.L, T:r.T||0, RF:r.RF, RA:r.RA});
-    const a = lg[y] || (lg[y] = {RF:0, G:0}); a.RF += r.RF; a.G += G;
+    const Gs = (s.games||[]).filter(g=>g.phase==='Regular').length || G;      // games with a recorded score
+    const regG = (s.games||[]).filter(g=>g.phase==='Regular');
+    rows.push({team:t, year:+y, G, Gs, Ws:regG.filter(g=>g.res==='W').length, Ts:regG.filter(g=>g.res==='T').length, W:r.W, L:r.L, T:r.T||0, RF:r.RF, RA:r.RA});
+    const a = lg[y] || (lg[y] = {RF:0, G:0}); a.RF += r.RF; a.G += Gs;
   }));
   rows.forEach(r=>{
     const l = lg[r.year].RF / lg[r.year].G;                       // league runs per team-game that year
-    const e = Math.pow((r.RF+r.RA)/r.G, 0.287);                   // Pythagenpat exponent — scoring here swings 2.7x across years
+    const e = Math.pow((r.RF+r.RA)/r.Gs, 0.287);                   // Pythagenpat exponent — scoring here swings 2.7x across years
     const py = (r.RF===0 && r.RA===0) ? 0.5 : Math.pow(r.RF,e)/(Math.pow(r.RF,e)+Math.pow(r.RA,e));
-    r.off = (r.RF/r.G)/l - 1;                                     // + = scored more than the league average
-    r.def = 1 - (r.RA/r.G)/l;                                     // + = allowed fewer than the league average
-    r.aW = r.W + 0.5*r.T; r.expW = py*r.G;
+    r.off = (r.RF/r.Gs)/l - 1;                                     // + = scored more than the league average
+    r.def = 1 - (r.RA/r.Gs)/l;                                     // + = allowed fewer than the league average
+    r.aW = r.Gs===r.G ? r.W + 0.5*r.T : r.Ws + 0.5*r.Ts; r.expW = py*r.Gs;
   });
   return rows;
 }
 function svpTeamAgg(sel, split){
-  const years = svpYearsFor(sel), rows = svpTeamSeasons().filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
+  const years = svpYearsFor(sel, SVP_YEARS), rows = svpTeamSeasons().filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
   const mk = list => {
     const G = list.reduce((s,a)=>s+a.G,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
     const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+a[k]*a.G,0)/G;
-    return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), G, W:sum('W'), L:sum('L'), T:sum('T'),
+    return {team:last.team, year:last.year, years:list.map(a=>a.year).sort((a,b)=>a-b), G, Gs:sum('Gs'), W:sum('W'), L:sum('L'), T:sum('T'),
       RF:sum('RF'), RA:sum('RA'), off:wt('off'), def:wt('def'), aW:sum('aW'), expW:sum('expW'),
-      win:sum('aW')/G, exp:sum('expW')/G, luck:sum('aW')-sum('expW')};
+      win:sum('aW')/sum('Gs'), exp:sum('expW')/sum('Gs'), luck:sum('aW')-sum('expW')};
   };
   if(split || svpTmTeam || svpTmGroup || years.length===1) return rows.map(a=>mk([a]));
   const by = {}; rows.forEach(a=>(by[a.team] = by[a.team] || []).push(a));
@@ -8907,7 +8916,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
   svpShell('teams', `
     ${svpTeamViews(view)}
     <div class="svpform">
-      <label>Season / era <select id="txYear">${svpYearOptions(st.year)}</select></label>
+      <label>Season / era <select id="txYear">${svpYearOptions(st.year, aggFn ? SVP_FULL_YEARS : SVP_YEARS)}</select></label>
       <label>Highlight <select id="txHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===st.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('txTeam', names)}
       ${svpGroupSelectHTML('txGroup')}
@@ -8971,7 +8980,7 @@ function renderSavantOffense(){
       <div class="tt-s">${p.W}–${p.L}${p.T?'–'+p.T:''} · ${p.RF} RF, ${p.RA} RA</div>
       <div class="tt-r"><span>Scoring</span><b>${svpPctS(p.off,1)}</b></div>
       <div class="tt-r"><span>Run prevention</span><b>${svpPctS(p.def,1)}</b></div>
-      <div class="tt-s tt-l">${(p.RF/p.G).toFixed(1)} scored · ${(p.RA/p.G).toFixed(1)} allowed per game</div>`,
+      <div class="tt-s tt-l">${(p.RF/p.Gs).toFixed(1)} scored · ${(p.RA/p.Gs).toFixed(1)} allowed per game</div>`,
     p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — scores ${svpPctS(p.off,0)} vs the league, allows ${Math.abs(p.def*100).toFixed(0)}% ${p.def>=0?'fewer':'more'} runs`,
     `Each dot is measured against the rest of the league <i>that same season</i>, so scoring eras don't blur it: <b>right</b> means the team scored more
       runs per game than the league average, <b>up</b> means it allowed fewer. Dots above the diagonal are carried by their pitching and defense, dots below it by their bats.
@@ -8993,7 +9002,7 @@ function renderSavantLuck(){
     p => `<b>${esc(histName(p.team, p.year))}</b> ${spanOf(p)} — ${(p.win*100).toFixed(1)}% actual vs ${(p.exp*100).toFixed(1)}% expected (${p.luck>=0?'+':'−'}${Math.abs(p.luck).toFixed(1)} wins)`,
     `Expected win % comes from each team's runs scored and allowed (Pythagenpat, tuned to this league's scoring level). On the diagonal, a team's record matched
       its runs. <b>Above</b> it, a team won more than its run differential says it should have (close-game luck, a lucky bullpen or timely hitting); <b>below</b>, it deserved better.
-      Luck is not a skill — a lucky team tends to slip back the next season.`,
+      Luck is not a skill — a lucky team tends to slip back the next season. 2016's game list is missing its forfeits, so its luck uses only the games with a recorded score.`,
     pts => {
       const list = pts.slice().sort((a,b)=>b.luck-a.luck);
       if(list.length<4) return '';
