@@ -4104,7 +4104,7 @@ function renderDivision(canonical){
       <span class="asgr">
         ${result?`<span class="res-${result}">${result}</span>`:''}
         ${scoreMatch?`<b>${esc(scoreMatch[0])}</b>`:''}
-        ${gid?`<button class="pname" data-g="${gid}">box score →</button>`:''}
+        ${gid?`<button class="pname" data-g="${gid}">${GAMES[gid].noBox?'final score':'box score'} →</button>`:''}
       </span>
     </li>`;
   }).join('');
@@ -6165,7 +6165,7 @@ function asgSection(){
     if(a.mvp && a.mvp!=='N/A') meta.push(`<b>MVP:</b> ${plink(a.mvp)}`);
     if(a.hrd && a.hrd!=='N/A') meta.push(`<b>HR Derby:</b> ${plink(a.hrd)}`);
     if(a.series) meta.push(`<b>Series:</b> ${esc(a.series)}`);
-    if(gid) meta.push(`<button class="pname" data-g="${gid}">box score →</button>`);
+    if(gid) meta.push(`<button class="pname" data-g="${gid}">${GAMES[gid].noBox?'final score':'box score'} →</button>`);
     return `<div class="asgyear">
       <h4>${y} All-Star Game</h4>
       <div class="asg2">${sq(a.squads[0])}${sq(a.squads[1])}</div>
