@@ -1482,8 +1482,8 @@ function nwlaHomeCard(){
     <div class="nwlacard">
       <div class="nwlalogos">${bvLogo ? `<img class="nwlalogo nwlabv" src="${bvLogo}" alt="Brookside Beavers">` : ''}${logo ? `<img class="nwlalogo" src="${logo}" alt="">` : ''}</div>
       <div class="nwlabody">
-        <p class="nwlameta"><button class="pname" data-beavers>Brookside Beavers</button> went <b>${m.record.W}–${m.record.L}</b>
-          at the ${esc(m.event||'tournament')} in ${esc(m.location||'')}${m.dateLabel?` · ${esc(m.dateLabel)}`:''}${m.mvp?` · ${TROPHY} MVP: ${bvName(m.mvp)}`:''}</p>
+        <p class="nwlameta"><button class="pname" data-beavers>Brookside Beavers</button> · <b>${m.record.W}–${m.record.L}</b>
+          · ${esc(m.event||'Tournament')}${m.location?` · ${esc(m.location)}`:''}${m.dateLabel?` · ${esc(m.dateLabel)}`:''}${m.mvp?` · ${TROPHY} MVP: ${bvName(m.mvp)}`:''}</p>
         <p class="nwlaphases">${phases}</p>
         <ul class="nwlagames">${rows}</ul>
         <p class="note"><button class="pname" data-bvt="${esc(m.date)}">Full tournament page, rosters and stats →</button></p>
