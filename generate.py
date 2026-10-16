@@ -786,6 +786,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   font-size:clamp(1.3rem,3.2vw,1.9rem);line-height:1.15}
 .herocap p{margin:0;font-size:.85rem;color:rgba(255,255,255,.75)}
 .herocap .pname{color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.herocap .herosep{opacity:.6}
 .hometicker{position:relative}
 .tickerarrow{position:absolute;top:calc(50% - 25px);transform:translateY(-50%);width:34px;height:34px;
   border-radius:50%;background:rgba(4,30,66,.55);color:#fff;border:1px solid rgba(255,255,255,.35);
@@ -1474,7 +1475,7 @@ function renderHome(){
       <span>${teamLink(g.away.team)} <b>${g.away.R}–${g.home.R}</b> ${teamLink(g.home.team)}
       ${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</span></li>`; }).join('');
   const rc = CHAMPS[0], rcColor = FRANCHISE_COLORS[rc.tm];
-  /* homeTicker: an editable array of {photo | photos[], tag, title, caption, link, linkText, fit}
+  /* homeTicker: an editable array of {photo | photos[], tag, title, caption, link, linkText | links[{link,linkText}], fit}
      slides (photos: two or more images shown side by side as squares, e.g. a pair of 1080x1080 graphics;
      fit:'contain' shows a square graphic whole instead of cropping it to the 16:9 band) — falls back to the old single auto-generated champion card (photo
      hero, or a plain text pill if there's no champion photo) when empty, so
@@ -1497,7 +1498,8 @@ function renderHome(){
       <div class="herocap">
         ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
         ${s.title?`<h2>${esc(s.title)}</h2>`:''}
-        <p>${s.caption?`${esc(s.caption)} `:''}${s.link?`<a class="pname" href="${esc(s.link)}">${esc(s.linkText||'See more →')}</a>`:''}</p>
+        <p>${s.caption?`${esc(s.caption)} `:''}${(s.links||(s.link?[{link:s.link,linkText:s.linkText}]:[])).map(l=>
+          `<a class="pname" href="${esc(l.link)}">${esc(l.linkText||'See more →')}</a>`).join('<span class="herosep"> · </span>')}</p>
       </div>
       ${arrows}${dots}
     </div>`;
