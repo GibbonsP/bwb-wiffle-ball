@@ -1322,7 +1322,7 @@ function teamOfPlayer(x, year, isCareer){
   if(!team) return {label:'', logo:null, logo2:null};
   if(team.includes(' / ')){
     const teams = team.split(' / ');
-    return {label: esc(teams.map(t=>TEAMS[t]?TEAMS[t].nick:t).join('/')),
+    return {label: esc(teams.map(t=>TEAMS[t]?histNick(t, yr):t).join('/')),
       logo: teamLogoForYear(teams[0], yr), logo2: teamLogoForYear(teams[teams.length-1], yr)};   // the LAST club of a 2-, 3-team season
   }
   return {label: esc(TEAMS[team] ? histName(team, yr) : team), logo: TEAMS[team] ? teamLogoForYear(team, yr) : null, logo2:null};
@@ -4490,7 +4490,7 @@ function gameLog(games, yr){
   if(!games || !games.length) return '';
   const rows=games.map(g=>`<tr>
     <td class="lft">${g.gid&&GAMES[g.gid]?`<button class="pname" data-g="${g.gid}">${g.date}</button>`:g.date}</td>
-    <td class="lft">${g.ha==='H'?'vs':'@'} ${esc(g.opp)}${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>
+    <td class="lft">${g.ha==='H'?'vs':'@'} ${esc(histName(g.opp, +g.date.slice(0,4)))}${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>
     <td class="mono">${g.rf}–${g.ra}</td>
     <td class="res-${g.res}">${g.res}</td></tr>`).join('');
   return `<section class="stat"><h4>Game Log${yr?' · '+yr:''}</h4><div class="tscroll">
