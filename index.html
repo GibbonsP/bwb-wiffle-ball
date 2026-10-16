@@ -1454,6 +1454,7 @@ function renderHome(){
   const cGrid = [
     ll('Home runs', cRank(cReg(c=>c.HR), 1), v=>v),
     ll('RBI', cRank(cReg(c=>c.RBI), 1), v=>v),
+    ll('Hits', cRank(cReg(c=>c.H), 1), v=>v),
     ll('OPS · 150+ PA', cRank(cPool(x=>x.c.PA>=150).map(x=>({n:x.n, v:ops(x.c)})), 1), rate),
     ll('Batting average · 150+ AB', cRank(cPool(x=>x.c.AB>=150).map(x=>({n:x.n, v:x.c.H/x.c.AB})), 1), rate),
     ll('Wins', cRank(cReg(c=>c.W), 1), v=>v),
