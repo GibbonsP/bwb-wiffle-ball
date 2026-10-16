@@ -30,6 +30,9 @@ RPH, RPBB = _pH/(_o/3), _pBB/(_o/3)
 raw = list(csv.DictReader(open(DL + '2016 BWB Statistics - 2016 BWB.csv', encoding='utf-8-sig')))
 pred = {(r['Player'], r['Team']): r for r in csv.DictReader(open('2016_predicted_2B_3B.csv'))}
 rows = [r for r in raw if '/' not in r['Team']]          # one row per player per team
+# the commissioner's corrected at-bats for Evan Wilkins (the CSV had hits above at-bats on two of his lines)
+for _r in rows:
+    if _r['Player'] == 'Evan Wilkins': _r['AB'] = {'Aces':'21', 'Bulldogs':'54', 'Dashers':'140'}[_r['Team']]
 assert len(rows) == len(pred) == 31
 
 # runs scored were not recorded for 2016: estimate as HR (a home run always scores the hitter) plus a share of
