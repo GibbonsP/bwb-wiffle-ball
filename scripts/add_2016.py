@@ -47,6 +47,21 @@ _fl = {k: int(v) for k, v in _exp.items()}
 for k in sorted(_exp, key=lambda k: -(_exp[k] - _fl[k]))[:round(sum(_exp.values())) - sum(_fl.values())]: _fl[k] += 1
 R16 = _fl      # (player, team) -> estimated runs, rounded so the league total is preserved
 
+# batting strikeouts weren't recorded either: estimate from the outs a hitter made (AB - H), at the midpoint of
+# the 2017 and 2018 league strikeout share of outs
+def _kr(year):
+    K = outs = 0
+    for p in P.values():
+        for s in p['seasons']:
+            if s['type']=='Regular' and s['year']==year and not s.get('split') and not s.get('tot') and not s.get('est'):
+                K += s['K']; outs += s['AB'] - s['H']
+    return K / outs
+K_RATE = (_kr(2017) + _kr(2018)) / 2
+_ek = {(r['Player'], r['Team']): K_RATE * max(num(r['AB']) - num(r['H']), 0) for r in rows}
+_fk = {k: int(v) for k, v in _ek.items()}
+for k in sorted(_ek, key=lambda k: -(_ek[k] - _fk[k]))[:round(sum(_ek.values())) - sum(_fk.values())]: _fk[k] += 1
+K16 = _fk
+
 def season_row(r):
     pr = pred[(r['Player'], r['Team'])]
     GP, AB, H, HR = int(num(r['GP'])), int(num(r['AB'])), int(num(r['H'])), int(num(r['HR']))
@@ -58,7 +73,7 @@ def season_row(r):
     pbb = (c['pBB']/(c['IPouts']/3)) if c and c['IPouts'] else RPBB
     BB, HBP = int(num(r['BB'])), int(num(r['HBP']))
     row = {k: 0 for k in AGG}
-    row.update({'G_bat':GP, 'GS_bat':GP, 'AB':AB, 'R':R16[(r['Player'], r['Team'])], '1B':b1, '2B':b2, '3B':b3, 'HR':HR, 'RBI':int(num(r['RBI'])), 'BB':BB, 'HBP':HBP,
+    row.update({'G_bat':GP, 'GS_bat':GP, 'AB':AB, 'R':R16[(r['Player'], r['Team'])], 'K':K16[(r['Player'], r['Team'])], '1B':b1, '2B':b2, '3B':b3, 'HR':HR, 'RBI':int(num(r['RBI'])), 'BB':BB, 'HBP':HBP,
         'H':H, 'TB':b1 + 2*b2 + 3*b3 + 4*HR, 'PA':AB + BB + HBP,
         'G_pit':(min(GP, max(1, math.ceil(outs/9))) if outs else 0), 'IPouts':outs, 'pR':int(num(r['ER'])), 'ER':int(num(r['ER'])),
         'pH':round(ipn*php), 'pBB':round(ipn*pbb), 'pK':int(num(r['SO'])),

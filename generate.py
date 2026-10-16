@@ -598,7 +598,6 @@ table.h2hsub thead th{padding:7px 10px}
 .pt{color:var(--clay);font-weight:700;padding-left:1px}
 .estd{color:var(--gold);font-weight:700}
 .asgstar{color:var(--gold);margin-left:3px;font-size:.85em}
-.detail tbody tr.estrow td.lft:first-child{font-style:italic}
 .nopost{border:1px dashed var(--line-strong);border-radius:12px;padding:22px;color:var(--muted);
   font-size:.9rem;text-align:center}
 
@@ -2211,7 +2210,7 @@ function phaseBlock(pl, type){
   const batCols = [...seasonCols,
     {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
     {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},
-    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},{l:'HBP',f:d=>d.HBP},
+    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},{l:'HBP',f:d=>d.HBP},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
@@ -2256,7 +2255,7 @@ function phaseBlock(pl, type){
   return `<div class="phase ${meta.cls}">
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
-    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, runs, and hits and walks allowed are estimated; batting strikeouts and games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
+    ${bat}${pit}${fldT}${rows.some(d=>d.est)?`<p class="pmeta ldrnote"><span class="estd">†</span> 2016 has no box scores, only season totals: doubles, triples, runs, strikeouts, and hits and walks allowed are estimated; games started weren't recorded.</p>`:''}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
       Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
 }
 
@@ -2312,12 +2311,16 @@ const SV_PIT = [
   ['K-BB%', c=>SV_BF(c)?(c.pK-c.pBB)/SV_BF(c):NaN, SV_PCTF, false],
   ['OPP AVG', c=>(c.IPouts+c.pH)?c.pH/(c.IPouts+c.pH):NaN, rate, true],
 ];
+/* 2016 has no pitching hits or walks allowed — they're extrapolated from each pitcher's own later rates — so
+   anything built on them (WHIP, walks and strikeouts per batter, opponent average) would just rank the
+   extrapolation itself. Those stay blank for estimated seasons; ERA, ERA+ and K/3 are real and still rank. */
+['WHIP','BB/3','K%','BB%','K-BB%','OPP AVG'].forEach(lab=>{ const m = SV_PIT.find(x=>x[0]===lab); const f = m[1]; m[1] = c=>c.est ? NaN : f(c); });
 /* one non-split Regular row per year for a player */
 function svRegRow(pl, y){
-  return pl.seasons.find(s=>s.type==='Regular' && !s.split && !s.est && s.year===y) || null;
+  return pl.seasons.find(s=>s.type==='Regular' && !s.split && s.year===y) || null;
 }
 function svSeasons(pl){
-  return [...new Set(pl.seasons.filter(s=>s.type==='Regular'&&!s.split&&!s.est).map(s=>s.year))]
+  return [...new Set(pl.seasons.filter(s=>s.type==='Regular'&&!s.split).map(s=>s.year))]
     .sort((a,b)=>a-b);
 }
 /* unqualified: this subject falls short of the real qualification bar, so
@@ -2364,7 +2367,7 @@ function savantInner(pl){
     <p class="smeta">${svYear} regular season, percentile vs qualified players (${SV_MING}+ G batting,
       ${SV_MINOUTS/3}+ IP pitching) · <span style="color:${svColor(100)}">red</span> = league-best,
       <span style="color:${svColor(0)}">blue</span> = trailing.
-      K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.
+      K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.${row && row.est ? ` ${svpYear} has no box scores: doubles, triples, runs and strikeouts are estimated, and the pitching stats that need hits and walks allowed aren't ranked.` : ''}
       ${anyUnq?` Faded, dashed rows are below the qualification bar — shown as an estimate against the
       qualified field (down to ${SV_MIN_SHOW_G}+ G / ${SV_MIN_SHOW_OUTS/3}+ IP) but don't count toward it.`:''}</p>
     <div class="svpanels${twoUp}">${panels}</div>`;
@@ -4458,7 +4461,7 @@ function rosterBatting(roster, ph, label, weights, photos){
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
     {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},
-    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.est?'—':d.K},
+    {l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     {l:'OPS+',m:1,f:d=>{const v=weights?opsPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
@@ -8090,6 +8093,8 @@ const SVP_BAT = SV_BAT.flatMap(m=>m[0]==='OPS+' ? [m,
 const SVP_PIT = SV_PIT.flatMap(m=>m[0]==='ERA' ? [m,
   ['ERA+', c=>c.year!=null ? eraPlusFor(c, [{year:c.year, outs:c.IPouts, post:c.type==='Playoffs'}]) : NaN, v=>isFinite(v)?String(v):'—', false]] : [m]);
 const SVP_YEARS = [...new Set(NAMES.flatMap(n=>svSeasons(P[n])))].sort((a,b)=>a-b);
+const SVP_EST_YEARS = new Set(NAMES.flatMap(n=>P[n].seasons.filter(s=>s.est).map(s=>s.year)));
+const SVP_FULL_YEARS = SVP_YEARS.filter(y=>!SVP_EST_YEARS.has(y));   // seasons with real box-score data
 let svpYear = null, svpMode = 'bat', svpPost = false;
 const svpHead = {bat: SVP_BAT.findIndex(m=>m[0]==='wRC+'), pit: SVP_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
 const svpSort = {bat: svpHead.bat, pit: svpHead.pit};
@@ -8167,7 +8172,7 @@ function renderSavantPct(){
       Each pill is the player's percentile among that field in that stat —
       <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing —
       with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better.
-      Click a column to sort.</p>
+      Click a column to sort.${SVP_EST_YEARS.has(svpYear)?` <b>${svpYear}</b> has no box scores: its doubles, triples, runs and strikeouts are estimated, and the stats built on pitching hits and walks allowed (WHIP, K% and BB% against, opponent average) aren't ranked.`:''}</p>
     ${t.n ? t.html : '<p class="empty">No qualified players that year.</p>'}`);
   app.querySelectorAll('[data-svpy]').forEach(b=>b.addEventListener('click',()=>{ svpYear = +b.dataset.svpy; renderSavantPct(); }));
   app.querySelectorAll('[data-svpm]').forEach(b=>b.addEventListener('click',()=>{ svpMode = b.dataset.svpm; renderSavantPct(); }));
@@ -8194,7 +8199,7 @@ function svpLeagueSeries(post){
     ['Runs / Team-Game', (lg,y)=>rpg[y] ? rpg[y].r/rpg[y].g : NaN, v=>v.toFixed(2)],
     ['AVG', lg=>avg(lg), rate], ['OBP', lg=>obp(lg), rate], ['SLG', lg=>slg(lg), rate], ['OPS', lg=>ops(lg), rate],
     ['HR%', lg=>lg.PA?lg.HR/lg.PA:NaN, pct], ['BB%', lg=>lg.PA?lg.BB/lg.PA:NaN, pct], ['K%', lg=>lg.PA?lg.K/lg.PA:NaN, pct],
-    ['ERA', lg=>era(lg), two], ['WHIP', lg=>whip(lg), two], ['K/3', lg=>k9(lg), two],
+    ['ERA', lg=>era(lg), two], ['WHIP', (lg,y)=>SVP_EST_YEARS.has(y)?NaN:whip(lg), two], ['K/3', lg=>k9(lg), two],
   ];
   const years = Object.keys(lgMap).map(Number).filter(y=>lgMap[y].PA>0 && SVP_YEARS.includes(y)).sort((a,b)=>a-b);
   return {years, rpg, lgMap, defs, series: defs.map(([lab,fn,fmt])=>({lab, fmt,
@@ -8255,7 +8260,7 @@ function renderSavantTrends(){
     <h3 class="hsub">By Season</h3>
     <p class="smeta">League-wide totals for every player who recorded a line. Runs per team-game is from official final scores;
       the rest are summed from player lines. ERA, WHIP and K/3 are per 3 innings, a full game.
-      Click a season to see its percentile rankings.</p>
+      Click a season to see its percentile rankings.${SVP_EST_YEARS.size?` 2016 has no box scores, so its doubles, triples, runs and strikeouts are estimated and its WHIP and runs per game are blank.`:''}</p>
     ${tbl}`);
   app.querySelectorAll('[data-svpp]').forEach(b=>b.addEventListener('click',()=>{ svpPost = b.dataset.svpp==='1'; renderSavantTrends(); }));
   app.querySelectorAll('[data-svpgo]').forEach(b=>b.addEventListener('click',()=>{
@@ -8284,7 +8289,7 @@ let svpCompsIdx = null;
 function svpCompIndex(){
   if(svpCompsIdx) return svpCompsIdx;
   const idx = {bat:[], pit:[]};
-  SVP_YEARS.forEach(y=>{
+  SVP_FULL_YEARS.forEach(y=>{
     const pool = svpPoolFor(y), ents = svpEntries(y);
     [['bat', SVP_BAT, pool.bat, e=>e.row.G_bat>=SV_MING], ['pit', SVP_PIT, pool.pit, e=>e.row.IPouts>=SV_MINOUTS]]
       .forEach(([k, metrics, rows, q])=>{
@@ -8324,8 +8329,8 @@ function svpCompsTable(mode, year){
     <th class="lft">Closest</th><th class="lft">2nd</th><th class="lft">3rd</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function svpCompsHTML(){
-  if(svpYear==null || !SVP_YEARS.includes(svpYear)) svpYear = SVP_YEARS[SVP_YEARS.length-1];
-  const chips = `<div class="chips svpcompyears">${SVP_YEARS.slice().reverse().map(y=>
+  if(svpYear==null || !SVP_FULL_YEARS.includes(svpYear)) svpYear = SVP_FULL_YEARS[SVP_FULL_YEARS.length-1];
+  const chips = `<div class="chips svpcompyears">${SVP_FULL_YEARS.slice().reverse().map(y=>
     `<button data-svpcy="${y}" aria-pressed="${y===svpYear}">${y}</button>`).join('')}</div>`;
   return `<section class="svpcomps" id="svpComps"><h3 class="hsub">Matched Seasons</h3>
     <p class="smeta">Every qualified season, matched to the most similar seasons by other players from any year — hitting and
@@ -8361,9 +8366,9 @@ function svpStats(mode){
     ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt],
     ['wRAA', c=>wrAAFor(c, c.year, c.type==='Playoffs'), svpOne],
   ] : [
-    ['G', c=>c.G_pit, svpInt], ['GS', c=>c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
+    ['G', c=>c.G_pit, svpInt], ['GS', c=>c.est?NaN:c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
     ['W', c=>c.W, svpInt], ['L', c=>c.L, svpInt], ['SV', c=>c.SV, svpInt],
-    ['K', c=>c.pK, svpInt], ['BB', c=>c.pBB, svpInt], ['H', c=>c.pH, svpInt], ['R', c=>c.pR, svpInt],
+    ['K', c=>c.pK, svpInt], ['BB', c=>c.est?NaN:c.pBB, svpInt], ['H', c=>c.est?NaN:c.pH, svpInt], ['R', c=>c.pR, svpInt],
     ['RAA', c=>{ const r = leagueRatesFor(c.year, c.type==='Playoffs'); return r ? (r.era - era(c)) * c.IPouts/9 : NaN; }, svpOne],
   ];
   return base.concat(extra.map(([lab,fn,fmt])=>({lab, fn, fmt, low:false, pct:false})));
@@ -8681,8 +8686,8 @@ function svpTeamStats(){
 }
 function svpTeamPoints(){
   const yv = String(svpTm.year);
-  const years = yv==='all' ? SVP_YEARS
-    : yv[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
+  const years = yv==='all' ? SVP_FULL_YEARS
+    : yv[0]==='e' ? SVP_FULL_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
   const rows = svpTeamStats().filter(a=>years.includes(a.year) && (!svpTmTeam || a.team===svpTmTeam) && svpGroupOK(a.team, a.year));
   const mk = list => {
     const n = list.reduce((s,a)=>s+a.n,0), g = list.reduce((s,a)=>s+a.W+a.L+a.T,0);
@@ -8812,14 +8817,14 @@ function wireTeamViews(){
 }
 function svpYearsFor(sel){
   const v = String(sel);
-  return v==='all' ? SVP_YEARS
-    : v[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+v.slice(1)].from && y<=SVP_ERAS[+v.slice(1)].to) : [+v];
+  return v==='all' ? SVP_FULL_YEARS
+    : v[0]==='e' ? SVP_FULL_YEARS.filter(y=>y>=SVP_ERAS[+v.slice(1)].from && y<=SVP_ERAS[+v.slice(1)].to) : [+v];
 }
 function svpYearOptions(sel){
   const eraOpt = (e,i) => `<option value="e${i}"${String(sel)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
   return `<option value="all"${sel==='all'?' selected':''}>All seasons</option>`
     + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
-    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+    + `<optgroup label="Single season">${SVP_FULL_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(sel)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
 }
 
 /* one row per franchise-season: scoring relative to that year's league, and Pythagenpat expected wins */
@@ -9021,7 +9026,7 @@ function svpRaceSeries(year){
   return out;
 }
 function renderSavantRace(){
-  const years = SVP_YEARS.filter(y=>svpRaceSeries(y).length);
+  const years = SVP_FULL_YEARS.filter(y=>svpRaceSeries(y).length);
   if(svpTR.year==null || !years.includes(svpTR.year)) svpTR.year = years[years.length-1];
   const allSeries = svpRaceSeries(svpTR.year);
   const teamSeries = allSeries.filter(s=>!svpTmTeam || s.team===svpTmTeam);
@@ -9175,7 +9180,7 @@ function renderSavantTeams(){
   const eraOpt = (e,i) => `<option value="e${i}"${String(svpTm.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
   const yearOpts = `<option value="all"${svpTm.year==='all'?' selected':''}>All seasons</option>`
     + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
-    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+    + `<optgroup label="Single season">${SVP_FULL_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
   const teamNames = [...new Set(svpTeamStats().map(a=>a.team))].sort();
   svpShell('teams', `
     ${svpTeamViews('style')}
