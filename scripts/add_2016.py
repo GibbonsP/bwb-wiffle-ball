@@ -11,7 +11,7 @@ P, T = d['players'], d['teams']
 
 FULL = {'Panthers':'Brookside Panthers','Eagles':'Brookside Kraken','Aces':'Brentwood Aces','Wicked Aces':'Brentwood Aces',
         'Dashers':'Brentwood Braves','Bulldogs':'Brentwood Mustangs','Bull Dogs':'Brentwood Mustangs','Hotdoggers':'Beaver Brook Lavahogs'}
-RAW16 = {'Brookside Panthers':'Panthers','Brookside Kraken':'Eagles','Brentwood Aces':'Wicked Aces','Brentwood Braves':'Dashers',
+RAW16 = {'Brookside Panthers':'Panthers','Brookside Kraken':'Eagles','Brentwood Aces':'Aces','Brentwood Braves':'Dashers',
          'Brentwood Mustangs':'Bulldogs','Beaver Brook Lavahogs':'Hotdoggers'}
 OFFICIAL = {'Brookside Panthers':(26,9),'Brookside Kraken':(20,15),'Brentwood Aces':(6,29),
             'Beaver Brook Lavahogs':(24,11),'Brentwood Braves':(18,17),'Brentwood Mustangs':(11,24)}
