@@ -5171,6 +5171,7 @@ NOHIT.forEach(x=>{ (NOHIT_BY_PITCHER[x.pitcher] = NOHIT_BY_PITCHER[x.pitcher] ||
 /* ============================== RECORDS ============================== */
 function renderRecords(){
   setNav('records');
+  llistPhotos = true;   // headshots on every player row, same as the Leaders page
   const lastYr = DB.seasonRange[1];
   const inEra = y => recordsEra==='all' ? true : recordsEra==='early' ? (y>=2016 && y<=2021) : y>=2022;
   const eraLabel = recordsEra==='early' ? '2016–2021' : recordsEra==='modern' ? `2022–${lastYr}` : RANGE;
@@ -5528,7 +5529,7 @@ function renderRecords(){
     const y = +x.date.slice(0,4);
     return `<tr>
     <td class="lft">${x.gid?`<button class="pname" data-g="${x.gid}">${esc(x.dateDisplay)}</button>`:esc(x.dateDisplay)}${x.postseason?' <span class="gtag">Post</span>':''}</td>
-    <td class="lft"><button class="pname" data-p="${esc(x.pitcher)}">${esc(x.pitcher)}</button></td>
+    <td class="lft"><span class="plcell">${llHead(x.pitcher)}<button class="pname" data-p="${esc(x.pitcher)}">${esc(x.pitcher)}</button></span></td>
     <td class="lft">${nhTeamCell(x.team, y)}</td>
     <td class="lft">${nhTeamCell(x.opp, y)}</td>
     <td class="mono">${ipStr(x.ip)}</td><td>${x.k}</td><td>${x.bb}</td>
