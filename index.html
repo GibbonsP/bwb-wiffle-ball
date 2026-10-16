@@ -8677,6 +8677,14 @@ function svpTeamStats(){
       a.n++; a.r += runs; a.hr += hr; a.pa += pa; a.k += k; a.bb += bb;
     });
   });
+  /* 2016 (no box scores): runs per game from the scored games, home runs and strikeouts/walks from the club's own
+     season lines (its opponents' lines aren't available, so the year's z-scores compare clubs on their own bats) */
+  SVP_EST_YEARS.forEach(y=>TEAMNAMES.forEach(t=>{
+    const ts = TEAMS[t].seasons[y]; if(!ts) return;
+    const gs = (ts.games||[]).filter(g=>g.phase==='Regular');
+    const c = sumRows((ts.roster||[]).map(e=>e.regular).filter(Boolean));
+    if(gs.length && c.PA) acc[t+'|'+y] = {team:t, year:y, n:gs.length, r:gs.reduce((a,g)=>a+g.rf+g.ra,0), hr:c.HR, pa:c.PA, k:c.K, bb:c.BB};
+  }));
   const rows = Object.values(acc).filter(a=>a.n>=5 && a.pa>0 && TEAMS[a.team] && TEAMS[a.team].seasons[a.year]);
   const byYear = {};
   rows.forEach(a=>{
@@ -8702,8 +8710,8 @@ function svpTeamStats(){
 }
 function svpTeamPoints(){
   const yv = String(svpTm.year);
-  const years = yv==='all' ? SVP_FULL_YEARS
-    : yv[0]==='e' ? SVP_FULL_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
+  const years = yv==='all' ? SVP_YEARS
+    : yv[0]==='e' ? SVP_YEARS.filter(y=>y>=SVP_ERAS[+yv.slice(1)].from && y<=SVP_ERAS[+yv.slice(1)].to) : [+yv];
   const rows = svpTeamStats().filter(a=>years.includes(a.year) && (!svpTmTeam || a.team===svpTmTeam) && svpGroupOK(a.team, a.year));
   const mk = list => {
     const n = list.reduce((s,a)=>s+a.n,0), g = list.reduce((s,a)=>s+a.W+a.L+a.T,0);
@@ -8932,7 +8940,7 @@ function svpTxView(view, st, cfgFor, tipFor, readFor, blurb, extraFor, aggFn){
   svpShell('teams', `
     ${svpTeamViews(view)}
     <div class="svpform">
-      <label>Season / era <select id="txYear">${svpYearOptions(st.year, aggFn ? SVP_FULL_YEARS : SVP_YEARS)}</select></label>
+      <label>Season / era <select id="txYear">${svpYearOptions(st.year, view==='pitstyle' ? SVP_FULL_YEARS : SVP_YEARS)}</select></label>
       <label>Highlight <select id="txHl"><option value="">None</option>${names.map(t=>`<option value="${esc(t)}"${t===st.hl?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
       ${svpTeamSelectHTML('txTeam', names)}
       ${svpGroupSelectHTML('txGroup')}
@@ -9040,12 +9048,13 @@ function svpRaceSeries(year){
     let d = 0; const pts = [{g:0, d:0}];
     gs.forEach((g,i)=>{ d += g.res==='W' ? 1 : g.res==='L' ? -1 : 0; pts.push({g:i+1, d}); });
     const r = (s.record||{}).Regular || {};
-    out.push({team:t, pts, W:r.W, L:r.L, T:r.T||0});
+    const complete = (r.W||0) + (r.L||0) + (r.T||0) === gs.length;      // 2016's list is missing its forfeits
+    out.push({team:t, pts, partial:!complete, W:complete ? r.W : gs.filter(g=>g.res==='W').length, L:complete ? r.L : gs.filter(g=>g.res==='L').length, T:r.T||0});
   });
   return out;
 }
 function renderSavantRace(){
-  const years = SVP_FULL_YEARS.filter(y=>svpRaceSeries(y).length);
+  const years = SVP_YEARS.filter(y=>svpRaceSeries(y).length);
   if(svpTR.year==null || !years.includes(svpTR.year)) svpTR.year = years[years.length-1];
   const allSeries = svpRaceSeries(svpTR.year);
   const teamSeries = allSeries.filter(s=>!svpTmTeam || s.team===svpTmTeam);
@@ -9098,7 +9107,7 @@ function renderSavantRace(){
       <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">Games played →</text>
       <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Below .500 · Wins minus losses · Above .500 →</text></svg>
     <p class="smeta">The ${svpTR.year} regular season, one line per team: each win moves it up a step and each loss down one, so a line's height is wins minus losses
-      and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.</p>`);
+      and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.${series.some(s=>s.partial)?` The ${svpTR.year} results are missing the forfeits, so each line stops short of the official record and the record shown counts only the games with a score.`:''}</p>`);
   wireTeamViews();
   document.getElementById('rcYear').addEventListener('change', e=>{ svpTR.year = +e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; svpTR.hl = ''; renderSavantRace(); });
@@ -9144,7 +9153,7 @@ function svpStyleSeasons(kind){
   return rows;
 }
 function svpStyleAgg(kind, sel, split){
-  const years = svpYearsFor(sel), rows = svpStyleSeasons(kind).filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
+  const years = svpYearsFor(sel, kind==='off' ? SVP_YEARS : SVP_FULL_YEARS), rows = svpStyleSeasons(kind).filter(r=>years.includes(r.year) && (!svpTmTeam || r.team===svpTmTeam) && svpGroupOK(r.team, r.year));
   const mk = list => {
     const n = list.reduce((s,a)=>s+a.n,0), last = list.reduce((a,b)=>b.year>a.year?b:a);
     const sum = k => list.reduce((s,a)=>s+a[k],0), wt = k => list.reduce((s,a)=>s+(a[k]||0)*a.n,0)/n;
@@ -9173,7 +9182,7 @@ function renderSavantOffStyle(){
     `How a lineup hits, measured against the rest of the league <i>that same season</i> in standard deviations (σ). <b>Up</b> is more power: the share of
       plate appearances that end in a home run. <b>Right</b> is more patient: walks drawn minus strikeouts, so the left side is free-swingers who whiff or put it in play early and
       the right side works counts and takes walks. <b>Patient power</b> hits for power and rarely wastes an at-bat; <b>boom or bust</b> swings hard, homers and strikes out;
-      <b>table-setters</b> get on base without power. 0 is the league-average lineup.`,
+      <b>table-setters</b> get on base without power. 0 is the league-average lineup. 2016's strikeouts are estimated, so its patience is too.`,
     undefined, (sel,split)=>svpStyleAgg('off', sel, split));
 }
 const svpTPS = {year:'all', split:false, hl:'', sel:null};
@@ -9199,7 +9208,7 @@ function renderSavantTeams(){
   const eraOpt = (e,i) => `<option value="e${i}"${String(svpTm.year)==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`;
   const yearOpts = `<option value="all"${svpTm.year==='all'?' selected':''}>All seasons</option>`
     + `<optgroup label="Eras">${SVP_ERAS.map(eraOpt).join('')}</optgroup>`
-    + `<optgroup label="Single season">${SVP_FULL_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
+    + `<optgroup label="Single season">${SVP_YEARS.slice().reverse().map(y=>`<option value="${y}"${String(y)===String(svpTm.year)?' selected':''}>${y}</option>`).join('')}</optgroup>`;
   const teamNames = [...new Set(svpTeamStats().map(a=>a.team))].sort();
   svpShell('teams', `
     ${svpTeamViews('style')}
@@ -9214,7 +9223,7 @@ function renderSavantTeams(){
     <p class="smeta"><b>Right</b> is a better regular-season record. <b>Up</b> is a more fun team to watch: how many runs, home runs and
       balls in play happen in its games, compared with the rest of the league that same season (so one era's scoring doesn't
       decide it). 0 is a league-average game; +1 is a full standard deviation more action. Each dot is a franchise
-      ${svpTm.split?'season':'over the seasons selected'}. Hover for the numbers; click a dot to pin it and get a link to the team.</p>`);
+      ${svpTm.split?'season':'over the seasons selected'}. 2016 has no box scores, so it's built from season totals and its strikeouts are estimated. Hover for the numbers; click a dot to pin it and get a link to the team.</p>`);
   const draw = () => {
     const pts = svpTeamPoints();
     document.getElementById('tmChart').innerHTML = svpTeamSVG(pts) + '<div class="svstip" hidden></div>';
