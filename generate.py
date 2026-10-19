@@ -10091,7 +10091,7 @@ function dispatch(h){
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games'){ gYear = null; return renderGames(); }
   if((m = h.match(/^#\/t\/(.+)\/awards$/))) return renderTeamAwards(decodeURIComponent(m[1]));
-  if((m = h.match(/^#\/t\/([^?]+)(?:\?y=(\d{4}))?$/))){ teamYear = m[2] ? +m[2] : null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
+  if((m = h.match(/^#\/t\/([^?]+)(?:\?y=(\d{4}))?$/))){ teamYear = m[2] ? +m[2] : null; teamScrollStats = !!m[2]; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){
     playerTab = 'Regular'; playerSubView = 'stats'; logYear = null; splitYear = 'all'; svYear = null;
@@ -10112,6 +10112,9 @@ function dispatch(h){
   tickerIdx = 0;
   return renderHome();
 }
+/* arriving on a team page from a Leaders team link (it carries the season) eases the page down to where
+   the stats begin, instead of leaving the reader at the top of the header */
+let teamScrollStats = false;
 function route(){
   const raw = location.hash || '';
   const h = raw.replace(/#h-[\w-]+$/,'');   // ignore in-page anchor
@@ -10123,6 +10126,15 @@ function route(){
   // toggles (tabs, year chips, phase switches) call their render function directly
   // without touching the hash, so they never reach here and the page stays put
   if(h === raw) scrollTo(0,0);
+  if(teamScrollStats){
+    teamScrollStats = false;
+    const target = app.querySelector('.recgrid') || app.querySelector('.chips');
+    if(target){
+      const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(()=>{ const y = target.getBoundingClientRect().top + scrollY - 12;
+        scrollTo({top:y, behavior: calm ? 'auto' : 'smooth'}); }, 350);
+    }
+  }
 }
 addEventListener('hashchange', route);
 
