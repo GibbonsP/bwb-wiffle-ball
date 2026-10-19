@@ -2468,7 +2468,7 @@ const SV_MING = 9, SV_MINOUTS = 36;   // 9+ G batting, 12+ IP pitching (per seas
    alone), just plots where they'd land against it. 3 G batting, 3 IP (9 outs) pitching. */
 const SV_MIN_SHOW_G = 3, SV_MIN_SHOW_OUTS = 9;
 let svYear = null;                     // sticky across player pages
-let svView = 'bars';                   // 'bars' | 'pizza' on the player page
+let svView = 'pizza';                  // 'bars' | 'pizza' on the player page (pizza by default)
 function svColor(p){
   const t = Math.max(0,Math.min(100,p))/100;
   const blue=[59,98,176], grey=[201,205,214], red=[210,45,73];
