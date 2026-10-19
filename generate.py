@@ -1787,10 +1787,10 @@ function renderDir(){
   const azHtml = Object.keys(azGroups).sort().map(L=>`
     <div class="azgrp"><h3 class="azh">${L}</h3>
       <div class="azcols">${azGroups[L].map(n=>{
-        const y=P[n].years, tms=careerTeams(P[n]).map(t=>TEAMS[t.team]?TEAMS[t.team].nick:t.team);
+        const y=P[n].years;
         return `<button class="azitem" data-p="${esc(n)}">${llHead(n)}
           <span class="azt"><span class="azn">${esc(nameLF(n))}</span>
-          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}${tms.length?` · ${esc(tms.join('/'))}`:''}</span></span>
+          <span class="azm">${y[0]}${y.length>1?'–'+y[y.length-1]:''}</span></span>
         </button>`;}).join('')}</div>
     </div>`).join('') || '<p class="empty">No players match.</p>';
 
