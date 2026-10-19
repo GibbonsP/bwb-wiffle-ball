@@ -104,7 +104,8 @@ header.mast{background:var(--brandbar)}
 .aday{display:inline-flex;align-items:center;gap:8px;margin:6px 0 0 12px;font-size:.75rem;color:var(--muted);vertical-align:middle}
 .aday select{padding:9px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;max-width:100%}
 .pname.tlk{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;vertical-align:middle}
-.lt .pname.tlk:hover,.tmcell .pname.tlk:hover{text-decoration:underline}
+.lt .pname.tlk,.tmcell .pname.tlk{display:inline;text-decoration:underline dotted;text-underline-offset:2px}
+.lt .pname.tlk:hover,.tmcell .pname.tlk:hover{text-decoration:underline solid;color:var(--accent)}
 .arec{font-size:.75rem;color:var(--muted);margin:6px 0 0 2px}
 .aday.on select{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent);font-weight:600}
 .segs{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
@@ -4540,7 +4541,7 @@ const llist = (t, items, fmt, low) => {
      only the second (most recent) team's logo — one badge reads cleaner than
      two crammed into a narrow list row, and the second club is who they
      finished the year with */
-  const logos = it => leadTmLink(it.lt, it.ly, logoIcon(it.logo2 || it.logo, ''));
+  const logos = it => logoIcon(it.logo2 || it.logo, '');
   return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>
   `<li style="--w:${w(it.v).toFixed(1)}%">${llistPhotos?llHead(it.n):''}${logos(it)}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
     it.tm?`<span class="lt">${it.tmh||it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`).join('')}</ol></div>`;
@@ -4607,7 +4608,7 @@ function renderLeaders(){
       return leadSortDir*(x-y);
     });
     const fullCell = (r,k,t) => {
-      if(k==='team') return `<span class="tmcell">${leadTmLink(r.lt, r.ly, logoIcon(r.logo2 || r.logo, ''))}${r.teamHTML||r.teamLabel||''}</span>`;
+      if(k==='team') return `<span class="tmcell">${logoIcon(r.logo2 || r.logo, '')}${r.teamHTML||r.teamLabel||''}</span>`;
       const v = r[k];
       if(t==='r') return (k==='ERA'||k==='WHIP'||k==='K9') ? two(v) : rate(v);
       if(k==='IP') return ipStr(Math.round(v*3));
