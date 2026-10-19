@@ -10122,7 +10122,7 @@ function route(){
   if(h === raw) scrollTo(0,0);
   if(teamScrollStats){
     teamScrollStats = false;
-    const target = app.querySelector('.recgrid') || app.querySelector('.chips');
+    const target = app.querySelector('.chips');
     if(target){
       const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
       setTimeout(()=>{ const y = target.getBoundingClientRect().top + scrollY - 12;
