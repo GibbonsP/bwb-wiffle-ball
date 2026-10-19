@@ -4825,12 +4825,15 @@ function teamRecordTable(t){
 /* yearly batting/pitching breakdown — lives under the "All years" chip, alongside the
    all-time roster and head-to-head, so the chip genuinely controls everything below it */
 let teamStatMode = 'bat';
-function teamStatsBySeason(t){
+function teamStatsBySeason(t, ph){
+  const post = ph==='post', phKey = post ? 'playoffs' : 'regular';
   const yrs = t.years.slice().sort((a,b)=>a-b);
-  const byYear = yrs.map(y=>{
-    const rs=((t.seasons[y]||{}).roster||[]).filter(e=>e.regular).map(e=>e.regular);
+  let byYear = yrs.map(y=>{
+    const rs=((t.seasons[y]||{}).roster||[]).filter(e=>e[phKey]).map(e=>e[phKey]);
     return {year:y, ...sumRows(rs)};
   });
+  if(post) byYear = byYear.filter(d=>d.PA>0 || d.IPouts>0);   // only the years this club reached the playoffs
+  if(!byYear.length) return '';
   const grand = sumRows(byYear);
   const yr0 = {l:'Season',f:d=>`<button class="pname" data-yv="${d.year}">${d.year}</button>`};
   /* fielding wasn't tracked league-wide until 2022 — every earlier season
@@ -4853,16 +4856,16 @@ function teamStatsBySeason(t){
       {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
       {l:'ERA+',m:1,f:d=>{
         const v = d.year!=null
-          ? eraPlusFor(d, [{year:d.year, outs:d.IPouts}])
-          : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts})));
+          ? eraPlusFor(d, [{year:d.year, outs:d.IPouts, post}])
+          : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts, post})));
         return isFinite(v)?String(v):'—';
       }}];
-    table = statTable('Team Pitching by Season', tpCols, byYear, grand, 'All', '');
+    table = statTable('Team Pitching by Season'+(post?' · Playoffs':''), tpCols, byYear, grand, 'All', '');
   } else if(teamStatMode==='fld'){
     const tfCols=[yr0,
       {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
       {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-    table = statTable('Team Fielding by Season', tfCols, fldYears, grand, 'All', '');
+    table = statTable('Team Fielding by Season'+(post?' · Playoffs':''), tfCols, fldYears, grand, 'All', '');
   } else {
     const tbCols=[yr0,
       {l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
@@ -4872,29 +4875,31 @@ function teamStatsBySeason(t){
       {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
       {l:'OPS+',m:1,f:d=>{
         const v = d.year!=null
-          ? opsPlusFor(d, [{year:d.year, pa:d.PA}])
-          : opsPlusFor(d, byYear.map(r=>({year:r.year, pa:r.PA})));
+          ? opsPlusFor(d, [{year:d.year, pa:d.PA, post}])
+          : opsPlusFor(d, byYear.map(r=>({year:r.year, pa:r.PA, post})));
         return isFinite(v)?String(v):'—';
       }}];
-    table = statTable('Team Hitting by Season', tbCols, byYear, grand, 'All', '');
+    table = statTable('Team Hitting by Season'+(post?' · Playoffs':''), tbCols, byYear, grand, 'All', '');
   }
   return `<h3 class="hsub">Team Stats</h3>${toggle}${table}`;
 }
 
 function teamAllYears(t, name){
+  const post = teamPhase==='post', phKey = post ? 'playoffs' : 'regular';
   const yrs = t.years.slice().sort((a,b)=>a-b);
   const acc={};
   yrs.forEach(y=>((t.seasons[y]||{}).roster||[]).forEach(e=>{
-    if(!e.regular) return;
+    const ln = e[phKey];
+    if(!ln) return;
     const a = acc[e.name] || (acc[e.name]={name:e.name, _yrs:new Set(), yearPA:{}, yearOuts:{}, s:sumRows([])});
     a._yrs.add(y);
-    a.yearPA[y] = (a.yearPA[y]||0) + (e.regular.PA||0);
-    a.yearOuts[y] = (a.yearOuts[y]||0) + (e.regular.IPouts||0);
-    for(const k of ZERO_KEYS) a.s[k]+=(e.regular[k]||0);
+    a.yearPA[y] = (a.yearPA[y]||0) + (ln.PA||0);
+    a.yearOuts[y] = (a.yearOuts[y]||0) + (ln.IPouts||0);
+    for(const k of ZERO_KEYS) a.s[k]+=(ln[k]||0);
   }));
   const arows=Object.values(acc).map(a=>({name:a.name, yrs:a._yrs.size,
-      _weights: Object.entries(a.yearPA).map(([y,pa])=>({year:+y, pa})),
-      _pitWeights: Object.entries(a.yearOuts).map(([y,outs])=>({year:+y, outs})), ...a.s}))
+      _weights: Object.entries(a.yearPA).map(([y,pa])=>({year:+y, pa, post})),
+      _pitWeights: Object.entries(a.yearOuts).map(([y,outs])=>({year:+y, outs, post})), ...a.s}))
     .sort((x,y)=>y.PA-x.PA);
   const batCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
@@ -4904,9 +4909,9 @@ function teamAllYears(t, name){
     {l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d, d._weights);return isFinite(v)?String(v):'—';}}];
   const batRows = arows.filter(d=>d.PA>0);
   const batTotal = sumRows(batRows);
-  batTotal._weights = TAGG_WEIGHTS[name];
+  batTotal._weights = post ? batRows.flatMap(d=>d._weights) : TAGG_WEIGHTS[name];
   const battingHTML = batRows.length
-    ? statTable('Franchise Roster · Hitting', batCols, batRows, batTotal, 'Total', '', true) : '';
+    ? statTable('Franchise Roster · Hitting'+(post?' · Playoffs':''), batCols, batRows, batTotal, 'Total', '', true) : '';
 
   const pitCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
@@ -4915,11 +4920,11 @@ function teamAllYears(t, name){
     {l:'ERA+',m:1,f:d=>{const v=eraPlusFor(d, d._pitWeights);return isFinite(v)?String(v):'—';}}];
   const pitRows = arows.filter(d=>d.IPouts>0).sort((x,y)=>y.IPouts-x.IPouts);
   const pitTotal = sumRows(pitRows);
-  pitTotal._pitWeights = TAGG_PIT_WEIGHTS[name];
+  pitTotal._pitWeights = post ? pitRows.flatMap(d=>d._pitWeights) : TAGG_PIT_WEIGHTS[name];
   const pitchingHTML = pitRows.length
-    ? statTable('Franchise Roster · Pitching', pitCols, pitRows, pitTotal, 'Total', '', true) : '';
+    ? statTable('Franchise Roster · Pitching'+(post?' · Playoffs':''), pitCols, pitRows, pitTotal, 'Total', '', true) : '';
 
-  return battingHTML + pitchingHTML;
+  return phaseToggleHTML() + ((battingHTML + pitchingHTML) || `<p class="lead">No ${post?'playoff':'regular-season'} roster stats recorded for this franchise.</p>`);
 }
 
 /* all-time series record vs every other franchise (regular season + playoffs) */
@@ -5151,7 +5156,7 @@ function teamDetail(name){
     ${teamAccolades(name)}
     ${teamRecordTable(t)}
     ${chips}
-    ${teamYear==='all' ? teamAllYears(t, name) + teamStatsBySeason(t) : teamOneYear(t, teamYear)}
+    ${teamYear==='all' ? teamAllYears(t, name) + teamStatsBySeason(t, teamPhase) : teamOneYear(t, teamYear)}
     ${teamH2H(t)}
     <p class="note">Records and game logs come from official results; All-Star games excluded.
     Franchises are unified across name changes (see "also played as"); the season table shows the name used that year.
