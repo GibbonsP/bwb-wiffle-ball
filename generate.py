@@ -317,6 +317,43 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   font-size:.76rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
 .svpnote{margin:4px 0 18px;max-width:68ch;font-size:.95rem}
 .svpnote b{font-weight:600}
+.svheat{min-width:100%}
+.svheat th,.svheat td{padding:6px 7px;text-align:center;font-size:.76rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.svheat th.lft{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
+.svheat td.svh-na{color:var(--muted)}
+.svh2h{border-collapse:separate;border-spacing:2px;margin:6px 0 4px}
+.svh2h th{padding:3px 4px;font-weight:500;font-size:.7rem;text-align:center}
+.svh2h th.lft{text-align:left;white-space:nowrap;position:sticky;left:0;background:var(--card);z-index:1}
+.svh2h th img,.svh2h .pname img{width:24px;height:24px;object-fit:contain;vertical-align:middle;margin-right:5px}
+.svh2h thead th img{margin:0}
+.svh2h td{min-width:46px;height:42px;padding:2px 3px;text-align:center;border-radius:4px;line-height:1.15}
+.svh2h td b{display:block;font-size:.76rem;font-variant-numeric:tabular-nums}
+.svh2h td i{display:block;font-style:normal;font-size:.64rem;opacity:.85;font-variant-numeric:tabular-nums}
+.svh2h td.svh-na{color:var(--muted);background:transparent}
+.svh2h td.svh-self{background:var(--line)}
+.svh2h td.thin{opacity:.72}
+.svh2h td.svh-tot{background:transparent;color:var(--ink);font-weight:600;text-align:left;padding-left:10px;white-space:nowrap}
+.svfwrap svg{width:100%;height:auto;display:block}
+.svf-lg{stroke:var(--muted);stroke-width:1.4;stroke-dasharray:6 4;fill:none}
+.svf-sn{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:1.5 4;fill:none;stroke-linecap:round}
+.svf-up{fill:#d22d49}.svf-dn{fill:#3b62b0}
+.svf-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;opacity:.85}
+.svf-lab{font:600 10px "IBM Plex Mono",monospace;fill:var(--muted)}
+.svviews{margin:0 0 12px}
+.svpzfig{margin:0;text-align:center}
+.svpzfig figcaption{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.svpzgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px 24px;align-items:start}
+.pizza{width:100%;max-width:440px;height:auto;display:block;margin:0 auto}
+.pz-bg{fill:var(--line);fill-opacity:.35;stroke:var(--card);stroke-width:1.5}
+.pz-ring{fill:none;stroke:var(--line-strong);stroke-width:1;stroke-dasharray:3 4}
+.pz-a{stroke:var(--card);stroke-width:1.5}
+.pz-b{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 3}
+.pz-num{font:700 11px "IBM Plex Mono",monospace;text-anchor:middle;dominant-baseline:central;fill:#fff;pointer-events:none}
+.pz-lab{font:600 10.5px "IBM Plex Sans",system-ui,sans-serif;fill:var(--muted)}
+.pz-legend{display:flex;flex-wrap:wrap;gap:6px 22px;justify-content:center;margin:6px 0 10px;font-size:.84rem}
+.pz-legend .sw{display:inline-block;width:22px;height:0;border-top:3px solid var(--ink);vertical-align:middle;margin-right:7px}
+.pz-legend .sw.a{border-top:8px solid #d22d49;border-radius:2px}
+.pz-legend .sw.b{border-top-style:dashed}
 .svcharts{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px 18px;margin:0 0 8px}
 .svchart{margin:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 10px 4px}
 .svchart figcaption{font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 2px 4px}
@@ -2436,6 +2473,7 @@ const SV_MING = 9, SV_MINOUTS = 36;   // 9+ G batting, 12+ IP pitching (per seas
    alone), just plots where they'd land against it. 3 G batting, 3 IP (9 outs) pitching. */
 const SV_MIN_SHOW_G = 3, SV_MIN_SHOW_OUTS = 9;
 let svYear = null;                     // sticky across player pages
+let svView = 'bars';                   // 'bars' | 'pizza' on the player page
 function svColor(p){
   const t = Math.max(0,Math.min(100,p))/100;
   const blue=[59,98,176], grey=[201,205,214], red=[210,45,73];
@@ -2539,14 +2577,22 @@ function savantInner(pl){
   }
   const twoUp = ((batOK||batShow) && (pitOK||pitShow)) ? ' two' : '';
   const anyUnq = batShow || pitShow;
-  return `${chips}
+  const viewChips = `<div class="chips svviews"><button data-svview="bars" aria-pressed="${svView==='bars'}">Bars</button>
+    <button data-svview="pizza" aria-pressed="${svView==='pizza'}">Pizza</button></div>`;
+  const pizzaHTML = () => {
+    const one = (ok, mode, metrics, label) => { if(!ok) return ''; const it = svpPizzaItems(pl.name, svYear, mode, metrics);
+      return it ? `<figure class="svpzfig"><figcaption>${label} · vs ${it.n}${it.qual?'':' · est.'}</figcaption>${svpPizzaSVG(metrics, it, null)}</figure>` : ''; };
+    return `<div class="svpzgrid">${one(batOK||batShow,'bat',SV_BAT,'Batting')}${one(pitOK||pitShow,'pit',SV_PIT,'Pitching')}</div>
+      <p class="smeta"><button class="pname" data-go="savant-pizza" type="button">Compare two players on the Savant page →</button></p>`;
+  };
+  return `${chips}${viewChips}
     <p class="smeta">${svYear} regular season, percentile vs qualified players (${SV_MING}+ G batting,
       ${SV_MINOUTS/3}+ IP pitching) · <span style="color:${svColor(100)}">red</span> = league-best,
       <span style="color:${svColor(0)}">blue</span> = trailing.
       K%, BB%, ERA, WHIP, BB/3, OPP AVG ranked low-is-better.${row && row.est ? ` ${svpYear} has no box scores: doubles, triples, runs and strikeouts are estimated, and the pitching stats that need hits and walks allowed aren't ranked.` : ''}
       ${anyUnq?` Faded, dashed rows are below the qualification bar — shown as an estimate against the
       qualified field (down to ${SV_MIN_SHOW_G}+ G / ${SV_MIN_SHOW_OUTS/3}+ IP) but don't count toward it.`:''}</p>
-    <div class="svpanels${twoUp}">${panels}</div>`;
+    ${svView==='pizza' ? pizzaHTML() : `<div class="svpanels${twoUp}">${panels}</div>`}`;
 }
 /* the years a Play Progression run would step through — same qualification
    floor the player card uses (batting OR pitching, not necessarily both
@@ -2580,6 +2626,15 @@ function wireSavantBody(pl){
     svYear = +b.dataset.svy;
     body.innerHTML = savantInner(pl);
     wireSavantBody(pl);
+  }));
+  body.querySelectorAll('[data-svview]').forEach(b=>b.addEventListener('click',()=>{
+    svView = b.dataset.svview;
+    body.innerHTML = savantInner(pl);
+    wireSavantBody(pl);
+  }));
+  body.querySelectorAll('[data-go="savant-pizza"]').forEach(b=>b.addEventListener('click',()=>{
+    svpPz.a = pl.name; svpPz.ay = svYear; svpPz.b = ''; svpPz.mode = (svRegRow(pl, svYear)||{}).G_bat>0 ? 'bat' : 'pit';
+    location.hash = '#/savant/pizza';
   }));
 }
 function wireSavant(pl){
@@ -8404,7 +8459,7 @@ function svpShell(tab, inner){
     <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
-    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('search','Search')}${t('teams','Teams')}</div>
+    <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='pct' ? '#/savant' : '#/savant/'+b.dataset.svpt;
@@ -8528,6 +8583,26 @@ function svpChart(s, yearsAll, focus){
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(s.lab)} by season">${grid}${xl}
     <path class="svc-line" d="${path}"/>${dots}</svg></figure>`;
 }
+/* every league stat by season, each cell colored by where that year falls among all the seasons on record */
+function svpHeatHTML(d){
+  const rows = d.defs.map(([lab,fn,fmt])=>{
+    const vals = d.years.map(y=>fn(d.lgMap[y], y));
+    const ok = vals.filter(isFinite);
+    if(ok.length<2) return '';
+    const cells = vals.map((v,i)=>{
+      if(!isFinite(v)) return '<td class="svh-na">—</td>';
+      const pc = svPct(ok, v, false);
+      return `<td style="background:${svColor(pc)};color:${svpPillInk(pc)}" title="${esc(lab)} ${d.years[i]}: ${fmt(v)}, higher than ${pc}% of seasons">${fmt(v)}</td>`;
+    }).join('');
+    return `<tr><th class="lft">${esc(lab)}</th>${cells}</tr>`;
+  }).join('');
+  return `<h3 class="hsub">Season Heatmap</h3>
+    <p class="smeta">The same league stats, one row each, seasons across the top. <span style="color:${svColor(100)}">Red</span> is a season that
+      ran higher than most others on record; <span style="color:${svColor(0)}">blue</span> is lower. It is about size, not quality, so a red K%
+      means more strikeouts and a red ERA means more runs allowed. Click a year to open its rankings.</p>
+    <div class="tscroll"><table class="detail svheat"><thead><tr><th class="lft"></th>${d.years.map(y=>
+      `<th><button class="pname" data-svpgo="${y}">’${String(y).slice(2)}</button></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function renderSavantTrends(){
   const d = svpLeagueSeries(svpPost);
   if(!d.years.length){ svpShell('trends', '<p class="empty">No data.</p>'); return; }
@@ -8554,6 +8629,7 @@ function renderSavantTrends(){
       <button data-svpp="1" aria-pressed="${svpPost}">Postseason</button></div>
     ${insight}
     <div class="svcharts">${d.series.map(s=>svpChart(s, d.years, focus)).join('')}</div>
+    ${svpHeatHTML(d)}
     <h3 class="hsub">By Season</h3>
     <p class="smeta">League-wide totals for every player who recorded a line. Runs per team-game is from official final scores;
       the rest are summed from player lines. ERA, WHIP and K/3 are per 3 innings, a full game.
@@ -9100,7 +9176,7 @@ const svpGroupSelectHTML = id => `<label>Show <select id="${id}">${SVP_GROUPS.ma
 let svpTmTeam = '';
 const svpTeamSelectHTML = (id, names) => `<label>Team <select id="${id}"><option value="">All teams</option>${
   names.map(t=>`<option value="${esc(t)}"${t===svpTmTeam?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
-const SVP_TEAM_VIEWS = [['style','Playstyle Map',''],['offstyle','Offensive Style','/offstyle'],['pitstyle','Pitching Style','/pitstyle'],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race']];
+const SVP_TEAM_VIEWS = [['style','Playstyle Map',''],['offstyle','Offensive Style','/offstyle'],['pitstyle','Pitching Style','/pitstyle'],['offense','Offense vs Defense','/offense'],['luck','Luck','/luck'],['race','Season Race','/race'],['h2h','Head-to-Head','/h2h']];
 /* team-logo dots: each distinct logo is defined once in <defs> and <use>d per dot, so a split-by-season
    chart with dozens of dots doesn't repeat the (large, data-URI) images */
 function svpLogoKit(){
@@ -9549,9 +9625,234 @@ function renderSavantTeams(){
   document.getElementById('tmSplit').addEventListener('change', e=>{ svpTm.split = e.target.checked; svpTm.sel = null; renderSavantTeams(); });
 }
 
+/* ------------------------- head-to-head matrix ------------------------- */
+let svpH2H = {year:'all', phase:'both'};
+function svpH2HData(years, phase){
+  const rec = {};
+  const ok = g => (g.phase==='Regular' && phase!=='post') || (g.phase==='Playoffs' && phase!=='reg');
+  Object.keys(TEAMS).forEach(a=>{
+    const t = TEAMS[a];
+    years.forEach(y=>{
+      const se = t.seasons[y]; if(!se) return;
+      (se.games||[]).forEach(g=>{
+        if(!ok(g) || !TEAMS[g.opp] || (g.res!=='W' && g.res!=='L')) return;
+        const r = ((rec[a] || (rec[a]={}))[g.opp] || (rec[a][g.opp]={W:0,L:0}));
+        r[g.res]++;
+      });
+    });
+  });
+  return rec;
+}
+function renderSavantH2H(){
+  const years = svpYearsFor(svpH2H.year, SVP_YEARS);
+  const rec = svpH2HData(years, svpH2H.phase);
+  const tot = a => Object.values(rec[a]||{}).reduce((s,r)=>({W:s.W+r.W, L:s.L+r.L}), {W:0,L:0});
+  const pct = t => (t.W+t.L) ? t.W/(t.W+t.L) : 0;
+  const teams = Object.keys(rec).filter(a=>{ const t = tot(a); return t.W+t.L>0; })
+    .sort((a,b)=>pct(tot(b))-pct(tot(a)) || (tot(b).W+tot(b).L)-(tot(a).W+tot(a).L));
+  const short = a => TEAMS[a].nick || a;
+  const logo = a => TEAMS[a].logo ? `<img src="${TEAMS[a].logo}" alt="">` : '';
+  const head = teams.map(b=>`<th title="${esc(b)}">${TEAMS[b].logo?logo(b):esc(short(b).slice(0,3))}</th>`).join('');
+  const body = teams.map(a=>{
+    const cells = teams.map(b=>{
+      if(a===b) return '<td class="svh-self"></td>';
+      const r = rec[a] && rec[a][b]; if(!r) return '<td class="svh-na">·</td>';
+      const n = r.W+r.L, pc = r.W/n;
+      return `<td class="${n<3?'thin':''}" style="background:${svColor(pc*100)};color:${svpPillInk(pc*100)}"
+        title="${esc(short(a))} vs ${esc(short(b))}: ${r.W}–${r.L} (${rate(pc)})"><b>${rate(pc)}</b><i>${r.W}–${r.L}</i></td>`;
+    }).join('');
+    const t = tot(a);
+    return `<tr><th class="lft"><button class="pname" data-t="${esc(a)}">${logo(a)}${esc(short(a))}</button></th>${cells}
+      <td class="svh-tot">${t.W}–${t.L} · ${rate(pct(t))}</td></tr>`;
+  }).join('');
+  svpShell('teams', `
+    ${svpTeamViews('h2h')}
+    <div class="svpform">
+      <label>Season / era <select id="h2hYear">${svpYearOptions(svpH2H.year, SVP_YEARS)}</select></label>
+      <label>Games <select id="h2hPhase">
+        <option value="both"${svpH2H.phase==='both'?' selected':''}>Regular season + playoffs</option>
+        <option value="reg"${svpH2H.phase==='reg'?' selected':''}>Regular season</option>
+        <option value="post"${svpH2H.phase==='post'?' selected':''}>Playoffs</option></select></label>
+    </div>
+    ${teams.length ? `<div class="tscroll"><table class="svh2h"><thead><tr><th></th>${head}<th></th></tr></thead><tbody>${body}</tbody></table></div>`
+      : '<p class="empty">No games in that selection.</p>'}
+    <p class="smeta">Read across: each row is that club's record against the club in each column, colored by win percentage —
+      <span style="color:${svColor(100)}">red</span> means the row team owns the matchup, <span style="color:${svColor(0)}">blue</span> means the column team does.
+      Clubs are ordered by overall record in the selection. Faded cells are fewer than three games. Franchises are tracked
+      through name changes; hover a cell for the exact record, click a club to open its page.</p>`);
+  document.getElementById('h2hYear').addEventListener('change', e=>{ svpH2H.year = e.target.value; renderSavantH2H(); });
+  document.getElementById('h2hPhase').addEventListener('change', e=>{ svpH2H.phase = e.target.value; renderSavantH2H(); });
+  wireTeamViews();
+}
+
+/* ---------------------------- rolling form chart ---------------------------- */
+const SVP_FORM_METRICS = {
+  OPS:  {fn:d=>ops(d), lg:(y,post)=>ops(wobaLeague(y,post)), fmt:rate},
+  wOBA: {fn:(d,y,post)=>wobaFor(d,y,post), lg:(y,post)=>obp(wobaLeague(y,post)), fmt:rate},
+  AVG:  {fn:d=>avg(d), lg:(y,post)=>avg(wobaLeague(y,post)), fmt:rate},
+};
+let svpForm = {name:null, year:null, metric:'OPS', win:5, post:false};
+function svpFormGames(name, year, post){
+  const pl = P[name]; if(!pl) return [];
+  const out = [];
+  (pl.gids||[]).forEach(id=>{
+    const g = GAMES[id];
+    if(!g || g.noBox || g.phase!==(post?'Playoffs':'Regular') || +g.date.slice(0,4)!==year) return;
+    ['away','home'].forEach(sk=>{
+      (g[sk].bat||[]).forEach(b=>{
+        if(b.n!==name) return;
+        const row = gameBatRow(b);
+        if(row.PA>0) out.push({id, date:g.date, opp:g[sk==='away'?'home':'away'].team, away:sk==='away', row});
+      });
+    });
+  });
+  out.sort((a,b)=>a.date.localeCompare(b.date) || a.id-b.id);
+  return out;
+}
+function renderSavantForm(){
+  const formPlayers = NAMES.filter(n=>svSeasons(P[n]).some(y=>SVP_FULL_YEARS.includes(y)))
+    .sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
+  if(!svpForm.name || !formPlayers.includes(svpForm.name)){
+    const y = SVP_FULL_YEARS[SVP_FULL_YEARS.length-1];
+    const top = svpEntries(y).filter(e=>svpQual('bat', e.row)).map(e=>({n:e.name, v:wrcPlusFor(e.row, y, false)}))
+      .filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v)[0];
+    svpForm.name = top ? top.n : formPlayers[0]; svpForm.year = y;
+  }
+  const pl = P[svpForm.name];
+  const yrs = SVP_FULL_YEARS.filter(y=>svpFormGames(svpForm.name, y, svpForm.post).length>=2);
+  if(!yrs.includes(svpForm.year)) svpForm.year = yrs[yrs.length-1] || null;
+  const M = SVP_FORM_METRICS[svpForm.metric];
+  let chart = '<p class="empty">No box-score games for that player in this phase.</p>', read = '';
+  if(svpForm.year!=null){
+    const rows = svpFormGames(svpForm.name, svpForm.year, svpForm.post), y = svpForm.year, post = svpForm.post;
+    const win = Math.min(svpForm.win, rows.length);
+    const pts = rows.map((g,i)=>{
+      const sl = rows.slice(Math.max(0,i-win+1), i+1).map(r=>r.row);
+      return {i, g, v:M.fn(sumRows(sl), y, post), from:Math.max(0,i-win+1)};
+    });
+    const lgV = M.lg(y, post), snV = M.fn(sumRows(rows.map(r=>r.row)), y, post);
+    const fin = pts.filter(p=>isFinite(p.v));
+    const ys = fin.map(p=>p.v).concat([lgV, snV].filter(isFinite));
+    let lo = Math.min(...ys), hi = Math.max(...ys); const sp = (hi-lo)||0.1; lo = Math.max(0, lo-sp*0.12); hi += sp*0.12;
+    const W = 720, H = 300, Lm = 54, Rm = 70, Tm = 16, Bm = 38, n = rows.length;
+    const X = i => Lm + (W-Lm-Rm)*(n>1 ? i/(n-1) : 0.5);
+    const Y = v => Tm + (H-Tm-Bm)*(1-(v-lo)/(hi-lo));
+    const grid = [0,0.25,0.5,0.75,1].map(f=>{ const v = lo+(hi-lo)*f;
+      return `<line class="svc-grid" x1="${Lm}" x2="${W-Rm}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+        <text class="svc-t" x="${Lm-6}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end">${M.fmt(v)}</text>`; }).join('');
+    const tickIdx = [...new Set([0, Math.floor((n-1)/2), n-1])];
+    const xl = tickIdx.map(i=>`<text class="svc-t" x="${X(i).toFixed(1)}" y="${H-18}" text-anchor="middle">G${i+1}</text>
+      <text class="svc-t" x="${X(i).toFixed(1)}" y="${H-5}" text-anchor="middle">${rows[i].date.slice(5).replace('-','/')}</text>`).join('');
+    const path = fin.map((p,k)=>`${k?'L':'M'}${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+    const dots = fin.map(p=>`<circle class="${(isFinite(lgV)&&p.v>=lgV)?'svf-up':'svf-dn'}" cx="${X(p.i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="${n>40?2.6:3.4}">
+      <title>G${p.i+1} · ${p.g.date} ${p.g.away?'@':'vs'} ${esc(p.g.opp)} · last ${p.i-p.from+1} G: ${M.fmt(p.v)} ${svpForm.metric}</title></circle>`).join('');
+    const ln = (v,cls,lab) => isFinite(v) ? `<line class="${cls}" x1="${Lm}" x2="${W-Rm}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>
+      <text class="svf-lab" x="${W-Rm+6}" y="${(Y(v)+3).toFixed(1)}">${lab} ${M.fmt(v)}</text>` : '';
+    chart = `<div class="svfwrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rolling ${svpForm.metric} for ${esc(svpForm.name)}, ${y}">
+      ${grid}${xl}${ln(lgV,'svf-lg','Lg')}${ln(snV,'svf-sn','Szn')}<path class="svf-line" d="${path}"/>${dots}</svg></div>`;
+    const full = fin.filter(p=>p.i-p.from+1===win);
+    if(full.length>1){
+      const hot = full.reduce((a,b)=>b.v>a.v?b:a), cold = full.reduce((a,b)=>b.v<a.v?b:a);
+      const span = p => `games ${p.from+1}–${p.i+1} (${rows[p.from].date.slice(5).replace('-','/')}–${rows[p.i].date.slice(5).replace('-','/')})`;
+      read = `<p class="svpread"><b>${esc(svpForm.name)}</b> played ${n} ${post?'playoff':'regular-season'} game${n===1?'':'s'} in ${y}, ${M.fmt(snV)} ${svpForm.metric} for the year against a league ${M.fmt(lgV)}.
+        Hottest ${win}-game stretch: ${span(hot)} at <b>${M.fmt(hot.v)}</b>. Coldest: ${span(cold)} at <b>${M.fmt(cold.v)}</b>.</p>`;
+    }
+  }
+  svpShell('form', `
+    <div class="svpform">
+      <label>Player <select id="frName">${formPlayers.map(n=>`<option value="${esc(n)}"${n===svpForm.name?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select></label>
+      <label>Season <select id="frYear">${yrs.slice().reverse().map(y=>`<option value="${y}"${y===svpForm.year?' selected':''}>${y}</option>`).join('')||'<option>—</option>'}</select></label>
+      <label>Stat <select id="frMetric">${Object.keys(SVP_FORM_METRICS).map(k=>`<option${k===svpForm.metric?' selected':''}>${k}</option>`).join('')}</select></label>
+      <label>Window <select id="frWin">${[3,5,8,10].map(w=>`<option value="${w}"${w===svpForm.win?' selected':''}>Last ${w} games</option>`).join('')}</select></label>
+      <label>Games <select id="frPost"><option value="0"${!svpForm.post?' selected':''}>Regular season</option><option value="1"${svpForm.post?' selected':''}>Playoffs</option></select></label>
+    </div>
+    ${read}${chart}
+    <p class="smeta">Each point is a player's ${svpForm.metric} over his last ${svpForm.win} games, game by game through the season. The dashed line is the league
+      average that year, the dotted line is his own season mark; red points are above the league, blue below. Needs box scores, so it covers 2017 on.
+      Hover a point for the game.</p>`);
+  const re = () => renderSavantForm();
+  document.getElementById('frName').addEventListener('change', e=>{ svpForm.name = e.target.value; re(); });
+  document.getElementById('frYear').addEventListener('change', e=>{ svpForm.year = +e.target.value; re(); });
+  document.getElementById('frMetric').addEventListener('change', e=>{ svpForm.metric = e.target.value; re(); });
+  document.getElementById('frWin').addEventListener('change', e=>{ svpForm.win = +e.target.value; re(); });
+  document.getElementById('frPost').addEventListener('change', e=>{ svpForm.post = e.target.value==='1'; re(); });
+}
+
+/* ------------------------------- pizza chart ------------------------------- */
+/* one wedge per stat, red = league-best, blue = trailing, wedge length = percentile; a second player
+   is drawn on top as a dashed outline */
+function svpPizzaItems(name, year, mode, metrics){
+  const pl = P[name], row = pl && svRegRow(pl, year); if(!row) return null;
+  if(mode==='bat' ? !(row.G_bat>0) : !(row.IPouts>0)) return null;
+  const pool = svpEntries(year).filter(e=>svpQual(mode, e.row)).map(e=>e.row);
+  return {name, year, mode, n:pool.length, qual:svpQual(mode,row), pcts:metrics.map(([lab,fn,fmt,low])=>{
+    const v = fn(row); return {p:svPct(pool.map(fn).filter(isFinite), v, low), txt:isFinite(v)?fmt(v):'—'}; })};
+}
+function svpPizzaSVG(metrics, A, B){
+  const n = metrics.length, cx = 230, cy = 190, R = 118, step = 2*Math.PI/n;
+  const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
+  const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
+    return `M${cx},${cy}L${x0.toFixed(1)},${y0.toFixed(1)}A${r.toFixed(1)},${r.toFixed(1)} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}Z`; };
+  const rOf = p => R*Math.max(p,3)/100;
+  const bg = metrics.map((m,i)=>`<path class="pz-bg" d="${wedge(i,R)}"/>`).join('')
+    + [25,50,75].map(f=>`<circle class="pz-ring" cx="${cx}" cy="${cy}" r="${(R*f/100).toFixed(1)}"/>`).join('');
+  const aw = A.pcts.map((c,i)=> c.p==null ? '' : `<path class="pz-a" d="${wedge(i,rOf(c.p))}" fill="${svColor(c.p)}"><title>${esc(metrics[i][0])}: ${c.txt} · ${c.p}th percentile</title></path>`).join('');
+  const nums = A.pcts.map((c,i)=>{ if(c.p==null) return ''; const am = -Math.PI/2+(i+0.5)*step, [x,y] = pt(am, Math.max(rOf(c.p)-13, 17));
+    return `<text class="pz-num" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${c.p}</text>`; }).join('');
+  const bw = B ? B.pcts.map((c,i)=> c.p==null ? '' : `<path class="pz-b" d="${wedge(i,rOf(c.p))}"><title>${esc(B.name)} ${esc(metrics[i][0])}: ${c.txt} · ${c.p}th percentile</title></path>`).join('') : '';
+  const labs = metrics.map((m,i)=>{ const am = -Math.PI/2+(i+0.5)*step, [x,y] = pt(am, R+14), c = Math.cos(am);
+    return `<text class="pz-lab" x="${x.toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="${c>0.3?'start':c<-0.3?'end':'middle'}">${esc(m[0])}</text>`; }).join('');
+  return `<svg class="pizza" viewBox="0 0 460 380" role="img" aria-label="Percentile pizza chart">${bg}${aw}${bw}${nums}${labs}</svg>`;
+}
+let svpPz = {mode:'bat', a:null, ay:null, b:'', by:null};
+function renderSavantPizza(){
+  const metrics = svpPz.mode==='bat' ? SVP_BAT : SVP_PIT;
+  const names = NAMES.filter(n=>svSeasons(P[n]).length).sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
+  if(!svpPz.a || !names.includes(svpPz.a)){
+    const y = SVP_YEARS[SVP_YEARS.length-1];
+    const top = svpEntries(y).filter(e=>svpQual('bat', e.row)).map(e=>({n:e.name, v:wrcPlusFor(e.row, y, false)}))
+      .filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v)[0];
+    svpPz.a = top ? top.n : names[0]; svpPz.ay = y;
+  }
+  const yrsOf = n => n ? svSeasons(P[n]) : [];
+  if(!yrsOf(svpPz.a).includes(svpPz.ay)) svpPz.ay = yrsOf(svpPz.a).slice(-1)[0];
+  if(svpPz.b && !yrsOf(svpPz.b).includes(svpPz.by)) svpPz.by = yrsOf(svpPz.b).slice(-1)[0];
+  const A = svpPizzaItems(svpPz.a, svpPz.ay, svpPz.mode, metrics);
+  const B = svpPz.b ? svpPizzaItems(svpPz.b, svpPz.by, svpPz.mode, metrics) : null;
+  const sel = (id, cur, optional) => `<select id="${id}">${optional?`<option value="">None</option>`:''}${names.map(n=>`<option value="${esc(n)}"${n===cur?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select>`;
+  const ysel = (id, n, cur) => `<select id="${id}">${yrsOf(n).slice().reverse().map(y=>`<option value="${y}"${y===cur?' selected':''}>${y}</option>`).join('')}</select>`;
+  let body;
+  if(!A) body = `<p class="empty">${esc(svpPz.a)} has no ${svpPz.mode==='bat'?'batting':'pitching'} line in ${svpPz.ay}.</p>`;
+  else {
+    const rows = metrics.map((m,i)=>`<tr><td class="lft">${esc(m[0])}</td><td>${svpPill(A.pcts[i].p)}</td><td class="mono">${A.pcts[i].txt}</td>
+      ${B?`<td>${svpPill(B.pcts[i].p)}</td><td class="mono">${B.pcts[i].txt}</td>`:''}</tr>`).join('');
+    body = `<div class="pz-legend"><span><i class="sw a"></i><b>${esc(A.name)}</b> ${A.year}${A.qual?'':' (est., unqualified)'}</span>${B?`<span><i class="sw b"></i><b>${esc(B.name)}</b> ${B.year}${B.qual?'':' (est., unqualified)'}</span>`:''}</div>
+      ${svpPizzaSVG(metrics, A, B)}
+      <div class="tscroll"><table class="detail svptable"><thead><tr><th class="lft">Stat</th><th colspan="2">${esc(A.name)} ${A.year}</th>${B?`<th colspan="2">${esc(B.name)} ${B.year}</th>`:''}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  svpShell('pizza', `
+    <div class="chips svpmodes"><button data-pzm="bat" aria-pressed="${svpPz.mode==='bat'}">Batting</button><button data-pzm="pit" aria-pressed="${svpPz.mode==='pit'}">Pitching</button></div>
+    <div class="svpform">
+      <label>Player ${sel('pzA', svpPz.a, false)}</label><label>Season ${ysel('pzAY', svpPz.a, svpPz.ay)}</label>
+      <label>Compare with ${sel('pzB', svpPz.b, true)}</label>${svpPz.b?`<label>Season ${ysel('pzBY', svpPz.b, svpPz.by)}</label>`:''}
+    </div>
+    ${body}
+    <p class="smeta">Each wedge is one stat: the longer and redder, the better that player ranked among the season's qualified ${svpPz.mode==='bat'?'hitters':'pitchers'}
+      (${svpPz.mode==='bat'?SV_MING+'+ G':SV_MINOUTS/3+'+ IP'}); the number is the percentile, and the dashed rings mark the 25th, 50th and 75th. K%, BB%, ERA, WHIP, BB/3 and OPP AVG
+      are ranked low-is-better, so a short strikeout rate shows up as a long red wedge. Pick a second player to lay their outline over the first.</p>`);
+  app.querySelectorAll('[data-pzm]').forEach(b=>b.addEventListener('click',()=>{ svpPz.mode = b.dataset.pzm; renderSavantPizza(); }));
+  document.getElementById('pzA').addEventListener('change', e=>{ svpPz.a = e.target.value; renderSavantPizza(); });
+  document.getElementById('pzAY').addEventListener('change', e=>{ svpPz.ay = +e.target.value; renderSavantPizza(); });
+  document.getElementById('pzB').addEventListener('change', e=>{ svpPz.b = e.target.value; renderSavantPizza(); });
+  const by = document.getElementById('pzBY'); if(by) by.addEventListener('change', e=>{ svpPz.by = +e.target.value; renderSavantPizza(); });
+}
+
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
   if(h === '#/savant/trends') return renderSavantTrends();
+  if(h === '#/savant/pizza') return renderSavantPizza();
+  if(h === '#/savant/form') return renderSavantForm();
+  if(h === '#/savant/teams/h2h') return renderSavantH2H();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
   if(h === '#/savant/teams') return renderSavantTeams();
