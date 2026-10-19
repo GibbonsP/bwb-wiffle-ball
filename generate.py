@@ -103,6 +103,8 @@ header.mast{background:var(--brandbar)}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
 .aday{display:inline-flex;align-items:center;gap:8px;margin:6px 0 0 12px;font-size:.75rem;color:var(--muted);vertical-align:middle}
 .aday select{padding:9px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;max-width:100%}
+.pname.tlk{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;vertical-align:middle}
+.lt .pname.tlk:hover,.tmcell .pname.tlk:hover{text-decoration:underline}
 .arec{font-size:.75rem;color:var(--muted);margin:6px 0 0 2px}
 .aday.on select{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent);font-weight:600}
 .segs{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
@@ -1412,12 +1414,25 @@ function teamOfPlayer(x, year, isCareer){
     yr = year; team = (ty[yr] && ty[yr].team) || (x.s && x.s.team) || '';
   }
   if(!team) return {label:'', logo:null, logo2:null};
+  /* ly is only set for a single season, so a click lands on that year's page; a career row
+     links to the club's page with no year (it opens on the latest season) */
+  const ly = isCareer ? null : yr;
   if(team.includes(' / ')){
     const teams = team.split(' / ');
     return {label: esc(teams.map(t=>TEAMS[t]?histNick(t, yr):t).join('/')),
+      html: teams.map(t=>leadTmLink(t, ly, esc(TEAMS[t]?histNick(t, yr):t))).join('/'),
+      lt: teams[teams.length-1], ly,
       logo: teamLogoForYear(teams[0], yr), logo2: teamLogoForYear(teams[teams.length-1], yr)};   // the LAST club of a 2-, 3-team season
   }
-  return {label: esc(TEAMS[team] ? histName(team, yr) : team), logo: TEAMS[team] ? teamLogoForYear(team, yr) : null, logo2:null};
+  return {label: esc(TEAMS[team] ? histName(team, yr) : team),
+    html: leadTmLink(team, ly, esc(TEAMS[team] ? histName(team, yr) : team)), lt: team, ly,
+    logo: TEAMS[team] ? teamLogoForYear(team, yr) : null, logo2:null};
+}
+/* a team name/logo on the Leaders page that opens that franchise's page — on the season being
+   viewed when there is one (data-ty), otherwise on its default (latest) season */
+function leadTmLink(full, yr, inner){
+  return (typeof TEAMS!=='undefined' && TEAMS[full] && inner)
+    ? `<button class="pname tlk" data-t="${esc(full)}"${yr?` data-ty="${yr}"`:''}>${inner}</button>` : inner;
 }
 function teamCell(d){
   if(d.tot) return `<span class="ntm">${d.nTeams}TM</span>`;
@@ -4525,10 +4540,10 @@ const llist = (t, items, fmt, low) => {
      only the second (most recent) team's logo — one badge reads cleaner than
      two crammed into a narrow list row, and the second club is who they
      finished the year with */
-  const logos = it => logoIcon(it.logo2 || it.logo, '');
+  const logos = it => leadTmLink(it.lt, it.ly, logoIcon(it.logo2 || it.logo, ''));
   return `<div class="llist"><h4>${t}</h4><ol>${items.map(it=>
   `<li style="--w:${w(it.v).toFixed(1)}%">${llistPhotos?llHead(it.n):''}${logos(it)}<span class="ln"><button class="pname" data-p="${esc(it.n)}">${esc(it.n)}</button>${
-    it.tm?`<span class="lt">${it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`).join('')}</ol></div>`;
+    it.tm?`<span class="lt">${it.tmh||it.tm}</span>`:''}</span><b>${fmt(it.v)}</b></li>`).join('')}</ol></div>`;
 };
 
 let leadView='top10', leadMode='bat', leadSortKey='HR', leadSortDir=-1;
@@ -4571,7 +4586,7 @@ function renderLeaders(){
     let rows = pool.map(x=>{
       const s = x.s, ti = teamOf(x);
       return {
-        name:x.n, teamLabel:ti.label, logo:ti.logo, logo2:ti.logo2,
+        name:x.n, teamLabel:ti.label, teamHTML:ti.html, lt:ti.lt, ly:ti.ly, logo:ti.logo, logo2:ti.logo2,
         G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : s.G_fld, GS: s.GS_pit,
         PA:s.PA, AB:s.AB, R:s.R, H:s.H, HR:s.HR, RBI:s.RBI, BB:s.BB, K:s.K,
         AVG:avg(s), OBP:obp(s), SLG:slg(s), OPS:ops(s),
@@ -4592,7 +4607,7 @@ function renderLeaders(){
       return leadSortDir*(x-y);
     });
     const fullCell = (r,k,t) => {
-      if(k==='team') return `<span class="tmcell">${logoIcon(r.logo2 || r.logo, '')}${r.teamLabel||''}</span>`;
+      if(k==='team') return `<span class="tmcell">${leadTmLink(r.lt, r.ly, logoIcon(r.logo2 || r.logo, ''))}${r.teamHTML||r.teamLabel||''}</span>`;
       const v = r[k];
       if(t==='r') return (k==='ERA'||k==='WHIP'||k==='K9') ? two(v) : rate(v);
       if(k==='IP') return ipStr(Math.round(v*3));
@@ -4624,7 +4639,7 @@ function renderLeaders(){
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
     else if(o.min==='fldg') a = a.filter(x=> isCareer ? x.s.G_fld>=minG : x.s.INN>=(isPost?0:30));
     const dir = o.dir||1;
-    const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, logo:ti.logo, logo2:ti.logo2}; })
+    const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, tmh:ti.html, lt:ti.lt, ly:ti.ly, logo:ti.logo, logo2:ti.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
     return items.length ? llist(title, items, fmt, dir<0) : '';
   };
@@ -4717,6 +4732,8 @@ function renderLeaders(){
   }));
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
+  app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    location.hash='#/t/'+encodeURIComponent(b.dataset.t)+(b.dataset.ty?'?y='+b.dataset.ty:''); }));
 }
 
 const phaseToggleHTML = () => `<div class="segs post" role="group" aria-label="Phase">
@@ -10073,7 +10090,7 @@ function dispatch(h){
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
   if(h === '#/games'){ gYear = null; return renderGames(); }
   if((m = h.match(/^#\/t\/(.+)\/awards$/))) return renderTeamAwards(decodeURIComponent(m[1]));
-  if((m = h.match(/^#\/t\/(.+)$/))){ teamYear = null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
+  if((m = h.match(/^#\/t\/([^?]+)(?:\?y=(\d{4}))?$/))){ teamYear = m[2] ? +m[2] : null; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
   if((m = h.match(/^#\/p\/(.+)$/))){
     playerTab = 'Regular'; playerSubView = 'stats'; logYear = null; splitYear = 'all'; svYear = null;
@@ -10133,7 +10150,7 @@ addEventListener('hashchange', route);
    already wired), so re-running it here on every mutation is free. */
 const NAV_HREF = {
   p: v => '#/p/'+encodeURIComponent(v),
-  t: v => '#/t/'+encodeURIComponent(v),
+  t: (v,b) => '#/t/'+encodeURIComponent(v)+(b.dataset.ty?'?y='+b.dataset.ty:''),
   tawards: v => '#/t/'+encodeURIComponent(v)+'/awards',
   g: v => '#/g/'+v,
   bv: v => '#/beavers/'+encodeURIComponent(v),
@@ -10146,7 +10163,7 @@ const NAV_HREF = {
 function upgradeAppRender(){
   Object.keys(NAV_HREF).forEach(key=>{
     app.querySelectorAll(`button[data-${key}]`).forEach(btn=>{
-      const href = NAV_HREF[key](btn.dataset[key]);
+      const href = NAV_HREF[key](btn.dataset[key], btn);
       if(!href) return;
       const a = document.createElement('a');
       for(const attr of btn.attributes) a.setAttribute(attr.name, attr.value);
