@@ -985,6 +985,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
   border-radius:6px;background:var(--card);padding:12px 14px;min-width:88px;box-shadow:var(--shadow)}
 .logohist-item img{width:60px;height:60px;object-fit:contain}
 .logohist-item span{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.logohist-item img.wide{width:auto;max-width:130px;height:60px}
+.logohist-item b{font-size:.8rem;white-space:nowrap}
 .pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:12px;flex:none}
 .pheadlogo{width:56px;height:56px;object-fit:contain;flex:none;margin-left:10px}
@@ -4364,11 +4366,25 @@ function renderDivision(canonical){
   const dwide = /^(North|South)$/.test(dlogoKey) && (DB.divisionLogos||{})[dlogoKey];
   const oldName = canonical==='Brookside' ? 'North' : 'South';
   const hadOldName = years.some(y=>y<2021);
+  /* name & logo history: the North/South era and the Brookside/Brentwood era, each with its own division logo */
+  const divHistHTML = hadOldName ? (()=>{
+    const oldYrs = years.filter(y=>y<2021), newYrs = years.filter(y=>y>=2021);
+    const rng = ys => ys.length>1 ? `${ys[0]}–${ys[ys.length-1]}` : `${ys[0]}`;
+    const item = (nm, range) => {
+      const lg = (DB.divisionLogos||{})[nm];
+      return `<div class="logohist-item">${lg?`<img${/^(North|South)$/.test(nm)?' class="wide"':''} src="${lg}" alt="${esc(nm)} Division logo, ${range}">`:''}
+        <b>${esc(nm)} Division</b><span>${range}</span></div>`;
+    };
+    return `<div class="logohist"><h4>Name &amp; Logo History</h4><div class="logohist-row">
+      ${item(oldName, rng(oldYrs))}${newYrs.length?item(canonical, `${newYrs[0]}–${newYrs[newYrs.length-1]===years[years.length-1]?'Present':newYrs[newYrs.length-1]}`):''}
+    </div></div>`;
+  })() : '';
 
   app.innerHTML = `
     <button class="back" id="back">← Standings</button>
     <div class="phead"><div class="hero-row">${dlogo?`<img class="tlogo${dwide?' wide':''}" src="${dlogo}" alt="${esc(dlogoKey)} Division">`:''}<h2>${esc(canonical)} Division</h2></div>
     <span class="yrs">${years[0]}–${years[years.length-1]}${hadOldName?` · known as the ${oldName} Division through 2020`:''}</span></div>
+    ${divHistHTML}
     ${chips}
     ${standTable}
     <p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched playoff berth</p>
