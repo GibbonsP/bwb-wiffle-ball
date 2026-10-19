@@ -9788,7 +9788,7 @@ function renderSavantForm(){
       <label>Player <select id="frName">${formPlayers.map(n=>`<option value="${esc(n)}"${n===svpForm.name?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select></label>
       <label>Season <select id="frYear">${yrs.slice().reverse().map(y=>`<option value="${y}"${y===svpForm.year?' selected':''}>${y}</option>`).join('')||'<option>—</option>'}</select></label>
       <label>Stat <select id="frMetric">${Object.keys(SVP_FORM_METRICS).map(k=>`<option${k===svpForm.metric?' selected':''}>${k}</option>`).join('')}</select></label>
-      <label>Window <select id="frWin">${Array.from({length:13},(_,i)=>i+3).map(w=>`<option value="${w}"${w===svpForm.win?' selected':''}>Last ${w} games</option>`).join('')}</select></label>
+      <label>Window <select id="frWin">${[5,10,15].map(w=>`<option value="${w}"${w===svpForm.win?' selected':''}>Last ${w} games</option>`).join('')}</select></label>
       <label>Games <select id="frPost"><option value="0"${!svpForm.post?' selected':''}>Regular season</option><option value="1"${svpForm.post?' selected':''}>Playoffs</option></select></label>
     </div>
     ${read}${chart}
