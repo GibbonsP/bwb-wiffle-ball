@@ -348,6 +348,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pz-bg{fill:var(--line);fill-opacity:.35;stroke:var(--card);stroke-width:1.5}
 .pz-ring{fill:none;stroke:var(--line-strong);stroke-width:1;stroke-dasharray:3 4}
 .pz-a{stroke:var(--card);stroke-width:1.5}
+.pz-anim{transition:transform .7s cubic-bezier(.3,.8,.3,1),fill .7s;vector-effect:non-scaling-stroke}
+.pz-animnum{transition:transform .7s cubic-bezier(.3,.8,.3,1),opacity .5s}
 .pz-b{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 3}
 .pz-num{font:700 11px "IBM Plex Mono",monospace;text-anchor:middle;dominant-baseline:central;fill:#fff;pointer-events:none}
 .pz-lab{font:600 10.5px "IBM Plex Sans",system-ui,sans-serif;fill:var(--muted)}
@@ -2582,7 +2584,7 @@ function savantInner(pl){
     <button data-svview="pizza" aria-pressed="${svView==='pizza'}">Pizza</button></div>`;
   const pizzaHTML = () => {
     const one = (ok, mode, metrics, label) => { if(!ok) return ''; const it = svpPizzaItems(pl.name, svYear, mode, metrics);
-      return it ? `<figure class="svpzfig"><figcaption>${label} · vs ${it.n}${it.qual?'':' · est.'}</figcaption>${svpPizzaSVG(metrics, it, null)}</figure>` : ''; };
+      return it ? `<figure class="svpzfig" data-pzcat="${mode}"><figcaption>${label} · vs ${it.n}${it.qual?'':' · est.'}</figcaption>${svpPizzaSVG(metrics, it, null, true)}</figure>` : ''; };
     return `<div class="svpzgrid">${one(batOK||batShow,'bat',SV_BAT,'Batting')}${one(pitOK||pitShow,'pit',SV_PIT,'Pitching')}</div>
       <p class="smeta"><button class="pname" data-go="savant-pizza" type="button">Compare two players on the Savant page →</button></p>`;
   };
@@ -2726,6 +2728,23 @@ function startSvTimer(ms){
   fill.style.transition = `width ${ms}ms linear`;
   fill.style.width = '0%';
 }
+/* ▶ Play on the pizza view: moves the already-drawn wedges to the new year's percentiles in place */
+function updatePizzaValues(pl, y){
+  const yEl = document.getElementById('svPlayYear'); if(yEl) yEl.textContent = y;
+  const row = svRegRow(pl, y);
+  [['bat',SV_BAT,row && row.G_bat>=SV_MIN_SHOW_G],['pit',SV_PIT,row && row.IPouts>=SV_MIN_SHOW_OUTS]].forEach(([mode,metrics,show])=>{
+    const fig = document.querySelector(`.svpzfig[data-pzcat="${mode}"]`); if(!fig) return;
+    const it = show ? svpPizzaItems(pl.name, y, mode, metrics) : null;
+    const cnt = fig.querySelector('.pzcount'); if(cnt) cnt.textContent = it ? it.n + (it.qual?'':' · est.') : '—';
+    metrics.forEach((m,i)=>{
+      const c = it ? it.pcts[i] : {p:null, txt:''};
+      const w = fig.querySelector(`.pz-a[data-pzi="${i}"]`), t = fig.querySelector(`.pz-animnum[data-pzn="${i}"]`);
+      if(w){ w.style.transform = `scale(${c.p==null?0:Math.max(c.p,3)/100})`; w.style.fill = c.p==null?'transparent':svColor(c.p); }
+      if(t){ const [x,yy] = svpPizzaNumPos(metrics.length, i, c.p==null?50:c.p);
+        t.style.transform = `translate(${x.toFixed(1)}px,${yy.toFixed(1)}px)`; t.style.opacity = c.p==null?0:1; t.textContent = c.p==null?'':c.p; }
+    });
+  });
+}
 async function playPercentiles(pl){
   if(svPlaying) return;
   const years = svPlayableYears(pl);
@@ -2744,23 +2763,28 @@ async function playPercentiles(pl){
   // year (including possibly the first one) can't dictate the shape
   const anyBat = years.some(y=>{ const r=svRegRow(pl,y); return r && (r.G_bat>=SV_MING || r.G_bat>=SV_MIN_SHOW_G); });
   const anyPit = years.some(y=>{ const r=svRegRow(pl,y); return r && (r.IPouts>=SV_MINOUTS || r.IPouts>=SV_MIN_SHOW_OUTS); });
+  const pizzaPlay = svView==='pizza';
+  const blankPizza = (mode, metrics, label) => { const it = {name:pl.name, pcts:metrics.map(()=>({p:null, txt:''}))};
+    return `<figure class="svpzfig" data-pzcat="${mode}"><figcaption>${label} · vs <span class="pzcount">—</span></figcaption>${svpPizzaSVG(metrics, it, null, true)}</figure>`; };
+  const upd = y => pizzaPlay ? updatePizzaValues(pl, y) : updateSavantValues(pl, y);
   const batRows = anyBat ? SV_BAT.map(([lab],i)=>svRowBlank(lab,'bat',i)).join('') : '';
   const pitRows = anyPit ? SV_PIT.map(([lab],i)=>svRowBlank(lab,'pit',i)).join('') : '';
   const panels = (anyBat ? `<div class="svpanel" data-cat="bat"><h4>${svPanelTitleHTML('Batting','bat')}</h4>${batRows}</div>` : '')
     + (anyPit ? `<div class="svpanel" data-cat="pit"><h4>${svPanelTitleHTML('Pitching','pit')}</h4>${pitRows}</div>` : '');
   body.innerHTML = `<p class="smeta">Playing career progression — <span id="svPlayYear">${years[0]}</span></p>
     <div class="svtimerbar"><div class="svtimerfill" id="svTimerFill"></div></div>
-    <div class="svpanels${(anyBat&&anyPit)?' two':''}">${panels}</div>`;
+    ${pizzaPlay ? `<div class="svpzgrid">${anyBat?blankPizza('bat',SV_BAT,'Batting'):''}${anyPit?blankPizza('pit',SV_PIT,'Pitching'):''}</div>`
+      : `<div class="svpanels${(anyBat&&anyPit)?' two':''}">${panels}</div>`}`;
 
   svYear = years[0];
-  updateSavantValues(pl, years[0]);
+  upd(years[0]);
 
   for(let i=1; i<years.length; i++){
     startSvTimer(SV_PLAY_MS);
     await new Promise(r=>setTimeout(r, SV_PLAY_MS));
     if(!document.body.contains(host)){ svPlaying=false; return; } // navigated away mid-play
     svYear = years[i];
-    updateSavantValues(pl, years[i]);
+    upd(years[i]);
   }
 
   /* hold on the final year for one more full beat before swapping to the
@@ -9782,6 +9806,11 @@ function renderSavantForm(){
 /* ------------------------------- pizza chart ------------------------------- */
 /* one wedge per stat, red = league-best, blue = trailing, wedge length = percentile; a second player
    is drawn on top as a dashed outline */
+/* the same wedge-center math svpPizzaSVG uses, so an animated update can move a number to where a fresh draw would put it */
+function svpPizzaNumPos(n, i, p){
+  const cx = 230, cy = 190, R = 118, step = 2*Math.PI/n, am = -Math.PI/2+(i+0.5)*step, r = Math.max(R*Math.max(p,3)/100-13, 17);
+  return [cx+r*Math.cos(am), cy+r*Math.sin(am)];
+}
 function svpPizzaItems(name, year, mode, metrics){
   const pl = P[name], row = pl && svRegRow(pl, year); if(!row) return null;
   if(mode==='bat' ? !(row.G_bat>0) : !(row.IPouts>0)) return null;
@@ -9789,7 +9818,7 @@ function svpPizzaItems(name, year, mode, metrics){
   return {name, year, mode, n:pool.length, qual:svpQual(mode,row), pcts:metrics.map(([lab,fn,fmt,low])=>{
     const v = fn(row); return {p:svPct(pool.map(fn).filter(isFinite), v, low), txt:isFinite(v)?fmt(v):'—'}; })};
 }
-function svpPizzaSVG(metrics, A, B){
+function svpPizzaSVG(metrics, A, B, anim){
   const n = metrics.length, cx = 230, cy = 190, R = 118, step = 2*Math.PI/n;
   const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
   const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
@@ -9797,8 +9826,14 @@ function svpPizzaSVG(metrics, A, B){
   const rOf = p => R*Math.max(p,3)/100;
   const bg = metrics.map((m,i)=>`<path class="pz-bg" d="${wedge(i,R)}"/>`).join('')
     + [25,50,75].map(f=>`<circle class="pz-ring" cx="${cx}" cy="${cy}" r="${(R*f/100).toFixed(1)}"/>`).join('');
-  const aw = A.pcts.map((c,i)=> c.p==null ? '' : `<path class="pz-a" d="${wedge(i,rOf(c.p))}" fill="${svColor(c.p)}"><title>${esc(metrics[i][0])}: ${c.txt} · ${c.p}th percentile</title></path>`).join('');
-  const nums = A.pcts.map((c,i)=>{ if(c.p==null) return ''; const am = -Math.PI/2+(i+0.5)*step, [x,y] = pt(am, Math.max(rOf(c.p)-13, 17));
+  /* anim: every wedge is drawn once at full size and scaled from the center, so a later update only has to change
+     a transform and a fill (CSS transitions do the sliding) — used by the player page's ▶ Play */
+  const numPos = (i,p) => { const am = -Math.PI/2+(i+0.5)*step; return pt(am, Math.max(rOf(p)-13, 17)); };
+  const aw = anim ? A.pcts.map((c,i)=>`<path class="pz-a pz-anim" data-pzi="${i}" d="${wedge(i,R)}" style="transform-origin:${cx}px ${cy}px;transform:scale(${c.p==null?0:Math.max(c.p,3)/100});fill:${c.p==null?'transparent':svColor(c.p)}"><title>${esc(metrics[i][0])}${c.p==null?'':`: ${c.txt} · ${c.p}th percentile`}</title></path>`).join('')
+    : A.pcts.map((c,i)=> c.p==null ? '' : `<path class="pz-a" d="${wedge(i,rOf(c.p))}" fill="${svColor(c.p)}"><title>${esc(metrics[i][0])}: ${c.txt} · ${c.p}th percentile</title></path>`).join('');
+  const nums = anim ? A.pcts.map((c,i)=>{ const [x,y] = numPos(i, c.p==null?50:c.p);
+      return `<text class="pz-num pz-animnum" data-pzn="${i}" x="0" y="0" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px);opacity:${c.p==null?0:1}">${c.p==null?'':c.p}</text>`; }).join('')
+    : A.pcts.map((c,i)=>{ if(c.p==null) return ''; const [x,y] = numPos(i, c.p);
     return `<text class="pz-num" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${c.p}</text>`; }).join('');
   const bw = B ? B.pcts.map((c,i)=> c.p==null ? '' : `<path class="pz-b" d="${wedge(i,rOf(c.p))}"><title>${esc(B.name)} ${esc(metrics[i][0])}: ${c.txt} · ${c.p}th percentile</title></path>`).join('') : '';
   const labs = metrics.map((m,i)=>{ const am = -Math.PI/2+(i+0.5)*step, [x,y] = pt(am, R+14), c = Math.cos(am);
