@@ -159,7 +159,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   margin:0;letter-spacing:.01em}
 .phead .yrs{color:var(--muted);font-size:.9rem;letter-spacing:.04em}
 .pbanner{margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line)}
-.pbanner img{display:block;width:100%;height:clamp(150px,30vw,320px);object-fit:cover;object-position:50% 40%}
+.pbanner img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;object-position:50% 40%}
 .phead-team h2{display:inline-block;border-bottom:4px solid var(--tc,var(--accent));padding-bottom:3px}
 .thero{border-radius:8px;padding:22px 24px;margin:2px 0 22px;position:relative;overflow:hidden;
   background:linear-gradient(115deg,var(--tp,var(--accent)),color-mix(in srgb,var(--tp,var(--accent)) 66%,#000));
