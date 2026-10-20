@@ -158,6 +158,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .phead h2{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.8rem,5vw,2.8rem);
   margin:0;letter-spacing:.01em}
 .phead .yrs{color:var(--muted);font-size:.9rem;letter-spacing:.04em}
+.pbanner{margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line)}
+.pbanner img{display:block;width:100%;height:clamp(150px,30vw,320px);object-fit:cover;object-position:50% 40%}
 .phead-team h2{display:inline-block;border-bottom:4px solid var(--tc,var(--accent));padding-bottom:3px}
 .thero{border-radius:8px;padding:22px 24px;margin:2px 0 22px;position:relative;overflow:hidden;
   background:linear-gradient(115deg,var(--tp,var(--accent)),color-mix(in srgb,var(--tp,var(--accent)) 66%,#000));
@@ -3296,6 +3298,7 @@ function detail(name){
 
   app.innerHTML = `
     <button class="back" id="back">← Players</button>
+    ${pl.banner?`<div class="pbanner"><img src="${pl.banner}" alt="${esc(name)}"></div>`:''}
     <div class="phead phead-team">
       <div class="hero-row">
         ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
