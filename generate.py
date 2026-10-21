@@ -3144,7 +3144,7 @@ function teamHistoryCircles(pl){
     const tip = `${esc(label)} · ${yrs}`;
     /* Panthers numbers: black face, red number, a red ring inside a silver outer ring */
     const pan = st.team==='Brookside Panthers';
-    return `<span class="numring" style="--rc-p:${pan?'#c3c7ce':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+    return `<span class="numring" style="--rc-p:${pan?'#9aa0aa':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
     </span>`;
   }).join('');
