@@ -3265,13 +3265,14 @@ function teamHistoryCircles(pl){
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>st.years.includes(a.y)) : [];
     /* Kraken: one badge per colour era; the newest era the stint touches is the main circle and the earlier ones open on hover */
-    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.filter(e=>st.years.some(y=>y>=e.from && y<=e.to)) : [];
+    /* each era circle is labelled with the seasons this player actually spent in that era's jerseys, not the era's own span */
+    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.map(e=>({...e, played:yearRanges(st.years.filter(y=>y>=e.from && y<=e.to))})).filter(e=>e.played) : [];
     const krMain = krEras[0] || null;
-    const krAlt = krEras.length>1 ? `<span class="altrow">${krEras.slice(1).map(e=>`<span class="numring ${e.cls}" title="${e.label} · Kraken"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.label}</i></span>`).join('')}</span>` : '';
+    const krAlt = krEras.length>1 ? `<span class="altrow">${krEras.slice(1).map(e=>`<span class="numring ${e.cls}" title="${e.played} · Kraken"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`).join('')}</span>` : '';
     const eraCls = krMain && krMain.cls ? ' '+krMain.cls : '';
     const ringVars = krMain && krMain.cls ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     return `<span class="numring${pan?' pan':''}${eraCls}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
-      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.label}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
+      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
