@@ -666,6 +666,8 @@ table.h2hsub thead th{padding:7px 10px}
 .pt{color:var(--clay);font-weight:700;padding-left:1px}
 .estd{color:var(--gold);font-weight:700}
 .asgstar{color:var(--gold);margin-left:3px;font-size:.85em}
+.wstrophy{color:var(--gold);margin-left:4px;font-size:.95em;vertical-align:-.12em;display:inline-flex}
+.wstrophy .trophy{width:1em;height:1em}
 .nopost{border:1px dashed var(--line-strong);border-radius:12px;padding:22px;color:var(--muted);
   font-size:.9rem;text-align:center}
 
@@ -2468,7 +2470,9 @@ function phaseBlock(pl, type){
   }) : cols;
   const seasonCols = [{l:'Season',f:d=>{
     const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
-    return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
+    const isWS = type==='Playoffs' && !d.split && ((pl.honors||{}).rings||[]).some(r=>r.year===d.year);
+    return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'')
+      +(isWS?`<span class="wstrophy" title="World Series champion">${TROPHY}</span>`:'');
   }},{l:'Tm',f:teamCell,noTot:1}];
   const awCol = type==='Regular'
     ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Regular')}]
