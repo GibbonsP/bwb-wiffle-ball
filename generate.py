@@ -1308,10 +1308,10 @@ function gsRender(items){
 /* ---------------- franchise colours (from the club wordmark sheet) ------- */
 const FRANCHISE_COLORS = {
   'Brookside Kraken':{p:'#4dcfef',s:'#f819a3'}, 'Brookside Panthers':{p:'#0d0c0c',s:'#d90909'},
-  'Beaver Brook Lavahogs':{p:'#707470',s:'#f5590d'}, 'Brookside Squirrels':{p:'#3d85c6',s:'#7a4a12'},
+  'Beaver Brook Lavahogs':{p:'#707470',s:'#f5590d'}, 'Brookside Squirrels':{p:'#195e8e',s:'#452204'},
   'Brookside Royals':{p:'#e23b2e',s:'#ffffff'}, 'Davenport Sox':{p:'#ff9900',s:'#111111'},
-  'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
-  'Downtown Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
+  'Brentwood Aces':{p:'#080dc4',s:'#f9b941'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
+  'Downtown Angels':{p:'#490085',s:'#f11212'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
   'Brentwood Braves':{p:'#0a1d44',s:'#de0030'}, 'Glenwood Process':{p:'#165bc0',s:'#e62d17'},
   'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#122544',s:'#d61d30'},
   'Brentwood Gladiators':{p:'#4a09ac',s:'#ffc039'}, 'Purchase Dragons':{p:'#ff5c00',s:'#000000'},
