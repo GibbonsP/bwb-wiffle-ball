@@ -2380,11 +2380,14 @@ const AW_ABBR = {
 const AW_ORDER = ['MVP','CY Young','Postseason MVP','All-Star Game MVP','Rookie of the Year','Silver Slugger',
   'Golden Hands','Batting Title','Home Run King','Home Run Derby Champion','Reliever of the Year',
   'Comeback Player of the Year','Manager of the Year'];
-function yearAwards(pl, y){
+/* the Awards column on a player's season tables: the regular-season table lists the year's league awards (no World Series ring and
+   no Postseason MVP); the playoffs table lists just the Postseason MVP */
+function yearAwards(pl, y, phase){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const out = [];
-  if(h.rings.some(r=>r.year===y)) out.push('WS');
-  if(!HIDDEN_AWARD_YEARS.has(y)) h.awards.filter(a=>a.year===y).forEach(a=>{ const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
+  if(!HIDDEN_AWARD_YEARS.has(y)) h.awards.filter(a=>a.year===y).forEach(a=>{
+    if((phase==='Playoffs') !== (a.award==='Postseason MVP')) return;
+    const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
   return out.join(', ');
 }
 
@@ -2470,7 +2473,9 @@ function phaseBlock(pl, type){
     return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'');
   }},{l:'Tm',f:teamCell,noTot:1}];
   const awCol = type==='Regular'
-    ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year)}] : [];
+    ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Regular')}]
+    : (type==='Playoffs' && ((pl.honors||{}).awards||[]).some(a=>a.award==='Postseason MVP' && !HIDDEN_AWARD_YEARS.has(a.year)))
+      ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Playoffs')}] : [];
 
   /* OPS+/ERA+ compare a season against that year's BWB league average —
      meaningless for NWLA, an outside national tournament with no BWB
