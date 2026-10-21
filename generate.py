@@ -2503,7 +2503,7 @@ function phaseBlock(pl, type){
   }) : cols;
   const seasonCols = [{l:'Season',f:d=>{
     const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
-    const isWS = (type==='Playoffs' || type==='Regular') && !d.split && ((pl.honors||{}).rings||[]).some(r=>r.year===d.year);
+    const isWS = type==='Playoffs' && !d.split && ((pl.honors||{}).rings||[]).some(r=>r.year===d.year);
     return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'')
       +(isWS?`<span class="wstrophy" title="World Series champion">${TROPHY}</span>`:'');
   }},{l:'Tm',f:teamCell,noTot:1}];
