@@ -1299,6 +1299,13 @@ function teamAccent(full){
   s = Math.max(s, 0.42); l = Math.min(Math.max(l, 0.42), 0.60);
   return _tohex(h,s,l);
 }
+/* purple-first accent for the Gladiators: the generic picker lands on their gold, but their identity is purple */
+function primaryAccent(full){
+  const c = FRANCHISE_COLORS[full]; if(!c) return null;
+  let [h,s,l] = _hsl(c.p);
+  s = Math.max(s, 0.42); l = Math.min(Math.max(l, 0.42), 0.60);
+  return _tohex(h,s,l);
+}
 function setTeamVars(full){
   const c = FRANCHISE_COLORS[full];
   app.style.removeProperty('--tc'); app.style.removeProperty('--tp'); app.style.removeProperty('--ts');
@@ -3377,6 +3384,8 @@ function detail(name){
   const curLogoTeam = curTeamEntry && curTeamEntry.team
     ? curTeamEntry.team.split(' / ').pop() : null;
   const curLogo = curLogoTeam && TEAMS[curLogoTeam] ? teamLogoForYear(curLogoTeam, LATEST_YEAR) : null;
+  /* actively on the Gladiators → purple is the page's main colour (top lines, charts, accents) */
+  if(curLogoTeam === 'Brentwood Gladiators'){ const pa = primaryAccent(curLogoTeam); if(pa) app.style.setProperty('--tc', pa); }
 
   app.innerHTML = `
     <button class="back" id="back">← Players</button>
