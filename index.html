@@ -963,6 +963,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 /* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
 .numring.bv{--rc-p:#de0030;--rc-s:#fff;--rc-bg:#0a1d44;--rc-ink:#de0030}
 .numring.bv>b{-webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
+.numring.tt{--rc-p:#00d077;--rc-s:#fff;--rc-bg:#036a4f;--rc-ink:#00d077}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
@@ -3312,7 +3313,7 @@ function teamHistoryCircles(pl){
     const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`;
     const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
-    const bvCls = st.team==='Brentwood Braves' && eraKey(st.team, st.to) < 0 ? ' bv' : '';
+    const bvCls = eraKey(st.team, st.to) < 0 ? ({'Brentwood Braves':' bv','Silver Lake Snapping Turtles':' tt'}[st.team]||'') : '';
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
     return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
