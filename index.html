@@ -1302,8 +1302,7 @@ const FRANCHISE_COLORS = {
 /* era palettes: a franchise's colours in a given season (FRANCHISE_COLORS above is its current look) */
 const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910',split:true}],
   'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
-  'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
-  'Brentwood Gladiators':[{from:2000,to:2020,p:'#3d2185',s:'#f2b90c'}]};
+  'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}]};
 /* only eras flagged split (a different club identity, e.g. the Dashers) break a same-number stint into separate badges; palette refreshes don't */
 function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>e.split && year>=e.from && year<=e.to); }
 function colorsFor(full, year){
