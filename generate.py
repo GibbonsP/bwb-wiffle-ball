@@ -3232,18 +3232,24 @@ function fitHeadLogo(){
   im.style.marginRight = (GAP - right - gapHead) + 'px';
 }
 window.addEventListener('resize', fitHeadLogo);
+/* [2016,2017,2019,2025] -> "2016–2017, 2019, 2025": consecutive seasons collapse into a range, a break starts a new one */
+function yearRanges(ys){
+  const a = [...new Set(ys.map(Number))].sort((x,y)=>x-y), out = [];
+  for(let i=0;i<a.length;){ let j=i; while(j+1<a.length && a[j+1]===a[j]+1) j++; out.push(i===j ? String(a[i]) : a[i]+'–'+a[j]); i=j+1; }
+  return out.join(', ');
+}
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
     .slice().sort((a,b)=>a.year-b.year);
   if(!rows.length) return '';
-  const stints = [];
+  /* one badge per club + number (+ any split era): a player who left and came back, or sat out a few years, keeps a single badge
+     whose tooltip lists the seasons actually played, instead of a repeat badge after every break */
+  const stints = [], byKey = {};
   rows.forEach(s=>{
-    const last = stints[stints.length-1];
-    if(last && last.team===s.team && String(last.num)===String(s.num) && s.year===last.to+1 && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
-      last.to = s.year;
-    } else {
-      stints.push({team:s.team, num:s.num, from:s.year, to:s.year});
-    }
+    const k = s.team+'|'+String(s.num)+'|'+eraKey(s.team, s.year);
+    let st = byKey[k];
+    if(!st){ st = byKey[k] = {team:s.team, num:s.num, from:s.year, to:s.year, years:[]}; stints.push(st); }
+    st.years.push(s.year); st.to = Math.max(st.to, s.year);
   });
   const items = stints.map(st=>{
     /* a franchise's colours for a stint, honouring any era that wore different ones (the Dashers were Mets blue and orange) */
@@ -3253,13 +3259,13 @@ function teamHistoryCircles(pl){
        this merged stint, use the name it went by in the LAST year of the
        range, not whichever name happened to be active when the stint began */
     const label = TEAMS[st.team] ? histName(st.team, st.to) : st.team;
-    const yrs = st.from===st.to ? String(st.from) : `${st.from}–${st.to}`;
+    const yrs = yearRanges(st.years);
     const tip = `${esc(label)} · ${yrs}`;
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
-    const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>a.y>=st.from && a.y<=st.to) : [];
+    const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>st.years.includes(a.y)) : [];
     /* Kraken: one badge per colour era; the newest era the stint touches is the main circle and the earlier ones open on hover */
-    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.filter(e=>st.from<=e.to && st.to>=e.from) : [];
+    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.filter(e=>st.years.some(y=>y>=e.from && y<=e.to)) : [];
     const krMain = krEras[0] || null;
     const krAlt = krEras.length>1 ? `<span class="altrow">${krEras.slice(1).map(e=>`<span class="numring ${e.cls}" title="${e.label} · Kraken"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.label}</i></span>`).join('')}</span>` : '';
     const eraCls = krMain && krMain.cls ? ' '+krMain.cls : '';
@@ -3447,7 +3453,7 @@ function detail(name){
         <h2>${esc(name)}</h2>
         ${curLogo?`<img class="pheadlogo" src="${curLogo}" alt="" title="${esc(TEAMS[curLogoTeam].nick||curLogoTeam)}">`:''}
       </div>
-      <span class="yrs">${rYrs.length} season${rYrs.length>1?'s':''} · ${rYrs[0]}–${rYrs[rYrs.length-1]} · ${cr.G_bat} reg. G${hasPost?` · ${cp.G_bat} postseason G`:''}${curTeamLabel?` · ${esc(curTeamLabel)}`:''}</span>
+      <span class="yrs">${rYrs.length} season${rYrs.length>1?'s':''} · ${yearRanges(rYrs)} · ${cr.G_bat} reg. G${hasPost?` · ${cp.G_bat} postseason G`:''}${curTeamLabel?` · ${esc(curTeamLabel)}`:''}</span>
       ${editBtn('Edit seasons','editSeasonsBtn')}
       ${editBtn('Edit photo','editPhotoBtn')}
     </div>
