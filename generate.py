@@ -973,7 +973,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.tt{--rc-p:#00d077;--rc-s:#fff;--rc-bg:#036a4f;--rc-ink:#00d077}
 .numring.ti{--rc-p:#f7ed9f;--rc-s:#fff;--rc-bg:#4e0404}
 .numring.ti>b{background:linear-gradient(to top,#c1ac51,#f7ed9f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.numring.bn{--rc-p:#30943a;--rc-s:#3a2600;--rc-bg:#ffbe22;--rc-ink:#fff}
+.numring.bn{--rc-p:#30943a;--rc-s:#fff;--rc-bg:#ffbe22;--rc-ink:#fff}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
