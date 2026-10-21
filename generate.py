@@ -1519,9 +1519,18 @@ function teamCell(d){
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 }
 function latestTeam(pl){
-  const ys = Object.keys(pl.teamsByYear).map(Number).sort((a,b)=>b-a);
-  for(const y of ys){ const t=pl.teamsByYear[y]; if(t && t.team) return t.team; }
-  return '';
+  const y = latestYear(pl);
+  const t = y ? pl.teamsByYear[y] : null;
+  return t && t.team ? t.team : '';
+}
+/* the year of a player's most recent OFFICIAL season (Regular/Playoffs/etc.,
+   not Spring/Fall exhibitions); falls back to the latest rostered year for
+   players with no official games at all */
+function latestYear(pl){
+  const ys = Object.keys(pl.teamsByYear).filter(y=>pl.teamsByYear[y] && pl.teamsByYear[y].team).map(Number).sort((a,b)=>b-a);
+  const off = new Set((pl.seasons||[]).filter(s=>s.type!=='Spring' && s.type!=='Fall').map(s=>s.year));
+  for(const y of ys) if(off.has(y)) return y;
+  return ys[0] || 0;
 }
 /* every distinct franchise a player has ever been credited to (splitting a
    two-team season's combined "A / B" string), in first-appearance order —
@@ -3452,7 +3461,7 @@ function detail(name){
   }
 
   const lt = latestTeam(pl);
-  const ltYear = Math.max(0, ...Object.keys(pl.teamsByYear).filter(y=>pl.teamsByYear[y] && pl.teamsByYear[y].team).map(Number));
+  const ltYear = latestYear(pl);
   setTeamVars(lt, ltYear);
 
   /* "current team" only means something if they were actually on a roster
