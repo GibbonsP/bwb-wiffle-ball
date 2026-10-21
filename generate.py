@@ -193,7 +193,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .tlogo-mini{width:18px;height:18px;object-fit:contain;margin-right:6px;vertical-align:middle;border-radius:3px}
 .fdotlogo{width:26px;height:26px;object-fit:contain;margin-right:8px;vertical-align:middle}
 .tl-wrap{margin-bottom:34px}
-.tlg-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow)}
+.tlg-scroll{cursor:grab;overflow-x:auto;border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow)}
 .tlg-grid{display:grid;grid-template-columns:238px repeat(15,minmax(76px,1fr));grid-auto-rows:32px;
   min-width:1378px;background:var(--card)}
 .tlg-cell{display:flex;align-items:center;font-size:.72rem}
@@ -209,6 +209,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .tl-logo{width:24px;height:24px;object-fit:contain;flex:none}
 .tl-logo-blank{background:var(--line);border-radius:4px}
 .tlg-name .tl-logo{width:18px;height:18px}
+.tlg-scroll.dragging{cursor:grabbing;user-select:none}
 .tlg-bar{margin:4px 2px;border-radius:4px;padding:0 6px;display:flex;align-items:center;
   font-size:.66rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   background:var(--bc);cursor:default}
@@ -1334,6 +1335,7 @@ function colorsFor(full, year){
 }
 function _hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 function _lum(hex){ const [r,g,b]=_hx(hex).map(v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; }
+function _cr(a,b){ const x=_lum(a)+.05, y=_lum(b)+.05; return Math.max(x,y)/Math.min(x,y); }
 function _hsl(hex){ let [r,g,b]=_hx(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
   let h=0,s=0,l=(mx+mn)/2; if(d){ s=d/(1-Math.abs(2*l-1));
     h = mx===r ? ((g-b)/d)%6 : mx===g ? (b-r)/d+2 : (r-g)/d+4; h*=60; if(h<0) h+=360; } return [h,s,l]; }
@@ -3988,6 +3990,25 @@ function teamLeadershipHtml(full){
 }
 
 const TL_YEARS = Array.from({length:15},(_,i)=>2012+i);
+/* Franchise Name History: left-click and drag sideways to move along the timeline (touch and trackpads already scroll natively) */
+(function(){
+  let box = null, x0 = 0, s0 = 0, moved = false;
+  document.addEventListener('pointerdown', e=>{
+    if(e.pointerType!=='mouse' || e.button!==0) return;
+    const b = e.target.closest && e.target.closest('.tlg-scroll'); if(!b) return;
+    box = b; x0 = e.clientX; s0 = b.scrollLeft; moved = false;
+  });
+  document.addEventListener('pointermove', e=>{
+    if(!box) return;
+    const dx = e.clientX - x0;
+    if(!moved && Math.abs(dx) > 4){ moved = true; box.classList.add('dragging'); }
+    if(moved){ box.scrollLeft = s0 - dx; e.preventDefault(); }
+  });
+  const end = ()=>{ if(box){ box.classList.remove('dragging'); } box = null; };
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  /* a drag that ends on a team name or bar must not count as a click */
+  document.addEventListener('click', e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+})();
 function franchiseTimeline(){
   const colOf = y => (y-2012)+2;
   const head = `<div class="tlg-cell tlg-head tlg-name" style="grid-row:1;grid-column:1">Franchise</div>` +
@@ -4000,13 +4021,14 @@ function franchiseTimeline(){
     const nameEl = hasPage
       ? `<button class="pname" data-t="${esc(fr.full)}">${esc(fr.full)}</button>`
       : `<span>${esc(fr.full)}</span>`;
-    const color = teamAccent(fr.full) || '#8a90a0';
     const band = `<div class="tlg-band${i%2?' even':''}" style="grid-row:${r};grid-column:1/-1"></div>`;
     const nameCell = `<div class="tlg-cell tlg-name" style="grid-row:${r};grid-column:1">
       ${logo?logoIcon(logo,'','tl-logo'):'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
+    /* every name era is drawn in the club's current main colour, so a franchise reads as one uniform colour across its whole history */
+    const col = (FRANCHISE_COLORS[fr.full]||{}).p || '#8a90a0';
     const bars = fr.eras.map(e=>{
       const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
-      return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(e.from)}/${colOf(e.to)+1};--bc:${color}"
+      return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(e.from)}/${colOf(e.to)+1};--bc:${col}"
         title="${esc(range+' · '+e.loc+' '+e.nick)}">${esc(e.nick)}</div>`;
     }).join('');
     return band + nameCell + bars;
