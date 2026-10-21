@@ -3190,10 +3190,10 @@ function barChart(items, opts={}){
    (each split stint counted on its own, the combined "tot" row
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
-/* Kraken colour eras, newest first (2016–2017 wasn't specified, so it rides with the earliest era) */
+/* Kraken colour eras, newest first (the Kraken name began in 2018; earlier years - Eagles, Bluefish - have no jersey circle) */
 const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:'kr-2023'},
   {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
-  {from:2016,to:2020,label:'2018–2020',cls:'kr-1820'}];
+  {from:2018,to:2020,label:'2018–2020',cls:'kr-1820'}];
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
 /* the alternate-jersey row opens to the right of a Panthers number; if there isn't room before the page edge it opens to the left instead */
 (function(){
