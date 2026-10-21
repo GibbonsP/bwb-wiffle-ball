@@ -3387,6 +3387,8 @@ function detail(name){
   /* most recent team is the Gladiators → purple is the page's main colour (top lines, charts, accents) */
   /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
   if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas'); if(pa) app.style.setProperty('--tc', pa); }
+  /* Kings players: the page's main colour is red #ff2121 (the generic picker lands on their blue) */
+  if(String(lt).split(' / ').pop() === 'Harris Kings') app.style.setProperty('--tc', '#ff2121');
   if(String(lt).split(' / ').pop() === 'Brentwood Gladiators'){ const pa = primaryAccent('Brentwood Gladiators'); if(pa) app.style.setProperty('--tc', pa); }
 
   app.innerHTML = `
