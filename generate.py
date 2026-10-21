@@ -23,7 +23,7 @@ HTML = r'''<meta charset="utf-8">
 <link rel="apple-touch-icon" href="__FAVICON__">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&family=Saira+Condensed:wght@700&display=swap">
 <style>
 :root{
   --brandbar:#041e42; --brandbar-ink:#ffffff; --brandbar-line:#0c2c56;
@@ -945,7 +945,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
 .numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
 .numring.pan{box-shadow:0 0 0 1.5px #000,var(--shadow),inset 0 0 0 3px var(--rc-s)}
-.numring.pan b{font-size:1rem;line-height:1;letter-spacing:0;margin-right:0;transform:translate(-.3px,.4px)}
+.numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
