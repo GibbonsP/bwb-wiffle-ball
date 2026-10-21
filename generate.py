@@ -964,11 +964,12 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
    centered tooltip there would spill off-screen, so anchor those two to
    the ring's own edge instead of straddling its center */
 .numring:hover .numring-tip{opacity:1}
-.numrow>.numring{transition:filter .18s ease,opacity .18s ease}
-.numrow:has(>.numring.pan[tabindex]:hover)>.numring:not(.pan[tabindex]:hover),
-.numrow:has(>.numring.pan[tabindex]:focus-within)>.numring:not(.pan[tabindex]:focus-within){filter:blur(3.5px);opacity:.55}
-.altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:none;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
-.numring.pan[tabindex]:hover>.altrow,.numring.pan[tabindex]:focus-within>.altrow{display:flex}
+.numrow>.numring{transition:filter .45s ease,opacity .45s ease}
+.numrow:has(>.numring.pan[tabindex]:hover)>.numring:not(.pan[tabindex]:hover):not(.pinned),
+.numrow:has(>.numring.pan[tabindex]:focus-within)>.numring:not(.pan[tabindex]:focus-within):not(.pinned),
+.numrow:has(>.numring.pan.pinned)>.numring:not(.pinned){filter:blur(3.5px);opacity:.55}
+.altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
+.numring.pan[tabindex]:hover>.altrow,.numring.pan[tabindex]:focus-within>.altrow,.numring.pan.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
@@ -3156,6 +3157,15 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
     const w = t.offsetWidth, vw = document.documentElement.clientWidth, c = (L+R)/2, shift = c - (b.left + b.width/2);
     t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + shift + 'px'); };
   document.addEventListener('mouseover', fit); document.addEventListener('focusin', fit);
+})();
+/* clicking (or tapping) a Panthers number holds its alternate-jersey row open for 5 seconds, then fades it back out */
+(function(){
+  let tmr = null, cur = null;
+  const unpin = () => { clearTimeout(tmr); tmr = null; if(cur){ cur.classList.remove('pinned'); if(cur.contains(document.activeElement)) document.activeElement.blur(); cur = null; } };
+  document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.numring.pan[tabindex]');
+    if(!el){ if(cur) unpin(); return; }
+    if(cur && cur!==el) unpin();
+    cur = el; el.classList.add('pinned'); clearTimeout(tmr); tmr = setTimeout(unpin, 5000); });
 })();
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
