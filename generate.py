@@ -3391,6 +3391,8 @@ function detail(name){
     ? curTeamEntry.team.split(' / ').pop() : null;
   const curLogo = curLogoTeam && TEAMS[curLogoTeam] ? teamLogoForYear(curLogoTeam, LATEST_YEAR) : null;
   /* actively on the Gladiators → purple is the page's main colour (top lines, charts, accents) */
+  /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
+  if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas'); if(pa) app.style.setProperty('--tc', pa); }
   if(curLogoTeam === 'Brentwood Gladiators'){ const pa = primaryAccent(curLogoTeam); if(pa) app.style.setProperty('--tc', pa); }
 
   app.innerHTML = `
