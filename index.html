@@ -3253,8 +3253,9 @@ function teamHistoryCircles(pl){
       let num = numAt[tm+'|'+y];
       if(!num){
         const near = Object.keys(numAt).filter(k=>k.startsWith(tm+'|')).map(k=>+k.split('|')[1]).sort((p,q)=>Math.abs(p-y)-Math.abs(q-y) || p-q)[0];
-        num = near!=null ? numAt[tm+'|'+near] : '–';
+        num = near!=null ? numAt[tm+'|'+near] : null;
       }
+      if(!num) return; // exhibition-only, no official number: no circle
       rows.push({year:y, team:tm, num});
     });
   });
