@@ -161,6 +161,12 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:12/5}
 .pbanner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
 .pbanner img.on{opacity:1}
+.pbarrow{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
+  background:rgba(0,0,0,.42);color:#fff;font-size:1.5rem;line-height:1;padding:0 0 3px;cursor:pointer;opacity:.0;transition:opacity .2s,background .2s;z-index:2}
+.pbarrow.prev{left:10px}.pbarrow.next{right:10px}
+.pbanner:hover .pbarrow,.pbarrow:focus-visible{opacity:1}
+.pbarrow:hover{background:rgba(0,0,0,.65)}
+@media (hover:none){.pbarrow{opacity:.85;width:34px;height:34px}}
 .pbdots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:7px;pointer-events:none}
 .pbdots button{pointer-events:auto;width:9px;height:9px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);cursor:pointer;box-shadow:0 0 3px rgba(0,0,0,.5)}
 .pbdots button.on{background:var(--tc,var(--accent));border-color:#fff}
@@ -3588,16 +3594,18 @@ function logoIcon(uri, alt, cls){
 }
 
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
-/* rotating profile banner: pl.banners = [{src, y}] (y = object-position percent that frames the player), crossfading in a fixed
-   order from a random starting photo. Only the first image is loaded up front; the rest load as they come up. */
+/* rotating profile banner: pl.banners = [{src, y}] (y = object-position percent that frames the player), crossfading in
+   chronological order, oldest first. Only the first image is loaded up front; the rest load as they come up. */
 let pbTimer = null;
 function playerBannerHTML(pl, name){
   const list = pl.banners || [];
   if(!list.length) return '';
-  const start = Math.floor(Math.random()*list.length);
+  const start = 0;   // banners are stored oldest to newest and always play in that order, starting from the first
   const imgs = list.map((b,i)=>`<img ${i===start?`src="${b.src}" class="on"`:`data-src="${b.src}"`} alt="${i===start?esc(name):''}" style="object-position:50% ${b.y==null?50:b.y}%" decoding="async">`).join('');
   const dots = list.length>1 ? `<div class="pbdots">${list.map((b,i)=>`<button type="button" data-pbi="${i}" aria-label="Photo ${i+1} of ${list.length}"${i===start?' class="on"':''}></button>`).join('')}</div>` : '';
-  return `<div class="pbanner" data-pbn="${list.length}">${imgs}${dots}</div>`;
+  const arrows = list.length>1 ? `<button type="button" class="pbarrow prev" data-pbd="-1" aria-label="Previous photo">‹</button>
+    <button type="button" class="pbarrow next" data-pbd="1" aria-label="Next photo">›</button>` : '';
+  return `<div class="pbanner" data-pbn="${list.length}">${imgs}${arrows}${dots}</div>`;
 }
 function initPlayerBanner(){
   if(pbTimer){ clearInterval(pbTimer); pbTimer = null; }
@@ -3618,6 +3626,7 @@ function initPlayerBanner(){
   box.addEventListener('mouseenter', ()=>{ paused = true; });
   box.addEventListener('mouseleave', ()=>{ paused = false; });
   dots.forEach(d=>d.addEventListener('click', ()=>{ show(+d.dataset.pbi); }));
+  box.querySelectorAll('.pbarrow').forEach(b=>b.addEventListener('click', ()=>{ show(cur + +b.dataset.pbd); }));
 }
 const wirePlayerLinks = () => app.querySelectorAll('.pname[data-p]').forEach(b=>
   b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
