@@ -210,8 +210,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .tl-logo-blank{background:var(--line);border-radius:4px}
 .tlg-name .tl-logo{width:18px;height:18px}
 .tlg-bar{margin:4px 2px;border-radius:4px;padding:0 6px;display:flex;align-items:center;
-  font-size:.66rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  background:var(--bc);cursor:default}
+  font-size:.66rem;font-weight:700;color:var(--bi,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--bc);box-shadow:inset 0 0 0 2px var(--bs,transparent);cursor:default}
 .splitgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;
   margin:20px 0 36px}
 .split{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:14px 16px;
@@ -1334,6 +1334,7 @@ function colorsFor(full, year){
 }
 function _hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 function _lum(hex){ const [r,g,b]=_hx(hex).map(v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; }
+function _cr(a,b){ const x=_lum(a)+.05, y=_lum(b)+.05; return Math.max(x,y)/Math.min(x,y); }
 function _hsl(hex){ let [r,g,b]=_hx(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
   let h=0,s=0,l=(mx+mn)/2; if(d){ s=d/(1-Math.abs(2*l-1));
     h = mx===r ? ((g-b)/d)%6 : mx===g ? (b-r)/d+2 : (r-g)/d+4; h*=60; if(h<0) h+=360; } return [h,s,l]; }
@@ -4000,14 +4001,25 @@ function franchiseTimeline(){
     const nameEl = hasPage
       ? `<button class="pname" data-t="${esc(fr.full)}">${esc(fr.full)}</button>`
       : `<span>${esc(fr.full)}</span>`;
-    const color = teamAccent(fr.full) || '#8a90a0';
     const band = `<div class="tlg-band${i%2?' even':''}" style="grid-row:${r};grid-column:1/-1"></div>`;
     const nameCell = `<div class="tlg-cell tlg-name" style="grid-row:${r};grid-column:1">
       ${logo?logoIcon(logo,'','tl-logo'):'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
+    /* each name era is drawn in the club's own colours (main as the fill, secondary as the edge and lettering); a name that spans two
+       colour eras (e.g. the Shock's 2022–23 look vs. today's) is cut into one bar per main colour so each stretch reads true */
+    const cIdx = y => (colorsFor(fr.full, y)||{}).p;
     const bars = fr.eras.map(e=>{
-      const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
-      return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(e.from)}/${colOf(e.to)+1};--bc:${color}"
-        title="${esc(range+' · '+e.loc+' '+e.nick)}">${esc(e.nick)}</div>`;
+      const segs = [];
+      for(let y=e.from; y<=e.to; y++){
+        const k = cIdx(y), last = segs[segs.length-1];
+        if(last && last.k===k) last.to = y; else segs.push({k, from:y, to:y});
+      }
+      return segs.map((sg,j)=>{
+        const c = colorsFor(fr.full, sg.from) || {p:'#8a90a0', s:'#ffffff'};
+        const ink = _cr(c.s, c.p) >= 3 ? c.s : (_lum(c.p) > .45 ? '#111' : '#fff');
+        const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
+        return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(sg.from)}/${colOf(sg.to)+1};--bc:${c.p};--bs:${c.s};--bi:${ink}"
+          title="${esc(range+' · '+e.loc+' '+e.nick)}">${j===0?esc(e.nick):''}</div>`;
+      }).join('');
     }).join('');
     return band + nameCell + bars;
   }).join('');
