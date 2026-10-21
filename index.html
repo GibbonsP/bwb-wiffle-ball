@@ -3141,11 +3141,14 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
     if(el.getBoundingClientRect().right + 12 + n*56 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
   document.addEventListener('mouseover', place); document.addEventListener('focusin', place);
 })();
-/* tooltips sit centered over their number; nudge one sideways only if centering would push it past the page edge */
+/* tooltips sit centered over their number — or, when the alternate-jersey row is open, over the whole group
+   (number + alternates); nudged sideways only if that would push them past the page edge */
 (function(){
   const fit = e => { const r = e.target.closest && e.target.closest('.numring'); if(!r) return; const t = r.querySelector(':scope>.numring-tip'); if(!t) return;
-    t.style.setProperty('--tx','0px'); const b = r.getBoundingClientRect(), w = t.offsetWidth, vw = document.documentElement.clientWidth, c = b.left + b.width/2;
-    t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + 'px'); };
+    t.style.setProperty('--tx','0px'); const b = r.getBoundingClientRect(); let L = b.left, R = b.right;
+    r.querySelectorAll(':scope>.altrow .numring').forEach(a=>{ const q = a.getBoundingClientRect(); if(q.width){ L = Math.min(L,q.left); R = Math.max(R,q.right); } });
+    const w = t.offsetWidth, vw = document.documentElement.clientWidth, c = (L+R)/2, shift = c - (b.left + b.width/2);
+    t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + shift + 'px'); };
   document.addEventListener('mouseover', fit); document.addEventListener('focusin', fit);
 })();
 function teamHistoryCircles(pl){
