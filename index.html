@@ -942,9 +942,13 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
 /* alternate Panthers jerseys, shown while a Panthers number is hovered (or tapped): 2022 white and gold, 2023 red and black, 2024 pink and white */
-.numring.pan.alt-2022{--rc-p:#000 !important;--rc-s:#d4a017 !important;--rc-bg:#fff !important;--rc-ink:#c8920a !important;--rc-hair:transparent !important}
+.numring.pan.alt-2022{--rc-p:#000 !important;--rc-s:#d4a017 !important;--rc-bg:#fff !important;--rc-ink:#a56f00 !important;--rc-hair:transparent !important}
 .numring.pan.alt-2023{--rc-p:#000 !important;--rc-s:#fff !important;--rc-bg:#d71920 !important;--rc-ink:#000 !important;--rc-hair:transparent !important}
 .numring.pan.alt-2023 b{-webkit-text-stroke:2.4px #fff;paint-order:stroke fill}
+.numring.pan.alt-2022::before,.numring.pan.alt-2023::before{content:"";position:absolute;inset:6px;border-radius:50%;background-size:100% 100%;pointer-events:none}
+.numring.pan.alt-2022::before{background-image:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 34 34%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M17.0 1.0 L11.1 18.1 L1.0 33.0 L6.9 15.9 Z%22 fill=%22%23d4a017%22 fill-opacity=%220.95%22/%3E%3Cpath d=%22M25.0 1.0 L19.1 18.1 L9.0 33.0 L14.9 15.9 Z%22 fill=%22%23d4a017%22 fill-opacity=%220.95%22/%3E%3Cpath d=%22M33.0 1.0 L27.1 18.1 L17.0 33.0 L22.9 15.9 Z%22 fill=%22%23d4a017%22 fill-opacity=%220.95%22/%3E%3C/svg%3E")}
+.numring.pan.alt-2023::before{background-image:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 34 34%22 preserveAspectRatio=%22none%22%3E%3Cpath d=%22M17.0 1.0 L11.1 18.1 L1.0 33.0 L6.9 15.9 Z%22 fill=%22%23000%22 fill-opacity=%220.95%22/%3E%3Cpath d=%22M25.0 1.0 L19.1 18.1 L9.0 33.0 L14.9 15.9 Z%22 fill=%22%23000%22 fill-opacity=%220.95%22/%3E%3Cpath d=%22M33.0 1.0 L27.1 18.1 L17.0 33.0 L22.9 15.9 Z%22 fill=%22%23000%22 fill-opacity=%220.95%22/%3E%3C/svg%3E")}
+.numring.pan.alt-2022 b,.numring.pan.alt-2023 b{position:relative}
 .numring.pan.alt-2024{--rc-p:#000 !important;--rc-s:#fff !important;--rc-bg:#ff6fae !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
