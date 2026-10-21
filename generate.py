@@ -969,7 +969,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:none;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
 .numring.pan[tabindex]:hover>.altrow,.numring.pan[tabindex]:focus-within>.altrow{display:flex}
 .altrow .numring{flex:none}
-.altrow .numring i{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
+.altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
 .sparkcard{border:1px solid var(--line);border-radius:6px;background:var(--card);
