@@ -978,6 +978,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.bn{--rc-p:#30943a;--rc-s:#fff;--rc-bg:#ffbe22;--rc-ink:#30943a}
 .numring.dr{--rc-p:#ff5c00;--rc-s:#fff;--rc-bg:#000;--rc-ink:#ff5c00}
 .numring.lh{--rc-p:#f5590d;--rc-s:#fff;--rc-bg:#707470;--rc-ink:#f5590d}
+.numring.pw{--rc-p:#d61d30;--rc-s:#122544;--rc-bg:#c2c5ca;--rc-ink:#d61d30}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
@@ -1307,7 +1308,7 @@ const FRANCHISE_COLORS = {
   'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
   'Downtown Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
   'Brentwood Braves':{p:'#0a1d44',s:'#de0030'}, 'Glenwood Process':{p:'#1f47ff',s:'#ffffff'},
-  'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
+  'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#122544',s:'#d61d30'},
   'Brentwood Gladiators':{p:'#4a09ac',s:'#ffc039'}, 'Purchase Dragons':{p:'#ff5c00',s:'#000000'},
   'Shelton Shock':{p:'#4169e1',s:'#393c73'}, 'Brentwood Bananas':{p:'#ffbe22',s:'#30943a'},
   'Downtown Titans':{p:'#4e0404',s:'#f7ed9f'}, 'Silver Lake Snapping Turtles':{p:'#036a4f',s:'#00d077'},
@@ -3327,7 +3328,7 @@ function teamHistoryCircles(pl){
     const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`;
     const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
-    const bvCls = eraKey(st.team, st.to) < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh'}[st.team]||'') : '';
+    const bvCls = eraKey(st.team, st.to) < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw'}[st.team]||'') : '';
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
     return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
