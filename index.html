@@ -3287,14 +3287,12 @@ function teamHistoryCircles(pl){
   const stints = [];
   rows.forEach(s=>{
     const last = stints[stints.length-1];
-    if(last && last.team===s.team && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
-      last.years.push(s.year); last.to = s.year; last.nums[s.year] = s.num;
+    if(last && last.team===s.team && String(last.num)===String(s.num) && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
+      last.years.push(s.year); last.to = s.year;
     } else {
-      stints.push({team:s.team, num:s.num, from:s.year, to:s.year, years:[s.year], nums:{[s.year]:s.num}});
+      stints.push({team:s.team, num:s.num, from:s.year, to:s.year, years:[s.year]});
     }
   });
-  /* a stint's headline number is the one worn most recently; any earlier number on the same club opens on hover */
-  stints.forEach(st=>{ st.num = st.nums[st.to]; });
   const items = stints.map(st=>{
     /* a franchise's colours for a stint, honouring any era that wore different ones (the Dashers were Mets blue and orange) */
     /* a club always shows its uniform (current) colours; only a split era (the Dashers, a different identity) keeps its own */
@@ -3312,36 +3310,17 @@ function teamHistoryCircles(pl){
     /* colour eras: the main circle is always the club's uniform look; any season spent in different jerseys opens on hover as its own
        circle, labelled with the seasons this player actually wore them (e.g. a 2021 Kraken keeps the current colours, with the 2021 jerseys on hover) */
     const eraSet = eraList(st.team);
-    const useEra = eraSet.length && eraKey(st.team, st.to) < 0;
-    const mainNum = String(st.num);
-    const eraIdx = y => useEra ? eraSet.findIndex(e=>y>=e.from && y<=e.to) : -1;
-    /* years that belong to the headline circle vs. hover circles: a jersey colour era other than the current one, and/or a different
-       number worn for the same club, each become their own hover circle labelled with the seasons they were worn */
-    const mainYears = [], grp = {}, pre = [];
-    st.years.forEach(y=>{
-      const n = String(st.nums[y] || st.num), ei = eraIdx(y);
-      if(n===mainNum && (!useEra || ei===0)){ mainYears.push(y); return; }
-      if(useEra && ei<0){ pre.push({y, n}); return; }
-      const k = ei+'|'+n; (grp[k] = grp[k] || {num:n, era:useEra?eraSet[ei]:null, ei, years:[]}).years.push(y);
-    });
-    pre.forEach(p=>{ if(p.n!==mainNum && !Object.values(grp).some(g=>g.num===p.n)){ const k='pre|'+p.n; (grp[k] = grp[k] || {num:p.n, era:null, ei:-1, years:[]}).years.push(p.y); } });
-    const groups = Object.values(grp).sort((a,b)=>Math.max(...b.years)-Math.max(...a.years));
-    const eraCls = useEra && eraSet[0].cls ? ' '+eraSet[0].cls : '';
+    const played = eraSet.map((e,k)=>({...e, current:k===0, played:yearRanges(st.years.filter(y=>y>=e.from && y<=e.to))})).filter(e=>e.played);
+    const oldEras = eraSet.length && eraKey(st.team, st.to) < 0 ? played.filter(e=>!e.current) : [];
+    const curEra = played.find(e=>e.current);
+    const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`;
+    const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
+    const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
     const bvCls = eraKey(st.team, st.to) < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn'}[st.team]||'') : '';
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
-    const panVars = pan ? `;--rc-bg:#000;--rc-ink:${rcS}` : '';
-    const groupCircle = g => {
-      const yrsG = yearRanges(g.years), t = `${yrsG} · ${esc(label)}`, n = esc(String(g.num));
-      if(g.era && g.era.cls) return `<span class="numring ${g.era.cls}" title="${t}"><b data-n="${n}">${n}</b><i>${yrsG}</i></span>`;
-      if(g.era) return `<span class="numring" style="--rc-p:${g.era.colors.p};--rc-s:${g.era.colors.s}" title="${t}"><b data-n="${n}">${n}</b><i>${yrsG}</i></span>`;
-      return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" style="${ringVars}${panVars}" title="${t}"><b data-n="${n}">${n}</b><i>${yrsG}</i></span>`;
-    };
-    const panAlts = alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.nums[a.y]||st.num))}</b><i>${a.y}</i></span>`).join('');
-    const hover = panAlts + groups.map(groupCircle).join('');
-    const hoverRow = hover ? `<span class="altrow">${hover}</span>` : '';
-    const mainLbl = groups.length && mainYears.length ? `<i class="krl">${yearRanges(mainYears)}</i>` : '';
-    return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${hover?` tabindex="0"`:''} style="${ringVars}${panVars}" title="${tip}">
-      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${mainLbl}${hoverRow}
+    const krMain = krAlt && curEra ? curEra : null;
+    return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
