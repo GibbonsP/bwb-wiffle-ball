@@ -3242,14 +3242,17 @@ function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
     .slice().sort((a,b)=>a.year-b.year);
   if(!rows.length) return '';
-  /* one badge per club + number (+ any split era): a player who left and came back, or sat out a few years, keeps a single badge
-     whose tooltip lists the seasons actually played, instead of a repeat badge after every break */
-  const stints = [], byKey = {};
+  /* walk the seasons in order: a badge continues while the club, number and (split) colour era stay the same — even across
+     years sat out — and a new one starts the moment the player plays for a different club or number, so leaving for another
+     team and coming back gives a second badge, while a plain break on the same team does not */
+  const stints = [];
   rows.forEach(s=>{
-    const k = s.team+'|'+String(s.num)+'|'+eraKey(s.team, s.year);
-    let st = byKey[k];
-    if(!st){ st = byKey[k] = {team:s.team, num:s.num, from:s.year, to:s.year, years:[]}; stints.push(st); }
-    st.years.push(s.year); st.to = Math.max(st.to, s.year);
+    const last = stints[stints.length-1];
+    if(last && last.team===s.team && String(last.num)===String(s.num) && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
+      last.years.push(s.year); last.to = s.year;
+    } else {
+      stints.push({team:s.team, num:s.num, from:s.year, to:s.year, years:[s.year]});
+    }
   });
   const items = stints.map(st=>{
     /* a franchise's colours for a stint, honouring any era that wore different ones (the Dashers were Mets blue and orange) */
