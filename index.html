@@ -1273,19 +1273,28 @@ function gsRender(items){
 
 /* ---------------- franchise colours (from the club wordmark sheet) ------- */
 const FRANCHISE_COLORS = {
-  'Brookside Kraken':{p:'#3aa8ff',s:'#ff2fd6'}, 'Brookside Panthers':{p:'#0d0c0c',s:'#d90909'},
+  'Brookside Kraken':{p:'#4dcfef',s:'#f819a3'}, 'Brookside Panthers':{p:'#0d0c0c',s:'#d90909'},
   'Beaver Brook Lavahogs':{p:'#ff6d01',s:'#111111'}, 'Brookside Squirrels':{p:'#3d85c6',s:'#7a4a12'},
   'Brookside Royals':{p:'#e23b2e',s:'#ffffff'}, 'Davenport Sox':{p:'#ff9900',s:'#111111'},
   'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
   'Downtown Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
   'Brentwood Braves':{p:'#0b3d70',s:'#d21f1f'}, 'Glenwood Process':{p:'#1f47ff',s:'#ffffff'},
   'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
-  'Brentwood Gladiators':{p:'#3d2185',s:'#f2b90c'}, 'Purchase Dragons':{p:'#ff6d01',s:'#111111'},
-  'Shelton Shock':{p:'#122a63',s:'#4285f4'}, 'Brentwood Bananas':{p:'#f2c010',s:'#2a9d47'},
-  'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#2f9e46',s:'#7a4a12'},
+  'Brentwood Gladiators':{p:'#4a09ac',s:'#ffc039'}, 'Purchase Dragons':{p:'#ff6d01',s:'#111111'},
+  'Shelton Shock':{p:'#4169e1',s:'#393c73'}, 'Brentwood Bananas':{p:'#f2c010',s:'#2a9d47'},
+  'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#036a4f',s:'#00d077'},
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
-const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}]};
+/* era palettes: a franchise's colours in a given season (FRANCHISE_COLORS above is its current look) */
+const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}],
+  'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
+  'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
+  'Brentwood Gladiators':[{from:2000,to:2020,p:'#3d2185',s:'#f2b90c'}]};
+function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>year>=e.from && year<=e.to); }
+function colorsFor(full, year){
+  const e = year!=null ? (ERA_COLORS[full]||[]).find(e=>year>=e.from && year<=e.to) : null;
+  return e || FRANCHISE_COLORS[full];
+}
 function _hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 function _lum(hex){ const [r,g,b]=_hx(hex).map(v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; }
 function _hsl(hex){ let [r,g,b]=_hx(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
@@ -1295,25 +1304,25 @@ function _tohex(h,s,l){ const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-
   let [r,g,b] = h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
   return '#'+[r,g,b].map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join(''); }
 /* theme-neutral accent: pick the club colour nearer mid-lightness, then clamp */
-function teamAccent(full){
-  const c = FRANCHISE_COLORS[full]; if(!c) return null;
+function teamAccent(full, year){
+  const c = colorsFor(full, year); if(!c) return null;
   const pick = Math.abs(_lum(c.p)-0.32) <= Math.abs(_lum(c.s)-0.32) ? c.p : c.s;
   let [h,s,l] = _hsl(pick);
   s = Math.max(s, 0.42); l = Math.min(Math.max(l, 0.42), 0.60);
   return _tohex(h,s,l);
 }
 /* purple-first accent for the Gladiators: the generic picker lands on their gold, but their identity is purple */
-function primaryAccent(full){
-  const c = FRANCHISE_COLORS[full]; if(!c) return null;
+function primaryAccent(full, year){
+  const c = colorsFor(full, year); if(!c) return null;
   let [h,s,l] = _hsl(c.p);
   s = Math.max(s, 0.42); l = Math.min(Math.max(l, 0.42), 0.60);
   return _tohex(h,s,l);
 }
-function setTeamVars(full){
-  const c = FRANCHISE_COLORS[full];
+function setTeamVars(full, year){
+  const c = colorsFor(full, year);
   app.classList.remove('tc-black');
   app.style.removeProperty('--tc'); app.style.removeProperty('--tp'); app.style.removeProperty('--ts');
-  const a = teamAccent(full);
+  const a = teamAccent(full, year);
   if(a) app.style.setProperty('--tc', a);
   if(c){ app.style.setProperty('--tp', c.p); app.style.setProperty('--ts', c.s); }
 }
@@ -1708,7 +1717,7 @@ function renderHome(){
     return `<li><button class="pname" data-g="${id}">${g.date}</button>
       <span>${teamLink(g.away.team)} <b>${g.away.R}–${g.home.R}</b> ${teamLink(g.home.team)}
       ${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</span></li>`; }).join('');
-  const rc = CHAMPS[0], rcColor = FRANCHISE_COLORS[rc.tm];
+  const rc = CHAMPS[0], rcColor = colorsFor(rc.tm, rc.y);
   /* homeTicker: an editable array of {photo | photos[], tag, title, caption, link, linkText | links[{link,linkText}], fit}
      slides (photos: two or more images shown side by side as squares, e.g. a pair of 1080x1080 graphics;
      fit:'contain' shows a square graphic whole instead of cropping it to the 16:9 band) — falls back to the old single auto-generated champion card (photo
@@ -2922,8 +2931,8 @@ async function buildPlayerCard(pl, year){
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
 
   const full = row.team;
-  const colors = FRANCHISE_COLORS[full] || {p:'#041e42', s:'#d50032'};
-  const accent = teamAccent(full) || '#041e42';
+  const colors = colorsFor(full, row.year) || {p:'#041e42', s:'#d50032'};
+  const accent = teamAccent(full, row.year) || '#041e42';
   const logo = (full && TEAMS[full]) ? teamLogoForYear(full, year) : null;
   const logoImg = await loadImg(logo);
   const photoImg = await loadImg(pl.photo);
@@ -3211,7 +3220,7 @@ function teamHistoryCircles(pl){
   const stints = [];
   rows.forEach(s=>{
     const last = stints[stints.length-1];
-    if(last && last.team===s.team && String(last.num)===String(s.num) && s.year===last.to+1){
+    if(last && last.team===s.team && String(last.num)===String(s.num) && s.year===last.to+1 && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
       last.to = s.year;
     } else {
       stints.push({team:s.team, num:s.num, from:s.year, to:s.year});
@@ -3219,8 +3228,7 @@ function teamHistoryCircles(pl){
   });
   const items = stints.map(st=>{
     /* a franchise's colours for a stint, honouring any era that wore different ones (the Dashers were Mets blue and orange) */
-    const era = (ERA_COLORS[st.team]||[]).find(e=>st.to>=e.from && st.to<=e.to);
-    const c = era || FRANCHISE_COLORS[st.team] || {};
+    const c = colorsFor(st.team, st.to) || {};
     const rcP = c.p || 'var(--line-strong)', rcS = c.s || 'var(--line-strong)';
     /* full, era-accurate name — if the franchise renamed partway through
        this merged stint, use the name it went by in the LAST year of the
@@ -3380,7 +3388,8 @@ function detail(name){
   }
 
   const lt = latestTeam(pl);
-  setTeamVars(lt);
+  const ltYear = Math.max(0, ...Object.keys(pl.teamsByYear).filter(y=>pl.teamsByYear[y] && pl.teamsByYear[y].team).map(Number));
+  setTeamVars(lt, ltYear);
 
   /* "current team" only means something if they were actually on a roster
      in the league's most recent season — a player who last appeared years
@@ -3397,12 +3406,12 @@ function detail(name){
   const curLogo = curLogoTeam && TEAMS[curLogoTeam] ? teamLogoForYear(curLogoTeam, LATEST_YEAR) : null;
   /* most recent team is the Gladiators → purple is the page's main colour (top lines, charts, accents) */
   /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
-  if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas'); if(pa) app.style.setProperty('--tc', pa); }
+  if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas', ltYear); if(pa) app.style.setProperty('--tc', pa); }
   /* Kings players: the page's main colour is red #ff2121 (the generic picker lands on their blue) */
   /* Panthers players: the page's main colour is the club black #0d0c0c; on the dark theme that would vanish, so it flips to light grey there */
   if(String(lt).split(' / ').pop() === 'Brookside Panthers'){ app.style.removeProperty('--tc'); app.classList.add('tc-black'); }
   if(String(lt).split(' / ').pop() === 'Harris Kings') app.style.setProperty('--tc', '#ff2121');
-  if(String(lt).split(' / ').pop() === 'Brentwood Gladiators'){ const pa = primaryAccent('Brentwood Gladiators'); if(pa) app.style.setProperty('--tc', pa); }
+  if(String(lt).split(' / ').pop() === 'Brentwood Gladiators'){ const pa = primaryAccent('Brentwood Gladiators', ltYear); if(pa) app.style.setProperty('--tc', pa); }
 
   app.innerHTML = `
     <button class="back" id="back">← Players</button>
@@ -4021,7 +4030,7 @@ function gameTag(g){
 }
 function pbTeam(seedNo, t, isWin, year){
   const full = t.full && TEAMS[t.full] ? t.full : null;
-  const col = full ? teamAccent(full) : 'var(--line-strong)';
+  const col = full ? teamAccent(full, year) : 'var(--line-strong)';
   const nm = full ? histName(full, year) : t.nick;
   const logo = full ? teamLogoForYear(full, year) : null;
   const mark = logo ? `<img class="pblogo" src="${logo}" alt="">` : `<span class="dot"></span>`;
@@ -4087,7 +4096,7 @@ function playoffBracket(year){
   const finalRows = finalists.map(t=>pbTeam(null, t, t.nick===p.champion, year)).join('');
   const finalGids = seriesGids(year, finalists[0] && finalists[0].full, finalists[1] && finalists[1].full);
   const champFull = p.championFull && TEAMS[p.championFull] ? p.championFull : null;
-  const champCol = FRANCHISE_COLORS[champFull] || {};
+  const champCol = colorsFor(champFull, year) || {};
   const champLabel = champFull
     ? `<button class="pname" data-t="${esc(champFull)}">${esc(histName(champFull, year))}</button>`
     : esc(p.champion);
@@ -4203,7 +4212,7 @@ function renderSeries(year, roundKey){
     return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
   const gameRowHTML = (full, runs, win) => {
     const logo = TEAMS[full] ? teamLogoForYear(full, year) : null;
-    return `<div class="pb-row${win?' win':''}" style="--cd:${teamAccent(full)||'var(--line-strong)'}">
+    return `<div class="pb-row${win?' win':''}" style="--cd:${teamAccent(full, year)||'var(--line-strong)'}">
       ${logo?`<img class="pblogo" src="${logo}" alt="">`:'<span class="dot"></span>'}
       ${histTeamLink(full, year)}<b class="gscore">${runs}</b></div>`;
   };
@@ -4307,7 +4316,7 @@ function renderStandings(){
 
   const stMark = n => { const lg=teamLogoForYear(n, standYear); return lg
     ? `<img class="stlogo" src="${lg}" alt="">`
-    : `<span class="clubdot" style="--cd:${teamAccent(n)||'var(--line-strong)'}"></span>`; };
+    : `<span class="clubdot" style="--cd:${teamAccent(n, standYear)||'var(--line-strong)'}"></span>`; };
   const trow = (r,i,gb,mk)=>`<tr>
     <td class="lft"><span class="rk">${i+1}</span>${stMark(r.name)}<button class="pname" data-t="${esc(r.name)}">${esc(histName(r.name, standYear))}</button>${seedMark[mk]||''}</td>
     <td>${r.W}</td><td>${r.L}</td>
@@ -4442,7 +4451,7 @@ function renderDivision(canonical){
   const gb = gbf(rows[0]||{W:0,L:0});
   const stMark = n => { const lg=teamLogoForYear(n, divYear); return lg
     ? `<img class="stlogo" src="${lg}" alt="">`
-    : `<span class="clubdot" style="--cd:${teamAccent(n)||'var(--line-strong)'}"></span>`; };
+    : `<span class="clubdot" style="--cd:${teamAccent(n, divYear)||'var(--line-strong)'}"></span>`; };
   const trow = (r,i)=>`<tr>
     <td class="lft"><span class="rk">${i+1}</span>${stMark(r.name)}<button class="pname" data-t="${esc(r.name)}">${esc(histName(r.name, divYear))}</button>${seedMark[mk[r.name]]||''}</td>
     <td>${r.W}</td><td>${r.L}</td>
@@ -5412,7 +5421,7 @@ function teamDetail(name){
     ${yrs.map(y=>`<button data-y="${y}" aria-pressed="${teamYear===y}">${y}</button>`).join('')}
   </div>`;
   const fr=t.record, g=fr.W+fr.L+fr.T;
-  setTeamVars(name);
+  setTeamVars(name, teamYear==='all' ? null : +teamYear);
   const logoImg = t.logo ? `<img class="tlogo" src="${t.logo}" alt="">` : '';
   const hero = FRANCHISE_COLORS[name] ? `<div class="thero">
       <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
@@ -9315,7 +9324,7 @@ function svpTeamSVG(pts){
   const kit = svpLogoKit();
   const dots = order.map(i=>{
     const p = pts[i], cx = X(p.win), cy = Y(p.fun), isH = p.team===hl, sel = svpTm.sel===i;
-    const c = teamAccent(p.team) || 'var(--accent)';
+    const c = teamAccent(p.team, p.year) || 'var(--accent)';
     const logo = teamLogoForYear(p.team, p.year), lid = logo ? kit.ref(logo) : null;
     const showLab = !many || isH;
     let lab = '';
@@ -9469,7 +9478,7 @@ function svpTxPlot(pts, cfg){
   const kit = svpLogoKit();
   const dots = order.map(i=>{
     const p = pts[i], cx = X(cfg.x(p)), cy = Y(cfg.y(p)), isH = p.team===st.hl, sel = st.sel===i;
-    const c = teamAccent(p.team) || 'var(--accent)';
+    const c = teamAccent(p.team, p.year) || 'var(--accent)';
     const logo = teamLogoForYear(p.team, p.year), lid = logo ? kit.ref(logo) : null;
     let lab = '';
     if(!many || isH){
@@ -10347,7 +10356,7 @@ function upgradeAppRender(){
 new MutationObserver(upgradeAppRender).observe(app, {childList:true});
 upgradeAppRender();
 
-(function(){ const rc = CHAMPS[0] && FRANCHISE_COLORS[CHAMPS[0].tm]; const el = document.querySelector('.perf i');
+(function(){ const rc = CHAMPS[0] && colorsFor(CHAMPS[0].tm, CHAMPS[0].y); const el = document.querySelector('.perf i');
   if(rc && el){ el.style.setProperty('--pa', rc.p); el.style.setProperty('--pb', rc.s); } })();
 buildTicker();
 route();
