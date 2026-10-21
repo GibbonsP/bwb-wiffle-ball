@@ -1055,7 +1055,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
   vertical-align:middle;margin-right:14px;background:var(--card)}
 .thero .tlogo{background:rgba(255,255,255,.15)}
 .tlogo.wide{width:auto;height:64px;max-width:44vw;object-fit:contain;border-radius:0;box-shadow:none;background:none;margin-right:16px}
-.logohist{margin:0 0 22px}
+.logohist{margin:0 0 28px}
 .logohist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .logohist-row{display:flex;gap:12px;flex-wrap:wrap}
 .logohist-item{display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);
@@ -5397,10 +5397,10 @@ function teamDetail(name){
     <button class="back" id="back">← All teams</button>
     ${hero}
     ${teamLeadershipHtml(name)}
+    ${teamAccolades(name)}
     ${editBtn('Edit logo','editLogoBtn')}
     ${teamLogoHistory(t)}
     ${teamJerseyHistory(t)}
-    ${teamAccolades(name)}
     ${teamRecordTable(t)}
     ${chips}
     ${teamYear==='all' ? teamAllYears(t, name) + teamStatsBySeason(t, teamPhase) : teamOneYear(t, teamYear)}
