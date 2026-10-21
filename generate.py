@@ -952,7 +952,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring{position:relative;display:inline-flex;align-items:center;justify-content:center;
   width:46px;height:46px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
-.numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
+.numring b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block;color:var(--rc-ink,var(--ink))}
 .numring.pan{box-shadow:0 0 0 1.5px var(--rc-hair,#000),var(--shadow),inset 0 0 0 3px var(--rc-s)}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
@@ -967,6 +967,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2024{--rc-p:#212322 !important;--rc-s:#fff !important;--rc-bg:#f7b5cb !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 /* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
+.numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
+.numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
 .numring.kr-2023{--rc-p:#f819a3;--rc-s:#fff;--rc-bg:#4dcfef;--rc-ink:#f819a3}
 .numring.kr-2122{--rc-p:#74c042;--rc-s:#fff;--rc-bg:#01793a}
 .numring.kr-2122>b{position:relative;color:#01793a;-webkit-text-stroke:2.4px #74c042;paint-order:stroke fill}
@@ -3200,6 +3203,8 @@ function barChart(items, opts={}){
 const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:'kr-2023'},
   {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
   {from:2018,to:2020,label:'2018–2020',cls:'kr-1820'}];
+const SHOCK_ERAS = [{from:2024,to:9999,label:'2024–Present',cls:'sh-2024'},
+  {from:2022,to:2023,label:'2022–2023',cls:'sh-2223'}];
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
 /* the alternate-jersey row opens to the right of a Panthers number; if there isn't room before the page edge it opens to the left instead */
 (function(){
@@ -3244,6 +3249,7 @@ window.addEventListener('resize', fitHeadLogo);
 /* a club's jersey-colour eras, newest (= current) first; Kraken's carry their own badge styling, the rest are plain palettes */
 function eraList(team){
   if(team==='Brookside Kraken') return KRAKEN_ERAS;
+  if(team==='Shelton Shock') return SHOCK_ERAS;
   const eras = (ERA_COLORS[team]||[]).filter(e=>!e.split);
   if(!eras.length) return [];
   const top = Math.max(...eras.map(e=>e.to));
