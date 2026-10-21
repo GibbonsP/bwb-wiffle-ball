@@ -966,6 +966,11 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2022 b,.numring.pan.alt-2023 b{position:relative}
 .numring.pan.alt-2024{--rc-p:#212322 !important;--rc-s:#fff !important;--rc-bg:#f7b5cb !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
+/* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half black / half green with a lime outline; 2018–20 lime base, white inner ring, black outer ring */
+.numring.kr-2122{--rc-p:#74c042;--rc-s:#fff;--rc-bg:#01793a}
+.numring.kr-2122 b{position:relative;color:#01793a;-webkit-text-stroke:3.2px #74c042;paint-order:stroke fill}
+.numring.kr-2122 b::after{content:attr(data-n);position:absolute;inset:0;color:#000;-webkit-text-stroke:0;clip-path:inset(0 50% 0 0)}
+.numring.kr-1820{--rc-p:#000;--rc-s:#fff;--rc-bg:#2cd21b;--rc-ink:#2edf25}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(calc(-50% + var(--tx,0px)));
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
@@ -980,6 +985,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
 .numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
+.numring>i.krl{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em;opacity:0;transition:opacity .45s ease;pointer-events:none;text-align:center}
+.numring[tabindex]:hover>i.krl,.numring[tabindex]:focus-within>i.krl,.numring.pinned>i.krl{opacity:1}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
@@ -3179,7 +3186,10 @@ function barChart(items, opts={}){
    (each split stint counted on its own, the combined "tot" row
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
-const KRAKEN_NEW = 2023;  /* first season in the refreshed Kraken colours */
+/* Kraken colour eras, newest first (2016–2017 wasn't specified, so it rides with the earliest era) */
+const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:''},
+  {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
+  {from:2016,to:2020,label:'2018–2020',cls:'kr-1820'}];
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
 /* the alternate-jersey row opens to the right of a Panthers number; if there isn't room before the page edge it opens to the left instead */
 (function(){
@@ -3247,13 +3257,14 @@ function teamHistoryCircles(pl){
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>a.y>=st.from && a.y<=st.to) : [];
-    /* Kraken: a number worn across the 2023 refresh shows the original colours, and the refreshed ones open on hover */
-    const kr = st.team==='Brookside Kraken' && st.from<KRAKEN_NEW && st.to>=KRAKEN_NEW;
-    const mc = kr ? (colorsFor(st.team, st.from)||c) : c, mP = mc.p||rcP, mS = mc.s||rcS;
-    const nc = kr ? colorsFor(st.team, KRAKEN_NEW) : null;
-    const krAlt = kr && nc ? `<span class="altrow"><span class="numring" style="--rc-p:${nc.p};--rc-s:${nc.s}" title="${KRAKEN_NEW}–Present · refreshed colors"><b>${esc(String(st.num))}</b><i>${KRAKEN_NEW}–</i></span></span>` : '';
-    return `<span class="numring${pan?' pan':''}"${alts.length||krAlt?` tabindex="0"`:''} style="--rc-p:${pan?'#fff':(kr?mP:rcP)};--rc-s:${kr?mS:rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
-      <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
+    /* Kraken: one badge per colour era; the newest era the stint touches is the main circle and the earlier ones open on hover */
+    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.filter(e=>st.from<=e.to && st.to>=e.from) : [];
+    const krMain = krEras[0] || null;
+    const krAlt = krEras.length>1 ? `<span class="altrow">${krEras.slice(1).map(e=>`<span class="numring ${e.cls}" title="${e.label} · Kraken"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.label}</i></span>`).join('')}</span>` : '';
+    const eraCls = krMain && krMain.cls ? ' '+krMain.cls : '';
+    const ringVars = krMain && krMain.cls ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
+    return `<span class="numring${pan?' pan':''}${eraCls}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.label}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
