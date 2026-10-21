@@ -1158,6 +1158,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 <script id="data" type="application/json">__DATA__</script>
 <script>
 const DB = JSON.parse(document.getElementById('data').textContent);
+/* transparent padding around each team logo's artwork (px in the source file): path -> [w,h,left,top,right,bottom] */
+const LOGO_PAD = __LOGOPAD__;
 if(DB.anniversaryLogo || DB.leagueLogo){
   document.getElementById('brandLogo').innerHTML = `<img src="${DB.anniversaryLogo || DB.leagueLogo}" alt="BWB Wiffleball">`;
 }
@@ -3174,6 +3176,20 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
     if(cur && cur!==el) unpin();
     cur = el; el.classList.add('pinned'); clearTimeout(tmr); tmr = setTimeout(unpin, 5000); });
 })();
+/* the logo beside a player's name: make the visible gap between the end of the name and the artwork equal
+   to the gap between the artwork and the stat line, whatever transparent margin each logo file carries */
+function fitHeadLogo(){
+  const im = document.querySelector('.phead-team .pheadlogo'); if(!im) return;
+  const pad = LOGO_PAD[im.getAttribute('src')], GAP = 18;
+  if(!pad){ im.style.marginLeft = im.style.marginRight = ''; return; }
+  const S = im.getBoundingClientRect().width || 76, sc = S / Math.max(pad[0], pad[1]);
+  const left = (S - pad[0]*sc)/2 + pad[2]*sc, right = (S - pad[0]*sc)/2 + pad[4]*sc;
+  const row = im.parentElement, gapRow = parseFloat(getComputedStyle(row).columnGap) || 0;
+  const head = row.parentElement, gapHead = parseFloat(getComputedStyle(head).columnGap) || 0;
+  im.style.marginLeft = (GAP - left - gapRow) + 'px';
+  im.style.marginRight = (GAP - right - gapHead) + 'px';
+}
+window.addEventListener('resize', fitHeadLogo);
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
     .slice().sort((a,b)=>a.year-b.year);
@@ -3382,6 +3398,7 @@ function detail(name){
     ${activeHTML}`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
   initPlayerBanner();
+  fitHeadLogo();
   app.querySelectorAll('[data-pt]').forEach(b=>b.addEventListener('click',()=>{
     playerTab = b.dataset.pt; logYear = null; splitYear = 'all'; detail(name);
   }));
@@ -10334,6 +10351,15 @@ else:
 _logo = _logo.convert('RGBA').resize((192, 192), Image.LANCZOS)
 _logo.save('favicon.png')
 _logo.save('favicon.ico', sizes=[(16, 16), (32, 32), (48, 48)])
-open('index.html','w').write(HTML.replace('__DATA__', data).replace('__FAVICON__', '/favicon.png'))
+import json as _json, os
+_pad = {}
+def _addpad(pth):
+    if isinstance(pth, str) and pth.startswith('img/') and pth not in _pad and os.path.exists(pth):
+        _im = Image.open(pth).convert('RGBA'); _bb = _im.split()[3].point(lambda v: 255 if v > 20 else 0).getbbox()
+        if _bb: _pad[pth] = [_im.width, _im.height, _bb[0], _bb[1], _im.width - _bb[2], _im.height - _bb[3]]
+for _t in _json.load(open('players.json'))['teams'].values():
+    _addpad(_t.get('logo'))
+    for _h in (_t.get('logoHistory') or []): _addpad(_h.get('logo'))
+open('index.html','w').write(HTML.replace('__LOGOPAD__', _json.dumps(_pad)).replace('__DATA__', data).replace('__FAVICON__', '/favicon.png'))
 print('wrote index.html')
 print('wrote favicon.png, favicon.ico')
