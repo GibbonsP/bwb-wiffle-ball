@@ -1058,8 +1058,6 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .imgph{color:var(--muted);font-size:.8rem}
 #imgPick{display:block;margin-bottom:10px;font-size:.82rem;color:var(--muted)}
 #app.tc-black{--tc:#0d0c0c}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #app.tc-black{--tc:#d0d0d0}}
-:root[data-theme="dark"] #app.tc-black{--tc:#d0d0d0}
 .tlogo{width:92px;height:92px;box-sizing:border-box;padding:5px;border-radius:14px;object-fit:contain;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:14px;background:var(--card)}
 .thero .tlogo{background:rgba(255,255,255,.15)}
