@@ -984,6 +984,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.sk2{--rc-p:#ff2121;--rc-s:#fff;--rc-bg:#60a7ff;--rc-ink:#ff2121}
 .numring.ki{--rc-p:#60a7ff;--rc-s:#c9b87c;--rc-bg:#ff2121;--rc-ink:#60a7ff}
 .numring.ki>b{-webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
+.numring.ac{--rc-p:#f9b941;--rc-s:#080dc4;--rc-bg:#fff;--rc-ink:#080dc4}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
@@ -3336,7 +3337,7 @@ function teamHistoryCircles(pl){
     const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
     const splitE = eraKey(st.team, st.to);
-    const bvCls = splitE < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw','Harris Kings':' ki','Glenwood Process':' pr'}[st.team]||'') : (ERA_COLORS[st.team][splitE].cls ? ' '+ERA_COLORS[st.team][splitE].cls : '');
+    const bvCls = splitE < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw','Harris Kings':' ki','Glenwood Process':' pr','Brentwood Aces':' ac'}[st.team]||'') : (ERA_COLORS[st.team][splitE].cls ? ' '+ERA_COLORS[st.team][splitE].cls : '');
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
     return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
