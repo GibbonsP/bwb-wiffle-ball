@@ -3232,6 +3232,14 @@ function fitHeadLogo(){
   im.style.marginRight = (GAP - right - gapHead) + 'px';
 }
 window.addEventListener('resize', fitHeadLogo);
+/* a club's jersey-colour eras, newest (= current) first; Kraken's carry their own badge styling, the rest are plain palettes */
+function eraList(team){
+  if(team==='Brookside Kraken') return KRAKEN_ERAS;
+  const eras = (ERA_COLORS[team]||[]).filter(e=>!e.split);
+  if(!eras.length) return [];
+  const top = Math.max(...eras.map(e=>e.to));
+  return [{from:top+1, to:9999, colors:FRANCHISE_COLORS[team]}, ...eras.slice().sort((a,b)=>b.from-a.from).map(e=>({from:e.from, to:e.to, colors:{p:e.p, s:e.s}}))];
+}
 /* [2016,2017,2019,2025] -> "2016–2017, 2019, 2025": consecutive seasons collapse into a range, a break starts a new one */
 function yearRanges(ys){
   const a = [...new Set(ys.map(Number))].sort((x,y)=>x-y), out = [];
@@ -3256,7 +3264,8 @@ function teamHistoryCircles(pl){
   });
   const items = stints.map(st=>{
     /* a franchise's colours for a stint, honouring any era that wore different ones (the Dashers were Mets blue and orange) */
-    const c = colorsFor(st.team, st.to) || {};
+    /* a club always shows its uniform (current) colours; only a split era (the Dashers, a different identity) keeps its own */
+    const c = (eraKey(st.team, st.to) >= 0 ? colorsFor(st.team, st.to) : colorsFor(st.team)) || {};
     const rcP = c.p || 'var(--line-strong)', rcS = c.s || 'var(--line-strong)';
     /* full, era-accurate name — if the franchise renamed partway through
        this merged stint, use the name it went by in the LAST year of the
@@ -3267,13 +3276,17 @@ function teamHistoryCircles(pl){
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>st.years.includes(a.y)) : [];
-    /* Kraken: one badge per colour era; the newest era the stint touches is the main circle and the earlier ones open on hover */
-    /* each era circle is labelled with the seasons this player actually spent in that era's jerseys, not the era's own span */
-    const krEras = st.team==='Brookside Kraken' ? KRAKEN_ERAS.map(e=>({...e, played:yearRanges(st.years.filter(y=>y>=e.from && y<=e.to))})).filter(e=>e.played) : [];
-    const krMain = krEras[0] || null;
-    const krAlt = krEras.length>1 ? `<span class="altrow">${krEras.slice(1).map(e=>`<span class="numring ${e.cls}" title="${e.played} · Kraken"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`).join('')}</span>` : '';
-    const eraCls = krMain && krMain.cls ? ' '+krMain.cls : '';
-    const ringVars = krMain && krMain.cls ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
+    /* colour eras: the main circle is always the club's uniform look; any season spent in different jerseys opens on hover as its own
+       circle, labelled with the seasons this player actually wore them (e.g. a 2021 Kraken keeps the current colours, with the 2021 jerseys on hover) */
+    const eraSet = eraList(st.team);
+    const played = eraSet.map((e,k)=>({...e, current:k===0, played:yearRanges(st.years.filter(y=>y>=e.from && y<=e.to))})).filter(e=>e.played);
+    const oldEras = eraSet.length && eraKey(st.team, st.to) < 0 ? played.filter(e=>!e.current) : [];
+    const curEra = played.find(e=>e.current);
+    const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`;
+    const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
+    const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
+    const ringVars = eraCls ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
+    const krMain = krAlt && curEra ? curEra : null;
     return `<span class="numring${pan?' pan':''}${eraCls}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
