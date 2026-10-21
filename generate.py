@@ -967,6 +967,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2024{--rc-p:#212322 !important;--rc-s:#fff !important;--rc-bg:#f7b5cb !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 /* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
+.numring.kr-2023{--rc-p:#4dcfef;--rc-s:#f819a3;--rc-bg:#4dcfef;--rc-ink:#f819a3}
+.numring.kr-2023 b{-webkit-text-stroke:1px #000;paint-order:stroke fill}
 .numring.kr-2122{--rc-p:#74c042;--rc-s:#fff;--rc-bg:#01793a}
 .numring.kr-2122 b{position:relative;color:#01793a;-webkit-text-stroke:3.2px #74c042;paint-order:stroke fill}
 .numring.kr-2122 b::after{content:attr(data-n);position:absolute;inset:0;color:#000;-webkit-text-stroke:0;clip-path:inset(50% 0 0 0)}
@@ -3187,7 +3189,7 @@ function barChart(items, opts={}){
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
 /* Kraken colour eras, newest first (2016–2017 wasn't specified, so it rides with the earliest era) */
-const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:''},
+const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:'kr-2023'},
   {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
   {from:2016,to:2020,label:'2018–2020',cls:'kr-1820'}];
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
