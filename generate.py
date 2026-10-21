@@ -3142,9 +3142,9 @@ function teamHistoryCircles(pl){
     const label = TEAMS[st.team] ? histName(st.team, st.to) : st.team;
     const yrs = st.from===st.to ? String(st.from) : `${st.from}–${st.to}`;
     const tip = `${esc(label)} · ${yrs}`;
-    /* Panthers numbers get a black face with a red number inside the red and black rings */
-    const pan = st.team==='Brookside Panthers' ? `;--rc-bg:#000;--rc-ink:${rcS}` : '';
-    return `<span class="numring" style="--rc-p:${rcP};--rc-s:${rcS}${pan}" title="${tip}">
+    /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
+    const pan = st.team==='Brookside Panthers';
+    return `<span class="numring" style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
     </span>`;
   }).join('');
