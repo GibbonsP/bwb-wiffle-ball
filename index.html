@@ -204,8 +204,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .tl-logo-blank{background:var(--line);border-radius:4px}
 .tlg-name .tl-logo{width:18px;height:18px}
 .tlg-bar{margin:4px 2px;border-radius:4px;padding:0 6px;display:flex;align-items:center;
-  font-size:.66rem;font-weight:700;color:var(--bi,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  background:var(--bc);box-shadow:inset 0 0 0 2px var(--bs,transparent);cursor:default}
+  font-size:.66rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--bc);cursor:default}
 .splitgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;
   margin:20px 0 36px}
 .split{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:14px 16px;
@@ -3998,7 +3998,7 @@ function franchiseTimeline(){
     const band = `<div class="tlg-band${i%2?' even':''}" style="grid-row:${r};grid-column:1/-1"></div>`;
     const nameCell = `<div class="tlg-cell tlg-name" style="grid-row:${r};grid-column:1">
       ${logo?logoIcon(logo,'','tl-logo'):'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
-    /* each name era is drawn in the club's own colours (main as the fill, secondary as the edge and lettering); a name that spans two
+    /* each name era is drawn in the club's own colours (main colour as the fill); a name that spans two
        colour eras (e.g. the Shock's 2022–23 look vs. today's) is cut into one bar per main colour so each stretch reads true */
     const cIdx = y => (colorsFor(fr.full, y)||{}).p;
     const bars = fr.eras.map(e=>{
@@ -4009,9 +4009,8 @@ function franchiseTimeline(){
       }
       return segs.map((sg,j)=>{
         const c = colorsFor(fr.full, sg.from) || {p:'#8a90a0', s:'#ffffff'};
-        const ink = _cr(c.s, c.p) >= 3 ? c.s : (_lum(c.p) > .45 ? '#111' : '#fff');
         const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
-        return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(sg.from)}/${colOf(sg.to)+1};--bc:${c.p};--bs:${c.s};--bi:${ink}"
+        return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(sg.from)}/${colOf(sg.to)+1};--bc:${c.p}"
           title="${esc(range+' · '+e.loc+' '+e.nick)}">${j===0?esc(e.nick):''}</div>`;
       }).join('');
     }).join('');
