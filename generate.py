@@ -1057,6 +1057,9 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .imgpreview img{width:100%;height:100%;object-fit:cover}
 .imgph{color:var(--muted);font-size:.8rem}
 #imgPick{display:block;margin-bottom:10px;font-size:.82rem;color:var(--muted)}
+#app.tc-black{--tc:#0d0c0c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #app.tc-black{--tc:#d0d0d0}}
+:root[data-theme="dark"] #app.tc-black{--tc:#d0d0d0}
 .tlogo{width:92px;height:92px;box-sizing:border-box;padding:5px;border-radius:14px;object-fit:contain;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:14px;background:var(--card)}
 .thero .tlogo{background:rgba(255,255,255,.15)}
@@ -1288,10 +1291,7 @@ const FRANCHISE_COLORS = {
   'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#2f9e46',s:'#7a4a12'},
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
-const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}],
-  /* Panthers: #0d0c0c/#d90909 for 2013–2019, 2021 and 2025–present; the other seasons keep the colours they had before */
-  'Brookside Panthers':[{from:2013,to:2019,p:'#0d0c0c',s:'#d90909'},{from:2020,to:2020,p:'#111111',s:'#e11d1d'},
-    {from:2021,to:2021,p:'#0d0c0c',s:'#d90909'},{from:2022,to:2024,p:'#111111',s:'#e11d1d'},{from:2025,to:2099,p:'#0d0c0c',s:'#d90909'}]};
+const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}]};
 function _hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 function _lum(hex){ const [r,g,b]=_hx(hex).map(v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; }
 function _hsl(hex){ let [r,g,b]=_hx(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
@@ -1317,6 +1317,7 @@ function primaryAccent(full){
 }
 function setTeamVars(full){
   const c = FRANCHISE_COLORS[full];
+  app.classList.remove('tc-black');
   app.style.removeProperty('--tc'); app.style.removeProperty('--tp'); app.style.removeProperty('--ts');
   const a = teamAccent(full);
   if(a) app.style.setProperty('--tc', a);
@@ -3397,6 +3398,8 @@ function detail(name){
   /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
   if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas'); if(pa) app.style.setProperty('--tc', pa); }
   /* Kings players: the page's main colour is red #ff2121 (the generic picker lands on their blue) */
+  /* Panthers players: the page's main colour is the club black #0d0c0c; on the dark theme that would vanish, so it flips to light grey there */
+  if(String(lt).split(' / ').pop() === 'Brookside Panthers'){ app.style.removeProperty('--tc'); app.classList.add('tc-black'); }
   if(String(lt).split(' / ').pop() === 'Harris Kings') app.style.setProperty('--tc', '#ff2121');
   if(String(lt).split(' / ').pop() === 'Brentwood Gladiators'){ const pa = primaryAccent('Brentwood Gladiators'); if(pa) app.style.setProperty('--tc', pa); }
 
@@ -10271,7 +10274,7 @@ let teamScrollStats = false;
 function route(){
   const raw = location.hash || '';
   const h = raw.replace(/#h-[\w-]+$/,'');   // ignore in-page anchor
-  ['--tc','--tp','--ts'].forEach(v=>app.style.removeProperty(v));  // clear franchise tint
+  ['--tc','--tp','--ts'].forEach(v=>app.style.removeProperty(v)); app.classList.remove('tc-black');  // clear franchise tint
   llistPhotos = false;
   dispatch(h);
   document.querySelectorAll('table.sortable').forEach(makeSortable);
