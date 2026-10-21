@@ -2503,7 +2503,7 @@ function phaseBlock(pl, type){
   }) : cols;
   const seasonCols = [{l:'Season',f:d=>{
     const isASG = type==='Regular' && !d.split && (pl.honors||{}).asg && pl.honors.asg.some(s=>s.year===d.year);
-    const isWS = type==='Playoffs' && !d.split && ((pl.honors||{}).rings||[]).some(r=>r.year===d.year);
+    const isWS = (type==='Playoffs' || type==='Regular') && !d.split && ((pl.honors||{}).rings||[]).some(r=>r.year===d.year);
     return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'')
       +(isWS?`<span class="wstrophy" title="World Series champion">${TROPHY}</span>`:'');
   }},{l:'Tm',f:teamCell,noTot:1}];
@@ -6686,10 +6686,10 @@ function champsSection(){
 
   const cards=CHAMPS.map(c=>{
     const season = c.tm && TEAMS[c.tm] && (TEAMS[c.tm].seasons||{})[c.y];
-    /* a champion is only credited to players who appeared in 3+ games that season (regular season +
-       postseason) — same rule build.py applies to the World Series count on player pages */
-    const gp = r => ['regular','playoffs'].reduce((a,ph)=>a+(r[ph]?Math.max(r[ph].G_bat||0, r[ph].G_pit||0):0), 0);
-    let roster = season ? (season.roster||[]).filter(r=>gp(r)>=3).map(r=>r.name) : (c.pl||[]).slice();
+    /* a champion is only credited to players who appeared in at least 1 regular-season game for the club that
+       season — same rule build.py applies to the World Series count on player pages */
+    const gp = r => r.regular ? Math.max(r.regular.G_bat||0, r.regular.G_pit||0) : 0;
+    let roster = season ? (season.roster||[]).filter(r=>gp(r)>=1).map(r=>r.name) : (c.pl||[]).slice();
     if(c.captain && roster.includes(c.captain)){
       roster = [c.captain, ...roster.filter(n=>n!==c.captain)];
     }
