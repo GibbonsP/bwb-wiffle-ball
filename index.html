@@ -5155,7 +5155,7 @@ function teamAllYears(t, name){
     .sort((x,y)=>y.PA-x.PA);
   const batCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
+    {l:'Yrs',f:d=>d.yrs,noTot:1},{l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
     {l:'HR',f:d=>d.HR},{l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     {l:'OPS+',m:1,f:d=>{const v=opsPlusFor(d, d._weights);return isFinite(v)?String(v):'—';}}];
