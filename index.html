@@ -960,6 +960,11 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring:last-child .numring-tip{left:auto;right:0;transform:none}
 .numring:first-child .numring-tip{left:0;right:auto;transform:none}
 .numring:hover .numring-tip{opacity:1}
+.altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:none;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
+.numring.pan[tabindex]:hover>.altrow,.numring.pan[tabindex]:focus-within>.altrow{display:flex}
+.altrow .numring{flex:none}
+.altrow .numring i{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
+.numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
 .sparkcard{border:1px solid var(--line);border-radius:6px;background:var(--card);
   padding:10px 14px;flex:1;min-width:170px;box-shadow:var(--shadow)}
@@ -3128,27 +3133,12 @@ function barChart(items, opts={}){
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
-/* hovering (or tapping) a Panthers number that spans one or more of those seasons shows that season's jersey colors;
-   a number worn across several of them steps through each in turn while the pointer stays on it */
+/* the alternate-jersey row opens to the right of a Panthers number; if there isn't room before the page edge it opens to the left instead */
 (function(){
-  let tmr = null, cur = null, idx = 0;
-  const show = el => {
-    const ys = el.dataset.alt.split(',').map(Number), y = ys[idx % ys.length], a = PANTHERS_ALT_JERSEYS.find(j=>j.y===y);
-    el.classList.remove('alt-2022','alt-2023','alt-2024'); el.classList.add('alt-'+y);
-    const tip = el.querySelector('.numring-tip'); if(tip) tip.textContent = `${y} · ${a.name} jersey`;
-  };
-  const stop = () => {
-    clearInterval(tmr); tmr = null;
-    if(cur){ cur.classList.remove('alt-2022','alt-2023','alt-2024'); const t = cur.querySelector('.numring-tip'); if(t) t.textContent = cur.dataset.tip; cur = null; }
-  };
-  const start = el => {
-    if(cur===el) return; stop(); cur = el; idx = 0; show(el);
-    if(el.dataset.alt.includes(',')) tmr = setInterval(()=>{ idx++; show(el); }, 1100);
-  };
-  document.addEventListener('mouseover', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(el) start(el); else if(cur) stop(); });
-  document.addEventListener('focusin', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(el) start(el); });
-  document.addEventListener('focusout', stop);
-  document.addEventListener('click', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(!el){ stop(); return; } if(cur===el){ idx++; show(el); } else start(el); });
+  const place = e => { const el = e.target.closest && e.target.closest('.numring.pan[tabindex]'); if(!el) return;
+    const n = el.querySelectorAll('.altrow .numring').length; el.classList.remove('flip');
+    if(el.getBoundingClientRect().right + 12 + n*56 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
+  document.addEventListener('mouseover', place); document.addEventListener('focusin', place);
 })();
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
@@ -3175,8 +3165,8 @@ function teamHistoryCircles(pl){
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>a.y>=st.from && a.y<=st.to) : [];
-    return `<span class="numring${pan?' pan':''}"${alts.length?` data-alt="${alts.map(a=>a.y).join(',')}" data-tip="${tip}" tabindex="0"`:''} style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
-      <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
+    return `<span class="numring${pan?' pan':''}"${alts.length?` tabindex="0"`:''} style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+      <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
