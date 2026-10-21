@@ -936,8 +936,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numrow{display:flex;flex-wrap:wrap;gap:12px}
 .numring{position:relative;display:inline-flex;align-items:center;justify-content:center;
   width:46px;height:46px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
-  background:var(--card);box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
-.numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--ink)}
+  background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
+.numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
@@ -3136,7 +3136,9 @@ function teamHistoryCircles(pl){
     const label = TEAMS[st.team] ? histName(st.team, st.to) : st.team;
     const yrs = st.from===st.to ? String(st.from) : `${st.from}–${st.to}`;
     const tip = `${esc(label)} · ${yrs}`;
-    return `<span class="numring" style="--rc-p:${rcP};--rc-s:${rcS}" title="${tip}">
+    /* Panthers numbers get a black face with a red number inside the red and black rings */
+    const pan = st.team==='Brookside Panthers' ? `;--rc-bg:#000;--rc-ink:${rcS}` : '';
+    return `<span class="numring" style="--rc-p:${rcP};--rc-s:${rcS}${pan}" title="${tip}">
       <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
     </span>`;
   }).join('');
