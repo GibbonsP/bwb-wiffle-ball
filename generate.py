@@ -158,8 +158,13 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .phead h2{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.8rem,5vw,2.8rem);
   margin:0;letter-spacing:.01em}
 .phead .yrs{color:var(--muted);font-size:.9rem;letter-spacing:.04em}
-.pbanner{margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line)}
-.pbanner img{display:block;width:100%;aspect-ratio:12/5;object-fit:cover;object-position:50% 40%}
+.pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:12/5}
+.pbanner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
+.pbanner img.on{opacity:1}
+.pbdots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:7px;pointer-events:none}
+.pbdots button{pointer-events:auto;width:9px;height:9px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);cursor:pointer;box-shadow:0 0 3px rgba(0,0,0,.5)}
+.pbdots button.on{background:var(--tc,var(--accent));border-color:#fff}
+@media (prefers-reduced-motion:reduce){.pbanner img{transition:none}}
 .phead-team h2{display:inline-block;border-bottom:4px solid var(--tc,var(--accent));padding-bottom:3px}
 .thero{border-radius:8px;padding:22px 24px;margin:2px 0 22px;position:relative;overflow:hidden;
   background:linear-gradient(115deg,var(--tp,var(--accent)),color-mix(in srgb,var(--tp,var(--accent)) 66%,#000));
@@ -3298,7 +3303,7 @@ function detail(name){
 
   app.innerHTML = `
     <button class="back" id="back">← Players</button>
-    ${pl.banner?`<div class="pbanner"><img src="${pl.banner}" alt="${esc(name)}"></div>`:''}
+    ${playerBannerHTML(pl, name)}
     <div class="phead phead-team">
       <div class="hero-row">
         ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
@@ -3313,6 +3318,7 @@ function detail(name){
     ${tabBar}
     ${activeHTML}`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/players'; });
+  initPlayerBanner();
   app.querySelectorAll('[data-pt]').forEach(b=>b.addEventListener('click',()=>{
     playerTab = b.dataset.pt; logYear = null; splitYear = 'all'; detail(name);
   }));
@@ -3582,6 +3588,37 @@ function logoIcon(uri, alt, cls){
 }
 
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
+/* rotating profile banner: pl.banners = [{src, y}] (y = object-position percent that frames the player), crossfading in a fixed
+   order from a random starting photo. Only the first image is loaded up front; the rest load as they come up. */
+let pbTimer = null;
+function playerBannerHTML(pl, name){
+  const list = pl.banners || [];
+  if(!list.length) return '';
+  const start = Math.floor(Math.random()*list.length);
+  const imgs = list.map((b,i)=>`<img ${i===start?`src="${b.src}" class="on"`:`data-src="${b.src}"`} alt="${i===start?esc(name):''}" style="object-position:50% ${b.y==null?50:b.y}%" decoding="async">`).join('');
+  const dots = list.length>1 ? `<div class="pbdots">${list.map((b,i)=>`<button type="button" data-pbi="${i}" aria-label="Photo ${i+1} of ${list.length}"${i===start?' class="on"':''}></button>`).join('')}</div>` : '';
+  return `<div class="pbanner" data-pbn="${list.length}">${imgs}${dots}</div>`;
+}
+function initPlayerBanner(){
+  if(pbTimer){ clearInterval(pbTimer); pbTimer = null; }
+  const box = document.querySelector('.pbanner'); if(!box) return;
+  const imgs = [...box.querySelectorAll('img')], dots = [...box.querySelectorAll('.pbdots button')];
+  if(imgs.length<2) return;
+  let cur = Math.max(0, imgs.findIndex(i=>i.classList.contains('on'))), paused = false;
+  const load = i => { const im = imgs[i]; if(im && !im.src && im.dataset.src) im.src = im.dataset.src; };
+  const show = i => {
+    cur = (i+imgs.length)%imgs.length; load(cur); load((cur+1)%imgs.length);
+    imgs.forEach((im,k)=>{ im.classList.toggle('on', k===cur); im.alt = k===cur ? (box.querySelector('img.on')?im.alt:'') : im.alt; });
+    dots.forEach((d,k)=>d.classList.toggle('on', k===cur));
+  };
+  load((cur+1)%imgs.length);
+  const tick = () => { if(!document.body.contains(box)){ clearInterval(pbTimer); pbTimer = null; return; } if(!paused) show(cur+1); };
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce) pbTimer = setInterval(tick, 6500);
+  box.addEventListener('mouseenter', ()=>{ paused = true; });
+  box.addEventListener('mouseleave', ()=>{ paused = false; });
+  dots.forEach(d=>d.addEventListener('click', ()=>{ show(+d.dataset.pbi); }));
+}
 const wirePlayerLinks = () => app.querySelectorAll('.pname[data-p]').forEach(b=>
   b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(b.dataset.p); }));
 
