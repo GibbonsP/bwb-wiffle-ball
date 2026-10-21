@@ -948,9 +948,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
 /* alternate Panthers jerseys, shown while a Panthers number is hovered (or tapped): 2022 white and gold, 2023 red and white, 2024 pink and white */
-.numring.pan.alt-2022{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#fff !important;--rc-ink:#c8920a !important;--rc-hair:transparent !important}
-.numring.pan.alt-2023{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#d71920 !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
-.numring.pan.alt-2024{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#ff6fae !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
+.numring.pan.alt-2022{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#fff !important;--rc-ink:#c8920a !important}
+.numring.pan.alt-2023{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#d71920 !important;--rc-ink:#fff !important}
+.numring.pan.alt-2024{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#ff6fae !important;--rc-ink:#fff !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
