@@ -364,6 +364,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pz-num{font:700 11px "IBM Plex Mono",monospace;text-anchor:middle;dominant-baseline:central;fill:#fff;pointer-events:none}
 .pz-lab{font:600 10.5px "IBM Plex Sans",system-ui,sans-serif;fill:var(--muted)}
 .pz-legend{display:flex;flex-wrap:wrap;gap:6px 22px;justify-content:center;margin:6px 0 10px;font-size:.84rem}
+.pz-legend span{display:inline-flex;align-items:center;gap:7px}
+.pz-legend .lphoto{width:24px;height:24px;border-radius:50%}
 .pz-legend .sw{display:inline-block;width:22px;height:0;border-top:3px solid var(--ink);vertical-align:middle;margin-right:7px}
 .pz-legend .sw.a{border-top:8px solid #d22d49;border-radius:2px}
 .pz-legend .sw.b{border-top-style:dashed}
@@ -1656,7 +1658,7 @@ function savantHomeHTML(){
       return {p: isFinite(v) ? svPct(vals[i], v, low) : null, v, txt: isFinite(v) ? fmt(v) : '—'}; })}))
       .sort((a,b)=>((b.cells[0].p||0)-(a.cells[0].p||0)) || ((b.cells[0].v||0)-(a.cells[0].v||0))).slice(0,5);
     const body = rows.map(r=>`<tr><td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
-      <td class="lft svptm">${teamCell(r.e.row)}</td>
+      <td class="lft svptm">${svpTeamCell(r.e.row)}</td>
       ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`).join('');
     return `<h4 class="svph4">${title} · vs ${qual.length} qualified</h4>
       <div class="tscroll"><table class="detail svptable svphome"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
@@ -1940,6 +1942,7 @@ function renderDir(){
     </div>`).join('') || '<p class="empty">No players match.</p>';
 
   app.innerHTML = `
+    <div class="phead"><h2>Players</h2></div>
     <div class="controls">
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -4031,6 +4034,7 @@ function renderTeams(){
   const statRows = TEAMNAMES.map(teamRowVals).sort((a,b)=>b.W-a.W);
 
   app.innerHTML = `
+    <div class="phead"><h2>Teams</h2></div>
     ${franchiseTimeline()}
     <h3 class="hsub">Franchise Summary</h3>
     ${summaryTable}
@@ -4476,7 +4480,7 @@ function renderStandings(){
     agg, league, 'League', '', true);
 
   app.innerHTML = `
-    <div class="phead"><h2>Standings</h2><span class="yrs">Regular season · ${standYear}</span></div>
+    <div class="phead"><h2>Standings</h2></div>
     ${chips}
     ${standHTML}
     ${DIVS?'<p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched playoff berth</p>':''}
@@ -4928,8 +4932,7 @@ function renderLeaders(){
   ].join('');
 
   app.innerHTML = `
-    <div class="phead"><h2>League Leaders</h2>
-      <span class="yrs">${isPost?'Postseason':'Regular season'} · ${isCareer?'Career '+RANGE:leadYear}</span></div>
+    <div class="phead"><h2>League Leaders</h2></div>
     ${chips}
     ${phaseToggle}
     ${fullViewToggle}
@@ -6048,7 +6051,7 @@ function renderRecords(){
   const active = tabs.find(t=>t[0]===recordsTab);
 
   app.innerHTML = `
-    <div class="phead"><h2>Records</h2><span class="yrs">${RANGE}</span></div>
+    <div class="phead"><h2>Records</h2></div>
     ${eraChips}
     ${tabBar}
     <h3>${active[2]}</h3>
@@ -6192,7 +6195,7 @@ function renderGames(){
     <button data-gv="list" aria-pressed="${gamesView==='list'}">Games</button>
     <button data-gv="parks" aria-pressed="${gamesView==='parks'}">Park Factors</button></div>`;
   if(gamesView==='parks'){
-    app.innerHTML = `${viewToggle}${parkFactorsHTML()}`;
+    app.innerHTML = `<div class="phead"><h2>Games</h2></div>${viewToggle}${parkFactorsHTML()}`;
     app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
     return;
   }
@@ -6220,7 +6223,7 @@ function renderGames(){
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
-  app.innerHTML=`${viewToggle}${chips}
+  app.innerHTML=`<div class="phead"><h2>Games</h2></div>${viewToggle}${chips}
     <div class="tscroll"><table class="dir glog"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
@@ -6875,8 +6878,7 @@ function nwlaAwardsSection(){
 function renderChampsPage(){
   setNav('champs');
   app.innerHTML = `
-    <div class="phead"><h2>Champions of BWB Wiffleball</h2>
-      <span class="yrs">${CHAMPS[CHAMPS.length-1].y}–${CHAMPS[0].y}</span></div>
+    <div class="phead"><h2>Champions</h2></div>
     ${champsSection()}
     <p class="note">Compiled from the league's championship page
       (<a href="${CHAMP_SRC}" target="_blank" rel="noopener">bwbwiffleball.blogspot.com</a>).
@@ -7853,7 +7855,7 @@ function renderGrid(){
   }).join('');
   const topRow = `<tr><th class="gcorner"></th>${puzzle.cols.map(cc=>`<th class="gtop">${gridHeadHTML(cc)}</th>`).join('')}</tr>`;
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${gridMode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Grid":'Grid'} · ${puzzle.key}`:'Practice Grid'}</span></div>
+    <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('grid')}
     <p class="lead">Every square needs one BWB Wiffleball player who fits <b>both</b> its row and column category —
       one guess per square, right or wrong. Landing a square shows how many players in league history actually
@@ -8188,7 +8190,7 @@ function renderStatpad(){
   const rowsHTML = puzzle.rows.map((_,ri)=>statpadRowHTML(puzzle, ri)).join('');
   const revealHTML = done ? statpadRevealHTML(puzzle) : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${statpadMode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Pad":'Pad'} · ${puzzle.key}`:'Practice Pad'}</span></div>
+    <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('statpad')}
     <p class="lead">Target stat: <b>${esc(meta.label)}</b>, single season. Submit one player — and the year — per
       row that meets its requirements: a "career" tag means true anytime in their career, a "that season" tag
@@ -8649,7 +8651,7 @@ function renderB0(){
   const lockGateHTML = (draftDone && !puzzle.locked)
     ? '<p class="note"><button type="button" class="pname" id="b0Lock">Lock in this team →</button></p>' : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${b0Mode==='daily'?`${arcadeIsToday(puzzle.key)?"Today's Draft":'Draft'} · ${puzzle.key}`:'Practice Draft'}</span></div>
+    <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('b0')}
     <p class="lead">Five rounds, one real BWB team-and-year dealt each round — draft exactly one player from that
       season's actual roster before moving to the next round (no player twice, even in a different year). Two of
@@ -8742,12 +8744,20 @@ let svpYear = null, svpMode = 'bat', svpPost = false;
 const svpHead = {bat: SVP_BAT.findIndex(m=>m[0]==='wRC+'), pit: SVP_PIT.findIndex(m=>m[0]==='ERA+')};   // headline stat per side
 const svpSort = {bat: svpHead.bat, pit: svpHead.pit};
 
+/* a season row's club(s) with their logo for that year in front of each name */
+const svpTeamCell = d => {
+  if(d.tot || !d.team) return teamCell(d);
+  return d.team.split(' / ').map(full => TEAMS[full]
+      ? `<span class="tmcell">${logoIcon(teamLogoForYear(full, d.year), '', 'llogo')}<button class="pname" data-t="${esc(full)}">${esc(histName(full, d.year))}</button></span>`
+      : esc(full)).join(' / ')
+    + (d.teamPartial ? '<span class="pt">*</span>' : '');
+};
 function svpShell(tab, inner){
   setNav('savant');
   const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
-    <div class="phead"><h2>Savant</h2><span class="yrs">${span}</span></div>
+    <div class="phead"><h2>Savant</h2></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
@@ -8794,8 +8804,8 @@ function svpRankTable(year, mode){
     ${metrics.map(([lab],i)=>`<th class="sortcol" data-svps="${i}">${lab}${arrow(i)}</th>`).join('')}</tr>`;
   const body = rows.map(r=>{
     const d = r.e.row;
-    return `<tr><td class="lft"><button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></td>
-      <td class="lft svptm">${teamCell(d)}</td>
+    return `<tr><td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
+      <td class="lft svptm">${svpTeamCell(d)}</td>
       ${mode==='bat' ? `<td>${d.G_bat}</td><td>${d.PA}</td>` : `<td>${d.G_pit}</td><td class="mono">${ipStr(d.IPouts)}</td>`}
       ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`;
   }).join('');
@@ -8981,11 +8991,11 @@ function svpCompsTable(mode, year){
   const head = r=>{ const v = hm[1](r); return isFinite(v)?hm[2](v):'—'; };
   const body = rows.map(e=>{
     const comps = svpCompsFor(e, list, 3).map(({o,sim})=>{
-      return `<td class="svpcc"><button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button> <span class="azm">’${String(o.year).slice(2)}</span>
+      return `<td class="svpcc"><span class="plcell">${llHead(o.name)}<button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button></span> <span class="azm">’${String(o.year).slice(2)}</span>
         <span class="svpv">${sim.toFixed(0)}% match</span></td>`;
     }).join('');
-    return `<tr><td class="lft"><button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button></td>
-      <td class="lft svptm">${teamCell(e.row)}</td><td class="mono">${head(e.row)}</td>
+    return `<tr><td class="lft"><span class="plcell">${llHead(e.name)}<button class="pname" data-p="${esc(e.name)}">${esc(e.name)}</button></span></td>
+      <td class="lft svptm">${svpTeamCell(e.row)}</td><td class="mono">${head(e.row)}</td>
       ${comps}</tr>`;
   }).join('');
   return `<div class="tscroll"><table class="detail svptable"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
@@ -9247,8 +9257,8 @@ function svpSearchResults(){
     ${cols.map(c=>`<th class="sortcol" data-srs="${esc(c.lab)}">${esc(c.lab)}${arrow(c.lab)}</th>`).join('')}</tr>`;
   const body = shown.map(r=>{
     const d = r.row;
-    return `<tr><td class="lft"><button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></td><td class="lft">${r.year}</td>
-      <td class="lft svptm">${teamCell(d)}</td>
+    return `<tr><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td><td class="lft">${r.year}</td>
+      <td class="lft svptm">${svpTeamCell(d)}</td>
       ${mode==='bat' ? `<td>${d.G_bat}</td><td>${d.PA}</td>` : `<td>${d.G_pit}</td><td class="mono">${ipStr(d.IPouts)}</td>`}
       ${cols.map(c=>{ const v = c.fn(d); return `<td class="mono">${isFinite(v)?c.fmt(v):'—'}</td>`; }).join('')}</tr>`;
   }).join('');
@@ -10128,7 +10138,7 @@ function renderSavantPizza(){
   else {
     const rows = metrics.map((m,i)=>`<tr><td class="lft">${esc(m[0])}</td><td>${svpPill(A.pcts[i].p)}</td><td class="mono">${A.pcts[i].txt}</td>
       ${B?`<td>${svpPill(B.pcts[i].p)}</td><td class="mono">${B.pcts[i].txt}</td>`:''}</tr>`).join('');
-    body = `<div class="pz-legend"><span><i class="sw a"></i><b>${esc(A.name)}</b> ${A.year}${A.qual?'':' (est., unqualified)'}</span>${B?`<span><i class="sw b"></i><b>${esc(B.name)}</b> ${B.year}${B.qual?'':' (est., unqualified)'}</span>`:''}</div>
+    body = `<div class="pz-legend"><span><i class="sw a"></i>${llHead(A.name)}<b>${esc(A.name)}</b> ${A.year}${A.qual?'':' (est., unqualified)'}</span>${B?`<span><i class="sw b"></i>${llHead(B.name)}<b>${esc(B.name)}</b> ${B.year}${B.qual?'':' (est., unqualified)'}</span>`:''}</div>
       ${svpPizzaSVG(metrics, A, B)}
       <div class="tscroll"><table class="detail svptable"><thead><tr><th class="lft">Stat</th><th colspan="2">${esc(A.name)} ${A.year}</th>${B?`<th colspan="2">${esc(B.name)} ${B.year}</th>`:''}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
@@ -10277,7 +10287,7 @@ function renderGuess(){
     </div>
     ${guessMode==='daily' ? shareResultButton('guessShare') : ''}` : '';
   app.innerHTML = `
-    <div class="phead"><h2>Arcade</h2><span class="yrs">${guessMode==='daily'?`${arcadeIsToday(pz.key)?"Today's Player":'Player'} · ${pz.key}`:'Practice Player'}</span></div>
+    <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('guess')}
     <p class="lead">Guess the mystery BWB player. You start with one hint; every wrong guess unlocks a more revealing
       one, down to a near giveaway on the fifth. Fewer hints is a better score.</p>
