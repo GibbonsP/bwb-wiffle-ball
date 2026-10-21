@@ -951,14 +951,12 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2022 b,.numring.pan.alt-2023 b{position:relative}
 .numring.pan.alt-2024{--rc-p:#000 !important;--rc-s:#fff !important;--rc-bg:#ff6fae !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
-.numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+.numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(calc(-50% + var(--tx,0px)));
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
 /* the first/last ring in the row sits flush against the page edge — a
    centered tooltip there would spill off-screen, so anchor those two to
    the ring's own edge instead of straddling its center */
-.numring:last-child .numring-tip{left:auto;right:0;transform:none}
-.numring:first-child .numring-tip{left:0;right:auto;transform:none}
 .numring:hover .numring-tip{opacity:1}
 .numrow>.numring{transition:filter .18s ease,opacity .18s ease}
 .numrow:has(>.numring.pan[tabindex]:hover)>.numring:not(.pan[tabindex]:hover),
@@ -3142,6 +3140,13 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
     const n = el.querySelectorAll('.altrow .numring').length; el.classList.remove('flip');
     if(el.getBoundingClientRect().right + 12 + n*56 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
   document.addEventListener('mouseover', place); document.addEventListener('focusin', place);
+})();
+/* tooltips sit centered over their number; nudge one sideways only if centering would push it past the page edge */
+(function(){
+  const fit = e => { const r = e.target.closest && e.target.closest('.numring'); if(!r) return; const t = r.querySelector(':scope>.numring-tip'); if(!t) return;
+    t.style.setProperty('--tx','0px'); const b = r.getBoundingClientRect(), w = t.offsetWidth, vw = document.documentElement.clientWidth, c = b.left + b.width/2;
+    t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + 'px'); };
+  document.addEventListener('mouseover', fit); document.addEventListener('focusin', fit);
 })();
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
