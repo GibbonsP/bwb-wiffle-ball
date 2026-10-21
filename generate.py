@@ -947,10 +947,11 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan{box-shadow:0 0 0 1.5px var(--rc-hair,#000),var(--shadow),inset 0 0 0 3px var(--rc-s)}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
-/* alternate Panthers jerseys, shown while a Panthers number is hovered (or tapped): 2022 white and gold, 2023 red and white, 2024 pink and black */
+/* alternate Panthers jerseys, shown while a Panthers number is hovered (or tapped): 2022 white and gold, 2023 red and black, 2024 pink and white */
 .numring.pan.alt-2022{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#fff !important;--rc-ink:#c8920a !important}
-.numring.pan.alt-2023{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#d71920 !important;--rc-ink:#fff !important}
-.numring.pan.alt-2024{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#ff6fae !important;--rc-ink:#000 !important}
+.numring.pan.alt-2023{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#d71920 !important;--rc-ink:#000 !important}
+.numring.pan.alt-2023 b{-webkit-text-stroke:2.4px #fff;paint-order:stroke fill}
+.numring.pan.alt-2024{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#ff6fae !important;--rc-ink:#fff !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
@@ -3128,7 +3129,7 @@ function barChart(items, opts={}){
    (each split stint counted on its own, the combined "tot" row
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
-const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & White'}, {y:2024, name:'Pink & Black'}];
+const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
 /* hovering (or tapping) a Panthers number that spans one or more of those seasons shows that season's jersey colors;
    a number worn across several of them steps through each in turn while the pointer stays on it */
 (function(){
