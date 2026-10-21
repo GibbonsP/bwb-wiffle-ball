@@ -945,6 +945,12 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
 .numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
 .numring.pan{box-shadow:0 0 0 1.5px #000,var(--shadow),inset 0 0 0 3px var(--rc-s)}
+.numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
+.numring.pan b{transition:color .25s ease}
+/* alternate Panthers jerseys, shown while a Panthers number is hovered (or tapped): 2022 white and gold, 2023 red and black, 2024 pink and black */
+.numring.pan.alt-2022{--rc-p:#fff !important;--rc-s:#d4a017 !important;--rc-bg:#fff !important;--rc-ink:#c8920a !important}
+.numring.pan.alt-2023{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#d71920 !important;--rc-ink:#000 !important}
+.numring.pan.alt-2024{--rc-p:#fff !important;--rc-s:#000 !important;--rc-bg:#ff6fae !important;--rc-ink:#000 !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
@@ -3122,6 +3128,29 @@ function barChart(items, opts={}){
    (each split stint counted on its own, the combined "tot" row
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
+const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & Black'}];
+/* hovering (or tapping) a Panthers number that spans one or more of those seasons shows that season's jersey colors;
+   a number worn across several of them steps through each in turn while the pointer stays on it */
+(function(){
+  let tmr = null, cur = null, idx = 0;
+  const show = el => {
+    const ys = el.dataset.alt.split(',').map(Number), y = ys[idx % ys.length], a = PANTHERS_ALT_JERSEYS.find(j=>j.y===y);
+    el.classList.remove('alt-2022','alt-2023','alt-2024'); el.classList.add('alt-'+y);
+    const tip = el.querySelector('.numring-tip'); if(tip) tip.textContent = `${y} · ${a.name} jersey`;
+  };
+  const stop = () => {
+    clearInterval(tmr); tmr = null;
+    if(cur){ cur.classList.remove('alt-2022','alt-2023','alt-2024'); const t = cur.querySelector('.numring-tip'); if(t) t.textContent = cur.dataset.tip; cur = null; }
+  };
+  const start = el => {
+    if(cur===el) return; stop(); cur = el; idx = 0; show(el);
+    if(el.dataset.alt.includes(',')) tmr = setInterval(()=>{ idx++; show(el); }, 1100);
+  };
+  document.addEventListener('mouseover', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(el) start(el); else if(cur) stop(); });
+  document.addEventListener('focusin', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(el) start(el); });
+  document.addEventListener('focusout', stop);
+  document.addEventListener('click', e=>{ const el = e.target.closest && e.target.closest('.numring.pan[data-alt]'); if(!el){ stop(); return; } if(cur===el){ idx++; show(el); } else start(el); });
+})();
 function teamHistoryCircles(pl){
   const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
     .slice().sort((a,b)=>a.year-b.year);
@@ -3146,7 +3175,8 @@ function teamHistoryCircles(pl){
     const tip = `${esc(label)} · ${yrs}`;
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
-    return `<span class="numring${pan?' pan':''}" style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+    const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>a.y>=st.from && a.y<=st.to) : [];
+    return `<span class="numring${pan?' pan':''}"${alts.length?` data-alt="${alts.map(a=>a.y).join(',')}" data-tip="${tip}" tabindex="0"`:''} style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
     </span>`;
   }).join('');
