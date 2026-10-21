@@ -952,7 +952,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring{position:relative;display:inline-flex;align-items:center;justify-content:center;
   width:46px;height:46px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
-.numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
+.numring b{font-family:"IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums;font-weight:700;font-size:1.05rem;color:var(--rc-ink,var(--ink))}
 .numring.pan{box-shadow:0 0 0 1.5px var(--rc-hair,#000),var(--shadow),inset 0 0 0 3px var(--rc-s)}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
@@ -967,9 +967,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2024{--rc-p:#212322 !important;--rc-s:#fff !important;--rc-bg:#f7b5cb !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 /* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
-.numring.sh-2024{--rc-p:#4169e1;--rc-s:#393c73;--rc-bg:#2d55cc}
+.numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.numring.sh-2223{--rc-p:#4169e1;--rc-s:#ff9c00;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
+.numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
 .numring.kr-2023{--rc-p:#f819a3;--rc-s:#fff;--rc-bg:#4dcfef;--rc-ink:#f819a3}
 .numring.kr-2122{--rc-p:#74c042;--rc-s:#fff;--rc-bg:#01793a}
 .numring.kr-2122>b{position:relative;color:#01793a;-webkit-text-stroke:2.4px #74c042;paint-order:stroke fill}
