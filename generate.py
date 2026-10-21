@@ -502,10 +502,10 @@ sup.seed.x{color:var(--clay)}
 .cmpplayer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:170px}
 .cmpplayer .jerhist{margin:0 0 22px}
 .jerhist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.jerhist-row{display:flex;gap:12px;flex-wrap:wrap}
+.jerhist-row{display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px}
 .jerhist-item{display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);
-  border-radius:6px;background:#fff;padding:10px 12px 9px;box-shadow:var(--shadow)}
-.jerhist-item img{width:132px;height:132px;object-fit:contain;max-width:100%;display:block}
+  border-radius:6px;background:#fff;padding:8px 8px 8px;box-shadow:var(--shadow);flex:1 0 92px;max-width:150px;min-width:0}
+.jerhist-item img{width:100%;aspect-ratio:1;height:auto;object-fit:contain;display:block}
 .jerhist-item span{font-size:.74rem;color:#5d6676;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover}
 .cmpname{font-size:1.05rem;font-weight:700;color:var(--accent)}
