@@ -1276,7 +1276,7 @@ const FRANCHISE_COLORS = {
   'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
   'Downtown Angels':{p:'#674ea7',s:'#ffffff'}, 'Brentwood Mustangs':{p:'#8f9196',s:'#e11d1d'},
   'Brentwood Braves':{p:'#0b3d70',s:'#d21f1f'}, 'Glenwood Process':{p:'#1f47ff',s:'#ffffff'},
-  'Harris Kings':{p:'#e23b2e',s:'#3aa8ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
+  'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
   'Brentwood Gladiators':{p:'#3d2185',s:'#f2b90c'}, 'Purchase Dragons':{p:'#ff6d01',s:'#111111'},
   'Shelton Shock':{p:'#122a63',s:'#4285f4'}, 'Brentwood Bananas':{p:'#f2c010',s:'#2a9d47'},
   'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#2f9e46',s:'#7a4a12'},
@@ -3387,6 +3387,8 @@ function detail(name){
   /* most recent team is the Gladiators → purple is the page's main colour (top lines, charts, accents) */
   /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
   if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas'); if(pa) app.style.setProperty('--tc', pa); }
+  /* Kings players: the page's main colour is red #ff2121 (the generic picker lands on their blue) */
+  if(String(lt).split(' / ').pop() === 'Harris Kings') app.style.setProperty('--tc', '#ff2121');
   if(String(lt).split(' / ').pop() === 'Brentwood Gladiators'){ const pa = primaryAccent('Brentwood Gladiators'); if(pa) app.style.setProperty('--tc', pa); }
 
   app.innerHTML = `
