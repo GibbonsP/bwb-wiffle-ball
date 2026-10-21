@@ -3247,8 +3247,23 @@ function yearRanges(ys){
   return out.join(', ');
 }
 function teamHistoryCircles(pl){
-  const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.num)
-    .slice().sort((a,b)=>a.year-b.year);
+  /* the years shown come from the rosters (teamsByYear), so a season on a club's roster always counts; the number comes from that
+     year's regular-season row, or — when there isn't one (a Spring/Fall-only year, or a row with no number recorded) — from the
+     nearest season the player wore a number for that same club */
+  const numAt = {};
+  pl.seasons.forEach(s=>{ if(s.type==='Regular' && !s.tot && s.team && s.num) numAt[s.team+'|'+s.year] = s.num; });
+  const rows = [];
+  Object.keys(pl.teamsByYear).map(Number).sort((a,b)=>a-b).forEach(y=>{
+    const t = pl.teamsByYear[y]; if(!t || !t.team) return;
+    t.team.split(' / ').forEach(tm=>{
+      let num = numAt[tm+'|'+y];
+      if(!num){
+        const near = Object.keys(numAt).filter(k=>k.startsWith(tm+'|')).map(k=>+k.split('|')[1]).sort((p,q)=>Math.abs(p-y)-Math.abs(q-y) || p-q)[0];
+        num = near!=null ? numAt[tm+'|'+near] : '–';
+      }
+      rows.push({year:y, team:tm, num});
+    });
+  });
   if(!rows.length) return '';
   /* walk the seasons in order: a badge continues while the club, number and (split) colour era stay the same — even across
      years sat out — and a new one starts the moment the player plays for a different club or number, so leaving for another
@@ -3287,7 +3302,7 @@ function teamHistoryCircles(pl){
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
     const ringVars = eraCls ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
-    return `<span class="numring${pan?' pan':''}${eraCls}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+    return `<span class="numring${pan?' pan':''}${eraCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
