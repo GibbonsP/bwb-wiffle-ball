@@ -944,6 +944,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   width:46px;height:46px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
 .numring b{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:1rem;color:var(--rc-ink,var(--ink))}
+.numring.pan b{color:transparent;-webkit-text-stroke:1.2px var(--rc-ink);paint-order:stroke fill}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
@@ -3144,7 +3145,7 @@ function teamHistoryCircles(pl){
     const tip = `${esc(label)} · ${yrs}`;
     /* Panthers numbers: black face, red number, a red ring inside a silver outer ring */
     const pan = st.team==='Brookside Panthers';
-    return `<span class="numring" style="--rc-p:${pan?'#9aa0aa':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+    return `<span class="numring${pan?' pan':''}" style="--rc-p:${pan?'#9aa0aa':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>
     </span>`;
   }).join('');
