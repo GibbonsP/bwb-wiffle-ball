@@ -500,7 +500,14 @@ sup.seed.x{color:var(--clay)}
 .cmpgo{background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:6px;font-weight:600}
 .cmpheads{display:flex;align-items:center;justify-content:center;gap:28px;margin:10px 0 26px;flex-wrap:wrap}
 .cmpplayer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:170px}
-.cmpplayer .pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover}
+.cmpplayer .jerhist{margin:0 0 22px}
+.jerhist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.jerhist-row{display:flex;gap:12px;flex-wrap:wrap}
+.jerhist-item{display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);
+  border-radius:6px;background:#fff;padding:10px 12px 9px;box-shadow:var(--shadow)}
+.jerhist-item img{width:132px;height:132px;object-fit:contain;max-width:100%;display:block}
+.jerhist-item span{font-size:.74rem;color:#5d6676;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover}
 .cmpname{font-size:1.05rem;font-weight:700;color:var(--accent)}
 .cmpblock{margin:0 0 26px}
 .cmpblock h4{text-align:center}
@@ -5207,6 +5214,15 @@ function teamH2H(t){
   Click ▸ next to a team to see the year-by-year breakdown.</p></section>`;
 }
 
+function teamJerseyHistory(t){
+  const hist = t.jerseyHistory;
+  if(!hist || !hist.length) return '';
+  const items = hist.map(h=>{
+    const range = h.from==null ? 'Year TBD' : h.to==null ? `${h.from}–Present` : (h.from===h.to ? `${h.from}` : `${h.from}–${h.to}`);
+    return `<div class="jerhist-item"><img src="${h.img}" alt="${esc(t.name)} jersey, ${range}" loading="lazy"><span>${range}</span></div>`;
+  }).join('');
+  return `<div class="jerhist"><h4>Jersey History</h4><div class="jerhist-row">${items}</div></div>`;
+}
 function teamLogoHistory(t){
   const hist = t.logoHistory;
   if(!hist || hist.length<2) return '';
@@ -5372,6 +5388,7 @@ function teamDetail(name){
     ${teamLeadershipHtml(name)}
     ${editBtn('Edit logo','editLogoBtn')}
     ${teamLogoHistory(t)}
+    ${teamJerseyHistory(t)}
     ${teamAccolades(name)}
     ${teamRecordTable(t)}
     ${chips}
