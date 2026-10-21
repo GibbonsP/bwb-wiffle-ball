@@ -974,11 +974,11 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
    the ring's own edge instead of straddling its center */
 .numring:hover .numring-tip{opacity:1}
 .numrow>.numring{transition:filter .45s ease,opacity .45s ease}
-.numrow:has(>.numring.pan[tabindex]:hover)>.numring:not(.pan[tabindex]:hover):not(.pinned),
-.numrow:has(>.numring.pan[tabindex]:focus-within)>.numring:not(.pan[tabindex]:focus-within):not(.pinned),
-.numrow:has(>.numring.pan.pinned)>.numring:not(.pinned){filter:blur(3.5px);opacity:.55}
+.numrow:has(>.numring[tabindex]:hover)>.numring:not([tabindex]:hover):not(.pinned),
+.numrow:has(>.numring[tabindex]:focus-within)>.numring:not(.pan[tabindex]:focus-within):not(.pinned),
+.numrow:has(>.numring.pinned)>.numring:not(.pinned){filter:blur(3.5px);opacity:.55}
 .altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
-.numring.pan[tabindex]:hover>.altrow,.numring.pan[tabindex]:focus-within>.altrow,.numring.pan.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+.numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
@@ -3179,10 +3179,11 @@ function barChart(items, opts={}){
    (each split stint counted on its own, the combined "tot" row
    skipped); a player with no numbers on record yet renders nothing
    rather than a row of blank circles. */
+const KRAKEN_NEW = 2023;  /* first season in the refreshed Kraken colours */
 const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red & Black'}, {y:2024, name:'Pink & White'}];
 /* the alternate-jersey row opens to the right of a Panthers number; if there isn't room before the page edge it opens to the left instead */
 (function(){
-  const place = e => { const el = e.target.closest && e.target.closest('.numring.pan[tabindex]'); if(!el) return;
+  const place = e => { const el = e.target.closest && e.target.closest('.numring[tabindex]'); if(!el) return;
     const n = el.querySelectorAll('.altrow .numring').length; el.classList.remove('flip');
     if(el.getBoundingClientRect().right + 12 + n*56 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
   document.addEventListener('mouseover', place); document.addEventListener('focusin', place);
@@ -3201,7 +3202,7 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
 (function(){
   let tmr = null, cur = null;
   const unpin = () => { clearTimeout(tmr); tmr = null; if(cur){ cur.classList.remove('pinned'); if(cur.contains(document.activeElement)) document.activeElement.blur(); cur = null; } };
-  document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.numring.pan[tabindex]');
+  document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.numring[tabindex]');
     if(!el){ if(cur) unpin(); return; }
     if(cur && cur!==el) unpin();
     cur = el; el.classList.add('pinned'); clearTimeout(tmr); tmr = setTimeout(unpin, 5000); });
@@ -3246,8 +3247,13 @@ function teamHistoryCircles(pl){
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>a.y>=st.from && a.y<=st.to) : [];
-    return `<span class="numring${pan?' pan':''}"${alts.length?` tabindex="0"`:''} style="--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
-      <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
+    /* Kraken: a number worn across the 2023 refresh shows the original colours, and the refreshed ones open on hover */
+    const kr = st.team==='Brookside Kraken' && st.from<KRAKEN_NEW && st.to>=KRAKEN_NEW;
+    const mc = kr ? (colorsFor(st.team, st.from)||c) : c, mP = mc.p||rcP, mS = mc.s||rcS;
+    const nc = kr ? colorsFor(st.team, KRAKEN_NEW) : null;
+    const krAlt = kr && nc ? `<span class="altrow"><span class="numring" style="--rc-p:${nc.p};--rc-s:${nc.s}" title="${KRAKEN_NEW}–Present · refreshed colors"><b>${esc(String(st.num))}</b><i>${KRAKEN_NEW}–</i></span></span>` : '';
+    return `<span class="numring${pan?' pan':''}"${alts.length||krAlt?` tabindex="0"`:''} style="--rc-p:${pan?'#fff':(kr?mP:rcP)};--rc-s:${kr?mS:rcS}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+      <b>${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
