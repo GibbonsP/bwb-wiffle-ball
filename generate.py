@@ -1057,7 +1057,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .imgpreview img{width:100%;height:100%;object-fit:cover}
 .imgph{color:var(--muted);font-size:.8rem}
 #imgPick{display:block;margin-bottom:10px;font-size:.82rem;color:var(--muted)}
-.tlogo{width:92px;height:92px;border-radius:14px;object-fit:cover;box-shadow:var(--shadow);
+.tlogo{height:92px;width:auto;min-width:92px;max-width:min(176px,44vw);box-sizing:border-box;padding:7px;border-radius:14px;object-fit:contain;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:14px;background:var(--card)}
 .thero .tlogo{background:rgba(255,255,255,.15)}
 .tlogo.wide{width:auto;height:64px;max-width:44vw;object-fit:contain;border-radius:0;box-shadow:none;background:none;margin-right:16px}
