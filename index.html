@@ -960,11 +960,11 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan.alt-2022 b,.numring.pan.alt-2023 b{position:relative}
 .numring.pan.alt-2024{--rc-p:#212322 !important;--rc-s:#fff !important;--rc-bg:#f7b5cb !important;--rc-ink:#fff !important;--rc-hair:transparent !important}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
-/* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half black / half green with a lime outline; 2018–20 lime base, white inner ring, black outer ring */
+/* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
 .numring.kr-2122{--rc-p:#74c042;--rc-s:#fff;--rc-bg:#01793a}
 .numring.kr-2122 b{position:relative;color:#01793a;-webkit-text-stroke:3.2px #74c042;paint-order:stroke fill}
-.numring.kr-2122 b::after{content:attr(data-n);position:absolute;inset:0;color:#000;-webkit-text-stroke:0;clip-path:inset(0 50% 0 0)}
-.numring.kr-1820{--rc-p:#000;--rc-s:#fff;--rc-bg:#2cd21b;--rc-ink:#2edf25}
+.numring.kr-2122 b::after{content:attr(data-n);position:absolute;inset:0;color:#000;-webkit-text-stroke:0;clip-path:inset(50% 0 0 0)}
+.numring.kr-1820{--rc-p:#01793a;--rc-s:#fff;--rc-bg:#1fc20f;--rc-ink:#2edf25}
 .numring-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(calc(-50% + var(--tx,0px)));
   background:var(--ink);color:var(--paper);font-size:.7rem;font-weight:500;padding:4px 9px;
   border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:5}
