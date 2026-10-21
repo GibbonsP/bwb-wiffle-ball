@@ -3595,12 +3595,12 @@ function logoIcon(uri, alt, cls){
 
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
 /* rotating profile banner: pl.banners = [{src, y}] (y = object-position percent that frames the player), crossfading in
-   chronological order, oldest first. Only the first image is loaded up front; the rest load as they come up. */
+   chronological order, newest first. Only the first image is loaded up front; the rest load as they come up. */
 let pbTimer = null;
 function playerBannerHTML(pl, name){
   const list = pl.banners || [];
   if(!list.length) return '';
-  const start = 0;   // banners are stored oldest to newest and always play in that order, starting from the first
+  const start = 0;   // banners are stored newest to oldest and always play in that order, starting from the first
   const imgs = list.map((b,i)=>`<img ${i===start?`src="${b.src}" class="on"`:`data-src="${b.src}"`} alt="${i===start?esc(name):''}" style="object-position:50% ${b.y==null?50:b.y}%" decoding="async">`).join('');
   const dots = list.length>1 ? `<div class="pbdots">${list.map((b,i)=>`<button type="button" data-pbi="${i}" aria-label="Photo ${i+1} of ${list.length}"${i===start?' class="on"':''}></button>`).join('')}</div>` : '';
   const arrows = list.length>1 ? `<button type="button" class="pbarrow prev" data-pbd="-1" aria-label="Previous photo">‹</button>
