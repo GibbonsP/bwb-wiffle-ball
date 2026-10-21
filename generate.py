@@ -1276,7 +1276,7 @@ function gsRender(items){
 
 /* ---------------- franchise colours (from the club wordmark sheet) ------- */
 const FRANCHISE_COLORS = {
-  'Brookside Kraken':{p:'#3aa8ff',s:'#ff2fd6'}, 'Brookside Panthers':{p:'#111111',s:'#e11d1d'},
+  'Brookside Kraken':{p:'#3aa8ff',s:'#ff2fd6'}, 'Brookside Panthers':{p:'#0d0c0c',s:'#d90909'},
   'Beaver Brook Lavahogs':{p:'#ff6d01',s:'#111111'}, 'Brookside Squirrels':{p:'#3d85c6',s:'#7a4a12'},
   'Brookside Royals':{p:'#e23b2e',s:'#ffffff'}, 'Davenport Sox':{p:'#ff9900',s:'#111111'},
   'Brentwood Aces':{p:'#e8b420',s:'#1f3ad0'}, 'Gleason Devils':{p:'#3fb6bf',s:'#9c0d0d'},
@@ -1288,7 +1288,10 @@ const FRANCHISE_COLORS = {
   'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#2f9e46',s:'#7a4a12'},
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
-const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}]};
+const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}],
+  /* Panthers: #0d0c0c/#d90909 for 2013–2019, 2021 and 2025–present; the other seasons keep the colours they had before */
+  'Brookside Panthers':[{from:2013,to:2019,p:'#0d0c0c',s:'#d90909'},{from:2020,to:2020,p:'#111111',s:'#e11d1d'},
+    {from:2021,to:2021,p:'#0d0c0c',s:'#d90909'},{from:2022,to:2024,p:'#111111',s:'#e11d1d'},{from:2025,to:2099,p:'#0d0c0c',s:'#d90909'}]};
 function _hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 function _lum(hex){ const [r,g,b]=_hx(hex).map(v=>{v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; }
 function _hsl(hex){ let [r,g,b]=_hx(hex).map(v=>v/255); const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
