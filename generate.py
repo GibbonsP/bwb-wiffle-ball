@@ -1305,10 +1305,8 @@ const FRANCHISE_COLORS = {
   'Brentwood Braves':{p:'#0a1d44',s:'#de0030'}, 'Glenwood Process':{p:'#1f47ff',s:'#ffffff'},
   'Harris Kings':{p:'#ff2121',s:'#60a7ff'}, 'Purchase PawSox':{p:'#0b3d70',s:'#e11d1d'},
   'Brentwood Gladiators':{p:'#4a09ac',s:'#ffc039'}, 'Purchase Dragons':{p:'#ff6d01',s:'#111111'},
-  'Shelton Shock':{p:'#4169e1',s:'#393c73'}, 'Brentwood Bananas':{p:'#f2c010',s:'#2a9d47'},
-  'Downtown Titans':{p:'#4e0404',s:'#f7ed9f'}, 'Silver Lake Snapping Turtles':{p:'#036a4f',s:'#00d077'},
   'Shelton Shock':{p:'#4169e1',s:'#393c73'}, 'Brentwood Bananas':{p:'#ffbe22',s:'#30943a'},
-  'Downtown Titans':{p:'#8a1414',s:'#ffa500'}, 'Silver Lake Snapping Turtles':{p:'#036a4f',s:'#00d077'},
+  'Downtown Titans':{p:'#4e0404',s:'#f7ed9f'}, 'Silver Lake Snapping Turtles':{p:'#036a4f',s:'#00d077'},
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
 /* era palettes: a franchise's colours in a given season (FRANCHISE_COLORS above is its current look) */
