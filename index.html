@@ -4018,21 +4018,12 @@ function franchiseTimeline(){
     const band = `<div class="tlg-band${i%2?' even':''}" style="grid-row:${r};grid-column:1/-1"></div>`;
     const nameCell = `<div class="tlg-cell tlg-name" style="grid-row:${r};grid-column:1">
       ${logo?logoIcon(logo,'','tl-logo'):'<span class="tl-logo tl-logo-blank"></span>'}${nameEl}</div>`;
-    /* each name era is drawn in the club's own colours (main colour as the fill); a name that spans two
-       colour eras (e.g. the Shock's 2022–23 look vs. today's) is cut into one bar per main colour so each stretch reads true */
-    const cIdx = y => (colorsFor(fr.full, y)||{}).p;
+    /* every name era is drawn in the club's current main colour, so a franchise reads as one uniform colour across its whole history */
+    const col = (FRANCHISE_COLORS[fr.full]||{}).p || '#8a90a0';
     const bars = fr.eras.map(e=>{
-      const segs = [];
-      for(let y=e.from; y<=e.to; y++){
-        const k = cIdx(y), last = segs[segs.length-1];
-        if(last && last.k===k) last.to = y; else segs.push({k, from:y, to:y});
-      }
-      return segs.map((sg,j)=>{
-        const c = colorsFor(fr.full, sg.from) || {p:'#8a90a0', s:'#ffffff'};
-        const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
-        return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(sg.from)}/${colOf(sg.to)+1};--bc:${c.p}"
-          title="${esc(range+' · '+e.loc+' '+e.nick)}">${j===0?esc(e.nick):''}</div>`;
-      }).join('');
+      const range = e.from===e.to ? `${e.from}` : `${e.from}–${e.to}`;
+      return `<div class="tlg-bar" style="grid-row:${r};grid-column:${colOf(e.from)}/${colOf(e.to)+1};--bc:${col}"
+        title="${esc(range+' · '+e.loc+' '+e.nick)}">${esc(e.nick)}</div>`;
     }).join('');
     return band + nameCell + bars;
   }).join('');
