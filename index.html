@@ -1033,6 +1033,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring[tabindex]:hover>i.krl,.numring[tabindex]:focus-within>i.krl,.numring.pinned>i.krl{opacity:1}
 .numring i{white-space:nowrap}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
+.numrow>.numring[tabindex]{transition:filter .45s ease,opacity .45s ease,margin .3s ease}
+.numrow>.numring[tabindex]:hover,.numrow>.numring[tabindex]:focus-within,.numrow>.numring.pinned{margin-right:calc(var(--na,0)*72px + 14px)}
+.numrow>.numring.flip[tabindex]:hover,.numrow>.numring.flip[tabindex]:focus-within,.numrow>.numring.flip.pinned{margin-right:0;margin-left:calc(var(--na,0)*72px + 14px)}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
 .sparkcard{border:1px solid var(--line);border-radius:6px;background:var(--card);
@@ -3409,7 +3412,7 @@ function teamHistoryCircles(pl){
     if(krAlt){ tipParts.push(krMain ? `${esc(nameIn(krMain))} · ${krMain.played}` : tip); oldEras.forEach(e=>tipParts.push(`${esc(nameIn(e))} · ${e.played}`)); }
     else if(alts.length){ tipParts.push(tip); alts.forEach(a=>tipParts.push(`${esc(label)} · ${a.y}`)); }
     const tipHtml = tipParts.length>1 ? tipParts.map((t,i)=>`<span class="tv tv${i}">${t}</span>`).join('') : tip;
-    return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
+    return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="--na:${krAlt?oldEras.length:alts.length};${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tipHtml}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
