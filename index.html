@@ -1246,7 +1246,8 @@ function gsMatches(qRaw){
      FRANCHISE_SUMMARY's f===null "historical record only" rows — search
      those too so the whole league's history is actually findable, not
      just the 15 franchises with full stat databases */
-  const oldTeams = FRANCHISE_SUMMARY.filter(d=>!d.f && (d.full.toLowerCase().includes(q) || (d.t||'').toLowerCase().includes(q)))
+  const shown = new Set(teams.map(t=>t.key));
+  const oldTeams = FRANCHISE_SUMMARY.filter(d=>!d.f && !shown.has(d.full) && !TEAMS[d.full] && (d.full.toLowerCase().includes(q) || (d.t||'').toLowerCase().includes(q)))
     .sort((a,b)=>rank(a.t||a.full)-rank(b.t||b.full) || a.full.localeCompare(b.full)).slice(0,3)
     .map(d=>({type:'team', key:d.full, label:d.t||d.full, sub:d.full, logo:franchiseLogoDefault(d.t)}));
   return [...players, ...teams, ...oldTeams];
