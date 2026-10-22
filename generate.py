@@ -987,6 +987,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.ki>b{-webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
 .numring.ac{--rc-p:#f9b941;--rc-s:#080dc4;--rc-bg:#fff;--rc-ink:#080dc4}
 .numring.wc{--rc-p:#470a68;--rc-s:#fff;--rc-bg:#a4abb0;--rc-ink:#470a68}
+.numring.hd{--rc-p:#27251f;--rc-s:#fff;--rc-bg:#fdb827;--rc-ink:#27251f}
+.numring.hr{--rc-p:#fdb827;--rc-s:#fff;--rc-bg:#27251f;--rc-ink:#fdb827}
+.numring.stv{--rc-p:#fff;--rc-s:#27251f;--rc-bg:#fdb827;--rc-ink:#27251f}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
@@ -1348,7 +1351,7 @@ const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff591
   /* the Wildcats (2017) are the Process before their 2018 rebrand — a different identity, so their season stays its own badge */
   'Glenwood Process':[{from:2017,to:2017,p:'#470a68',s:'#a4abb0',split:true,cls:'wc'}],
   /* Hotdoggers (2016), Hogriders (2017) and Sea Thieves (2018) wore Pittsburgh Pirates gold and black — a separate identity from today's Lavahogs */
-  'Beaver Brook Lavahogs':[{from:2016,to:2018,p:'#fdb827',s:'#27251f',split:true}],
+  'Beaver Brook Lavahogs':[{from:2016,to:2016,p:'#fdb827',s:'#27251f',split:true,cls:'hd'},{from:2017,to:2017,p:'#fdb827',s:'#27251f',split:true,cls:'hr'},{from:2018,to:2018,p:'#fdb827',s:'#27251f',split:true,cls:'stv'}],
   'Harris Kings':[{from:2018,to:2020,p:'#ff2121',s:'#0a65b1',split:true,cls:'sk1'},{from:2021,to:2021,p:'#ff2121',s:'#60a7ff',split:true,cls:'sk2'}]};
 /* only eras flagged split (a different club identity, e.g. the Dashers) break a same-number stint into separate badges; palette refreshes don't */
 function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>e.split && year>=e.from && year<=e.to); }
