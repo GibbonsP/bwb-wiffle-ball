@@ -1326,6 +1326,8 @@ const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff591
   'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
   'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
   /* the Special K's (2018–2021) are a different identity from today's Kings, like the Dashers vs the Braves, so each look stays its own badge */
+  /* the Wildcats (2017) are the Process before their 2018 rebrand — a different identity, so their season stays its own badge */
+  'Glenwood Process':[{from:2017,to:2017,p:'#470a68',s:'#a4abb0',split:true}],
   'Harris Kings':[{from:2018,to:2020,p:'#ff2121',s:'#0a65b1',split:true,cls:'sk1'},{from:2021,to:2021,p:'#ff2121',s:'#60a7ff',split:true,cls:'sk2'}]};
 /* only eras flagged split (a different club identity, e.g. the Dashers) break a same-number stint into separate badges; palette refreshes don't */
 function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>e.split && year>=e.from && year<=e.to); }
