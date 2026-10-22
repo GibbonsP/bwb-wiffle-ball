@@ -1250,7 +1250,24 @@ function gsMatches(qRaw){
   const oldTeams = FRANCHISE_SUMMARY.filter(d=>!d.f && !shown.has(d.full) && !TEAMS[d.full] && (d.full.toLowerCase().includes(q) || (d.t||'').toLowerCase().includes(q)))
     .sort((a,b)=>rank(a.t||a.full)-rank(b.t||b.full) || a.full.localeCompare(b.full)).slice(0,3)
     .map(d=>({type:'team', key:d.full, label:d.t||d.full, sub:d.full, logo:franchiseLogoDefault(d.t)}));
-  return [...players, ...teams, ...oldTeams];
+  /* pre-rebrand names (Bluefish, Dashers, Special K's...): found by their old name, shown with that era's logo and full name like any
+     other team, but they open the franchise's current page */
+  const taken = new Set([...teams, ...oldTeams].map(t=>String(t.label).toLowerCase()));
+  const former = [];
+  FRANCHISE_TIMELINE.forEach(fr=>{
+    const cur = fr.eras[fr.eras.length-1].nick;
+    if(!franchiseIsLinkable(fr.full)) return;
+    fr.eras.forEach(e=>{
+      if(e.nick===cur) return;
+      const nm = histName(fr.full, e.from);
+      if(!(e.nick.toLowerCase().includes(q) || nm.toLowerCase().includes(q))) return;
+      if(taken.has(e.nick.toLowerCase())) return;
+      taken.add(e.nick.toLowerCase());
+      former.push({type:'team', key:fr.full, label:e.nick, sub:nm, logo:teamLogoForYear(fr.full, e.from), _r:rank(e.nick)});
+    });
+  });
+  former.sort((a,b)=>a._r-b._r || a.label.localeCompare(b.label));
+  return [...players, ...teams, ...oldTeams, ...former.slice(0,4)];
 }
 function gsRender(items){
   const box = document.getElementById('gsearchResults');
