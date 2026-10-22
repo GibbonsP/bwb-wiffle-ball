@@ -3364,7 +3364,7 @@ function teamHistoryCircles(pl){
       let num = numAt[tm+'|'+y], est = false;
       if(!num){
         /* no number on record for that year: estimate it as the number from the next season after it on that club (or, if there is
-           none, the closest earlier one), and flag it so the tooltip and NUMBER_ESTIMATES.md can show it is not a recorded number */
+           none, the closest earlier one), and flag it (kept private, not shown on the live site) */
         const yrs = Object.keys(numAt).filter(k=>k.startsWith(tm+'|')).map(k=>+k.split('|')[1]);
         const later = yrs.filter(v=>v>y).sort((p,q)=>p-q)[0];
         const earlier = yrs.filter(v=>v<y).sort((p,q)=>q-p)[0];
@@ -3398,7 +3398,7 @@ function teamHistoryCircles(pl){
        range, not whichever name happened to be active when the stint began */
     const label = TEAMS[st.team] ? histName(st.team, st.to) : st.team;
     const yrs = yearRanges(st.years);
-    const tip = `${esc(label)} · ${yrs}${st.est.length?` · number estimated for ${yearRanges(st.est)}`:''}`;
+    const tip = `${esc(label)} · ${yrs}`;
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>st.years.includes(a.y)) : [];
