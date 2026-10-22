@@ -1358,15 +1358,15 @@ const FRANCHISE_COLORS = {
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
 /* era palettes: a franchise's colours in a given season (FRANCHISE_COLORS above is its current look) */
-const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910',split:true}],
+const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}],
   'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
   'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
   /* the Special K's (2018–2021) are a different identity from today's Kings, like the Dashers vs the Braves, so each look stays its own badge */
   /* the Wildcats (2017) are the Process before their 2018 rebrand — a different identity, so their season stays its own badge */
-  'Glenwood Process':[{from:2017,to:2017,p:'#470a68',s:'#a4abb0',split:true,cls:'wc'}],
+  'Glenwood Process':[{from:2017,to:2017,p:'#470a68',s:'#a4abb0',cls:'wc'}],
   /* Hotdoggers (2016), Hogriders (2017) and Sea Thieves (2018) wore Pittsburgh Pirates gold and black; same franchise as the Lavahogs, so they open on hover */
   'Beaver Brook Lavahogs':[{from:2016,to:2018,p:'#fdb827',s:'#27251f'}],
-  'Harris Kings':[{from:2018,to:2020,p:'#ff2121',s:'#0a65b1',split:true,cls:'sk1'},{from:2021,to:2021,p:'#ff2121',s:'#60a7ff',split:true,cls:'sk2'}]};
+  'Harris Kings':[{from:2018,to:2020,p:'#ff2121',s:'#0a65b1',cls:'sk1'},{from:2021,to:2021,p:'#ff2121',s:'#60a7ff',cls:'sk2'}]};
 /* only eras flagged split (a different club identity, e.g. the Dashers) break a same-number stint into separate badges; palette refreshes don't */
 function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>e.split && year>=e.from && year<=e.to); }
 function colorsFor(full, year){
@@ -3264,9 +3264,12 @@ function barChart(items, opts={}){
 /* Kraken colour eras, newest first (the Kraken name began in 2018; earlier years - Eagles, Bluefish - have no jersey circle) */
 const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:'kr-2023'},
   {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
-  {from:2018,to:2020,label:'2018–2020',cls:'kr-1820'}];
+  {from:2018,to:2020,label:'2018–2020',cls:'kr-1820'},
+  {from:2017,to:2017,label:'Bluefish',cls:'kr-2023'},
+  {from:2013,to:2016,label:'Eagles',cls:'kr-2023'}];
 const SHOCK_ERAS = [{from:2024,to:9999,label:'2024–Present',cls:'sh-2024'},
   {from:2022,to:2023,label:'2022–2023',cls:'sh-2223'}];
+const BADGE_CLS = {'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw','Harris Kings':' ki','Glenwood Process':' pr','Brentwood Aces':' ac'};
 const LAVAHOGS_ERAS = [{from:2019,to:9999,label:'Lavahogs',cls:'lh'},
   {from:2018,to:2018,label:'Sea Thieves',cls:'stv'},
   {from:2017,to:2017,label:'Hogriders',cls:'hr'},
@@ -3317,10 +3320,17 @@ function eraList(team){
   if(team==='Brookside Kraken') return KRAKEN_ERAS;
   if(team==='Shelton Shock') return SHOCK_ERAS;
   if(team==='Beaver Brook Lavahogs') return LAVAHOGS_ERAS;
-  const eras = (ERA_COLORS[team]||[]).filter(e=>!e.split);
+  /* colour eras from ERA_COLORS, plus every earlier name the franchise played under (FRANCHISE_TIMELINE) that no colour era already covers —
+     those wear the club's current look and just carry their own name and seasons */
+  const eras = (ERA_COLORS[team]||[]).filter(e=>!e.split).map(e=>({from:e.from, to:e.to, colors:{p:e.p, s:e.s}, cls:e.cls}));
+  const tl = FRANCHISE_TIMELINE.find(f=>f.full===team);
+  if(tl){
+    const cur = tl.eras[tl.eras.length-1].nick;
+    tl.eras.forEach(x=>{ if(x.nick!==cur && !eras.some(e=>x.from<=e.to && x.to>=e.from)) eras.push({from:x.from, to:x.to, colors:FRANCHISE_COLORS[team], cls:BADGE_CLS[team]}); });
+  }
   if(!eras.length) return [];
   const top = Math.max(...eras.map(e=>e.to));
-  return [{from:top+1, to:9999, colors:FRANCHISE_COLORS[team]}, ...eras.slice().sort((a,b)=>b.from-a.from).map(e=>({from:e.from, to:e.to, colors:{p:e.p, s:e.s}}))];
+  return [{from:top+1, to:9999, colors:FRANCHISE_COLORS[team], cls:BADGE_CLS[team]}, ...eras.sort((a,b)=>b.from-a.from)];
 }
 /* [2016,2017,2019,2025] -> "2016–2017, 2019, 2025": consecutive seasons collapse into a range, a break starts a new one */
 function yearRanges(ys){
@@ -3385,7 +3395,7 @@ function teamHistoryCircles(pl){
     const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
     const splitE = eraKey(st.team, st.to);
-    const bvCls = splitE < 0 ? ({'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw','Harris Kings':' ki','Glenwood Process':' pr','Brentwood Aces':' ac'}[st.team]||'') : (ERA_COLORS[st.team][splitE].cls ? ' '+ERA_COLORS[st.team][splitE].cls : '');
+    const bvCls = splitE < 0 ? (BADGE_CLS[st.team]||'') : (ERA_COLORS[st.team][splitE].cls ? ' '+ERA_COLORS[st.team][splitE].cls : '');
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
     /* the tooltip above the row follows the pointer: on the headline circle it names the current team and the seasons it covers; on each
