@@ -3361,13 +3361,18 @@ function teamHistoryCircles(pl){
   Object.keys(pl.teamsByYear).map(Number).sort((a,b)=>a-b).forEach(y=>{
     const t = pl.teamsByYear[y]; if(!t || !t.team) return;
     t.team.split(' / ').forEach(tm=>{
-      let num = numAt[tm+'|'+y];
+      let num = numAt[tm+'|'+y], est = false;
       if(!num){
-        const near = Object.keys(numAt).filter(k=>k.startsWith(tm+'|')).map(k=>+k.split('|')[1]).sort((p,q)=>Math.abs(p-y)-Math.abs(q-y) || p-q)[0];
-        num = near!=null ? numAt[tm+'|'+near] : null;
+        /* no number on record for that year: estimate it as the number from the next season after it on that club (or, if there is
+           none, the closest earlier one), and flag it so the tooltip and NUMBER_ESTIMATES.md can show it is not a recorded number */
+        const yrs = Object.keys(numAt).filter(k=>k.startsWith(tm+'|')).map(k=>+k.split('|')[1]);
+        const later = yrs.filter(v=>v>y).sort((p,q)=>p-q)[0];
+        const earlier = yrs.filter(v=>v<y).sort((p,q)=>q-p)[0];
+        const near = later!=null ? later : earlier;
+        num = near!=null ? numAt[tm+'|'+near] : null; est = true;
       }
       if(!num) return; // exhibition-only, no official number: no circle
-      rows.push({year:y, team:tm, num});
+      rows.push({year:y, team:tm, num, est});
     });
   });
   if(!rows.length) return '';
@@ -3378,9 +3383,9 @@ function teamHistoryCircles(pl){
   rows.forEach(s=>{
     const last = stints[stints.length-1];
     if(last && last.team===s.team && String(last.num)===String(s.num) && eraKey(s.team,s.year)===eraKey(last.team,last.to)){
-      last.years.push(s.year); last.to = s.year;
+      last.years.push(s.year); last.to = s.year; if(s.est) last.est.push(s.year);
     } else {
-      stints.push({team:s.team, num:s.num, from:s.year, to:s.year, years:[s.year]});
+      stints.push({team:s.team, num:s.num, from:s.year, to:s.year, years:[s.year], est:s.est?[s.year]:[]});
     }
   });
   const items = stints.map(st=>{
@@ -3393,7 +3398,7 @@ function teamHistoryCircles(pl){
        range, not whichever name happened to be active when the stint began */
     const label = TEAMS[st.team] ? histName(st.team, st.to) : st.team;
     const yrs = yearRanges(st.years);
-    const tip = `${esc(label)} · ${yrs}`;
+    const tip = `${esc(label)} · ${yrs}${st.est.length?` · number estimated for ${yearRanges(st.est)}`:''}`;
     /* Panthers numbers: black face, red number, a red ring inside a white outer ring */
     const pan = st.team==='Brookside Panthers';
     const alts = pan ? PANTHERS_ALT_JERSEYS.filter(a=>st.years.includes(a.y)) : [];
