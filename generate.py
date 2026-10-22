@@ -5615,6 +5615,7 @@ function teamDetail(name){
     ${t.aka&&t.aka.length?`<p class="aka">Also played as ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}.</p>`:''}`;
   app.innerHTML = `
     <button class="back" id="back">← All teams</button>
+    ${playerBannerHTML(t, name)}
     ${hero}
     ${teamLeadershipHtml(name)}
     ${editBtn('Edit logo','editLogoBtn')}
@@ -5630,6 +5631,7 @@ function teamDetail(name){
     Roster lines are the stats each player recorded for this club that year — a player who changed clubs mid-year
     appears on both. Rosters list players with recorded stats, not the full signed roster.</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/teams'; });
+  initPlayerBanner();
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
