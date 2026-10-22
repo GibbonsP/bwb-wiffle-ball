@@ -935,13 +935,13 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt{color:var(--muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lphoto{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
-.tscroll table .lphoto{width:38px;height:38px}
+.lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
+.tscroll table .lphoto{width:30px;height:30px}
 .detail tfoot tr.teamtotrow td{font-weight:400;border-top:1px solid var(--line)}
 .detail tfoot tr.teamtotrow:first-of-type td{border-top:0}
 .detail tfoot tr.teamtotrow td:first-child{color:var(--muted)}
 .plcell{display:inline-flex;align-items:center;gap:9px}
-.dir .lphoto{width:38px;height:38px}
+.dir .lphoto{width:30px;height:30px}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
