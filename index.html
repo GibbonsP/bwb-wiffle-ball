@@ -864,6 +864,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .herocap .pname{color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:700}
 .herocap .herosep{opacity:.6}
 .hometicker{position:relative}
+.tkslide{transition:opacity .35s ease}
+.tkslide.fade{opacity:0}
+@media (prefers-reduced-motion:reduce){.tkslide{transition:none}}
 .tickerarrow{position:absolute;top:calc(50% - 25px);transform:translateY(-50%);width:34px;height:34px;
   border-radius:50%;background:rgba(4,30,66,.55);color:#fff;border:1px solid rgba(255,255,255,.35);
   font-size:1.2rem;line-height:1;display:flex;align-items:center;justify-content:center}
@@ -1683,7 +1686,7 @@ function cell(v,type,key){
   return isFinite(v)? String(v) : '—';
 }
 
-let tickerIdx = 0;
+let tickerIdx = 0, homeTickTimer = null;
 /* home-page card for the Beavers' most recent NWLA National Tournament trip: result, MVP and every game */
 function nwlaHomeCard(){
   const list = (typeof BV_LIST!=='undefined' ? BV_LIST : []).slice().sort((a,b)=>(b.meta.date||'').localeCompare(a.meta.date||''));
@@ -1737,6 +1740,41 @@ function savantHomeHTML(){
       <span style="color:${svColor(100)}">red</span> is league-best, <span style="color:${svColor(0)}">blue</span> is trailing — with the number beneath.</p>
     ${hit}${pit}
     <p class="note"><button class="pname" data-go="savant">Full Savant rankings, league trends and team graphs →</button></p>`;
+}
+/* one slide of the home-page news ticker: its photo(s) and caption */
+function tickerSlideHTML(s){
+  return `${s.photos&&s.photos.length?`<div class="herophotos">${s.photos.map((p,i)=>`<img src="${p}" alt="${esc(s.title||'')} — photo ${i+1}">`).join('')}</div>`
+      :s.photo?`<img class="herophoto${s.fit==='contain'?' sq':''}" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
+    <div class="herocap">
+      ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
+      ${s.title?`<h2>${esc(s.title)}</h2>`:''}
+      <p>${s.caption?`${esc(s.caption)} `:''}${(s.links||(s.link?[{link:s.link,linkText:s.linkText}]:[])).map(l=>
+        `<a class="pname" href="${esc(l.link)}">${esc(l.linkText||'See more →')}</a>`).join('<span class="herosep"> · </span>')}</p>
+    </div>`;
+}
+/* the ticker advances by itself every few seconds (pausing while the pointer is over it), crossfading in place; the arrows
+   and dots still jump to a slide. Nothing re-renders the page, so scroll position and everything else stay put. */
+function initHomeTicker(slides){
+  if(homeTickTimer){ clearInterval(homeTickTimer); homeTickTimer = null; }
+  const box = document.querySelector('.hometicker'); if(!box || slides.length<2) return;
+  const slideEl = box.querySelector('.tkslide'), dots = [...box.querySelectorAll('.tickerdot')];
+  let paused = false, swapping = null;
+  const show = i => {
+    const n = slides.length; tickerIdx = ((i % n) + n) % n;
+    dots.forEach((d,k)=>d.classList.toggle('on', k===tickerIdx));
+    slideEl.classList.add('fade');
+    clearTimeout(swapping);
+    swapping = setTimeout(()=>{ slideEl.innerHTML = tickerSlideHTML(slides[tickerIdx]); slideEl.classList.remove('fade'); }, 350);
+  };
+  box.querySelectorAll('[data-tnav]').forEach(b=>b.addEventListener('click', e=>{ e.stopImmediatePropagation(); show(tickerIdx + +b.dataset.tnav); }, true));
+  box.querySelectorAll('[data-tix]').forEach(b=>b.addEventListener('click', e=>{ e.stopImmediatePropagation(); show(+b.dataset.tix); }, true));
+  box.addEventListener('mouseenter', ()=>{ paused = true; });
+  box.addEventListener('mouseleave', ()=>{ paused = false; });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce) homeTickTimer = setInterval(()=>{
+    if(!document.body.contains(box)){ clearInterval(homeTickTimer); homeTickTimer = null; return; }
+    if(!paused) show(tickerIdx+1);
+  }, 6500);
 }
 function renderHome(){
   setNav('home');
@@ -1831,15 +1869,7 @@ function renderHome(){
       `<button class="tickerdot${i===tickerIdx?' on':''}" data-tix="${i}" aria-label="Slide ${i+1}"></button>`).join('')}</div>` : '';
     const arrows = slides.length>1 ? `<button class="tickerarrow prev" data-tnav="-1" aria-label="Previous">‹</button>
       <button class="tickerarrow next" data-tnav="1" aria-label="Next">›</button>` : '';
-    champbar = `<div class="herofeature hometicker">
-      ${s.photos&&s.photos.length?`<div class="herophotos">${s.photos.map((p,i)=>`<img src="${p}" alt="${esc(s.title||'')} — photo ${i+1}">`).join('')}</div>`
-        :s.photo?`<img class="herophoto${s.fit==='contain'?' sq':''}" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
-      <div class="herocap">
-        ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
-        ${s.title?`<h2>${esc(s.title)}</h2>`:''}
-        <p>${s.caption?`${esc(s.caption)} `:''}${(s.links||(s.link?[{link:s.link,linkText:s.linkText}]:[])).map(l=>
-          `<a class="pname" href="${esc(l.link)}">${esc(l.linkText||'See more →')}</a>`).join('<span class="herosep"> · </span>')}</p>
-      </div>
+    champbar = `<div class="herofeature hometicker"><div class="tkslide">${tickerSlideHTML(s)}</div>
       ${arrows}${dots}
     </div>`;
   } else if(!rc){
@@ -1952,14 +1982,7 @@ function renderHome(){
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
     const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
-  app.querySelectorAll('[data-tnav]').forEach(b=>b.addEventListener('click',()=>{
-    const n = slides.length;
-    tickerIdx = ((tickerIdx + +b.dataset.tnav) % n + n) % n;
-    renderHome();
-  }));
-  app.querySelectorAll('[data-tix]').forEach(b=>b.addEventListener('click',()=>{
-    tickerIdx = +b.dataset.tix; renderHome();
-  }));
+  initHomeTicker(slides);
   document.getElementById('editBannerBtn').addEventListener('click', ()=>{
     openImageEditor('Home Banner', DB.banner, 900, async url=>{
       const before = DB.banner;
