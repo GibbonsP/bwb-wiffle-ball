@@ -980,6 +980,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.ki{--rc-p:#60a7ff;--rc-s:#c9b87c;--rc-bg:#ff2121;--rc-ink:#60a7ff}
 .numring.ki>b{-webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
 .numring.ac{--rc-p:#f9b941;--rc-s:#080dc4;--rc-bg:#fff;--rc-ink:#080dc4}
+.numring.wc{--rc-p:#470a68;--rc-s:#fff;--rc-bg:#a4abb0;--rc-ink:#470a68}
 .numring.sh-2024{--rc-p:#393c73;--rc-s:#fff;--rc-bg:#2d55cc}
 .numring.sh-2024>b{background:linear-gradient(to top,#3183de,#2db4f6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 .numring.sh-2223{--rc-p:#ff9c00;--rc-s:#fff;--rc-bg:#5ca6d8;--rc-ink:#ff9c00}
@@ -1320,6 +1321,8 @@ const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff591
   'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
   'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
   /* the Special K's (2018–2021) are a different identity from today's Kings, like the Dashers vs the Braves, so each look stays its own badge */
+  /* the Wildcats (2017) are the Process before their 2018 rebrand — a different identity, so their season stays its own badge */
+  'Glenwood Process':[{from:2017,to:2017,p:'#470a68',s:'#a4abb0',split:true,cls:'wc'}],
   'Harris Kings':[{from:2018,to:2020,p:'#ff2121',s:'#0a65b1',split:true,cls:'sk1'},{from:2021,to:2021,p:'#ff2121',s:'#60a7ff',split:true,cls:'sk2'}]};
 /* only eras flagged split (a different club identity, e.g. the Dashers) break a same-number stint into separate badges; palette refreshes don't */
 function eraKey(full, year){ return (ERA_COLORS[full]||[]).findIndex(e=>e.split && year>=e.from && year<=e.to); }
