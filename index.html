@@ -1026,7 +1026,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numrow:has(>.numring[tabindex]:hover)>.numring:not([tabindex]:hover):not(.pinned),
 .numrow:has(>.numring[tabindex]:focus-within)>.numring:not(.pan[tabindex]:focus-within):not(.pinned),
 .numrow:has(>.numring.pinned)>.numring:not(.pinned){filter:blur(1.2px) grayscale(.35);opacity:.4;box-shadow:none}
-.altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:26px;padding:6px 8px 6px 30px;z-index:6}
+.altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:20px;padding:6px 8px 6px 18px;z-index:6}
 .numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
 .numring>i.krl{white-space:nowrap;position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em;opacity:0;transition:opacity .45s ease;pointer-events:none;text-align:center}
@@ -1034,8 +1034,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring i{white-space:nowrap}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numrow>.numring[tabindex]{transition:filter .45s ease,opacity .45s ease,margin .3s ease}
-.numrow>.numring[tabindex]:hover,.numrow>.numring[tabindex]:focus-within,.numrow>.numring.pinned{margin-right:calc(var(--na,0)*72px + 14px)}
-.numrow>.numring.flip[tabindex]:hover,.numrow>.numring.flip[tabindex]:focus-within,.numrow>.numring.flip.pinned{margin-right:0;margin-left:calc(var(--na,0)*72px + 14px)}
+.numrow>.numring[tabindex]:hover,.numrow>.numring[tabindex]:focus-within,.numrow>.numring.pinned{margin-right:calc(var(--na,0)*66px + 4px)}
+.numrow>.numring.flip[tabindex]:hover,.numrow>.numring.flip[tabindex]:focus-within,.numrow>.numring.flip.pinned{margin-right:0;margin-left:calc(var(--na,0)*66px + 4px)}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
 .sparkcard{border:1px solid var(--line);border-radius:6px;background:var(--card);
@@ -3293,11 +3293,10 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
 /* tooltips sit centered over their number — or, when the alternate-jersey row is open, over the whole group
    (number + alternates); nudged sideways only if that would push them past the page edge */
 (function(){
-  const fit = e => { let r = e.target.closest && e.target.closest('.numring'); if(r && r.parentElement && r.parentElement.classList.contains('altrow')) r = r.parentElement.closest('.numring'); if(!r) return; const t = r.querySelector(':scope>.numring-tip'); if(!t) return;
-    t.style.setProperty('--tx','0px'); const b = r.getBoundingClientRect(); let L = b.left, R = b.right;
-    r.querySelectorAll(':scope>.altrow .numring').forEach(a=>{ const q = a.getBoundingClientRect(); if(q.width){ L = Math.min(L,q.left); R = Math.max(R,q.right); } });
-    const w = t.offsetWidth, vw = document.documentElement.clientWidth, c = (L+R)/2, shift = c - (b.left + b.width/2);
-    t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + shift + 'px'); };
+  const fit = e => { const hit = e.target.closest && e.target.closest('.numring'); if(!hit) return; let r = hit; if(r.parentElement && r.parentElement.classList.contains('altrow')) r = r.parentElement.closest('.numring'); if(!r) return; const t = r.querySelector(':scope>.numring-tip'); if(!t) return;
+    requestAnimationFrame(()=>{ t.style.setProperty('--tx','0px'); const b = r.getBoundingClientRect(), q = hit.getBoundingClientRect();
+      const w = t.offsetWidth, vw = document.documentElement.clientWidth, c = q.left + q.width/2, shift = c - (b.left + b.width/2);
+      t.style.setProperty('--tx', Math.max(8 - (c - w/2), Math.min(0, vw - 8 - (c + w/2))) + shift + 'px'); }); };
   document.addEventListener('mouseover', fit); document.addEventListener('focusin', fit);
 })();
 /* clicking (or tapping) a Panthers number holds its alternate-jersey row open for 5 seconds, then fades it back out */
