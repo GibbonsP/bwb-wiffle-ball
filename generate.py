@@ -171,7 +171,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbdots button{pointer-events:auto;width:9px;height:9px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);cursor:pointer;box-shadow:0 0 3px rgba(0,0,0,.5)}
 .pbdots button.on{background:var(--tc,var(--accent));border-color:#fff}
 @media (prefers-reduced-motion:reduce){.pbanner img{transition:none}}
-.phead-team h2{display:inline-block;border-bottom:4px solid var(--tc,var(--accent));padding-bottom:3px}
+.phead-team h2{display:inline-block;font-size:clamp(2.2rem,7vw,3.5rem);border-bottom:5px solid var(--tc,var(--accent));padding-bottom:4px;line-height:1.1}
 .thero{border-radius:8px;padding:22px 24px;margin:2px 0 22px;position:relative;overflow:hidden;
   background:linear-gradient(115deg,var(--tp,var(--accent)),color-mix(in srgb,var(--tp,var(--accent)) 66%,#000));
   color:var(--ts,#fff);box-shadow:var(--shadow)}
@@ -1140,7 +1140,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .logohist-item b{font-size:.8rem;white-space:nowrap}
 .pphoto{width:clamp(96px,24vw,140px);height:clamp(96px,24vw,140px);border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:12px;flex:none}
-.pheadlogo{width:clamp(60px,12vw,76px);height:clamp(60px,12vw,76px);object-fit:contain;flex:none;margin-left:8px}
+.pheadlogo{width:clamp(76px,17vw,108px);height:clamp(76px,17vw,108px);object-fit:contain;flex:none;margin-left:8px}
 .banner{width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:18px;
   box-shadow:var(--shadow);display:block}
 .barchart text{font-family:"IBM Plex Sans",sans-serif}
