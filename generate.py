@@ -1138,7 +1138,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .logohist-item span{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .logohist-item img.wide{width:auto;max-width:130px;height:60px}
 .logohist-item b{font-size:.8rem;white-space:nowrap}
-.pphoto{width:clamp(78px,17vw,104px);height:clamp(78px,17vw,104px);border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
+.pphoto{width:clamp(96px,24vw,140px);height:clamp(96px,24vw,140px);border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:12px;flex:none}
 .pheadlogo{width:clamp(60px,12vw,76px);height:clamp(60px,12vw,76px);object-fit:contain;flex:none;margin-left:8px}
 .banner{width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:18px;
