@@ -158,7 +158,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .phead h2{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.8rem,5vw,2.8rem);
   margin:0;letter-spacing:.01em}
 .phead .yrs{color:var(--muted);font-size:.9rem;letter-spacing:.04em}
-.pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:12/5}
+.pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:11/5}
 .pbanner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
 .pbanner img.on{opacity:1}
 .pbarrow{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
@@ -935,13 +935,13 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .lt{color:var(--muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .llist .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .pname{text-align:left;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lphoto{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
-.tscroll table .lphoto{width:30px;height:30px}
+.lphoto{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft)}
+.tscroll table .lphoto{width:38px;height:38px}
 .detail tfoot tr.teamtotrow td{font-weight:400;border-top:1px solid var(--line)}
 .detail tfoot tr.teamtotrow:first-of-type td{border-top:0}
 .detail tfoot tr.teamtotrow td:first-child{color:var(--muted)}
 .plcell{display:inline-flex;align-items:center;gap:9px}
-.dir .lphoto{width:30px;height:30px}
+.dir .lphoto{width:38px;height:38px}
 .lphoto-blank{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:.7rem;letter-spacing:.04em}
 .llogo{width:26px;height:26px;object-fit:contain;flex:none;border-radius:5px}
 .llogo-bg{display:inline-block;background-size:contain;background-repeat:no-repeat;background-position:center}
@@ -1138,7 +1138,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .logohist-item span{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .logohist-item img.wide{width:auto;max-width:130px;height:60px}
 .logohist-item b{font-size:.8rem;white-space:nowrap}
-.pphoto{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
+.pphoto{width:clamp(78px,17vw,104px);height:clamp(78px,17vw,104px);border-radius:50%;object-fit:cover;box-shadow:var(--shadow);
   vertical-align:middle;margin-right:12px;flex:none}
 .pheadlogo{width:clamp(60px,12vw,76px);height:clamp(60px,12vw,76px);object-fit:contain;flex:none;margin-left:8px}
 .banner{width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-bottom:18px;
