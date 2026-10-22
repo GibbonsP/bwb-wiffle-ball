@@ -9,6 +9,7 @@ When a real number is obtained, set `num` on that player's Regular season row in
 | AJ Cefaloni | Beaver Brook Lavahogs | 2019 | 2 |
 | Alex Homem | Brookside Kraken | 2022 | 2 |
 | Austin Corvino | Brentwood Gladiators | 2021 | 27 |
+| JB Breig | Brookside Kraken | 2018 | 25 |
 | JB Breig | Brookside Kraken | 2021 | 25 |
 | Reed Hakim | Brookside Kraken | 2020 | 13 |
 
