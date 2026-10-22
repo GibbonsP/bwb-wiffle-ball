@@ -158,7 +158,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .phead h2{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.8rem,5vw,2.8rem);
   margin:0;letter-spacing:.01em}
 .phead .yrs{color:var(--muted);font-size:.9rem;letter-spacing:.04em}
-.pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:11/5}
+.pbanner{position:relative;margin:0 0 14px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border-bottom:4px solid var(--tc,var(--accent));background:var(--line);aspect-ratio:21/10}
 .pbanner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
 .pbanner img.on{opacity:1}
 .pbarrow{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
