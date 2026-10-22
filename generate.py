@@ -334,6 +334,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   font-size:.76rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
 .svpnote{margin:4px 0 18px;max-width:68ch;font-size:.95rem}
 .svpnote b{font-weight:600}
+.svlogo{flex:none;display:block;margin-right:12px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25))}
 .svheat{min-width:100%}
 .svheat th,.svheat td{padding:6px 7px;text-align:center;font-size:.76rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .svheat th.lft{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
@@ -8896,12 +8897,24 @@ const svpTeamCell = d => {
       : esc(full)).join(' / ')
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 };
+/* the Savant mark: a percentile pizza — eight wedges, longer and redder for a higher percentile, shorter and bluer for a lower one */
+function savantLogoSVG(size){
+  const P = [92,66,80,38,88,52,72,24], n = P.length, cx = 50, cy = 50, R = 44, step = 2*Math.PI/n;
+  const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
+  const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
+    return `M${cx},${cy}L${x0.toFixed(1)},${y0.toFixed(1)}A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}Z`; };
+  return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
+    <circle cx="50" cy="50" r="48" fill="#0b1a33"/>
+    ${P.map((p,i)=>`<path d="${wedge(i,R)}" fill="#ffffff" fill-opacity=".1" stroke="#0b1a33" stroke-width="1.6"/>`).join('')}
+    ${P.map((p,i)=>`<path d="${wedge(i,Math.max(R*p/100,6))}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.6"/>`).join('')}
+    <circle cx="50" cy="50" r="48" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="1.5"/></svg>`;
+}
 function svpShell(tab, inner){
   setNav('savant');
   const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
-    <div class="phead"><h2>Savant</h2></div>
+    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
