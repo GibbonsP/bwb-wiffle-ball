@@ -8897,24 +8897,28 @@ const svpTeamCell = d => {
       : esc(full)).join(' / ')
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 };
-/* the Savant mark: a wiffleball — white ball, a fan of oblong slots across one half, and a thin blue-to-red ring (the percentile scale) */
+/* the Savant mark: a wiffleball drawn after the real thing — an off-white ball with a few long slanted slots (see-through, so the
+   inside shows light grey), ringed in the blue-to-red percentile scale */
 function savantLogoSVG(size){
-  /* oblong slots in two staggered rows, leaning outward and shrinking toward the edges so the rows read as wrapping around the ball:
-     [x, y, length, width, tilt in degrees] */
-  const slots = [[22,38,15,6.2,-24],[35,31,19,7.2,-11],[49,29,21,7.6,0],[63,31,19,7.2,11],[76,38,15,6.2,24],
-                 [28,62,15,6.4,-16],[41,60,18,7.2,-6],[56,60,18,7.2,6],[70,62,15,6.4,16]];
-  const holes = slots.map(([x,y,len,wid,tilt])=>
-    `<rect x="${(x-wid/2).toFixed(1)}" y="${(y-len/2).toFixed(1)}" width="${wid}" height="${len}" rx="${wid/2}" transform="rotate(${tilt} ${x} ${y})" fill="#25365a"/>
-     <rect x="${(x-wid/2+1.1).toFixed(1)}" y="${(y-len/2+1.8).toFixed(1)}" width="${(wid-2.2).toFixed(1)}" height="${(len-2.6).toFixed(1)}" rx="${((wid-2.2)/2).toFixed(1)}" transform="rotate(${tilt} ${x} ${y})" fill="#0b1426"/>`).join('');
+  /* [center x, center y, length, width, rotation] — rotation is clockwise from vertical */
+  const slots = [[26,13,27,8,67],[33.9,37,31,9.4,44],[56.1,54,28,8.6,40],[81.4,56,29,7.4,13],[92,38,26,7,5]];
+  const holes = slots.map(([x,y,len,wid,rot])=>{
+    const r = wid/2, tr = `rotate(${rot} ${x} ${y})`;
+    return `<g transform="${tr}">
+      <rect x="${(x-r-1).toFixed(1)}" y="${(y-len/2-1).toFixed(1)}" width="${(wid+2).toFixed(1)}" height="${len+2}" rx="${(r+1).toFixed(1)}" fill="#ffffff" opacity=".9"/>
+      <rect x="${(x-r).toFixed(1)}" y="${(y-len/2).toFixed(1)}" width="${wid}" height="${len}" rx="${r}" fill="url(#svlgSlot)"/>
+    </g>`; }).join('');
   return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
     <defs>
-      <radialGradient id="svlgBall" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#eef1f6"/><stop offset="1" stop-color="#c5ccd9"/></radialGradient>
+      <radialGradient id="svlgBall" cx="40%" cy="36%" r="70%"><stop offset="0" stop-color="#fbfcfe"/><stop offset=".65" stop-color="#e6e9f0"/><stop offset="1" stop-color="#b9c0cf"/></radialGradient>
+      <linearGradient id="svlgSlot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58637d"/><stop offset=".5" stop-color="#9aa3b7"/><stop offset="1" stop-color="#cfd5e0"/></linearGradient>
       <linearGradient id="svlgRing" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${svColor(0)}"/><stop offset=".5" stop-color="${svColor(50)}"/><stop offset="1" stop-color="${svColor(100)}"/></linearGradient>
+      <clipPath id="svlgClip"><circle cx="50" cy="50" r="46"/></clipPath>
     </defs>
-    <circle cx="50" cy="50" r="48.5" fill="url(#svlgRing)"/>
-    <circle cx="50" cy="50" r="44" fill="url(#svlgBall)"/>
-    ${holes}
-    <ellipse cx="30" cy="20" rx="11" ry="5" fill="#fff" opacity=".6" transform="rotate(-35 30 20)"/>
+    <circle cx="50" cy="50" r="48.4" fill="url(#svlgRing)"/>
+    <circle cx="50" cy="50" r="46" fill="url(#svlgBall)"/>
+    <g clip-path="url(#svlgClip)">${holes}</g>
+    <ellipse cx="38" cy="30" rx="14" ry="7" fill="#fff" opacity=".3" transform="rotate(-30 38 30)"/>
   </svg>`;
 }
 function svpShell(tab, inner){
