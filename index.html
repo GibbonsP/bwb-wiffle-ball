@@ -965,6 +965,10 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring.pan b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block}
 /* Kraken eras: 2021–22 green base, white inner ring, lime outer ring, number half green (top) / half black (bottom) with a lime outline; 2018–20 deeper lime base, white inner ring, green outer ring */
 .numring.bv{--rc-p:#de0030;--rc-s:#fff;--rc-bg:#0a1d44;--rc-ink:#de0030}
+.numring.da{--rc-p:#002d72;--rc-s:#ff5910;--rc-bg:#fff;--rc-ink:#002d72}
+.numring.bd{--rc-p:#b3142b;--rc-s:#fff;--rc-bg:#aab2bd;--rc-ink:#12285a}
+.numring.kr-eg{--rc-p:#ffc20e;--rc-s:#fff;--rc-bg:#8a1538;--rc-ink:#ffc20e}
+.numring.kr-bf{--rc-p:#12303f;--rc-s:#fff;--rc-bg:#0e5f73;--rc-ink:#f2c14e}
 .numring.bv>b{-webkit-text-stroke:1.2px #fff;paint-order:stroke fill}
 .numring.gl{--rc-p:#ffc039;--rc-s:#fff;--rc-bg:#4a09ac;--rc-ink:#ffc039}
 .numring.tt{--rc-p:#00d077;--rc-s:#fff;--rc-bg:#036a4f;--rc-ink:#00d077}
@@ -1358,7 +1362,8 @@ const FRANCHISE_COLORS = {
 };
 /* era-specific number-ring colours where a franchise's look changed with its name */
 /* era palettes: a franchise's colours in a given season (FRANCHISE_COLORS above is its current look) */
-const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910'}],
+const ERA_COLORS = {'Brentwood Braves':[{from:2016,to:2017,p:'#002d72',s:'#ff5910',cls:'da'}],
+  'Brentwood Mustangs':[{from:2016,to:2016,p:'#b3142b',s:'#12285a',cls:'bd'}],
   'Shelton Shock':[{from:2022,to:2023,p:'#5ca6d8',s:'#ff9c00'}],
   'Brookside Kraken':[{from:2000,to:2022,p:'#3aa8ff',s:'#ff2fd6'}],
   /* the Special K's (2018–2021) are a different identity from today's Kings, like the Dashers vs the Braves, so each look stays its own badge */
@@ -3265,8 +3270,8 @@ function barChart(items, opts={}){
 const KRAKEN_ERAS = [{from:2023,to:9999,label:'2023–Present',cls:'kr-2023'},
   {from:2021,to:2022,label:'2021–2022',cls:'kr-2122'},
   {from:2018,to:2020,label:'2018–2020',cls:'kr-1820'},
-  {from:2017,to:2017,label:'Bluefish',cls:'kr-2023'},
-  {from:2013,to:2016,label:'Eagles',cls:'kr-2023'}];
+  {from:2017,to:2017,label:'Bluefish',cls:'kr-bf'},
+  {from:2013,to:2016,label:'Eagles',cls:'kr-eg'}];
 const SHOCK_ERAS = [{from:2024,to:9999,label:'2024–Present',cls:'sh-2024'},
   {from:2022,to:2023,label:'2022–2023',cls:'sh-2223'}];
 const BADGE_CLS = {'Brentwood Braves':' bv','Brentwood Gladiators':' gl','Silver Lake Snapping Turtles':' tt','Downtown Titans':' ti','Brentwood Bananas':' bn','Purchase Dragons':' dr','Beaver Brook Lavahogs':' lh','Purchase PawSox':' pw','Harris Kings':' ki','Glenwood Process':' pr','Brentwood Aces':' ac'};
