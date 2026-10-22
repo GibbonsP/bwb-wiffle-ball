@@ -8891,17 +8891,25 @@ const svpTeamCell = d => {
       : esc(full)).join(' / ')
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 };
-/* the Savant mark: a percentile pizza — eight wedges, longer and redder for a higher percentile, shorter and bluer for a lower one */
+/* the Savant mark: a wiffleball — white ball, a fan of oblong slots across one half, and a thin blue-to-red ring (the percentile scale) */
 function savantLogoSVG(size){
-  const P = [92,66,80,38,88,52,72,24], n = P.length, cx = 50, cy = 50, R = 44, step = 2*Math.PI/n;
-  const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
-  const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
-    return `M${cx},${cy}L${x0.toFixed(1)},${y0.toFixed(1)}A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}Z`; };
+  /* oblong slots in two staggered rows, leaning outward and shrinking toward the edges so the rows read as wrapping around the ball:
+     [x, y, length, width, tilt in degrees] */
+  const slots = [[22,38,15,6.2,-24],[35,31,19,7.2,-11],[49,29,21,7.6,0],[63,31,19,7.2,11],[76,38,15,6.2,24],
+                 [28,62,15,6.4,-16],[41,60,18,7.2,-6],[56,60,18,7.2,6],[70,62,15,6.4,16]];
+  const holes = slots.map(([x,y,len,wid,tilt])=>
+    `<rect x="${(x-wid/2).toFixed(1)}" y="${(y-len/2).toFixed(1)}" width="${wid}" height="${len}" rx="${wid/2}" transform="rotate(${tilt} ${x} ${y})" fill="#25365a"/>
+     <rect x="${(x-wid/2+1.1).toFixed(1)}" y="${(y-len/2+1.8).toFixed(1)}" width="${(wid-2.2).toFixed(1)}" height="${(len-2.6).toFixed(1)}" rx="${((wid-2.2)/2).toFixed(1)}" transform="rotate(${tilt} ${x} ${y})" fill="#0b1426"/>`).join('');
   return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
-    <circle cx="50" cy="50" r="48" fill="#0b1a33"/>
-    ${P.map((p,i)=>`<path d="${wedge(i,R)}" fill="#ffffff" fill-opacity=".1" stroke="#0b1a33" stroke-width="1.6"/>`).join('')}
-    ${P.map((p,i)=>`<path d="${wedge(i,Math.max(R*p/100,6))}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.6"/>`).join('')}
-    <circle cx="50" cy="50" r="48" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="1.5"/></svg>`;
+    <defs>
+      <radialGradient id="svlgBall" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#eef1f6"/><stop offset="1" stop-color="#c5ccd9"/></radialGradient>
+      <linearGradient id="svlgRing" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${svColor(0)}"/><stop offset=".5" stop-color="${svColor(50)}"/><stop offset="1" stop-color="${svColor(100)}"/></linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48.5" fill="url(#svlgRing)"/>
+    <circle cx="50" cy="50" r="44" fill="url(#svlgBall)"/>
+    ${holes}
+    <ellipse cx="30" cy="20" rx="11" ry="5" fill="#fff" opacity=".6" transform="rotate(-35 30 20)"/>
+  </svg>`;
 }
 function svpShell(tab, inner){
   setNav('savant');
