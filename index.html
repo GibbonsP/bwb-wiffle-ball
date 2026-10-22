@@ -3392,7 +3392,7 @@ function teamHistoryCircles(pl){
        hover circle it switches to that era's team name and its seasons (e.g. "Beaver Brook Sea Thieves · 2018") */
     const tipParts = [];
     if(krAlt){ tipParts.push(krMain ? `${esc(nameIn(krMain))} · ${krMain.played}` : tip); oldEras.forEach(e=>tipParts.push(`${esc(nameIn(e))} · ${e.played}`)); }
-    else if(alts.length){ tipParts.push(tip); alts.forEach(a=>tipParts.push(`${esc(label)} · ${a.y} · ${esc(a.name)}`)); }
+    else if(alts.length){ tipParts.push(tip); alts.forEach(a=>tipParts.push(`${esc(label)} · ${a.y}`)); }
     const tipHtml = tipParts.length>1 ? tipParts.map((t,i)=>`<span class="tv tv${i}">${t}</span>`).join('') : tip;
     return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
       <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tipHtml}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
