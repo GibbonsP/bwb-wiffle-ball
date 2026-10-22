@@ -1012,8 +1012,19 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:10px;padding:6px 8px 6px 12px;z-index:6}
 .numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
-.numring>i.krl{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em;opacity:0;transition:opacity .45s ease;pointer-events:none;text-align:center}
+.numring>i.krl{white-space:nowrap;position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em;opacity:0;transition:opacity .45s ease;pointer-events:none;text-align:center}
 .numring[tabindex]:hover>i.krl,.numring[tabindex]:focus-within>i.krl,.numring.pinned>i.krl{opacity:1}
+.numring i{white-space:nowrap}
+.numring i .ln{display:none}
+.altrow .numring:hover>i .ly{display:none}
+.altrow .numring:hover>i .ln{display:inline}
+.numring[tabindex]:hover:has(.altrow .numring:hover)>i.krl .ly{display:inline}
+.numring[tabindex]:hover:not(:has(.altrow .numring:hover))>i.krl .ly{display:none}
+.numring[tabindex]:hover:not(:has(.altrow .numring:hover))>i.krl .ln{display:inline}
+.altrow .numring:hover{z-index:7}
+.numring i .ln{background:var(--paper);padding:2px 6px;border-radius:4px;box-shadow:0 0 0 1px var(--line)}
+.altrow .numring:hover>i{z-index:8}
+.numring[tabindex]:hover:not(:has(.altrow .numring:hover))>i.krl{left:0;transform:none;z-index:8}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
@@ -3366,7 +3377,10 @@ function teamHistoryCircles(pl){
     const played = eraSet.map((e,k)=>({...e, current:k===0, played:yearRanges(st.years.filter(y=>y>=e.from && y<=e.to))})).filter(e=>e.played);
     const oldEras = eraSet.length && eraKey(st.team, st.to) < 0 ? played.filter(e=>!e.current) : [];
     const curEra = played.find(e=>e.current);
-    const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${e.played}</i></span>`;
+    /* hovering a circle swaps its seasons label for the team name it stands for (histName, e.g. "Beaver Brook Sea Thieves") */
+    const lbl = (yrs, nm) => `<span class="ly">${yrs}</span><span class="ln">${esc(nm)}</span>`;
+    const nameIn = e => { const y = st.years.find(yy=>yy>=e.from && yy<=e.to); return y!=null ? histName(st.team, y) : label; };
+    const eraCircle = e => `<span class="numring${e.cls?' '+e.cls:''}"${e.cls?'':` style="--rc-p:${e.colors.p};--rc-s:${e.colors.s}"`} title="${e.played} · ${esc(label)}"><b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><i>${lbl(e.played, nameIn(e))}</i></span>`;
     const krAlt = oldEras.length ? `<span class="altrow">${oldEras.map(eraCircle).join('')}</span>` : '';
     const eraCls = eraSet.length && eraSet[0].cls && eraKey(st.team, st.to) < 0 ? ' '+eraSet[0].cls : '';
     const splitE = eraKey(st.team, st.to);
@@ -3374,7 +3388,7 @@ function teamHistoryCircles(pl){
     const ringVars = (eraCls||bvCls) ? '' : `--rc-p:${pan?'#fff':rcP};--rc-s:${rcS}`;
     const krMain = krAlt && curEra ? curEra : null;
     return `<span class="numring${pan?' pan':''}${eraCls}${bvCls}" data-team="${esc(st.team)}" data-years="${st.years.join(',')}"${alts.length||krAlt?` tabindex="0"`:''} style="${ringVars}${pan?`;--rc-bg:#000;--rc-ink:${rcS}`:''}" title="${tip}">
-      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${krMain.played}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${a.y}</i></span>`).join('')}</span>`:''}
+      <b data-n="${esc(String(st.num))}">${esc(String(st.num))}</b><span class="numring-tip">${tip}</span>${krAlt&&krMain?`<i class="krl">${lbl(krMain.played, nameIn(krMain))}</i>`:''}${krAlt}${alts.length?`<span class="altrow">${alts.map(a=>`<span class="numring pan alt-${a.y}" title="${a.y} · ${a.name} jersey"><b>${esc(String(st.num))}</b><i>${lbl(a.y, a.name)}</i></span>`).join('')}</span>`:''}
     </span>`;
   }).join('');
   return `<div class="numhist"><h4>Team History</h4><div class="numrow">${items}</div></div>`;
