@@ -8897,28 +8897,33 @@ const svpTeamCell = d => {
       : esc(full)).join(' / ')
     + (d.teamPartial ? '<span class="pt">*</span>' : '');
 };
-/* the Savant mark: a wiffleball drawn after the real thing — an off-white ball with a few long slanted slots (see-through, so the
-   inside shows light grey), ringed in the blue-to-red percentile scale */
+/* the Savant mark: a wiffleball sitting on a percentile pizza — eight wedges fan out from behind the ball, longer and redder for a
+   higher percentile, shorter and bluer for a lower one; the ball's slots are real see-through holes with a lip */
 function savantLogoSVG(size){
-  /* [center x, center y, length, width, rotation] — rotation is clockwise from vertical */
-  const slots = [[26,13,27,8,67],[33.9,37,31,9.4,44],[56.1,54,28,8.6,40],[81.4,56,29,7.4,13],[92,38,26,7,5]];
+  const PCT = [98,16,90,8,96,24,86,4], n = PCT.length, step = 2*Math.PI/n, cx = 50, cy = 50, BR = 33, RMAX = 48.5;
+  const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
+  const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
+    return `M${cx},${cy}L${x0.toFixed(2)},${y0.toFixed(2)}A${r.toFixed(2)},${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}Z`; };
+  const wedges = PCT.map((p,i)=>`<path d="${wedge(i, BR + 4.5 + (RMAX-BR-4.5)*p/100)}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
+  /* slots: [center x, center y, length, width, clockwise tilt from vertical] — long, slanted, cut off by the ball's edge like the real thing */
+  const slots = [[32.5,23.5,20,6.6,67],[37.2,40,22,7.4,44],[53.5,53.5,20,7,40],[70.5,55,21,6.2,13],[77,41,18,5.8,5]];
   const holes = slots.map(([x,y,len,wid,rot])=>{
-    const r = wid/2, tr = `rotate(${rot} ${x} ${y})`;
-    return `<g transform="${tr}">
-      <rect x="${(x-r-1).toFixed(1)}" y="${(y-len/2-1).toFixed(1)}" width="${(wid+2).toFixed(1)}" height="${len+2}" rx="${(r+1).toFixed(1)}" fill="#ffffff" opacity=".9"/>
-      <rect x="${(x-r).toFixed(1)}" y="${(y-len/2).toFixed(1)}" width="${wid}" height="${len}" rx="${r}" fill="url(#svlgSlot)"/>
+    const r = wid/2, x0 = (x-r).toFixed(2), y0 = (y-len/2).toFixed(2);
+    return `<g transform="rotate(${rot} ${x} ${y})">
+      <rect x="${(x-r-1.1).toFixed(2)}" y="${(y-len/2-1.1).toFixed(2)}" width="${(wid+2.2).toFixed(2)}" height="${(len+2.2).toFixed(2)}" rx="${(r+1.1).toFixed(2)}" fill="#ffffff"/>
+      <rect x="${x0}" y="${y0}" width="${wid}" height="${len}" rx="${r}" fill="#1a2742"/>
+      <rect x="${(x-r+.9).toFixed(2)}" y="${(y-len/2+1.4).toFixed(2)}" width="${(wid-1.8).toFixed(2)}" height="${(len-2.2).toFixed(2)}" rx="${((wid-1.8)/2).toFixed(2)}" fill="#3b4a6b" opacity=".85"/>
     </g>`; }).join('');
   return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
     <defs>
-      <radialGradient id="svlgBall" cx="40%" cy="36%" r="70%"><stop offset="0" stop-color="#fbfcfe"/><stop offset=".65" stop-color="#e6e9f0"/><stop offset="1" stop-color="#b9c0cf"/></radialGradient>
-      <linearGradient id="svlgSlot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58637d"/><stop offset=".5" stop-color="#9aa3b7"/><stop offset="1" stop-color="#cfd5e0"/></linearGradient>
-      <linearGradient id="svlgRing" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${svColor(0)}"/><stop offset=".5" stop-color="${svColor(50)}"/><stop offset="1" stop-color="${svColor(100)}"/></linearGradient>
-      <clipPath id="svlgClip"><circle cx="50" cy="50" r="46"/></clipPath>
+      <radialGradient id="svlgBall" cx="38%" cy="34%" r="72%"><stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#e9ecf2"/><stop offset="1" stop-color="#b8c0cf"/></radialGradient>
+      <clipPath id="svlgClip"><circle cx="50" cy="50" r="${BR}"/></clipPath>
     </defs>
-    <circle cx="50" cy="50" r="48.4" fill="url(#svlgRing)"/>
-    <circle cx="50" cy="50" r="46" fill="url(#svlgBall)"/>
+    ${wedges}
+    <circle cx="50" cy="50" r="${BR+1.3}" fill="#0b1a33"/>
+    <circle cx="50" cy="50" r="${BR}" fill="url(#svlgBall)"/>
     <g clip-path="url(#svlgClip)">${holes}</g>
-    <ellipse cx="38" cy="30" rx="14" ry="7" fill="#fff" opacity=".3" transform="rotate(-30 38 30)"/>
+    <ellipse cx="40" cy="31" rx="10" ry="5.4" fill="#fff" opacity=".4" transform="rotate(-30 40 31)"/>
   </svg>`;
 }
 function svpShell(tab, inner){
