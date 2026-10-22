@@ -5647,7 +5647,8 @@ function teamDetail(name){
     ${yrs.map(y=>`<button data-y="${y}" aria-pressed="${teamYear===y}">${y}</button>`).join('')}
   </div>`;
   const fr=t.record, g=fr.W+fr.L+fr.T;
-  setTeamVars(name, teamYear==='all' ? null : +teamYear);
+  /* the Process page keeps its current blue for every season, including 2017 (Wildcats purple stays on the player circles only) */
+  setTeamVars(name, teamYear==='all' || name==='Glenwood Process' ? null : +teamYear);
   const logoImg = t.logo ? `<img class="tlogo" src="${t.logo}" alt="">` : '';
   const hero = FRANCHISE_COLORS[name] ? `<div class="thero">
       <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
