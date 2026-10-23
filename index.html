@@ -8900,20 +8900,20 @@ function savantLogoSVG(size){
   const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
     return `M${cx},${cy}L${x0.toFixed(2)},${y0.toFixed(2)}A${r.toFixed(2)},${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}Z`; };
   const wedges = PCT.map((p,i)=>`<path d="${wedge(i, BR + 4.5 + (RMAX-BR-4.5)*p/100)}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
-  /* slots, placed from a photo of a real wiffleball: [center x, center y, length, width, clockwise tilt from vertical]. They fan from a
-     shallow slant at the top left to near-vertical at the right, and the outer ones run off the ball's edge */
-  const slots = [[33.8,26.6,19,5.4,67],[38.4,40.6,21.5,6.6,44],[54.4,52.8,19.5,6.4,40],[72.5,54,20,5.6,13]];
+  /* a real wiffleball's slots: one cluster of long, parallel, slightly slanted slots across the middle of the ball. They sit on a gentle arc
+     and get narrower toward the edges, because the ball curves away there. [center x, center y, length, width, tilt]. */
+  const slots = [[22,52,16,3.6,24],[31,48,26,5.6,24],[41,45,32,7,24],[52,44,34,7.6,24],[63,45,32,7,24],[72,49,26,5.6,24],[79,55,16,3.6,24]];
   const holes = slots.map(([x,y,len,wid,rot])=>{
     const r = wid/2, X = (x-r).toFixed(2), Y = (y-len/2).toFixed(2);
     return `<g transform="rotate(${rot} ${x} ${y})">
-      <rect x="${(x-r-.9).toFixed(2)}" y="${(y-len/2-.9).toFixed(2)}" width="${(wid+1.8).toFixed(2)}" height="${(len+1.8).toFixed(2)}" rx="${(r+.9).toFixed(2)}" fill="#ffffff" opacity=".95"/>
+      <rect x="${(x-r-1).toFixed(2)}" y="${(y-len/2-1).toFixed(2)}" width="${(wid+2).toFixed(2)}" height="${(len+2).toFixed(2)}" rx="${(r+1).toFixed(2)}" fill="#ffffff"/>
       <rect x="${X}" y="${Y}" width="${wid}" height="${len}" rx="${r}" fill="url(#svlgHole)"/>
-      <rect x="${X}" y="${Y}" width="${wid}" height="${len}" rx="${r}" fill="none" stroke="url(#svlgLip)" stroke-width="1.5"/>
+      <rect x="${(x-r+.5).toFixed(2)}" y="${(y-len/2+.5).toFixed(2)}" width="${(wid-1).toFixed(2)}" height="${(len*.55).toFixed(2)}" rx="${((wid-1)/2).toFixed(2)}" fill="#2a3552" opacity=".55"/>
     </g>`; }).join('');
   return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
     <defs>
       <radialGradient id="svlgBall" cx="38%" cy="34%" r="72%"><stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#e9ecf2"/><stop offset="1" stop-color="#b8c0cf"/></radialGradient>
-      <linearGradient id="svlgHole" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d96ab"/><stop offset=".55" stop-color="#bfc6d3"/><stop offset="1" stop-color="#dde1e9"/></linearGradient>
+      <linearGradient id="svlgHole" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5875"/><stop offset=".6" stop-color="#8590a8"/><stop offset="1" stop-color="#c9cfdb"/></linearGradient>
       <linearGradient id="svlgLip" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a5572"/><stop offset=".5" stop-color="#4a5572" stop-opacity=".25"/><stop offset="1" stop-color="#4a5572" stop-opacity="0"/></linearGradient>
       <clipPath id="svlgClip"><circle cx="50" cy="50" r="${BR}"/></clipPath>
     </defs>
