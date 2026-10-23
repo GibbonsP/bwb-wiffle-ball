@@ -348,7 +348,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svtop{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:6px 0 24px;align-items:stretch}
 @media (max-width:820px){.svtop{grid-template-columns:1fr}}
 .svart{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden;color:inherit;text-decoration:none}
-.svart img{display:block;width:100%;aspect-ratio:16/8;object-fit:cover}
+.svart img{display:block;width:100%;flex:1 1 auto;min-height:200px;object-fit:cover}
 .svartbody{display:flex;flex-direction:column;gap:10px;padding:18px 22px 22px;flex:1;justify-content:center}
 .svart h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.12}
 .svart p{margin:0;font-size:1rem;line-height:1.5;color:var(--muted);max-width:60ch}
@@ -363,7 +363,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svboxhead{display:flex;justify-content:space-between;align-items:baseline}
 .svboxhead b{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.98rem;letter-spacing:.02em}
 .svboxhead span{font-size:.72rem;color:var(--accent)}
-.svbox .svhprev{height:84px;margin:0}
+.svbox .svhprev{height:104px;margin:0}
 .svbox p{margin:0;font-size:.74rem;color:var(--muted)}
 .svhtrend{width:100%;padding:6px 12px;display:flex;flex-direction:column;gap:6px;font-size:.8rem}
 .svhtrend div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
@@ -384,7 +384,10 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhcard h4{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;letter-spacing:.02em}
 .svhcard p{margin:0;font-size:.83rem;color:var(--muted);line-height:1.4}
 .svhprev{height:104px;margin:0 0 4px;border-radius:7px;background:var(--paper);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.svhspark{width:100%;height:100%;display:block;padding:6px}
+.svhspark{width:100%;height:100%;display:block;padding:4px}
+.hvline{stroke:var(--muted);stroke-width:.7;stroke-dasharray:3 3;opacity:.6}
+.hvq{fill:var(--muted);font-family:"Oswald","Arial Narrow",sans-serif;font-size:6.8px;letter-spacing:.1em;opacity:.85}
+.hvl{fill:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:7.6px;font-weight:600}
 .svhpz{height:100%;display:flex;align-items:center}
 .svhpz .pizza{height:100%;width:auto;max-width:none}
 .svhpz .pz-lab,.svhpz .pz-num{display:none}
@@ -10494,6 +10497,72 @@ function svpHubPreviews(){
       return `<rect x="${8+j*20.4}" y="${3+i*10.6}" width="18.6" height="9" rx="1.8" fill="${fill}"/>`; }).join('')).join('');
     out.teams.h2h = `<svg viewBox="0 0 160 80" class="svhspark" aria-hidden="true">${g}</svg>`;
   }catch(e){}
+  /* richer thumbnails, drawn over the plain ones above: team logos, the chart's own quadrant words, centre lines and labelled axes,
+     so each one reads as a miniature of its real chart (200x104 units; labels are in real pixels at card size) */
+  let kitN = 0;
+  /* W is the drawing width: 200 for the cards, 268 for the wider boxes beside the Featured article */
+  const mini = (pts, xf, yf, o, W) => {
+    const P = pts.map(q=>({q, x:xf(q), y:yf(q)})).filter(r=>isFinite(r.x)&&isFinite(r.y)); if(P.length<3) return '';
+    const xs = P.map(r=>r.x).concat(o.cx!=null?[o.cx]:[]), ys = P.map(r=>r.y).concat(o.cy!=null?[o.cy]:[]);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    if(o.diag){ x0 = y0 = Math.min(x0,y0); x1 = y1 = Math.max(x1,y1); }
+    const L = 18, R = W-18, T = 22, B = 90, sx = v=>L+(v-x0)/((x1-x0)||1)*(R-L), sy = v=>B-(v-y0)/((y1-y0)||1)*(B-T);
+    const ids = new Map(), pre = 'hv'+(kitN++)+'_', defs = [];
+    const dots = P.map(r=>{
+      const c = teamAccent(r.q.team, r.q.year) || 'var(--accent)', logo = teamLogoForYear(r.q.team, r.q.year); let id = null;
+      if(logo){ if(!ids.has(logo)){ ids.set(logo, pre+ids.size); defs.push(`<image id="${ids.get(logo)}" href="${logo}" width="30" height="30" preserveAspectRatio="xMidYMid meet"/>`); } id = ids.get(logo); }
+      const X = sx(r.x), Y = sy(r.y);
+      return `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="8.4" fill="var(--card)" stroke="${c}" stroke-width="1.6"/>${id?`<use href="#${id}" transform="translate(${(X-6.8).toFixed(1)} ${(Y-6.8).toFixed(1)}) scale(.45)"/>`:''}`;
+    }).join('');
+    const mid = o.diag ? `<line x1="${sx(x0).toFixed(1)}" y1="${sy(y0).toFixed(1)}" x2="${sx(x1).toFixed(1)}" y2="${sy(y1).toFixed(1)}" class="hvline"/>`
+      : `${o.cx!=null?`<line x1="${sx(o.cx).toFixed(1)}" x2="${sx(o.cx).toFixed(1)}" y1="14" y2="96" class="hvline"/>`:''}${o.cy!=null?`<line y1="${sy(o.cy).toFixed(1)}" y2="${sy(o.cy).toFixed(1)}" x1="4" x2="${W-4}" class="hvline"/>`:''}`;
+    const qd = o.quads || [], qt = (i,x,y,a)=> qd[i] ? `<text x="${x}" y="${y}" text-anchor="${a}" class="hvq">${esc(qd[i])}</text>` : '';
+    return `<svg viewBox="0 0 ${W} 104" class="svhspark" aria-hidden="true"><defs>${defs.join('')}</defs>${mid}${qt(0,5,10,'start')}${qt(1,W-5,10,'end')}${qt(2,5,101,'start')}${qt(3,W-5,101,'end')}${dots}</svg>`;
+  };
+  const trendSVG = W => {
+    const r = svpLeagueSeries(false).series[0].pts; if(r.length<2) return '';
+    const vs = r.map(q=>q.v), lo = Math.min(...vs), hi = Math.max(...vs), L = 10, R = W-10, T = 24, B = 84;
+    const X = i=>L+i/(r.length-1)*(R-L), Y = v=>B-(v-lo)/((hi-lo)||1)*(B-T), pk = vs.indexOf(hi), last = r.length-1;
+    const line = r.map((q,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(q.v).toFixed(1)}`).join('');
+    const lab = (i,txt,anchor)=>`<text x="${Math.min(Math.max(X(i),20),W-14).toFixed(1)}" y="${(Y(r[i].v)-6).toFixed(1)}" text-anchor="${anchor}" class="hvl">${txt}</text>`;
+    return `<svg viewBox="0 0 ${W} 104" class="svhspark" aria-hidden="true"><defs><linearGradient id="hvTrendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+      <line x1="${L}" x2="${R}" y1="${T}" y2="${T}" class="hvline"/><line x1="${L}" x2="${R}" y1="${B}" y2="${B}" class="hvline"/>
+      <path d="${line}L${X(last).toFixed(1)},${B}L${L},${B}Z" fill="url(#hvTrendFill)"/><path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="${X(pk).toFixed(1)}" cy="${Y(hi).toFixed(1)}" r="3.4" fill="var(--accent)"/><circle cx="${X(last).toFixed(1)}" cy="${Y(vs[last]).toFixed(1)}" r="3.4" fill="var(--ink)"/>
+      ${lab(pk,hi.toFixed(1)+' peak',pk>r.length*0.6?'end':'middle')}${pk===last?'':lab(last,vs[last].toFixed(1),'end')}
+      <text x="${L}" y="98" class="hvl">’${String(r[0].y).slice(2)}</text><text x="${R}" y="98" text-anchor="end" class="hvl">’${String(r[last].y).slice(2)}</text>
+      <text x="${W/2}" y="98" text-anchor="middle" class="hvq">RUNS PER TEAM-GAME</text></svg>`;
+  };
+  const scatterSVG = W => {
+    if(!top.length) return '';
+    const xi = SVP_BAT.findIndex(m=>m[0]==='K%');
+    const pts = qual.map(q2=>({n:q2.name, x:SVP_BAT[xi][1](q2.row), y:wrcPlusFor(q2.row, y, false)})).filter(q2=>isFinite(q2.x)&&isFinite(q2.y)); if(pts.length<4) return '';
+    const xs = pts.map(q2=>q2.x), ys = pts.map(q2=>q2.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const sx = v=>16+(v-x0)/((x1-x0)||1)*(W-32), sy = v=>86-(v-y0)/((y1-y0)||1)*62, best = pts.reduce((a,b)=>b.y>a.y?b:a);
+    const bx = sx(best.x), nameX = bx>W*0.7 ? bx-6 : bx+6, anc = bx>W*0.7 ? 'end' : 'start';
+    return `<svg viewBox="0 0 ${W} 104" class="svhspark" aria-hidden="true"><line x1="10" x2="${W-8}" y1="90" y2="90" class="hvline"/><line x1="10" x2="10" y1="12" y2="90" class="hvline"/>
+      ${pts.map(q2=>`<circle cx="${sx(q2.x).toFixed(1)}" cy="${sy(q2.y).toFixed(1)}" r="3.6" fill="${svColor(svPct(ys, q2.y, false))}" stroke="#0b1a33" stroke-width=".6"/>`).join('')}
+      <text x="${nameX.toFixed(1)}" y="${(sy(best.y)+2).toFixed(1)}" text-anchor="${anc}" class="hvl">${esc(nameParts(best.n).last)}</text>
+      <text x="14" y="9" class="hvq">wRC+ ↑</text><text x="${W-4}" y="101" text-anchor="end" class="hvq">STRIKEOUT RATE →</text></svg>`;
+  };
+  const teamCharts = W => {
+    const o = {};
+    try{ const kk = {...svpTm}; svpTm.year = 'all'; svpTm.split = false;
+      try{ o.style = mini(svpTeamPoints(), r=>r.win, r=>r.fun, {cx:0.5, cy:0, quads:['BAD & FUN','GOOD & FUN','BAD & BORING','GOOD & BORING']}, W); } finally { Object.assign(svpTm, kk); } }catch(e){}
+    try{ o.offstyle = mini(svpStyleAgg('off','all',false), r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS']}, W); }catch(e){}
+    try{ o.pitstyle = mini(svpStyleAgg('pit','all',false), r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS']}, W); }catch(e){}
+    try{ const t = svpTeamAgg('all', false);
+      o.offense = mini(t, r=>r.off, r=>r.def, {cx:0, cy:0, quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST']}, W);
+      o.luck = mini(t, r=>r.exp, r=>r.win, {diag:true, quads:['LUCKY','','','UNLUCKY']}, W); }catch(e){}
+    try{ o.trend = trendSVG(W); }catch(e){}
+    try{ o.scatter = scatterSVG(W); }catch(e){}
+    return o;
+  };
+  const narrow = teamCharts(200), wide = teamCharts(268);
+  ['style','offstyle','pitstyle','offense','luck'].forEach(k=>{ if(narrow[k]) out.teams[k] = narrow[k]; });
+  if(narrow.trend) out.trend = narrow.trend;
+  if(narrow.scatter) out.scatter = narrow.scatter;
+  out.wide = wide;
   svpTmTeam = kt; svpTmGroup = kg;
   return out;
 }
@@ -10515,7 +10584,8 @@ function svpTrendBox(mode){
 }
 function svpHubTop(pv){
   const y = pv.n ? pv.n.y : '';
-  const T = pv.teams || {};
+  const T = Object.assign({}, pv.teams || {}, (pv.wide||{}));
+  const WD = pv.wide || {};
   const box = (title, link, html, cap) => html ? {title, link, html, cap} : null;
   /* three slots, each cycling through its own list one step per week */
   const slots = [
@@ -10526,7 +10596,7 @@ function svpHubTop(pv){
      box('Offensive Style','#/savant/teams/offstyle',T.offstyle,'Power against patience'), box('Pitching Style','#/savant/teams/pitstyle',T.pitstyle,'How clubs prevent runs'),
      box('Head-to-Head','#/savant/teams/h2h',T.h2h,'Who owns whom')],
     [box('Hitters trending up','#/savant/rankings',svpTrendBox('bat'),`Biggest wRC+ jumps from ${Number(y)-1}`), box('Pitchers trending up','#/savant/rankings',svpTrendBox('pit'),`Biggest ERA+ jumps from ${Number(y)-1}`),
-     box('League Trends','#/savant/trends',pv.trend,'Runs per game by season'), box('Scatter','#/savant/scatter',pv.scatter,`${y} hitters: strikeouts against wRC+`)],
+     box('League Trends','#/savant/trends',WD.trend||pv.trend,'Runs per game by season'), box('Scatter','#/savant/scatter',WD.scatter||pv.scatter,`${y} hitters: strikeouts against wRC+`)],
   ].map(l=>l.filter(Boolean));
   const w = svpWeek();
   const picks = slots.filter(l=>l.length).map((l,i)=>l[(w+i)%l.length]);
