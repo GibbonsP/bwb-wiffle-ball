@@ -353,6 +353,18 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank{width:100%;padding:8px 14px;display:flex;flex-direction:column;gap:6px;font-size:.82rem}
 .svhrank div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svhcomp,.svhsearch{width:100%;padding:8px 12px;display:flex;flex-direction:column;gap:6px;font-size:.78rem}
+.svhcomp-h{color:var(--muted);font-size:.7rem;letter-spacing:.04em;margin-bottom:1px;white-space:nowrap}
+.svhcomp-r{display:grid;grid-template-columns:minmax(0,1fr) 44px 30px;align-items:center;gap:8px}
+.svhcomp-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svhcomp-r i{display:block;height:6px;border-radius:3px;background:var(--line)}
+.svhcomp-r i b{display:block;height:100%;border-radius:3px;background:var(--accent)}
+.svhcomp-r em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:.72rem;text-align:right}
+.svhfilter{display:inline-flex;align-self:flex-start;gap:6px;align-items:center;border:1px solid var(--line-strong);border-radius:999px;padding:2px 10px;font-size:.72rem}
+.svhfilter span{color:var(--muted)}
+.svhsearch-r{display:flex;justify-content:space-between;gap:10px}
+.svhsearch-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svhsearch-r b{font-family:"IBM Plex Mono",monospace}
 .svheat th,.svheat td{padding:6px 7px;text-align:center;font-size:.76rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .svheat th.lft{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
 .svheat td.svh-na{color:var(--muted)}
@@ -10389,6 +10401,62 @@ function svpHubPreviews(){
         ${r.map((p,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.6" fill="var(--accent)"/>`).join('')}</svg>`;
     }
   }catch(e){}
+  /* season comparison: the three seasons most like the top hitter's */
+  try{
+    if(top.length){
+      const ent = svpCompIndex().bat.find(o=>o.name===top[0].e.name && o.year===y);
+      if(ent){
+        const cs = svpCompsFor(ent, svpCompIndex().bat, 3);
+        out.comp = `<div class="svhcomp"><div class="svhcomp-h">Closest to ${esc(nameParts(ent.name).last)} ’${String(y).slice(2)}</div>${cs.map(c=>`<div class="svhcomp-r"><span>${esc(nameParts(c.o.name).last)} ’${String(c.o.year).slice(2)}</span>
+          <i><b style="width:${Math.max(8,Math.round(c.sim))}%"></b></i><em>${Math.round(c.sim)}%</em></div>`).join('')}</div>`;
+      }
+    }
+  }catch(e){}
+  /* search: a filter and the players who pass it */
+  try{
+    const oi = SVP_BAT.findIndex(m=>m[0]==='OPS+');
+    const list = qual.map(q=>({q, v:SVP_BAT[oi][1](q.row)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v).slice(0,3);
+    if(list.length===3){
+      const cut = Math.floor(list[2].v/10)*10;
+      out.search = `<div class="svhsearch"><div class="svhfilter"><span>OPS+</span><b>≥ ${cut}</b></div>${list.map(x=>`<div class="svhsearch-r"><span>${esc(x.q.name)}</span><b>${x.v}</b></div>`).join('')}</div>`;
+    }
+  }catch(e){}
+  /* the team views: borrow the team filters, blank, so a leftover selection on those pages can't change a thumbnail */
+  const kt = svpTmTeam, kg = svpTmGroup; svpTmTeam = ''; svpTmGroup = '';
+  const dotsFor = (pts, xf, yf, diag) => {
+    const P = pts.map(p=>({p, x:xf(p), y:yf(p)})).filter(o=>isFinite(o.x)&&isFinite(o.y)); if(P.length<3) return '';
+    const xs = P.map(o=>o.x), ys = P.map(o=>o.y); let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    if(diag){ x0 = y0 = Math.min(x0,y0); x1 = y1 = Math.max(x1,y1); }
+    const sx = v => 10+(v-x0)/((x1-x0)||1)*140, sy = v => 70-(v-y0)/((y1-y0)||1)*60;
+    return `<svg viewBox="0 0 160 80" class="svhspark" aria-hidden="true">${diag?`<line x1="${sx(x0)}" y1="${sy(y0)}" x2="${sx(x1)}" y2="${sy(y1)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`:''}
+      ${P.map(o=>`<circle cx="${sx(o.x).toFixed(1)}" cy="${sy(o.y).toFixed(1)}" r="4.2" fill="${teamAccent(o.p.team,o.p.year)||'var(--accent)'}" stroke="#0b1a33" stroke-width=".7"/>`).join('')}</svg>`;
+  };
+  out.teams = {};
+  try{
+    const kk = {...svpTm}; svpTm.year = 'all'; svpTm.split = false;
+    try{ out.teams.style = dotsFor(svpTeamPoints(), p=>p.win, p=>p.fun); } finally { Object.assign(svpTm, kk); }
+  }catch(e){}
+  try{ out.teams.offstyle = dotsFor(svpStyleAgg('off','all',false), p=>p.sx, p=>p.sy); }catch(e){}
+  try{ out.teams.pitstyle = dotsFor(svpStyleAgg('pit','all',false), p=>p.sx, p=>p.sy); }catch(e){}
+  try{ const t = svpTeamAgg('all', false); out.teams.offense = dotsFor(t, p=>p.off, p=>p.def); out.teams.luck = dotsFor(t, p=>p.exp, p=>p.win, true); }catch(e){}
+  try{
+    const ser = svpRaceSeries(y);
+    if(ser.length){
+      const ds = ser.flatMap(q=>q.pts.map(pt=>pt.d)), lo = Math.min(...ds,0), hi = Math.max(...ds,0), mg = Math.max(...ser.map(q=>q.pts.length-1));
+      const X = g => 6+g/(mg||1)*148, Y = v => 72-(v-lo)/((hi-lo)||1)*64;
+      out.teams.race = `<svg viewBox="0 0 160 80" class="svhspark" aria-hidden="true"><line x1="6" x2="154" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 3"/>
+        ${ser.map(q=>`<path d="${q.pts.map((pt,i)=>`${i?'L':'M'}${X(pt.g).toFixed(1)},${Y(pt.d).toFixed(1)}`).join('')}" fill="none" stroke="${teamAccent(q.team,y)||'var(--accent)'}" stroke-width="2" stroke-linejoin="round"/>`).join('')}</svg>`;
+    }
+  }catch(e){}
+  try{
+    const rec = svpH2HData(SVP_YEARS, 'both'), tot = a => Object.values(rec[a]||{}).reduce((q,r)=>({W:q.W+r.W,L:q.L+r.L}),{W:0,L:0});
+    const tm = Object.keys(rec).filter(a=>{const t=tot(a);return t.W+t.L>0;}).sort((a,b)=>{const A=tot(a),B=tot(b);return B.W/(B.W+B.L)-A.W/(A.W+A.L);}).slice(0,7);
+    const g = tm.map((a,i)=>tm.map((b,j)=>{
+      let fill = 'var(--line)'; const r = a!==b && rec[a] && rec[a][b]; if(r && r.W+r.L) fill = svColor(r.W/(r.W+r.L)*100);
+      return `<rect x="${8+j*20.4}" y="${3+i*10.6}" width="18.6" height="9" rx="1.8" fill="${fill}"/>`; }).join('')).join('');
+    out.teams.h2h = `<svg viewBox="0 0 160 80" class="svhspark" aria-hidden="true">${g}</svg>`;
+  }catch(e){}
+  svpTmTeam = kt; svpTmGroup = kg;
   return out;
 }
 /* the Featured slot at the top of Savant home: a panel that shows one of a few highlights, chosen with the little switch.
@@ -10407,11 +10475,11 @@ function renderSavantHub(){
   const pv = svpHubPreviews();
   const card = (href, title, desc, prev) => `<a class="svhcard" href="${href}">${prev?`<div class="svhprev">${prev}</div>`:''}<h4>${title}</h4><p>${desc}</p></a>`;
   const group = (title, blurb, cards) => `<section class="svhgroup"><h3 class="hsub">${title}</h3><p class="smeta">${blurb}</p><div class="svhgrid">${cards}</div></section>`;
-  const teamDesc = {style:'Every franchise-season on a map of how well it won against how much action its games had.',
+  const teamDesc = {style:'Every franchise on a map of how well it wins against how much action its games have.',
     offstyle:'How each club scores: power, patience or contact.', pitstyle:'How each club prevents runs: strikeouts, walks or balls in play.',
     offense:'Runs scored against runs allowed, to see offense-first and defense-first clubs.', luck:'Actual wins against the wins a club’s runs say it should have had.',
     race:'How the standings unfolded game by game through a season.', h2h:'Who owns whom: every club’s record against every other club.'};
-  const teams = SVP_TEAM_VIEWS.map(([k,l,suf])=>card('#/savant/teams'+suf, l, teamDesc[k]||'')).join('');
+  const teams = SVP_TEAM_VIEWS.map(([k,l,suf])=>card('#/savant/teams'+suf, l, teamDesc[k]||'', (pv.teams||{})[k])).join('');
   const feat = SV_FEATURES.find(f=>f[0]===svHubFeat) || SV_FEATURES[0];
   const featured = `<section class="svfeat"><div class="svfeathead"><span class="svfeatlabel">Featured</span>
       <div class="chips svfeatchips">${SV_FEATURES.map(f=>`<button data-svhf="${f[0]}" aria-pressed="${f[0]===feat[0]}">${f[1]}</button>`).join('')}</div>
@@ -10422,13 +10490,13 @@ function renderSavantHub(){
     ${group('Players', 'Look up one hitter or pitcher, or compare them across seasons.',
       card('#/savant/rankings','Percentile Rankings',`Every qualified player ranked in each stat, one season at a time.${pv.n?` ${pv.n.y}: ${pv.n.bat} hitters, ${pv.n.pit} pitchers.`:''}`,pv.rank)
       + card('#/savant/pizza','Pizza Chart','A player’s percentiles as a wheel. Lay a second player on top to compare.',pv.pizza)
-      + card('#/savant/compare','Season Comparison','Pick any qualified season and find the three most similar ones from any year.','')
+      + card('#/savant/compare','Season Comparison','Pick any qualified season and find the three most similar ones from any year.',pv.comp)
       + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form))}
     ${group('League', 'How the whole league has changed.',
       card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend))}
     ${group('Explore', 'Dig through every player-season.',
       card('#/savant/scatter','Scatter','Plot any two stats against each other, filter by era or team, and highlight a player.',pv.scatter)
-      + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',''))}
+      + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',pv.search))}
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
   app.querySelectorAll('[data-svhf]').forEach(b=>b.addEventListener('click',()=>{ svHubFeat = b.dataset.svhf; renderSavantHub(); }));
