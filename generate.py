@@ -347,14 +347,15 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svfeatlabel{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 .svtop{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:6px 0 24px;align-items:stretch}
 @media (max-width:820px){.svtop{grid-template-columns:1fr}}
-.svart{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden;color:inherit;text-decoration:none}
-.svart img{display:block;width:100%;flex:1 1 auto;min-height:200px;object-fit:cover}
-.svartbody{display:flex;flex-direction:column;gap:10px;padding:18px 22px 22px;flex:1;justify-content:center}
-.svart h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.12}
-.svart p{margin:0;font-size:1rem;line-height:1.5;color:var(--muted);max-width:60ch}
-.svartmeta{font-size:.8rem;color:var(--muted);letter-spacing:.03em}
-.svart:hover h2{text-decoration:underline;text-underline-offset:4px}
-.svart-empty{min-height:260px;border-style:dashed;background:transparent;box-shadow:none}
+.svrk{display:flex;flex-direction:column;gap:9px;padding:14px 16px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);min-width:0}
+.svrkhead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.svrkhead .chips{margin:0;gap:6px}
+.svrkhead .chips button{padding:4px 10px;font-size:.78rem}
+.svrk .tscroll{margin:0}
+.svrk table.detail td,.svrk table.detail th{padding:5px 8px}
+.svrk .svrknum{width:1%;color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:.78rem;text-align:right}
+@media (max-width:560px){.svrk .svrkx{display:none}.svrk .svptm .pname{display:none}.svrk .svptm{width:1%}.svrk table.detail td,.svrk table.detail th{padding:5px 4px}}
+.svrkfoot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:.78rem;color:var(--muted)}
 .svside{display:flex;flex-direction:column;gap:10px}
 .svsidehead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
 .svsidenote{font-size:.72rem;color:var(--muted)}
@@ -370,12 +371,6 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhtrend span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .svhtrend i{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--muted)}
 .svhtrend b{font-family:"IBM Plex Mono",monospace;color:#d22d49;font-size:.76rem}
-.svarticle{max-width:68ch;margin:8px 0 24px;display:flex;flex-direction:column;gap:10px}
-.svarticle h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2rem,5vw,3rem);line-height:1.1}
-.svdek{margin:0;font-size:1.15rem;color:var(--muted);line-height:1.45}
-.svartlead img,.svarticle figure img{width:100%;border-radius:10px;display:block}
-.svarticle figure{margin:6px 0}.svarticle figcaption{font-size:.78rem;color:var(--muted);margin-top:6px}
-.svartbodytext p{font-size:1.02rem;line-height:1.7;margin:0 0 1.1em}
 .svhgroup{margin:0 0 6px}
 .svhgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:8px 0 18px}
 .svhcard{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--shadow);
@@ -10567,9 +10562,7 @@ function svpHubPreviews(){
   return out;
 }
 /* ---- Savant home, top band: the Featured article on the left, and a few rotating preview boxes on the right ---- */
-const SV_ARTICLES = (DB.articles||[]).slice().sort((x,y)=>(y.date||'').localeCompare(x.date||''));
 const svpWeek = () => Math.floor((Date.now()/86400000 + 3)/7);     // whole weeks since 1970, turning over on Mondays
-const svArtDate = d => { try{ return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); }catch(e){ return d||''; } };
 /* the biggest year-over-year gains among players who qualified both seasons: wRC+ for hitters, ERA+ for pitchers */
 function svpTrending(mode){
   const ys = SVP_YEARS, y = ys[ys.length-1], py = ys[ys.length-2]; if(py==null || py!==y-1) return [];
@@ -10589,7 +10582,7 @@ function svpHubTop(pv){
   const box = (title, link, html, cap) => html ? {title, link, html, cap} : null;
   /* three slots, each cycling through its own list one step per week */
   const slots = [
-    [box('Rankings','#/savant/rankings',pv.rank,`Top hitters by wRC+, ${y}`), box('Pizza Chart','#/savant/pizza',pv.pizza,'A player’s percentiles as a wheel'),
+    [box('Pizza Chart','#/savant/pizza',pv.pizza,'A player’s percentiles as a wheel'),
      box('Rolling Form','#/savant/form',pv.form,'A hitter’s hot and cold stretches'), box('Season Comparison','#/savant/compare',pv.comp,'Find the most similar seasons')],
     [box('Playstyle Map','#/savant/teams',T.style,'Which clubs win, and which are fun'), box('Luck','#/savant/teams/luck',T.luck,'Wins against what runs predicted'),
      box('Offense vs Defense','#/savant/teams/offense',T.offense,'Runs scored against runs allowed'), box('Season Race','#/savant/teams/race',T.race,`How ${y} unfolded`),
@@ -10602,25 +10595,57 @@ function svpHubTop(pv){
   const picks = slots.filter(l=>l.length).map((l,i)=>l[(w+i)%l.length]);
   const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">This week</span><span class="svsidenote">changes every Monday</span></div>
     ${picks.map(b=>`<a class="svbox" href="${b.link}"><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
-  const art = SV_ARTICLES[0];
-  const main = art
-    ? `<a class="svart" href="#/savant/article/${encodeURIComponent(art.id)}">${art.image?`<img src="${art.image}" alt="">`:''}
-        <div class="svartbody"><span class="svfeatlabel">Featured${art.tag?` · ${esc(art.tag)}`:''}</span><h2>${esc(art.title)}</h2>
-        ${art.dek?`<p>${esc(art.dek)}</p>`:''}<span class="svartmeta">${[art.author, svArtDate(art.date)].filter(Boolean).map(esc).join(' · ')}</span><span class="pname">Read the article →</span></div></a>`
-    : `<div class="svart svart-empty"><div class="svartbody"><span class="svfeatlabel">Featured</span><h2>Savant Reports</h2>
-        <p>Articles on the numbers behind the league will be featured here.</p></div></div>`;
+  const main = `<section class="svrk" id="svrk">${svpRankPanelInner()}</section>`;
   return `<section class="svtop">${main}${side}</section>`;
 }
-function renderSavantArticle(id){
-  const a = SV_ARTICLES.find(x=>String(x.id)===String(id));
-  if(!a){ location.hash = '#/savant'; return; }
-  const body = (a.body||[]).map(b=> typeof b==='string' ? `<p>${esc(b)}</p>`
-    : b.h ? `<h3 class="hsub">${esc(b.h)}</h3>` : b.img ? `<figure><img src="${b.img}" alt="">${b.cap?`<figcaption>${esc(b.cap)}</figcaption>`:''}</figure>` : '').join('');
-  svpShell('home', `<article class="svarticle"><a class="pname" href="#/savant">← Savant</a>
-    <span class="svfeatlabel">${a.tag?esc(a.tag):'Savant Reports'}</span><h2>${esc(a.title)}</h2>${a.dek?`<p class="svdek">${esc(a.dek)}</p>`:''}
-    <p class="svartmeta">${[a.author, svArtDate(a.date)].filter(Boolean).map(esc).join(' · ')}</p>
-    ${a.image?`<figure class="svartlead"><img src="${a.image}" alt="">${a.imageCap?`<figcaption>${esc(a.imageCap)}</figcaption>`:''}</figure>`:''}
-    <div class="svartbodytext">${body}</div></article>`);
+/* ---- Savant home, Player Rankings panel: top ten hitters or pitchers in a chosen stat and season ---- */
+const svrk = {mode:'bat', stat:{bat:'wRC+', pit:'ERA+'}, year:null};
+const svrkStats = mode => {
+  const f = (list, lab) => list.find(x=>x[0]===lab);
+  const rate = (list, lab) => { const m = f(list, lab); return {lab, fn:m[1], fmt:m[2], low:m[3], rate:true}; };
+  const cnt = (lab, fn) => ({lab, fn, fmt:v=>String(v), low:false, rate:false});
+  return mode==='bat'
+    ? [rate(SVP_BAT,'wRC+'), rate(SVP_BAT,'OPS+'), rate(SVP_BAT,'AVG'), rate(SVP_BAT,'OBP'), rate(SVP_BAT,'SLG'), cnt('HR',r=>r.HR), cnt('RBI',r=>r.RBI), cnt('H',r=>r.H)]
+    : [rate(SVP_PIT,'ERA+'), rate(SVP_PIT,'ERA'), rate(SVP_PIT,'WHIP'), rate(SVP_PIT,'K/3'), cnt('SO',r=>r.pK), cnt('W',r=>r.W), cnt('SV',r=>r.SV)];
+};
+function svpRankPanelInner(){
+  svrk.year = SVP_YEARS[SVP_YEARS.length-1];     // always the current season, so the other tabs are where you go for history
+  const y = svrk.year, mode = svrk.mode, list = svrkStats(mode);
+  const m = list.find(x=>x.lab===svrk.stat[mode]) || list[0];
+  const pool = svpEntries(y), qual = pool.filter(e=>svpQual(mode, e.row));
+  const src = m.rate ? qual : pool.filter(e=> mode==='bat' ? e.row.G_bat>0 : e.row.IPouts>0);
+  const field = qual.map(e=>m.fn(e.row)).filter(isFinite);
+  const rows = src.map(e=>({e, v:m.fn(e.row)})).filter(x=>isFinite(x.v) && (m.rate || x.v>0))
+    .sort((a,b)=>(m.low ? a.v-b.v : b.v-a.v) || nameLast(a.e.name).localeCompare(nameLast(b.e.name))).slice(0,10);
+  const bar = mode==='bat' ? `${SV_MING}+ G` : `${SV_MINOUTS/3}+ IP`;
+  const body = rows.map((r,i)=>{
+    const d = r.e.row;
+    return `<tr><td class="svrknum">${i+1}</td>
+      <td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
+      <td class="lft svptm">${svpTeamCell(d)}</td>
+      ${mode==='bat' ? `<td class="svrkx">${d.G_bat}</td><td class="svrkx">${d.PA}</td>` : `<td class="svrkx">${d.G_pit}</td><td class="mono svrkx">${ipStr(d.IPouts)}</td>`}
+      <td class="svpc">${m.rate ? svpPill(svPct(field, r.v, m.low)) : ''}<span class="svpv">${m.fmt(r.v)}</span></td></tr>`;
+  }).join('');
+  const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
+  return `<div class="svrkhead"><span class="svfeatlabel">Player Rankings</span>
+      <div class="chips">${chip('data-rkm','bat','Hitters',mode==='bat')}${chip('data-rkm','pit','Pitchers',mode==='pit')}</div></div>
+    <div class="chips">${list.map(x=>chip('data-rks', esc(x.lab), esc(x.lab), x.lab===m.lab)).join('')}</div>
+    <div class="tscroll"><table class="detail svrktable"><thead><tr><th></th><th class="lft">Player</th><th class="lft svptm">Tm</th>
+      ${mode==='bat' ? '<th class="svrkx">G</th><th class="svrkx">PA</th>' : '<th class="svrkx">G</th><th class="svrkx">IP</th>'}<th>${esc(m.lab)}</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="6" class="empty">Nobody has a ${esc(m.lab)} this season.</td></tr>`}</tbody></table></div>
+    <div class="svrkfoot"><span>${y} regular season${m.rate ? ` · ${mode==='bat'?'hitters':'pitchers'} with ${bar}` : ' · everyone who played'}${m.rate ? ' · pill = percentile' : ''}</span>
+      <a href="#/savant/rankings">Full percentile rankings →</a></div>`;
+}
+function svpRankPanelWire(){
+  const root = document.getElementById('svrk'); if(!root) return;
+  const paint = () => { root.innerHTML = svpRankPanelInner(); };
+  root.addEventListener('click', ev=>{
+    const t = ev.target.closest('button'); if(!t) return;
+    if(t.dataset.rkm){ svrk.mode = t.dataset.rkm; paint(); }
+    else if(t.dataset.rks){ svrk.stat[svrk.mode] = t.dataset.rks; paint(); }
+    else if(t.dataset.p){ location.hash = '#/p/'+encodeURIComponent(t.dataset.p); }
+    else if(t.dataset.t){ location.hash = '#/t/'+encodeURIComponent(t.dataset.t); }
+  });
 }
 function renderSavantHub(){
   const pv = svpHubPreviews();
@@ -10645,6 +10670,7 @@ function renderSavantHub(){
       + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',pv.search))}
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
+  svpRankPanelWire();
 }
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
@@ -10661,7 +10687,6 @@ function renderSavant(h){
   if(h === '#/savant/teams/luck') return renderSavantLuck();
   if(h === '#/savant/teams/race') return renderSavantRace();
   if(h === '#/savant/rankings') return renderSavantPct();
-  if(h.startsWith('#/savant/article/')) return renderSavantArticle(decodeURIComponent(h.slice('#/savant/article/'.length)));
   return renderSavantHub();
 }
 
