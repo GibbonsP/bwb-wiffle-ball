@@ -8906,9 +8906,9 @@ function savantLogoSVG(size){
   const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
     return `M${cx},${cy}L${x0.toFixed(2)},${y0.toFixed(2)}A${r.toFixed(2)},${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}Z`; };
   const wedges = PCT.map((p,i)=>`<path d="${wedge(i, BR + 4.5 + (RMAX-BR-4.5)*p/100)}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
-  /* four slots placed from a photo of a real wiffleball: [center x, center y, length, width, clockwise tilt from vertical]. They fan from a
-     shallow slant at the upper left to near-vertical at the right */
-  const slots = [[38.4,39.8,23.6,6.4,40],[52.8,52.8,18.5,6,23],[72,56.6,20.4,5.6,4]];
+  /* slots, placed from a photo of a real wiffleball: [center x, center y, length, width, clockwise tilt from vertical]. They fan from a
+     shallow slant at the top left to near-vertical at the right, and the outer ones run off the ball's edge */
+  const slots = [[33.8,26.6,19,5.4,67],[38.4,40.6,21.5,6.6,44],[54.4,52.8,19.5,6.4,40],[72.5,54,20,5.6,13]];
   const holes = slots.map(([x,y,len,wid,rot])=>{
     const r = wid/2, X = (x-r).toFixed(2), Y = (y-len/2).toFixed(2);
     return `<g transform="rotate(${rot} ${x} ${y})">
