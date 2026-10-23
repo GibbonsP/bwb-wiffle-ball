@@ -6877,8 +6877,7 @@ function champsSection(){
     </div>`;
   }).join('');
 
-  return `<h3 class="hsub" id="h-champs">Champions</h3>
-    <p class="aka">Titles by franchise: ${badges}</p>
+  return `<p class="aka" id="h-champs">Titles by franchise: ${badges}</p>
     ${cards}
     <p class="note">Overall: the champion's combined regular-season + postseason record that year.
     <span class="cap">C</span> marks the team captain, where on record.</p>`;
@@ -7620,6 +7619,7 @@ function renderBeavers(){
     </div>`;
 
   app.innerHTML = `
+    ${playerBannerHTML({banners: DB.beaversBanners||[]}, 'Brookside Beavers')}
     ${hero}
     ${teamLeadershipHtml('Brookside Beavers')}
     ${overview}
@@ -7634,6 +7634,7 @@ function renderBeavers(){
       best-effort from the same screenshots (cells that could not be pinned are noted on the game).
       Games run 3–5 innings, so <b>ERA</b> and <b>K/3</b> are per 3 IP; every run is booked earned.
       Source: web.gc.com/teams/ohCbq6OU84HI.</p>`;
+  initPlayerBanner();
   wirePlayerLinks();
 }
 /* one tournament's own page: its roster's batting/pitching for just that
