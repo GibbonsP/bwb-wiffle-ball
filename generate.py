@@ -10553,6 +10553,17 @@ function svpHubPreviews(){
     try{ o.scatter = scatterSVG(W); }catch(e){}
     return o;
   };
+  const raceSVG = (Y, W) => {
+    const ser = svpRaceSeries(Y); if(!ser.length) return '';
+    const ds = ser.flatMap(q=>q.pts.map(pt=>pt.d)), lo = Math.min(...ds,0), hi = Math.max(...ds,0), mg = Math.max(...ser.map(q=>q.pts.length-1));
+    const L = 10, R = W-10, T = 16, B = 90, X = g=>L+g/(mg||1)*(R-L), Yv = v=>B-(v-lo)/((hi-lo)||1)*(B-T);
+    const champ = ((CHAMPS||[]).find(c=>c.y===Y)||{}).full;
+    const line = q => `<path d="${q.pts.map((pt,i)=>`${i?'L':'M'}${X(pt.g).toFixed(1)},${Yv(pt.d).toFixed(1)}`).join('')}" fill="none" stroke="${teamAccent(q.team,Y)||'var(--accent)'}" stroke-width="${q.team===champ?3:1.7}" stroke-linejoin="round" opacity="${q.team===champ?1:.8}"/>`;
+    return `<svg viewBox="0 0 ${W} 104" class="svhspark" aria-hidden="true"><line x1="${L}" x2="${R}" y1="${Yv(0).toFixed(1)}" y2="${Yv(0).toFixed(1)}" class="hvline"/>
+      ${ser.filter(q=>q.team!==champ).map(line).join('')}${ser.filter(q=>q.team===champ).map(line).join('')}
+      <text x="${L}" y="10" class="hvq">WINS MINUS LOSSES</text><text x="${R}" y="100" text-anchor="end" class="hvq">GAME ${mg}</text></svg>`;
+  };
+  out.make = {mini, trendSVG, raceSVG};
   const narrow = teamCharts(200), wide = teamCharts(268);
   ['style','offstyle','pitstyle','offense','luck'].forEach(k=>{ if(narrow[k]) out.teams[k] = narrow[k]; });
   if(narrow.trend) out.trend = narrow.trend;
@@ -10564,37 +10575,98 @@ function svpHubPreviews(){
 /* ---- Savant home, top band: the Featured article on the left, and a few rotating preview boxes on the right ---- */
 const svpWeek = () => Math.floor((Date.now()/86400000 + 3)/7);     // whole weeks since 1970, turning over on Mondays
 /* the biggest year-over-year gains among players who qualified both seasons: wRC+ for hitters, ERA+ for pitchers */
-function svpTrending(mode){
-  const ys = SVP_YEARS, y = ys[ys.length-1], py = ys[ys.length-2]; if(py==null || py!==y-1) return [];
-  const f = mode==='bat' ? (row,yr)=>wrcPlusFor(row,yr,false) : (row,yr)=>eraPlusFor(row,[{year:yr, outs:row.IPouts}]);
+function svpTrending(mode, yr){
+  const ys = SVP_YEARS, y = yr==null ? ys[ys.length-1] : yr, py = y-1; if(!ys.includes(y) || !ys.includes(py)) return [];
+  const f = mode==='bat' ? (row,yr2)=>wrcPlusFor(row,yr2,false) : (row,yr2)=>eraPlusFor(row,[{year:yr2, outs:row.IPouts}]);
   const prev = {}; svpEntries(py).filter(e=>svpQual(mode,e.row)).forEach(e=>{ prev[e.name] = e.row; });
   return svpEntries(y).filter(e=>svpQual(mode,e.row)).map(e=>{ const a = f(e.row,y), b = prev[e.name] ? f(prev[e.name],py) : NaN; return {name:e.name, a, b, d:a-b}; })
     .filter(x=>isFinite(x.d) && x.d>0).sort((x,y2)=>y2.d-x.d).slice(0,3);
 }
-function svpTrendBox(mode){
-  const t = svpTrending(mode); if(!t.length) return '';
+function svpTrendBox(mode, yr){
+  const t = svpTrending(mode, yr); if(!t.length) return '';
   return `<div class="svhtrend">${t.map(x=>`<div><span>${esc(x.name)}</span><i>${Math.round(x.b)} → ${Math.round(x.a)}</i><b>▲ ${Math.round(x.d)}</b></div>`).join('')}</div>`;
 }
+/* "This week": three tidbits from the league's past, drawn with a random seed that only changes on Monday. A team chart for some
+   season, another team chart for a different one, and a player-based one (a pizza chart, a season's best hitters, a breakout list...) */
+function svpTidbits(pv){
+  const mk = pv.make || {}, W = 268, seed = svpWeek();
+  let st = (seed*2654435761 + 12345) >>> 0;
+  const rnd = () => { st = (st + 0x6D2B79F5) >>> 0; let t = st; t = Math.imul(t ^ (t>>>15), t|1); t ^= t + Math.imul(t ^ (t>>>7), t|61); return ((t ^ (t>>>14)) >>> 0) / 4294967296; };
+  const pick = a => a[Math.floor(rnd()*a.length)];
+  const shuffle = a => { a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+  const yy = Y => `’${String(Y).slice(2)}`;
+  const hn = (t, Y) => histName(t, Y);
+  /* run a team-chart builder with the Teams-tab filters set to one season, then put them back */
+  const forYear = (Y, fn) => {
+    const kk = {...svpTm}, kt = svpTmTeam, kg = svpTmGroup;
+    svpTm.year = String(Y); svpTm.split = false; svpTmTeam = ''; svpTmGroup = '';
+    try{ return fn(); } finally { Object.assign(svpTm, kk); svpTmTeam = kt; svpTmGroup = kg; }
+  };
+  const best = (arr, f) => arr.reduce((a,b)=>f(b)>f(a)?b:a);
+  const worst = (arr, f) => arr.reduce((a,b)=>f(b)<f(a)?b:a);
+  const box = (title, link, html, cap, pre) => html ? {title, link, html, cap, pre:pre||null} : null;
+  const FY = SVP_FULL_YEARS.filter(y=>svpRaceSeries(y).length);
+  const teamKinds = {
+    style: Y => forYear(Y, ()=>{ const p = svpTeamPoints(); if(p.length<4) return null;
+      return box(`${Y} Playstyles`, '#/savant/teams', mk.mini(p, r=>r.win, r=>r.fun, {cx:0.5, cy:0, quads:['BAD & FUN','GOOD & FUN','BAD & BORING','GOOD & BORING']}, W),
+        `The most fun club of ${Y} was the ${hn(best(p,r=>r.fun).team,Y)}; the ${hn(best(p,r=>r.win).team,Y)} won the most.`, {tm:Y}); }),
+    offstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('off', String(Y), false); if(p.length<4) return null;
+      return box(`${Y} Offensive Style`, '#/savant/teams/offstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS']}, W),
+        `The ${hn(best(p,r=>r.sy).team,Y)} hit for the most power in ${Y}; the ${hn(best(p,r=>r.sx).team,Y)} were the most patient.`, {tm:Y}); }),
+    pitstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('pit', String(Y), false); if(p.length<4) return null;
+      return box(`${Y} Pitching Style`, '#/savant/teams/pitstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS']}, W),
+        `How every club prevented runs in ${Y}: strikeouts, walks or balls in play.`, {tm:Y}); }),
+    offense: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null;
+      return box(`${Y} Offense vs Defense`, '#/savant/teams/offense', mk.mini(t, r=>r.off, r=>r.def, {cx:0, cy:0, quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST']}, W),
+        `${Y}’s best offense belonged to the ${hn(best(t,r=>r.off).team,Y)}, and its best defense to the ${hn(best(t,r=>r.def).team,Y)}.`, {tm:Y}); }),
+    luck: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null; const l = best(t, r=>r.luck), u = worst(t, r=>r.luck);
+      return box(`${Y} Luck`, '#/savant/teams/luck', mk.mini(t, r=>r.exp, r=>r.win, {diag:true, quads:['LUCKY','','','UNLUCKY']}, W),
+        `The ${hn(l.team,Y)} won ${l.luck.toFixed(1)} more games than their runs said they should have. The ${hn(u.team,Y)} won ${Math.abs(u.luck).toFixed(1)} fewer.`, {tm:Y}); }),
+    race: Y => { const ser = svpRaceSeries(Y); if(!ser.length) return null; const champ = ((CHAMPS||[]).find(c=>c.y===Y)||{}).full;
+      return box(`${Y} Season Race`, '#/savant/teams/race', mk.raceSVG(Y, W), champ ? `How ${Y} unfolded, game by game. The thick line is the ${hn(champ,Y)}, who won the World Series.` : `How ${Y} unfolded, game by game.`, {race:Y}); },
+  };
+  /* a qualified player-season in the top quarter of the league, picked at random */
+  const topSeasons = mode => {
+    const out = [], fi = (mode==='bat' ? SVP_BAT : SVP_PIT).findIndex(m=>m[0]===(mode==='bat'?'wRC+':'ERA+'));
+    SVP_YEARS.forEach(Y=>{
+      const q = svpEntries(Y).filter(e=>svpQual(mode, e.row)), fn = (mode==='bat' ? SVP_BAT : SVP_PIT)[fi][1], vs = q.map(e=>fn(e.row)).filter(isFinite);
+      q.forEach(e=>{ const v = fn(e.row); if(isFinite(v)){ const p = svPct(vs, v, false); if(p>=75) out.push({name:e.name, year:Y, mode, p, v, row:e.row}); } });
+    });
+    return out;
+  };
+  const playerKinds = {
+    pizza: () => { const c = pick(topSeasons(rnd()<0.7 ? 'bat' : 'pit')); if(!c) return null; const it = svpPizzaItems(c.name, c.year, c.mode, c.mode==='bat'?SV_BAT:SV_PIT);
+      return it ? box(`${c.name}, ${c.year}`, '#/savant/pizza', `<div class="svhpz">${svpPizzaSVG(c.mode==='bat'?SV_BAT:SV_PIT, it, null).replace('viewBox="0 0 460 380"','viewBox="108 66 244 248"')}</div>`,
+        `${c.name}’s ${c.year} season as a pizza chart. Longer, redder wedges mean a higher percentile.`, {pz:{mode:c.mode, a:c.name, ay:c.year}}) : null; },
+    best: () => { const Y = pick(SVP_YEARS.slice(1)), q = svpEntries(Y).filter(e=>svpQual('bat', e.row)); if(q.length<3) return null;
+      const v = q.map(e=>({e, v:wrcPlusFor(e.row, Y, false)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v), all = v.map(x=>x.v);
+      return box(`${Y}’s Best Hitters`, '#/savant/rankings', `<div class="svhrank">${v.slice(0,3).map(x=>`<div><span>${esc(x.e.name)}</span>${svpPill(svPct(all, x.v, false))}</div>`).join('')}</div>`,
+        `The top three by wRC+ in ${Y}. ${v[0].e.name} led at ${Math.round(v[0].v)}.`, {pct:{year:Y, mode:'bat'}}); },
+    breakout: () => { const mode = rnd()<0.6 ? 'bat' : 'pit', Y = pick(SVP_YEARS.filter(y=>y>=2018 && SVP_YEARS.includes(y-1))), t = svpTrending(mode, Y); if(!t.length) return null;
+      return box(`${Y} Breakouts`, '#/savant/rankings', svpTrendBox(mode, Y), `Biggest ${mode==='bat'?'wRC+':'ERA+'} jumps from ${Y-1} to ${Y}.`, {pct:{year:Y, mode}}); },
+    comp: () => { try{ const c = pick(topSeasons('bat')); const ent = svpCompIndex().bat.find(o=>o.name===c.name && o.year===c.year); if(!ent) return null;
+      const cs = svpCompsFor(ent, svpCompIndex().bat, 3); if(!cs.length) return null;
+      return box('Matched Seasons', '#/savant/compare', `<div class="svhcomp"><div class="svhcomp-h">Closest to ${esc(nameParts(ent.name).last)} ${yy(c.year)}</div>${cs.map(x=>`<div class="svhcomp-r"><span>${esc(nameParts(x.o.name).last)} ${yy(x.o.year)}</span>
+        <i><b style="width:${Math.max(8,Math.round(x.sim))}%"></b></i><em>${Math.round(x.sim)}%</em></div>`).join('')}</div>`,
+        `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`, null); }catch(e){ return null; } },
+  };
+  const out = [];
+  const kinds = shuffle(Object.keys(teamKinds)), usedYears = new Set();
+  for(const k of kinds){
+    if(out.length>=2) break;
+    const Y = pick(FY.filter(y=>!usedYears.has(y)).length ? FY.filter(y=>!usedYears.has(y)) : FY);
+    let b = null; try{ b = teamKinds[k](Y); }catch(e){}
+    if(b){ out.push(b); usedYears.add(Y); }
+  }
+  const pk = shuffle(Object.keys(playerKinds));
+  if(rnd()<0.8){ pk.splice(pk.indexOf('pizza'), 1); pk.unshift('pizza'); }     // most weeks the player tidbit is a pizza chart
+  for(const k of pk){ let b = null; try{ b = playerKinds[k](); }catch(e){} if(b){ out.push(b); break; } }
+  return out;
+}
 function svpHubTop(pv){
-  const y = pv.n ? pv.n.y : '';
-  const T = Object.assign({}, pv.teams || {}, (pv.wide||{}));
-  const WD = pv.wide || {};
-  const box = (title, link, html, cap) => html ? {title, link, html, cap} : null;
-  /* three slots, each cycling through its own list one step per week */
-  const slots = [
-    [box('Pizza Chart','#/savant/pizza',pv.pizza,'A player’s percentiles as a wheel'),
-     box('Rolling Form','#/savant/form',pv.form,'A hitter’s hot and cold stretches'), box('Season Comparison','#/savant/compare',pv.comp,'Find the most similar seasons')],
-    [box('Playstyle Map','#/savant/teams',T.style,'Which clubs win, and which are fun'), box('Luck','#/savant/teams/luck',T.luck,'Wins against what runs predicted'),
-     box('Offense vs Defense','#/savant/teams/offense',T.offense,'Runs scored against runs allowed'), box('Season Race','#/savant/teams/race',T.race,`How ${y} unfolded`),
-     box('Offensive Style','#/savant/teams/offstyle',T.offstyle,'Power against patience'), box('Pitching Style','#/savant/teams/pitstyle',T.pitstyle,'How clubs prevent runs'),
-     box('Head-to-Head','#/savant/teams/h2h',T.h2h,'Who owns whom')],
-    [box('Hitters trending up','#/savant/rankings',svpTrendBox('bat'),`Biggest wRC+ jumps from ${Number(y)-1}`), box('Pitchers trending up','#/savant/rankings',svpTrendBox('pit'),`Biggest ERA+ jumps from ${Number(y)-1}`),
-     box('League Trends','#/savant/trends',WD.trend||pv.trend,'Runs per game by season'), box('Scatter','#/savant/scatter',WD.scatter||pv.scatter,`${y} hitters: strikeouts against wRC+`)],
-  ].map(l=>l.filter(Boolean));
-  const w = svpWeek();
-  const picks = slots.filter(l=>l.length).map((l,i)=>l[(w+i)%l.length]);
-  const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">This week</span><span class="svsidenote">changes every Monday</span></div>
-    ${picks.map(b=>`<a class="svbox" href="${b.link}"><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
+  const picks = svpTidbits(pv);
+  const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">This week</span><span class="svsidenote">a few things from the archives</span></div>
+    ${picks.map(b=>`<a class="svbox" href="${b.link}"${b.pre?` data-pre="${esc(JSON.stringify(b.pre))}"`:''}><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
   const main = `<section class="svrk" id="svrk">${svpRankPanelInner()}</section>`;
   return `<section class="svtop">${main}${side}</section>`;
 }
@@ -10671,6 +10743,14 @@ function renderSavantHub(){
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
   svpRankPanelWire();
+  app.querySelectorAll('.svbox[data-pre]').forEach(a=>a.addEventListener('click', ()=>{
+    let p = null; try{ p = JSON.parse(a.dataset.pre); }catch(e){}
+    if(!p) return;
+    if(p.tm){ svpTm.year = String(p.tm); svpTm.sel = null; svpTmTeam = ''; svpTmGroup = ''; }
+    if(p.race){ svpTR.year = p.race; svpTmTeam = ''; }
+    if(p.pz){ Object.assign(svpPz, {mode:p.pz.mode, a:p.pz.a, ay:p.pz.ay, b:'', by:null}); }
+    if(p.pct){ svpYear = p.pct.year; svpMode = p.pct.mode; }
+  }));
 }
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
