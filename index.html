@@ -10394,7 +10394,6 @@ function renderSavantHub(){
     race:'How the standings unfolded game by game through a season.', h2h:'Who owns whom: every club’s record against every other club.'};
   const teams = SVP_TEAM_VIEWS.map(([k,l,suf])=>card('#/savant/teams'+suf, l, teamDesc[k]||'')).join('');
   svpShell('home', `
-    <p class="pmeta svhintro">The league’s advanced statistics. Start with a question, or jump straight to a tool.</p>
     ${group('Players', 'Look up one hitter or pitcher, or compare them across seasons.',
       card('#/savant/rankings','Percentile Rankings',`Every qualified player ranked in each stat, one season at a time.${pv.n?` ${pv.n.y}: ${pv.n.bat} hitters, ${pv.n.pit} pitchers.`:''}`,pv.rank)
       + card('#/savant/pizza','Pizza Chart','A player’s percentiles as a wheel. Lay a second player on top to compare.',pv.pizza)
