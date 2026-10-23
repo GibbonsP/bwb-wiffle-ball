@@ -349,7 +349,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svrk table.detail td,.svrk table.detail th{padding:5px 8px}
 .svrk .svrknum{width:1%;color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:.78rem;text-align:right}
 @media (max-width:560px){.svrk .svrkx{display:none}.svrk .svptm .pname{display:none}.svrk .svptm{width:1%}.svrk table.detail td,.svrk table.detail th{padding:5px 4px}}
-.svrkfoot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:.78rem;color:var(--muted)}
+.svrkfoot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 12px;font-size:.78rem;color:var(--muted)}
 .svside{display:flex;flex-direction:column;gap:10px}
 .svsidehead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
 .svsidenote{font-size:.72rem;color:var(--muted)}
@@ -10675,7 +10675,6 @@ function svpRankPanelInner(){
   const field = qual.map(e=>m.fn(e.row)).filter(isFinite);
   const rows = qual.map(e=>({e, v:m.fn(e.row)})).filter(x=>isFinite(x.v))
     .sort((a,b)=>(m.low ? a.v-b.v : b.v-a.v) || nameLast(a.e.name).localeCompare(nameLast(b.e.name))).slice(0,10);
-  const bar = mode==='bat' ? `${SV_MING}+ G` : `${SV_MINOUTS/3}+ IP`;
   const body = rows.map((r,i)=>{
     const d = r.e.row;
     return `<tr><td class="svrknum">${i+1}</td>
@@ -10685,14 +10684,13 @@ function svpRankPanelInner(){
       <td class="svpc">${svpPill(svPct(field, r.v, m.low))}<span class="svpv">${m.fmt(r.v)}</span></td></tr>`;
   }).join('');
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
-  return `<div class="svrkhead"><span class="svfeatlabel">Player Rankings</span>
+  return `<div class="svrkhead"><span class="svfeatlabel">${y} Player Rankings</span>
       <div class="chips">${chip('data-rkm','bat','Hitters',mode==='bat')}${chip('data-rkm','pit','Pitchers',mode==='pit')}</div></div>
     <div class="chips">${list.map(x=>chip('data-rks', esc(x.lab), esc(x.lab), x.lab===m.lab)).join('')}</div>
     <div class="tscroll"><table class="detail svrktable"><thead><tr><th></th><th class="lft">Player</th><th class="lft svptm">Tm</th>
       ${mode==='bat' ? '<th class="svrkx">G</th><th class="svrkx">PA</th>' : '<th class="svrkx">G</th><th class="svrkx">IP</th>'}<th>${esc(m.lab)}</th></tr></thead>
       <tbody>${body || `<tr><td colspan="6" class="empty">Nobody has a ${esc(m.lab)} this season.</td></tr>`}</tbody></table></div>
-    <div class="svrkfoot"><span>${y} regular season · ${mode==='bat'?'hitters':'pitchers'} with ${bar} · pill = percentile</span>
-      <a href="#/savant/rankings">Full percentile rankings →</a></div>`;
+    <div class="svrkfoot"><a href="#/savant/rankings">Full percentile rankings →</a></div>`;
 }
 function svpRankPanelWire(){
   const root = document.getElementById('svrk'); if(!root) return;
