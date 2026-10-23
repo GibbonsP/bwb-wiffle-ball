@@ -8900,16 +8900,12 @@ function savantLogoSVG(size){
   const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
     return `M${cx},${cy}L${x0.toFixed(2)},${y0.toFixed(2)}A${r.toFixed(2)},${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}Z`; };
   const wedges = PCT.map((p,i)=>`<path d="${wedge(i, BR + 4.5 + (RMAX-BR-4.5)*p/100)}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
-  /* slots, placed from a photo of a real wiffleball: [center x, center y, length, width, clockwise tilt from vertical]. They fan from a
-     shallow slant at the top left to near-vertical at the right, and the outer ones run off the ball's edge */
-  const slots = [[33.8,26.6,19,5.4,67],[38.4,40.6,21.5,6.6,44],[54.4,52.8,19.5,6.4,40],[72.5,54,20,5.6,13]];
-  const holes = slots.map(([x,y,len,wid,rot])=>{
-    const r = wid/2, X = (x-r).toFixed(2), Y = (y-len/2).toFixed(2);
-    return `<g transform="rotate(${rot} ${x} ${y})">
-      <rect x="${(x-r-.9).toFixed(2)}" y="${(y-len/2-.9).toFixed(2)}" width="${(wid+1.8).toFixed(2)}" height="${(len+1.8).toFixed(2)}" rx="${(r+.9).toFixed(2)}" fill="#ffffff" opacity=".95"/>
-      <rect x="${X}" y="${Y}" width="${wid}" height="${len}" rx="${r}" fill="url(#svlgHole)"/>
-      <rect x="${X}" y="${Y}" width="${wid}" height="${len}" rx="${r}" fill="none" stroke="url(#svlgLip)" stroke-width="1.5"/>
-    </g>`; }).join('');
+  /* the four slots are traced from a photo of a real wiffleball (outlines, not pills): each one is curved and tapers, because the ball is
+     round. A white lip sits under each, and a soft shadow runs along the upper edge. */
+  const SLOT_PATHS = ["M26.42,31.27C26.67,30.62 27.44,29.36 28.26,28.48C29.08,27.61 30.16,26.76 31.33,26.03C32.49,25.31 33.93,24.64 35.23,24.14C36.53,23.63 38.02,23.28 39.13,23.02C40.24,22.76 41.25,22.52 41.92,22.57C42.59,22.63 43.03,22.95 43.14,23.35C43.26,23.76 43.07,24.54 42.59,25.03C42.10,25.51 41.19,25.86 40.24,26.25C39.30,26.64 38.02,27.00 36.90,27.37C35.79,27.74 34.62,28.07 33.56,28.48C32.49,28.89 31.37,29.36 30.49,29.82C29.61,30.29 28.88,30.84 28.26,31.27C27.64,31.70 27.06,32.39 26.76,32.39C26.45,32.39 26.17,31.92 26.42,31.27Z", "M33.67,50.08C33.17,50.19 32.71,50.07 32.27,49.69C31.84,49.32 31.27,48.48 31.08,47.83C30.88,47.17 30.96,46.46 31.13,45.76C31.30,45.07 31.31,44.61 32.08,43.65C32.85,42.68 34.29,41.26 35.73,39.99C37.17,38.73 39.13,36.96 40.69,36.04C42.25,35.12 44.17,34.72 45.09,34.48C46.01,34.23 45.88,34.33 46.21,34.59C46.54,34.84 47.07,35.30 47.07,36.01C47.08,36.72 48.20,36.67 46.24,38.85C44.27,41.03 37.38,47.21 35.28,49.08C33.19,50.95 34.17,49.98 33.67,50.08Z", "M52.68,63.24C52.07,63.32 51.47,63.33 50.89,63.18C50.32,63.03 49.63,62.73 49.22,62.35C48.81,61.96 48.55,61.34 48.41,60.87C48.28,60.40 47.38,62.00 48.41,59.53C49.44,57.06 53.22,48.57 54.60,46.04C55.98,43.51 56.01,44.65 56.69,44.34C57.37,44.03 58.12,44.05 58.70,44.17C59.27,44.30 59.77,44.73 60.12,45.09C60.47,45.46 60.65,45.82 60.79,46.38C60.93,46.93 61.02,47.72 60.95,48.44C60.89,49.15 61.28,48.47 60.40,50.67C59.51,52.87 56.64,59.65 55.66,61.65C54.68,63.65 55.01,62.42 54.52,62.68C54.02,62.95 53.28,63.16 52.68,63.24Z", "M71.18,65.97C70.70,66.12 70.22,65.96 69.96,65.80C69.69,65.65 69.48,66.21 69.59,65.05C69.71,63.89 70.42,61.48 70.65,58.86C70.89,56.24 70.79,51.35 70.99,49.33C71.18,47.32 71.53,47.25 71.82,46.77C72.12,46.29 72.36,46.25 72.74,46.46C73.12,46.67 73.70,47.33 74.11,48.05C74.51,48.77 74.94,49.08 75.17,50.78C75.40,52.48 75.59,56.31 75.50,58.25C75.42,60.19 75.11,61.33 74.67,62.43C74.22,63.54 73.41,64.29 72.83,64.88C72.25,65.47 71.66,65.82 71.18,65.97Z"];
+  const holes = SLOT_PATHS.map(d=>`<path d="${d}" fill="#ffffff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${d}" fill="url(#svlgHole)"/>
+    <path d="${d}" fill="none" stroke="url(#svlgLip)" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
   return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
     <defs>
       <radialGradient id="svlgBall" cx="38%" cy="34%" r="72%"><stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#e9ecf2"/><stop offset="1" stop-color="#b8c0cf"/></radialGradient>
