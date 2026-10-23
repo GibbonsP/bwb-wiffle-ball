@@ -951,9 +951,9 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numhist h4{margin:0 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .numrow{display:flex;flex-wrap:wrap;gap:12px}
 .numring{position:relative;display:inline-flex;align-items:center;justify-content:center;
-  width:46px;height:46px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
+  width:58px;height:58px;border-radius:50%;border:3px solid var(--rc-p,var(--line-strong));
   background:var(--rc-bg,var(--card));box-shadow:var(--shadow),inset 0 0 0 3px var(--rc-s,var(--line-strong))}
-.numring b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;line-height:1;display:block;color:var(--rc-ink,var(--ink))}
+.numring b{font-family:"Saira Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:1.6rem;line-height:1;display:block;color:var(--rc-ink,var(--ink))}
 .numring.pan{box-shadow:0 0 0 1.5px var(--rc-hair,#000),var(--shadow),inset 0 0 0 3px var(--rc-s)}
 .numring.pan{transition:background-color .25s ease,border-color .25s ease,box-shadow .25s ease}
 .numring.pan b{transition:color .25s ease}
@@ -1038,8 +1038,8 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .numring i{white-space:nowrap}
 .altrow .numring i{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em}
 .numrow>.numring[tabindex]{transition:filter .45s ease,opacity .45s ease,margin .3s ease}
-.numrow>.numring[tabindex]:hover,.numrow>.numring[tabindex]:focus-within,.numrow>.numring.pinned{margin-right:calc(var(--na,0)*66px + 4px)}
-.numrow>.numring.flip[tabindex]:hover,.numrow>.numring.flip[tabindex]:focus-within,.numrow>.numring.flip.pinned{margin-right:0;margin-left:calc(var(--na,0)*66px + 4px)}
+.numrow>.numring[tabindex]:hover,.numrow>.numring[tabindex]:focus-within,.numrow>.numring.pinned{margin-right:calc(var(--na,0)*78px + 4px)}
+.numrow>.numring.flip[tabindex]:hover,.numrow>.numring.flip[tabindex]:focus-within,.numrow>.numring.flip.pinned{margin-right:0;margin-left:calc(var(--na,0)*78px + 4px)}
 .numring.flip>.altrow{left:auto;right:100%;padding:6px 12px 6px 8px;flex-direction:row-reverse}
 .sparks{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
 .sparkcard{border:1px solid var(--line);border-radius:6px;background:var(--card);
@@ -3311,7 +3311,7 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
 (function(){
   const place = e => { const el = e.target.closest && e.target.closest('.numring[tabindex]'); if(!el) return;
     const n = el.querySelectorAll('.altrow .numring').length; el.classList.remove('flip');
-    if(el.getBoundingClientRect().right + 12 + n*56 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
+    if(el.getBoundingClientRect().right + 12 + n*68 + 20 > document.documentElement.clientWidth) el.classList.add('flip'); };
   document.addEventListener('mouseover', place); document.addEventListener('focusin', place);
 })();
 /* tooltips sit centered over their number — or, when the alternate-jersey row is open, over the whole group
