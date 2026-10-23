@@ -10666,22 +10666,14 @@ function svpHubTop(pv){
 }
 /* ---- Savant home, Player Rankings panel: top ten hitters or pitchers in a chosen stat and season ---- */
 const svrk = {mode:'bat', stat:{bat:'wRC+', pit:'ERA+'}, year:null};
-const svrkStats = mode => {
-  const f = (list, lab) => list.find(x=>x[0]===lab);
-  const rate = (list, lab) => { const m = f(list, lab); return {lab, fn:m[1], fmt:m[2], low:m[3], rate:true}; };
-  const cnt = (lab, fn) => ({lab, fn, fmt:v=>String(v), low:false, rate:false});
-  return mode==='bat'
-    ? [rate(SVP_BAT,'wRC+'), rate(SVP_BAT,'OPS+'), rate(SVP_BAT,'AVG'), rate(SVP_BAT,'OBP'), rate(SVP_BAT,'SLG'), cnt('HR',r=>r.HR), cnt('RBI',r=>r.RBI), cnt('H',r=>r.H)]
-    : [rate(SVP_PIT,'ERA+'), rate(SVP_PIT,'ERA'), rate(SVP_PIT,'WHIP'), rate(SVP_PIT,'K/3'), cnt('SO',r=>r.pK), cnt('W',r=>r.W), cnt('SV',r=>r.SV)];
-};
+const svrkStats = mode => (mode==='bat' ? SVP_BAT : SVP_PIT).map(([lab,fn,fmt,low])=>({lab, fn, fmt, low, rate:true}));
 function svpRankPanelInner(){
   svrk.year = SVP_YEARS[SVP_YEARS.length-1];     // always the current season, so the other tabs are where you go for history
   const y = svrk.year, mode = svrk.mode, list = svrkStats(mode);
   const m = list.find(x=>x.lab===svrk.stat[mode]) || list[0];
   const pool = svpEntries(y), qual = pool.filter(e=>svpQual(mode, e.row));
-  const src = m.rate ? qual : pool.filter(e=> mode==='bat' ? e.row.G_bat>0 : e.row.IPouts>0);
   const field = qual.map(e=>m.fn(e.row)).filter(isFinite);
-  const rows = src.map(e=>({e, v:m.fn(e.row)})).filter(x=>isFinite(x.v) && (m.rate || x.v>0))
+  const rows = qual.map(e=>({e, v:m.fn(e.row)})).filter(x=>isFinite(x.v))
     .sort((a,b)=>(m.low ? a.v-b.v : b.v-a.v) || nameLast(a.e.name).localeCompare(nameLast(b.e.name))).slice(0,10);
   const bar = mode==='bat' ? `${SV_MING}+ G` : `${SV_MINOUTS/3}+ IP`;
   const body = rows.map((r,i)=>{
@@ -10690,7 +10682,7 @@ function svpRankPanelInner(){
       <td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
       <td class="lft svptm">${svpTeamCell(d)}</td>
       ${mode==='bat' ? `<td class="svrkx">${d.G_bat}</td><td class="svrkx">${d.PA}</td>` : `<td class="svrkx">${d.G_pit}</td><td class="mono svrkx">${ipStr(d.IPouts)}</td>`}
-      <td class="svpc">${m.rate ? svpPill(svPct(field, r.v, m.low)) : ''}<span class="svpv">${m.fmt(r.v)}</span></td></tr>`;
+      <td class="svpc">${svpPill(svPct(field, r.v, m.low))}<span class="svpv">${m.fmt(r.v)}</span></td></tr>`;
   }).join('');
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   return `<div class="svrkhead"><span class="svfeatlabel">Player Rankings</span>
@@ -10699,7 +10691,7 @@ function svpRankPanelInner(){
     <div class="tscroll"><table class="detail svrktable"><thead><tr><th></th><th class="lft">Player</th><th class="lft svptm">Tm</th>
       ${mode==='bat' ? '<th class="svrkx">G</th><th class="svrkx">PA</th>' : '<th class="svrkx">G</th><th class="svrkx">IP</th>'}<th>${esc(m.lab)}</th></tr></thead>
       <tbody>${body || `<tr><td colspan="6" class="empty">Nobody has a ${esc(m.lab)} this season.</td></tr>`}</tbody></table></div>
-    <div class="svrkfoot"><span>${y} regular season${m.rate ? ` · ${mode==='bat'?'hitters':'pitchers'} with ${bar}` : ' · everyone who played'}${m.rate ? ' · pill = percentile' : ''}</span>
+    <div class="svrkfoot"><span>${y} regular season · ${mode==='bat'?'hitters':'pitchers'} with ${bar} · pill = percentile</span>
       <a href="#/savant/rankings">Full percentile rankings →</a></div>`;
 }
 function svpRankPanelWire(){
