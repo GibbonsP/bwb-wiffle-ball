@@ -336,7 +336,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpnote b{font-weight:600}
 .svlogo{flex:none;display:block;margin-right:12px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25))}
 .svheat{min-width:100%}
-.svfeat{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px 8px;margin:6px 0 22px}
+.svfeat_unused{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px 8px;margin:6px 0 22px}
 .svfeathead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:6px}
 .svfeatlabel{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
 .svfeatchips{margin:0}
@@ -344,6 +344,38 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svfeatbody .smeta{margin:2px 0 10px}
 .svfeatbody .svph4{margin-top:12px}
 .svfeatmap svg{width:100%;max-height:520px;height:auto;display:block}
+.svfeatlabel{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.svtop{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin:6px 0 24px;align-items:stretch}
+@media (max-width:820px){.svtop{grid-template-columns:1fr}}
+.svart{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden;color:inherit;text-decoration:none}
+.svart img{display:block;width:100%;aspect-ratio:16/8;object-fit:cover}
+.svartbody{display:flex;flex-direction:column;gap:10px;padding:18px 22px 22px;flex:1;justify-content:center}
+.svart h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.12}
+.svart p{margin:0;font-size:1rem;line-height:1.5;color:var(--muted);max-width:60ch}
+.svartmeta{font-size:.8rem;color:var(--muted);letter-spacing:.03em}
+.svart:hover h2{text-decoration:underline;text-underline-offset:4px}
+.svart-empty{min-height:260px;border-style:dashed;background:transparent;box-shadow:none}
+.svside{display:flex;flex-direction:column;gap:10px}
+.svsidehead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
+.svsidenote{font-size:.72rem;color:var(--muted)}
+.svbox{display:flex;flex-direction:column;gap:6px;padding:10px 12px 11px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--shadow);color:inherit;text-decoration:none;flex:1;transition:border-color .15s ease}
+.svbox:hover{border-color:var(--accent)}
+.svboxhead{display:flex;justify-content:space-between;align-items:baseline}
+.svboxhead b{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.98rem;letter-spacing:.02em}
+.svboxhead span{font-size:.72rem;color:var(--accent)}
+.svbox .svhprev{height:84px;margin:0}
+.svbox p{margin:0;font-size:.74rem;color:var(--muted)}
+.svhtrend{width:100%;padding:6px 12px;display:flex;flex-direction:column;gap:6px;font-size:.8rem}
+.svhtrend div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
+.svhtrend span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svhtrend i{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--muted)}
+.svhtrend b{font-family:"IBM Plex Mono",monospace;color:#d22d49;font-size:.76rem}
+.svarticle{max-width:68ch;margin:8px 0 24px;display:flex;flex-direction:column;gap:10px}
+.svarticle h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2rem,5vw,3rem);line-height:1.1}
+.svdek{margin:0;font-size:1.15rem;color:var(--muted);line-height:1.45}
+.svartlead img,.svarticle figure img{width:100%;border-radius:10px;display:block}
+.svarticle figure{margin:6px 0}.svarticle figcaption{font-size:.78rem;color:var(--muted);margin-top:6px}
+.svartbodytext p{font-size:1.02rem;line-height:1.7;margin:0 0 1.1em}
 .svhgroup{margin:0 0 6px}
 .svhgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:8px 0 18px}
 .svhcard{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--shadow);
@@ -10465,18 +10497,61 @@ function svpHubPreviews(){
   svpTmTeam = kt; svpTmGroup = kg;
   return out;
 }
-/* the Featured slot at the top of Savant home: a panel that shows one of a few highlights, chosen with the little switch.
-   To feature something new, add an entry here — [key, label, link to the full view, link text, body builder]. */
-let svHubFeat = 'players';
-const SV_FEATURES = [
-  ['players','Top percentile players','#/savant/rankings','Full percentile rankings →', ()=>savantHomeHTML('feat')],
-  ['map','Playstyle Map','#/savant/teams','Open the Playstyle Map →', ()=>{
-      /* every season combined, one dot per franchise; the map's own filter state is borrowed for the draw and put back */
-      const keep = {...svpTm}, kt = svpTmTeam, kg = svpTmGroup;
-      svpTm.year = 'all'; svpTm.split = false; svpTm.hl = ''; svpTm.sel = null; svpTmTeam = ''; svpTmGroup = '';
-      let svg; try{ svg = svpTeamSVG(svpTeamPoints()); } finally { Object.assign(svpTm, keep); svpTmTeam = kt; svpTmGroup = kg; }
-      return `<p class="smeta">Every franchise across all seasons, by how well it has won (right is better) and how much action its games have (up is more fun).</p><div class="svfeatmap">${svg}</div>`; }],
-];
+/* ---- Savant home, top band: the Featured article on the left, and a few rotating preview boxes on the right ---- */
+const SV_ARTICLES = (DB.articles||[]).slice().sort((x,y)=>(y.date||'').localeCompare(x.date||''));
+const svpWeek = () => Math.floor((Date.now()/86400000 + 3)/7);     // whole weeks since 1970, turning over on Mondays
+const svArtDate = d => { try{ return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); }catch(e){ return d||''; } };
+/* the biggest year-over-year gains among players who qualified both seasons: wRC+ for hitters, ERA+ for pitchers */
+function svpTrending(mode){
+  const ys = SVP_YEARS, y = ys[ys.length-1], py = ys[ys.length-2]; if(py==null || py!==y-1) return [];
+  const f = mode==='bat' ? (row,yr)=>wrcPlusFor(row,yr,false) : (row,yr)=>eraPlusFor(row,[{year:yr, outs:row.IPouts}]);
+  const prev = {}; svpEntries(py).filter(e=>svpQual(mode,e.row)).forEach(e=>{ prev[e.name] = e.row; });
+  return svpEntries(y).filter(e=>svpQual(mode,e.row)).map(e=>{ const a = f(e.row,y), b = prev[e.name] ? f(prev[e.name],py) : NaN; return {name:e.name, a, b, d:a-b}; })
+    .filter(x=>isFinite(x.d) && x.d>0).sort((x,y2)=>y2.d-x.d).slice(0,3);
+}
+function svpTrendBox(mode){
+  const t = svpTrending(mode); if(!t.length) return '';
+  return `<div class="svhtrend">${t.map(x=>`<div><span>${esc(x.name)}</span><i>${Math.round(x.b)} → ${Math.round(x.a)}</i><b>▲ ${Math.round(x.d)}</b></div>`).join('')}</div>`;
+}
+function svpHubTop(pv){
+  const y = pv.n ? pv.n.y : '';
+  const T = pv.teams || {};
+  const box = (title, link, html, cap) => html ? {title, link, html, cap} : null;
+  /* three slots, each cycling through its own list one step per week */
+  const slots = [
+    [box('Rankings','#/savant/rankings',pv.rank,`Top hitters by wRC+, ${y}`), box('Pizza Chart','#/savant/pizza',pv.pizza,'A player’s percentiles as a wheel'),
+     box('Rolling Form','#/savant/form',pv.form,'A hitter’s hot and cold stretches'), box('Season Comparison','#/savant/compare',pv.comp,'Find the most similar seasons')],
+    [box('Playstyle Map','#/savant/teams',T.style,'Which clubs win, and which are fun'), box('Luck','#/savant/teams/luck',T.luck,'Wins against what runs predicted'),
+     box('Offense vs Defense','#/savant/teams/offense',T.offense,'Runs scored against runs allowed'), box('Season Race','#/savant/teams/race',T.race,`How ${y} unfolded`),
+     box('Offensive Style','#/savant/teams/offstyle',T.offstyle,'Power against patience'), box('Pitching Style','#/savant/teams/pitstyle',T.pitstyle,'How clubs prevent runs'),
+     box('Head-to-Head','#/savant/teams/h2h',T.h2h,'Who owns whom')],
+    [box('Hitters trending up','#/savant/rankings',svpTrendBox('bat'),`Biggest wRC+ jumps from ${Number(y)-1}`), box('Pitchers trending up','#/savant/rankings',svpTrendBox('pit'),`Biggest ERA+ jumps from ${Number(y)-1}`),
+     box('League Trends','#/savant/trends',pv.trend,'Runs per game by season'), box('Scatter','#/savant/scatter',pv.scatter,`${y} hitters: strikeouts against wRC+`)],
+  ].map(l=>l.filter(Boolean));
+  const w = svpWeek();
+  const picks = slots.filter(l=>l.length).map((l,i)=>l[(w+i)%l.length]);
+  const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">This week</span><span class="svsidenote">changes every Monday</span></div>
+    ${picks.map(b=>`<a class="svbox" href="${b.link}"><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
+  const art = SV_ARTICLES[0];
+  const main = art
+    ? `<a class="svart" href="#/savant/article/${encodeURIComponent(art.id)}">${art.image?`<img src="${art.image}" alt="">`:''}
+        <div class="svartbody"><span class="svfeatlabel">Featured${art.tag?` · ${esc(art.tag)}`:''}</span><h2>${esc(art.title)}</h2>
+        ${art.dek?`<p>${esc(art.dek)}</p>`:''}<span class="svartmeta">${[art.author, svArtDate(art.date)].filter(Boolean).map(esc).join(' · ')}</span><span class="pname">Read the article →</span></div></a>`
+    : `<div class="svart svart-empty"><div class="svartbody"><span class="svfeatlabel">Featured</span><h2>Savant Reports</h2>
+        <p>Articles on the numbers behind the league will be featured here.</p></div></div>`;
+  return `<section class="svtop">${main}${side}</section>`;
+}
+function renderSavantArticle(id){
+  const a = SV_ARTICLES.find(x=>String(x.id)===String(id));
+  if(!a){ location.hash = '#/savant'; return; }
+  const body = (a.body||[]).map(b=> typeof b==='string' ? `<p>${esc(b)}</p>`
+    : b.h ? `<h3 class="hsub">${esc(b.h)}</h3>` : b.img ? `<figure><img src="${b.img}" alt="">${b.cap?`<figcaption>${esc(b.cap)}</figcaption>`:''}</figure>` : '').join('');
+  svpShell('home', `<article class="svarticle"><a class="pname" href="#/savant">← Savant</a>
+    <span class="svfeatlabel">${a.tag?esc(a.tag):'Savant Reports'}</span><h2>${esc(a.title)}</h2>${a.dek?`<p class="svdek">${esc(a.dek)}</p>`:''}
+    <p class="svartmeta">${[a.author, svArtDate(a.date)].filter(Boolean).map(esc).join(' · ')}</p>
+    ${a.image?`<figure class="svartlead"><img src="${a.image}" alt="">${a.imageCap?`<figcaption>${esc(a.imageCap)}</figcaption>`:''}</figure>`:''}
+    <div class="svartbodytext">${body}</div></article>`);
+}
 function renderSavantHub(){
   const pv = svpHubPreviews();
   const card = (href, title, desc, prev) => `<a class="svhcard" href="${href}">${prev?`<div class="svhprev">${prev}</div>`:''}<h4>${title}</h4><p>${desc}</p></a>`;
@@ -10486,13 +10561,8 @@ function renderSavantHub(){
     offense:'Runs scored against runs allowed, to see offense-first and defense-first clubs.', luck:'Actual wins against the wins a club’s runs say it should have had.',
     race:'How the standings unfolded game by game through a season.', h2h:'Who owns whom: every club’s record against every other club.'};
   const teams = SVP_TEAM_VIEWS.map(([k,l,suf])=>card('#/savant/teams'+suf, l, teamDesc[k]||'', (pv.teams||{})[k])).join('');
-  const feat = SV_FEATURES.find(f=>f[0]===svHubFeat) || SV_FEATURES[0];
-  const featured = `<section class="svfeat"><div class="svfeathead"><span class="svfeatlabel">Featured</span>
-      <div class="chips svfeatchips">${SV_FEATURES.map(f=>`<button data-svhf="${f[0]}" aria-pressed="${f[0]===feat[0]}">${f[1]}</button>`).join('')}</div>
-      <a class="pname svfeatlink" href="${feat[2]}">${feat[3]}</a></div>
-    <div class="svfeatbody">${feat[4]()}</div></section>`;
   svpShell('home', `
-    ${featured}
+    ${svpHubTop(pv)}
     ${group('Players', 'Look up one hitter or pitcher, or compare them across seasons.',
       card('#/savant/rankings','Percentile Rankings',`Every qualified player ranked in each stat, one season at a time.${pv.n?` ${pv.n.y}: ${pv.n.bat} hitters, ${pv.n.pit} pitchers.`:''}`,pv.rank)
       + card('#/savant/pizza','Pizza Chart','A player’s percentiles as a wheel. Lay a second player on top to compare.',pv.pizza)
@@ -10505,7 +10575,6 @@ function renderSavantHub(){
       + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',pv.search))}
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
-  app.querySelectorAll('[data-svhf]').forEach(b=>b.addEventListener('click',()=>{ svHubFeat = b.dataset.svhf; renderSavantHub(); }));
 }
 function renderSavant(h){
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
@@ -10522,6 +10591,7 @@ function renderSavant(h){
   if(h === '#/savant/teams/luck') return renderSavantLuck();
   if(h === '#/savant/teams/race') return renderSavantRace();
   if(h === '#/savant/rankings') return renderSavantPct();
+  if(h.startsWith('#/savant/article/')) return renderSavantArticle(decodeURIComponent(h.slice('#/savant/article/'.length)));
   return renderSavantHub();
 }
 
