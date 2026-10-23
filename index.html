@@ -10397,12 +10397,11 @@ let svHubFeat = 'players';
 const SV_FEATURES = [
   ['players','Top percentile players','#/savant/rankings','Full percentile rankings →', ()=>savantHomeHTML('feat')],
   ['map','Playstyle Map','#/savant/teams','Open the Playstyle Map →', ()=>{
-      /* the current era, one dot per franchise-season; the map's own filter state is borrowed for the draw and put back */
+      /* every season combined, one dot per franchise; the map's own filter state is borrowed for the draw and put back */
       const keep = {...svpTm}, kt = svpTmTeam, kg = svpTmGroup;
-      svpTm.year = 'e'+(SVP_ERAS.length-1); svpTm.split = true; svpTm.hl = ''; svpTm.sel = null; svpTmTeam = ''; svpTmGroup = '';
+      svpTm.year = 'all'; svpTm.split = false; svpTm.hl = ''; svpTm.sel = null; svpTmTeam = ''; svpTmGroup = '';
       let svg; try{ svg = svpTeamSVG(svpTeamPoints()); } finally { Object.assign(svpTm, keep); svpTmTeam = kt; svpTmGroup = kg; }
-      const e = SVP_ERAS[SVP_ERAS.length-1];
-      return `<p class="smeta">${e.from}–${e.to}: every franchise-season by how well it won (right is better) and how much action its games had (up is more fun).</p><div class="svfeatmap">${svg}</div>`; }],
+      return `<p class="smeta">Every franchise across all seasons, by how well it has won (right is better) and how much action its games have (up is more fun).</p><div class="svfeatmap">${svg}</div>`; }],
 ];
 function renderSavantHub(){
   const pv = svpHubPreviews();
