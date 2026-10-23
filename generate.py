@@ -10665,7 +10665,7 @@ function svpTidbits(pv){
 }
 function svpHubTop(pv){
   const picks = svpTidbits(pv);
-  const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">This week</span><span class="svsidenote">a few things from the archives</span></div>
+  const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">Featured</span></div>
     ${picks.map(b=>`<a class="svbox" href="${b.link}"${b.pre?` data-pre="${esc(JSON.stringify(b.pre))}"`:''}><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
   const main = `<section class="svrk" id="svrk">${svpRankPanelInner()}</section>`;
   return `<section class="svtop">${main}${side}</section>`;
