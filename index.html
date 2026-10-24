@@ -10706,7 +10706,7 @@ function svpRankPanelWire(){
 function renderSavantHub(){
   const pv = svpHubPreviews();
   const card = (href, title, desc, prev) => `<a class="svhcard" href="${href}">${prev?`<div class="svhprev">${prev}</div>`:''}<h4>${title}</h4><p>${desc}</p></a>`;
-  const group = (title, blurb, cards) => `<section class="svhgroup"><h3 class="hsub">${title}</h3><p class="smeta">${blurb}</p><div class="svhgrid">${cards}</div></section>`;
+  const group = (title, blurb, cards) => `<section class="svhgroup"><h3 class="hsub">${title}</h3><div class="svhgrid">${cards}</div></section>`;
   const teamDesc = {style:'Every franchise on a map of how well it wins against how much action its games have.',
     offstyle:'How each club scores: power, patience or contact.', pitstyle:'How each club prevents runs: strikeouts, walks or balls in play.',
     offense:'Runs scored against runs allowed, to see offense-first and defense-first clubs.', luck:'Actual wins against the wins a club’s runs say it should have had.',
