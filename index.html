@@ -9971,7 +9971,12 @@ function renderSavantRace(){
     return `<path class="svr-line${on?' svr-on':''}${dim?' svr-dim':''}" d="${path}" style="stroke:${colorOf(s.team)}"><title>${esc(histName(s.team, svpTR.year))} ${s.W}–${s.L}${s.T?'–'+s.T:''}</title></path>`;
   }).join('');
   /* end-of-line labels, pushed apart so they never overlap */
-  const ends = series.map(s=>({s, y0:Y(s.pts[s.pts.length-1].d), y:Y(s.pts[s.pts.length-1].d)})).sort((a,b)=>a.y-b.y);
+  /* clubs with the same record are stacked by how they did against each other (head-to-head among just the tied clubs), better one on top */
+  const h2h = svpH2HData([svpTR.year], 'reg'), recKey = s => `${s.W}-${s.L}-${s.T||0}`;
+  const tieScore = s => { const grp = series.filter(o=>o!==s && recKey(o)===recKey(s)); let w = 0, l = 0;
+    grp.forEach(o=>{ const r = (h2h[s.team]||{})[o.team]; if(r){ w += r.W; l += r.L; } }); return w+l ? w/(w+l) : 0.5; };
+  const ends = series.map(s=>({s, y0:Y(s.pts[s.pts.length-1].d), y:Y(s.pts[s.pts.length-1].d), tie:tieScore(s)}))
+    .sort((a,b)=>(a.y-b.y) || (b.tie-a.tie) || a.s.team.localeCompare(b.s.team));
   const GAP = 32;   // a logo is ~30px tall
   for(let i=1;i<ends.length;i++) if(ends[i].y - ends[i-1].y < GAP) ends[i].y = ends[i-1].y + GAP;
   for(let i=ends.length-2;i>=0;i--) if(ends[ends.length-1].y > H-B+14 && ends[i+1].y - ends[i].y < GAP) ends[i].y = ends[i+1].y - GAP;   // keep the stack on the chart
@@ -9999,7 +10004,7 @@ function renderSavantRace(){
       <text class="svs-ax" x="${(L+(W-L-R)/2).toFixed(0)}" y="${H-8}" text-anchor="middle">Games played →</text>
       <text class="svs-ax" transform="translate(14 ${(T+(H-T-B)/2).toFixed(0)}) rotate(-90)" text-anchor="middle">← Below .500 · Wins minus losses · Above .500 →</text></svg>
     <p class="smeta">The ${svpTR.year} regular season, one line per team: each win moves it up a step and each loss down one, so a line's height is wins minus losses
-      and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack.${series.some(s=>s.partial)?` The ${svpTR.year} results are missing the forfeits, so each line stops short of the official record and the record shown counts only the games with a score.`:''}</p>`);
+      and its slope shows hot and cold stretches. ${champ?`★ marks the ${svpTR.year} champion. `:''}Hover a line for the team and record, or highlight one team to pull it out of the pack. Clubs that finished with the same record are listed in order of their head-to-head results against each other.${series.some(s=>s.partial)?` The ${svpTR.year} results are missing the forfeits, so each line stops short of the official record and the record shown counts only the games with a score.`:''}</p>`);
   wireTeamViews();
   document.getElementById('rcYear').addEventListener('change', e=>{ svpTR.year = +e.target.value; svpTR.hl = ''; renderSavantRace(); });
   document.getElementById('rcTeam').addEventListener('change', e=>{ svpTmTeam = e.target.value; svpTR.hl = ''; renderSavantRace(); });
