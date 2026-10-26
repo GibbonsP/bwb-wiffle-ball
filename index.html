@@ -330,6 +330,28 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpnote b{font-weight:600}
 .svlogo{flex:none;display:block;margin-right:12px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25))}
 .svheat{min-width:100%}
+.svpromo{display:grid;grid-template-columns:auto minmax(0,1.25fr) minmax(0,1fr);gap:8px 26px;align-items:center;margin:8px 0 26px;padding:22px 26px;border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(135deg,var(--card) 55%,var(--paper));box-shadow:var(--shadow);color:inherit;text-decoration:none;position:relative;overflow:hidden;transition:border-color .15s ease,transform .15s ease}
+.svpromo::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
+.svpromo:hover{border-color:var(--accent);transform:translateY(-2px)}
+.svpromo-logo .svlogo{width:124px;height:124px;margin:0}
+.svpromo-main{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
+.svpromo h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2.1rem,4.6vw,3rem);line-height:1;letter-spacing:.01em}
+.svpromo p{margin:0;font-size:.95rem;line-height:1.5;color:var(--muted);max-width:52ch}
+.svpromo-chips{display:flex;flex-wrap:wrap;gap:6px}
+.svpromo-chips span{font-size:.74rem;padding:3px 10px;border:1px solid var(--line-strong);border-radius:999px;color:var(--ink)}
+.svpromo-cta{margin-top:4px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase;padding:8px 18px;border-radius:999px;background:var(--accent);color:#fff}
+.svpp{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);min-width:0}
+.svppz{flex:none;width:112px;height:112px}
+.svppz .pizza{width:100%;height:100%;max-width:none}
+.svppz .pz-lab,.svppz .pz-num{display:none}
+.svpplist{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;font-size:.84rem}
+.svpphead{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.svpplist div{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.svpplist div>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.svpplist .svpill{flex:none}
+@media (max-width:900px){.svpromo{grid-template-columns:auto minmax(0,1fr)}.svpp{grid-column:1 / -1}}
+@media (max-width:560px){.svpromo{grid-template-columns:1fr;padding:20px 18px}.svppz{width:84px;height:84px}.svpromo-logo .svlogo{width:88px;height:88px}}
 .svfeat_unused{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px 8px;margin:6px 0 22px}
 .svfeathead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:6px}
 .svfeatlabel{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
@@ -1779,34 +1801,31 @@ function nwlaHomeCard(){
 }
 /* Savant on the home page: this season's top hitters (by wRC+) and pitchers (by ERA+) with the same percentile pills
    the Savant page uses, ranked against that season's qualified field */
-function savantHomeHTML(forHub){
+/* the home page's Savant card: an advert for the Savant section, with the real logo and a live peek at this season's leaders */
+function savantPromoCard(){
   if(typeof SVP_YEARS==='undefined' || !SVP_YEARS.length) return '';
   const y = SVP_YEARS[SVP_YEARS.length-1];
-  const table = (mode, title, labs) => {
-    const metrics = mode==='bat' ? SVP_BAT : SVP_PIT;
-    const qual = svpEntries(y).filter(e=>svpQual(mode, e.row));
-    if(qual.length<3) return '';
-    const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row)).filter(isFinite));
-    const cols = labs.map(l=>metrics.findIndex(m=>m[0]===l));
-    const rows = qual.map(e=>({e, cells: cols.map(i=>{ const [,fn,fmt,low] = metrics[i], v = fn(e.row);
-      return {p: isFinite(v) ? svPct(vals[i], v, low) : null, v, txt: isFinite(v) ? fmt(v) : '—'}; })}))
-      .sort((a,b)=>((b.cells[0].p||0)-(a.cells[0].p||0)) || ((b.cells[0].v||0)-(a.cells[0].v||0))).slice(0,5);
-    const body = rows.map(r=>`<tr><td class="lft"><span class="plcell">${llHead(r.e.name)}<button class="pname" data-p="${esc(r.e.name)}">${esc(r.e.name)}</button></span></td>
-      <td class="lft svptm">${svpTeamCell(r.e.row)}</td>
-      ${r.cells.map(c=>`<td class="svpc">${svpPill(c.p)}<span class="svpv">${c.txt}</span></td>`).join('')}</tr>`).join('');
-    return `<h4 class="svph4">${title} · vs ${qual.length} qualified</h4>
-      <div class="tscroll"><table class="detail svptable svphome"><thead><tr><th class="lft">Player</th><th class="lft svptm">Tm</th>
-      ${cols.map(i=>`<th>${esc(metrics[i][0])}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
-  };
-  const hit = table('bat', 'Hitters, by wRC+', ['wRC+','wOBA','OPS+','BB%','K%','HR%']);
-  const pit = table('pit', 'Pitchers, by ERA+', ['ERA+','ERA','WHIP','K/3','K%']);
-  if(!hit && !pit) return '';
-  return `${forHub==='feat'?'':`<h3 class="hsub">${forHub?`Top percentile players · ${y}`:`Savant · ${y} percentile leaders`}</h3>`}
-    <p class="smeta">Each pill is a player's percentile among ${y}'s qualified players —
-      <span style="color:${svColor(100)}">red</span> is league-best, <span style="color:${svColor(0)}">blue</span> is trailing — with the number beneath.</p>
-    ${hit}${pit}
-    ${forHub==='feat' ? '' : forHub ? `<p class="note"><a class="pname" href="#/savant/rankings">Full percentile rankings →</a></p>`
-      : `<p class="note"><button class="pname" data-go="savant">Savant: rankings, league trends and team graphs →</button></p>`}`;
+  const qual = svpEntries(y).filter(e=>svpQual('bat', e.row));
+  const wi = SVP_BAT.findIndex(m=>m[0]==='wRC+');
+  const top = qual.map(e=>({e, v:SVP_BAT[wi][1](e.row)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v);
+  let peek = '';
+  if(top.length>=3){
+    const all = top.map(x=>x.v), it = svpPizzaItems(top[0].e.name, y, 'bat', SV_BAT);
+    peek = `<div class="svpp"><div class="svppz">${it ? svpPizzaSVG(SV_BAT, it, null).replace('viewBox="0 0 460 380"','viewBox="108 66 244 248"') : ''}</div>
+      <div class="svpplist"><span class="svpphead">${y} hitters by wRC+</span>${top.slice(0,3).map(x=>`<div><span>${esc(x.e.name)}</span>${svpPill(svPct(all, x.v, false))}</div>`).join('')}</div></div>`;
+  }
+  const feats = ['Percentile rankings','Pizza charts','Team playstyle maps','League trends','Season races','Matched seasons'];
+  return `<a class="svpromo" href="#/savant">
+    <div class="svpromo-logo">${savantLogoSVG(124)}</div>
+    <div class="svpromo-main">
+      <span class="svfeatlabel">Advanced stats</span>
+      <h2>Savant</h2>
+      <p>Every hitter and pitcher ranked against the league. Percentile rankings, pizza charts, team playstyle maps, and how scoring has changed over the years.</p>
+      <div class="svpromo-chips">${feats.map(f=>`<span>${f}</span>`).join('')}</div>
+      <span class="svpromo-cta">Explore Savant →</span>
+    </div>
+    ${peek}
+  </a>`;
 }
 /* one slide of the home-page news ticker: its photo(s) and caption */
 function tickerSlideHTML(s){
@@ -1992,7 +2011,7 @@ function renderHome(){
       allowfullscreen></iframe></div>`;
 
   const nwlaCard = nwlaHomeCard();
-  const savantHome = savantHomeHTML();
+  const savantHome = savantPromoCard();
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
