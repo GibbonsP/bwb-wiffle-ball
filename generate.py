@@ -3997,7 +3997,7 @@ function logoIcon(uri, alt, cls){
   cls = (cls || 'llogo') + (WIDE_LOGOS.has(uri) ? ' wide' : '');
   const lc = LOGO_CLASS.get(uri);
   return lc ? `<span class="${cls} llogo-bg ${lc}" role="img" aria-label="${esc(alt||'')}"></span>`
-    : `<img class="${cls}" src="${uri}" alt="${esc(alt||'')}" loading="lazy" decoding="async">`;
+    : `<img class="${cls}" src="${uri}" alt="${esc(alt||'')}">`;
 }
 
 const recWL = r => r ? `${r.W}–${r.L}${r.T?'–'+r.T:''}` : '0–0';
@@ -5009,7 +5009,7 @@ function svBarW(items, low){
 let llistPhotos = false;
 const llHead = n => {
   const pl = P[n];
-  return pl && pl.photo ? `<img class="lphoto" src="${pl.photo}" alt="" loading="lazy" decoding="async">`
+  return pl && pl.photo ? `<img class="lphoto" src="${pl.photo}" alt="">`
     : `<span class="lphoto lphoto-blank">${esc(n.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>`;
 };
 const llist = (t, items, fmt, low) => {
