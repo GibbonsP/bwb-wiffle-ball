@@ -337,7 +337,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpromo-logo .svlogo{width:124px;height:124px;margin:0}
 .svpromo-main{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
 .svpromo h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2.1rem,4.6vw,3rem);line-height:1;letter-spacing:.01em}
-.svpromo p{margin:0;font-size:.95rem;line-height:1.5;color:var(--muted);max-width:52ch}
+.svpromo p{margin:0;font-size:1.05rem;line-height:1.5;color:var(--muted);max-width:52ch}
 .svpromo-chips{display:flex;flex-wrap:wrap;gap:6px}
 .svpromo-chips span{font-size:.74rem;padding:3px 10px;border:1px solid var(--line-strong);border-radius:999px;color:var(--ink)}
 .svpromo-cta{margin-top:4px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase;padding:8px 18px;border-radius:999px;background:var(--accent);color:#fff}
@@ -1818,11 +1818,10 @@ function savantPromoCard(){
   return `<a class="svpromo" href="#/savant">
     <div class="svpromo-logo">${savantLogoSVG(124)}</div>
     <div class="svpromo-main">
-      <span class="svfeatlabel">Advanced stats</span>
-      <h2>Savant</h2>
-      <p>Every hitter and pitcher ranked against the league. Percentile rankings, pizza charts, team playstyle maps, and how scoring has changed over the years.</p>
+      <h2>BWB Savant</h2>
+      <p>The league’s home for advanced statistics</p>
       <div class="svpromo-chips">${feats.map(f=>`<span>${f}</span>`).join('')}</div>
-      <span class="svpromo-cta">Explore Savant →</span>
+      <span class="svpromo-cta">Explore BWB Savant →</span>
     </div>
     ${peek}
   </a>`;
