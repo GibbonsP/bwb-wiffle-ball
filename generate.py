@@ -942,6 +942,14 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .champbar .cy{opacity:.85;font-size:.82rem;letter-spacing:.04em;margin-left:auto}
 .champbar .pname{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700}
 .herofeature{border-radius:8px;overflow:hidden;margin:0 0 24px;box-shadow:var(--shadow);background:var(--brandbar)}
+.heroart{display:flex;align-items:center;justify-content:center;gap:clamp(20px,5vw,56px);width:100%;aspect-ratio:2/1;max-height:480px;padding:24px;box-sizing:border-box;position:relative;overflow:hidden;color:#fff;
+  background:radial-gradient(120% 140% at 22% 30%,#1a3566 0%,#0b1a33 58%,#070f1f 100%)}
+.heroart .svlogo{width:clamp(120px,26vw,290px);height:auto;margin:0;flex:none}
+.heroart-txt{display:flex;flex-direction:column;gap:10px;min-width:0}
+.heroart-txt b{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2.2rem,6.4vw,4.4rem);line-height:1;letter-spacing:.01em}
+.heroart-txt span{font-size:clamp(.85rem,1.9vw,1.2rem);color:rgba(255,255,255,.8);max-width:22ch}
+.heroart-txt i{display:block;height:5px;width:min(260px,100%);border-radius:3px;background:linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
+@media (max-width:560px){.heroart{flex-direction:column;aspect-ratio:auto;padding:26px 20px;text-align:center}.heroart-txt{align-items:center}.heroart-txt span{max-width:none}}
 .herophoto{display:block;width:100%;aspect-ratio:16/9;max-height:480px;object-fit:cover;object-position:center 22%}
 .herophoto.sq{aspect-ratio:1/1;object-fit:contain;object-position:center}
 .herophotos{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-width:964px;margin:0 auto}
@@ -1834,7 +1842,8 @@ function savantPromoCard(){
 }
 /* one slide of the home-page news ticker: its photo(s) and caption */
 function tickerSlideHTML(s){
-  return `${s.photos&&s.photos.length?`<div class="herophotos">${s.photos.map((p,i)=>`<img src="${p}" alt="${esc(s.title||'')} — photo ${i+1}">`).join('')}</div>`
+  return `${s.art==='savant' ? `<div class="heroart">${savantLogoSVG(280)}<div class="heroart-txt"><b>BWB Savant</b><span>The league’s home for advanced statistics</span><i></i></div></div>`
+      :s.photos&&s.photos.length?`<div class="herophotos">${s.photos.map((p,i)=>`<img src="${p}" alt="${esc(s.title||'')} — photo ${i+1}">`).join('')}</div>`
       :s.photo?`<img class="herophoto${s.fit==='contain'?' sq':''}" src="${s.photo}" alt="${esc(s.title||'')}">`:''}
     <div class="herocap">
       ${s.tag?`<span class="herotag">${esc(s.tag)}</span>`:''}
