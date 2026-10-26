@@ -10608,19 +10608,19 @@ function svpTidbits(pv){
   const teamKinds = {
     style: Y => forYear(Y, ()=>{ const p = svpTeamPoints(); if(p.length<4) return null;
       return box(`${Y} Playstyles`, '#/savant/teams', mk.mini(p, r=>r.win, r=>r.fun, {cx:0.5, cy:0, quads:['BAD & FUN','GOOD & FUN','BAD & BORING','GOOD & BORING']}, W),
-        `The most fun club of ${Y} was the ${hn(best(p,r=>r.fun).team,Y)}; the ${hn(best(p,r=>r.win).team,Y)} won the most.`, {tm:Y}); }),
+        `The most fun club of ${Y} was the ${hn(best(p,r=>r.fun).team,Y)}; the ${hn(best(p,r=>r.win).team,Y)} won the most.`, {tm:Y, v:'style'}); }),
     offstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('off', String(Y), false); if(p.length<4) return null;
       return box(`${Y} Offensive Style`, '#/savant/teams/offstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS']}, W),
-        `The ${hn(best(p,r=>r.sy).team,Y)} hit for the most power in ${Y}; the ${hn(best(p,r=>r.sx).team,Y)} were the most patient.`, {tm:Y}); }),
+        `The ${hn(best(p,r=>r.sy).team,Y)} hit for the most power in ${Y}; the ${hn(best(p,r=>r.sx).team,Y)} were the most patient.`, {tm:Y, v:'offstyle'}); }),
     pitstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('pit', String(Y), false); if(p.length<4) return null;
       return box(`${Y} Pitching Style`, '#/savant/teams/pitstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS']}, W),
-        `How every club prevented runs in ${Y}: strikeouts, walks or balls in play.`, {tm:Y}); }),
+        `How every club prevented runs in ${Y}: strikeouts, walks or balls in play.`, {tm:Y, v:'pitstyle'}); }),
     offense: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null;
       return box(`${Y} Offense vs Defense`, '#/savant/teams/offense', mk.mini(t, r=>r.off, r=>r.def, {cx:0, cy:0, quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST']}, W),
-        `${Y}’s best offense belonged to the ${hn(best(t,r=>r.off).team,Y)}, and its best defense to the ${hn(best(t,r=>r.def).team,Y)}.`, {tm:Y}); }),
+        `${Y}’s best offense belonged to the ${hn(best(t,r=>r.off).team,Y)}, and its best defense to the ${hn(best(t,r=>r.def).team,Y)}.`, {tm:Y, v:'offense'}); }),
     luck: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null; const l = best(t, r=>r.luck), u = worst(t, r=>r.luck);
       return box(`${Y} Luck`, '#/savant/teams/luck', mk.mini(t, r=>r.exp, r=>r.win, {diag:true, quads:['LUCKY','','','UNLUCKY']}, W),
-        `The ${hn(l.team,Y)} won ${l.luck.toFixed(1)} more games than their runs said they should have. The ${hn(u.team,Y)} won ${Math.abs(u.luck).toFixed(1)} fewer.`, {tm:Y}); }),
+        `The ${hn(l.team,Y)} won ${l.luck.toFixed(1)} more games than their runs said they should have. The ${hn(u.team,Y)} won ${Math.abs(u.luck).toFixed(1)} fewer.`, {tm:Y, v:'luck'}); }),
     race: Y => { const ser = svpRaceSeries(Y); if(!ser.length) return null; const champ = ((CHAMPS||[]).find(c=>c.y===Y)||{}).full;
       return box(`${Y} Season Race`, '#/savant/teams/race', mk.raceSVG(Y, W), champ ? `How ${Y} unfolded, game by game. The thick line is the ${hn(champ,Y)}, who won the World Series.` : `How ${Y} unfolded, game by game.`, {race:Y}); },
   };
@@ -10647,7 +10647,7 @@ function svpTidbits(pv){
       const cs = svpCompsFor(ent, svpCompIndex().bat, 3); if(!cs.length) return null;
       return box('Matched Seasons', '#/savant/compare', `<div class="svhcomp"><div class="svhcomp-h">Closest to ${esc(nameParts(ent.name).last)} ${yy(c.year)}</div>${cs.map(x=>`<div class="svhcomp-r"><span>${esc(nameParts(x.o.name).last)} ${yy(x.o.year)}</span>
         <i><b style="width:${Math.max(8,Math.round(x.sim))}%"></b></i><em>${Math.round(x.sim)}%</em></div>`).join('')}</div>`,
-        `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`, null); }catch(e){ return null; } },
+        `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`, {pct:{year:c.year, mode:'bat'}}); }catch(e){ return null; } },
   };
   const out = [];
   const kinds = shuffle(Object.keys(teamKinds)), usedYears = new Set();
@@ -10735,7 +10735,10 @@ function renderSavantHub(){
   app.querySelectorAll('.svbox[data-pre]').forEach(a=>a.addEventListener('click', ()=>{
     let p = null; try{ p = JSON.parse(a.dataset.pre); }catch(e){}
     if(!p) return;
-    if(p.tm){ svpTm.year = String(p.tm); svpTm.sel = null; svpTmTeam = ''; svpTmGroup = ''; }
+    if(p.tm){   /* each team view keeps its own season selection */
+      const st = {style:svpTm, offense:svpTO, luck:svpTL, offstyle:svpTOS, pitstyle:svpTPS}[p.v] || svpTm;
+      st.year = String(p.tm); st.sel = null; st.split = false; st.hl = ''; svpTmTeam = ''; svpTmGroup = '';
+    }
     if(p.race){ svpTR.year = p.race; svpTmTeam = ''; }
     if(p.pz){ Object.assign(svpPz, {mode:p.pz.mode, a:p.pz.a, ay:p.pz.ay, b:'', by:null}); }
     if(p.pct){ svpYear = p.pct.year; svpMode = p.pct.mode; }
