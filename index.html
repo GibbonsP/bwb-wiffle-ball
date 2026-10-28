@@ -996,29 +996,17 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
   text-transform:uppercase;letter-spacing:.02em;color:var(--accent);
   padding-left:12px;border-left:5px solid var(--clay)}
 .hsub:first-of-type{margin-top:8px}
-.msgrid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
-@media (max-width:820px){.msgrid{grid-template-columns:1fr}}
-.mscol{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 16px 10px}
-.mscol .hsub{margin:12px 0 4px}
-.mslist{list-style:none;margin:0;padding:0}
-.msrow{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
-.msrow:first-child{border-top:0}
-.msrow .lphoto{width:48px;height:48px;border-radius:50%;flex:none;object-fit:cover}
-.msmain{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
-.msline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
-.msline .pname{font-weight:700;font-size:1rem}
-.msbadge{font:600 .78rem/1 "Oswald","Arial Narrow",sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:var(--clay);color:var(--paper);white-space:nowrap}
-.msbadge.msnext{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
-.mssub{display:flex;flex-wrap:wrap;align-items:center;gap:3px 14px;font-size:.9rem;color:var(--muted)}
-.mssub .tmcell img{width:18px;height:18px}
-.msbox{font-size:.9rem}
-.msdot{opacity:.6}
-.msnear{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;font-size:.9rem;color:var(--muted);margin-top:4px}
-.msnear .msleft{color:var(--ink)}
-.msavg{color:var(--ink);flex-basis:100%;display:block}
-.msnear{padding-bottom:5px}
-.msup{color:#14803a;font-weight:700;margin-left:4px;font-size:1rem}
-.msdown{color:#c41e30;font-weight:700;margin-left:4px;font-size:1rem}
+.msl .lltrack .llist{flex:0 0 calc((100% - 26px)/3);min-width:290px}
+@media(max-width:560px){.msl .lltrack .llist{flex-basis:88%;min-width:0}}
+.llist .msol{list-style:none;padding-left:0}
+.llist .msol li{gap:10px}
+.llist .msol .lphoto{width:30px;height:30px;border-radius:50%;flex:none;object-fit:cover}
+.llist .msol .lt{font-size:.78rem}
+.llist .msol .ln .pname{font-size:.92rem}
+.llist .msol .lt .pname{display:inline;font-size:inherit;font-weight:600}
+.llist .msol li>b{font-size:.9rem}
+.msup{color:#14803a;font-weight:700;margin-left:2px;font-size:.9rem}
+.msdown{color:#c41e30;font-weight:700;margin-left:2px;font-size:.9rem}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msup{color:#46e08a}:root:not([data-theme="light"]) .msdown{color:#ff7a88}}
 :root[data-theme="dark"] .msup{color:#46e08a}
 :root[data-theme="dark"] .msdown{color:#ff7a88}
@@ -5971,39 +5959,40 @@ function milestoneData(){
   /* a player who reached several milestones in the same game gets one row with several badges */
   const groups = [];
   achieved.forEach(a=>{ const g = groups.find(x=>x.n===a.n && x.gid===a.gid); if(g) g.items.push(a); else groups.push({n:a.n, gid:a.gid, date:a.date, team:a.team, y:a.y, items:[a]}); });
-  return _msCache = {achieved:groups, horizon:players, latestYear};
+  return _msCache = {achieved:groups, horizon:players, achievedRaw:achieved, horizonRaw:horizon, latestYear};
 }
 function milestoneHtml(){
-  const {achieved, horizon, latestYear} = milestoneData();
+  const {achievedRaw, horizonRaw, latestYear} = milestoneData();
   const fmt = d => { const [y,m,dd] = d.split('-').map(Number); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]+' '+dd+', '+y; };
-  const recent = achieved.slice(0, 20).map(a=>{
-    const logo = teamLogoForYear(a.team, a.y);
-    return `<li class="msrow">${llHead(a.n)}<div class="msmain">
-      <div class="msline"><button class="pname" data-p="${esc(a.n)}">${esc(a.n)}</button>${a.items.sort((p,q)=>q.T-p.T).map(m=>`<span class="msbadge">${m.T.toLocaleString()} ${esc(m.st.unit)}</span>`).join('')}</div>
-      <div class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(a.team, a.y)}</span>
-        <span>${fmt(a.date)}</span><button class="pname msbox" data-g="${a.gid}">Box score</button></div></div></li>`;
+  const nf = v => Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1);
+  const PER = 7;   // rows per card, like the career-leader cards on the home page
+  /* the same card layout as the home page's career leaders: one card per stat, laid out in a sideways slider */
+  const recentCards = MS_STATS.map(st=>{
+    const ev = achievedRaw.filter(a=>a.st===st).slice(0, PER); if(!ev.length) return '';
+    const top = Math.max(...ev.map(e=>e.T));
+    return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${ev.map(e=>{
+      const logo = teamLogoForYear(e.team, e.y);
+      return `<li style="--w:0%">${llHead(e.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(e.n)}">${esc(e.n)}</button><span class="lt">${fmt(e.date)} · <button class="pname" data-g="${e.gid}">Box score</button></span></span><b>${e.T.toLocaleString()}</b></li>`;
+    }).join('')}</ol></div>`;
   }).join('');
-  const soon = horizon.slice(0, 20).map(pp=>{
-    const pl = P[pp.n];
-    const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.year===latestYear);
-    const team = rows.length ? rows[rows.length-1].team : null;
-    const logo = team ? teamLogoForYear(team, latestYear) : null;
-    const nf = v => Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1);
-    const lines = pp.items.map(h=>{
+  const soonCards = MS_STATS.map(st=>{
+    const it = horizonRaw.filter(h=>h.st===st && (h.left/h.T<=0.5 || h.left<=3)).sort((a,b)=>(a.left/a.T)-(b.left/b.T)||a.left-b.left).slice(0, PER); if(!it.length) return '';
+    return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${it.map(h=>{
+      const pl = P[h.n];
+      const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.year===latestYear);
+      const team = rows.length ? rows[rows.length-1].team : null;
+      const logo = team ? teamLogoForYear(team, latestYear) : null;
       const on = h.avg >= h.left;
       const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
-      return `<div class="msnear"><span class="msbadge msnext">${h.T.toLocaleString()} ${esc(h.st.unit)}</span>
-        <span class="msleft"><b>${nf(h.left)}</b> away (${nf(h.total)} career)</span>
-        <span class="msavg"><b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></div>`;
-    }).join('');
-    return `<li class="msrow">${llHead(pp.n)}<div class="msmain">
-      <div class="msline"><button class="pname" data-p="${esc(pp.n)}">${esc(pp.n)}</button>${team?`<span class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(team, latestYear)}</span></span>`:''}</div>${lines}</div></li>`;
+      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to ${h.T.toLocaleString()} · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
+    }).join('')}</ol></div>`;
   }).join('');
-  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020; a green ▲ means that average is enough to reach the next milestone in one season, a red ▼ means it falls short. Not affected by the era toggle above.</p>
-    <div class="msgrid">
-      <section class="mscol"><h4 class="hsub">Recent Milestones Achieved</h4><ul class="mslist">${recent||'<li class="lead">None yet.</li>'}</ul></section>
-      <section class="mscol"><h4 class="hsub">Milestones on the Horizon</h4><ul class="mslist">${soon||'<li class="lead">None close.</li>'}</ul></section>
-    </div></div>`;
+  const slider = (id, title, cards) => `<div class="llslider msl" data-sl="${id}">
+      <div class="llslide-head"><h4>${title}</h4><span class="llslide-hint">Drag or scroll sideways →</span></div>
+      <div class="lltrack" tabindex="0" aria-label="${title} — scroll sideways">${cards}</div>
+    </div>`;
+  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. Recent Milestones Achieved shows the game where the player's running career total reached the number, with a box score link (box scores begin in 2017, so earlier milestones aren't listed). Milestones on the Horizon shows how many each active player still needs; "avg" is their rate per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020 — a green ▲ means that average is enough to reach the milestone in one season, a red ▼ means it falls short. Not affected by the era toggle above.</p>
+    <div class="llsliders">${slider('msr','Recent Milestones Achieved',recentCards)}${slider('msh','Milestones on the Horizon',soonCards)}</div></div>`;
 }
 function renderRecords(){
   setNav('records');
@@ -6442,6 +6431,18 @@ function renderRecords(){
     recordsEra=b.dataset.era; renderRecords(); }));
   app.querySelectorAll('[data-rt]').forEach(b=>b.addEventListener('click',()=>{
     recordsTab=b.dataset.rt; renderRecords(); }));
+  app.querySelectorAll('.lltrack').forEach(tr=>{   // click-and-drag sideways, same as the home-page leader sliders
+    let down=false, moved=0, startX=0, startL=0;
+    tr.addEventListener('pointerdown', e=>{ if(e.pointerType==='mouse' && e.button===0){ down=true; moved=0; startX=e.clientX; startL=tr.scrollLeft; } });
+    tr.addEventListener('pointermove', e=>{ if(!down) return; const dx=e.clientX-startX; moved=Math.max(moved,Math.abs(dx));
+      if(moved>5) tr.classList.add('drag'); tr.scrollLeft=startL-dx; });
+    const end=()=>{ down=false; tr.classList.remove('drag'); };
+    addEventListener('pointerup', end); tr.addEventListener('pointerleave', end);
+    tr.addEventListener('click', e=>{ if(moved>5){ e.preventDefault(); e.stopPropagation(); moved=0; } }, true);
+    tr.addEventListener('keydown', e=>{ const w=(tr.querySelector('.llist')||{offsetWidth:260}).offsetWidth+13;
+      if(e.key==='ArrowRight'){ tr.scrollBy({left:w,behavior:'smooth'}); e.preventDefault(); }
+      else if(e.key==='ArrowLeft'){ tr.scrollBy({left:-w,behavior:'smooth'}); e.preventDefault(); } });
+  });
   app.querySelectorAll('.pname[data-p]').forEach(b=>b.addEventListener('click',()=>{
     location.hash='#/p/'+encodeURIComponent(b.dataset.p); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{
