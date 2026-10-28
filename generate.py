@@ -5977,7 +5977,7 @@ function milestoneHtml(){
   const STATS = MS_STATS.slice().sort((x,y)=>ORDER.indexOf(x.key)-ORDER.indexOf(y.key));
   /* the same card layout as the home page's career leaders: one card per stat, laid out in a sideways slider */
   const recentCards = STATS.map(st=>{
-    const ev = achievedRaw.filter(a=>a.st===st).slice(0, PER); if(!ev.length) return '';
+    const ev = achievedRaw.filter(a=>a.st===st).slice(0, PER); if(ev.length<PER) return '';
     const top = Math.max(...ev.map(e=>e.T));
     return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${ev.map(e=>{
       const logo = teamLogoForYear(e.team, e.y);
@@ -5985,7 +5985,7 @@ function milestoneHtml(){
     }).join('')}</ol></div>`;
   }).join('');
   const soonCards = STATS.map(st=>{
-    const it = horizonRaw.filter(h=>h.st===st && (h.left/h.T<=0.2 || h.left<=3)).sort((a,b)=>a.left-b.left||(a.left/a.T)-(b.left/b.T)||a.n.localeCompare(b.n)).slice(0, PER); if(!it.length) return '';
+    const it = horizonRaw.filter(h=>h.st===st).sort((a,b)=>a.left-b.left||(a.left/a.T)-(b.left/b.T)||a.n.localeCompare(b.n)).slice(0, PER); if(it.length<PER) return '';
     return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${it.map(h=>{
       const pl = P[h.n];
       const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.year===latestYear);
