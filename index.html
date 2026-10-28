@@ -1013,7 +1013,10 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .mssub .tmcell img{width:18px;height:18px}
 .msbox{font-size:.82rem}
 .msdot{opacity:.6}
-.msavg{color:var(--ink)}
+.msnear{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;font-size:.82rem;color:var(--muted);margin-top:3px}
+.msnear .msleft{color:var(--ink)}
+.msavg{color:var(--ink);flex-basis:100%;display:block}
+.msnear{padding-bottom:5px}
 .msup{color:#1fa34a;font-weight:700;margin-left:3px}
 .llgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px;margin-bottom:38px}
 .llsliders{margin-bottom:38px}
@@ -5883,11 +5886,17 @@ NOHIT.forEach(x=>{ (NOHIT_BY_PITCHER[x.pitcher] = NOHIT_BY_PITCHER[x.pitcher] ||
    since the start of the player's career reached the number. */
 const MS_STATS = [
   {key:'G_bat', label:'Games Played',  unit:'Games',          T:[50,100,150,200,250,300], kind:'bat', g:(b)=>1},
+  {key:'AB',    label:'At Bats',       unit:'At Bats',        T:[100,250,500,750,1000,1500,2000], kind:'bat', g:(b)=>b.ab},
   {key:'H',     label:'Hits',          unit:'Hits',           T:[50,100,250,500,750,1000], kind:'bat', g:(b)=>b.h},
+  {key:'2B',    label:'Doubles',       unit:'Doubles',        T:[25,50,100,150], kind:'bat', g:(b)=>b['2b']},
+  {key:'3B',    label:'Triples',       unit:'Triples',        T:[5,10], kind:'bat', g:(b)=>b['3b']},
+  {key:'TB',    label:'Total Bases',   unit:'Total Bases',    T:[100,250,500,750,1000,1500,2000], kind:'bat', g:(b)=>b.h+b['2b']+2*b['3b']+3*b.hr},
   {key:'HR',    label:'Home Runs',     unit:'Home Runs',      T:[10,25,50,100,150,200,250,300,350], kind:'bat', g:(b)=>b.hr},
   {key:'RBI',   label:'RBIs',          unit:'RBIs',           T:[50,100,250,500,750,1000], kind:'bat', g:(b)=>b.rbi},
   {key:'R',     label:'Runs Scored',   unit:'Runs',           T:[100,250,500,750,1000], kind:'bat', g:(b)=>b.r},
   {key:'BB',    label:'Walks',         unit:'Walks',          T:[50,100,250,500], kind:'bat', g:(b)=>b.bb},
+  {key:'G_pit', label:'Games Pitched', unit:'Games Pitched',  T:[50,100,150], kind:'pit', g:(p)=>1},
+  {key:'IPouts',label:'Innings Pitched',unit:'Innings Pitched',T:[100,250,500,750,1000], kind:'pit', div:3, g:(p)=>p.ip/3},
   {key:'W',     label:'Pitching Wins', unit:'Pitching Wins',  T:[10,25,50,75,100], kind:'pit', g:(p)=>p.w},
   {key:'pK',    label:'Strikeouts',    unit:'Strikeouts',     T:[50,100,250,500,750,1000], kind:'pit', g:(p)=>p.k},
   {key:'SV',    label:'Saves',         unit:'Saves',          T:[10,25,50], kind:'pit', g:(p)=>p.sv},
@@ -5915,7 +5924,7 @@ function milestoneData(){
     if(!rows.length) return;
     MS_STATS.forEach(st=>{
       const byYear = {};
-      rows.forEach(r=>{ byYear[r.year] = (byYear[r.year]||0) + (+r[st.key]||0); });
+      rows.forEach(r=>{ byYear[r.year] = (byYear[r.year]||0) + (+r[st.key]||0)/(st.div||1); });
       const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
       const total = years.reduce((a,y)=>a+byYear[y],0);
       if(total<=0) return;
@@ -5934,20 +5943,31 @@ function milestoneData(){
       /* on the horizon: played in the latest season, and within reach of the next round number */
       if(!byYear[latestYear]) return;
       const nextT = st.T.find(T=>T>total); if(!nextT) return;
-      const left = nextT - total;
-      if(left/nextT > 0.15 && left>3) return;
+      const left = +(nextT - total).toFixed(1);
       /* average per 15-game season over the league's last five seasons (hitting was far friendlier before 2020, so a career rate would
          flatter players chasing a milestone): the stat total in those seasons spread over the team games of the seasons the player
          batted (or pitched) in, scaled to 15 team games */
       const used = rows.filter(r=>r.year>latestYear-5 && (+r[st.kind==='bat'?'G_bat':'G_pit']||0)>0);
       const teamG = used.reduce((a,r)=>a+(teamGames[r.team+'|'+r.year]||45),0) || 45;
-      const recentTotal = used.reduce((a,r)=>a+(+r[st.key]||0),0);
-      horizon.push({n, st, total, T:nextT, left, avg: recentTotal/teamG*15});
+      const recentTotal = used.reduce((a,r)=>a+(+r[st.key]||0)/(st.div||1),0);
+      horizon.push({n, st, total:+total.toFixed(1), T:nextT, left, avg: recentTotal/teamG*15});
     });
   });
   achieved.sort((a,b)=>b.date.localeCompare(a.date)||b.T-a.T||a.n.localeCompare(b.n));
-  horizon.sort((a,b)=>(a.left/a.T)-(b.left/b.T)||a.left-b.left||a.n.localeCompare(b.n));
-  return _msCache = {achieved, horizon, latestYear};
+  /* one entry per player (their nearest milestones, up to three), the 20 closest players; the "close enough" window widens
+     if fewer than 20 players qualify */
+  let players = [];
+  for(const win of [0.15, 0.25, 0.4, 0.6, 1]){
+    const by = {};
+    horizon.filter(h=>h.left/h.T<=win || h.left<=3).forEach(h=>{ (by[h.n] = by[h.n]||[]).push(h); });
+    players = Object.keys(by).map(n=>{ const items = by[n].sort((a,b)=>(a.left/a.T)-(b.left/b.T)||a.left-b.left); return {n, items:items.slice(0,3), best:items[0].left/items[0].T}; })
+      .sort((a,b)=>a.best-b.best||a.n.localeCompare(b.n));
+    if(players.length>=20) break;
+  }
+  /* a player who reached several milestones in the same game gets one row with several badges */
+  const groups = [];
+  achieved.forEach(a=>{ const g = groups.find(x=>x.n===a.n && x.gid===a.gid); if(g) g.items.push(a); else groups.push({n:a.n, gid:a.gid, date:a.date, team:a.team, y:a.y, items:[a]}); });
+  return _msCache = {achieved:groups, horizon:players, latestYear};
 }
 function milestoneHtml(){
   const {achieved, horizon, latestYear} = milestoneData();
@@ -5955,21 +5975,25 @@ function milestoneHtml(){
   const recent = achieved.slice(0, 20).map(a=>{
     const logo = teamLogoForYear(a.team, a.y);
     return `<li class="msrow">${llHead(a.n)}<div class="msmain">
-      <div class="msline"><button class="pname" data-p="${esc(a.n)}">${esc(a.n)}</button><span class="msbadge">${a.T.toLocaleString()} ${esc(a.st.unit)}</span></div>
+      <div class="msline"><button class="pname" data-p="${esc(a.n)}">${esc(a.n)}</button>${a.items.sort((p,q)=>q.T-p.T).map(m=>`<span class="msbadge">${m.T.toLocaleString()} ${esc(m.st.unit)}</span>`).join('')}</div>
       <div class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(a.team, a.y)}</span>
         <span class="msdot">·</span><span>${fmt(a.date)}</span><span class="msdot">·</span><button class="pname msbox" data-g="${a.gid}">Box score</button></div></div></li>`;
   }).join('');
-  const soon = horizon.slice(0, 20).map(h=>{
-    const on = h.avg >= h.left;
-    const pl = P[h.n];
+  const soon = horizon.slice(0, 20).map(pp=>{
+    const pl = P[pp.n];
     const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.year===latestYear);
     const team = rows.length ? rows[rows.length-1].team : null;
     const logo = team ? teamLogoForYear(team, latestYear) : null;
-    const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
-    return `<li class="msrow">${llHead(h.n)}<div class="msmain">
-      <div class="msline"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="msbadge msnext">${h.T.toLocaleString()} ${esc(h.st.unit)}</span></div>
-      <div class="mssub">${team?`<span class="tmcell">${logoIcon(logo,'')}${histTeamLink(team, latestYear)}</span><span class="msdot">·</span>`:''}<span><b>${h.left}</b> away (${h.total.toLocaleString()} career)</span></div>
-      <div class="mssub msavg">Averages <b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:''}</div></div></li>`;
+    const nf = v => Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1);
+    const lines = pp.items.map(h=>{
+      const on = h.avg >= h.left;
+      const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
+      return `<div class="msnear"><span class="msbadge msnext">${h.T.toLocaleString()} ${esc(h.st.unit)}</span>
+        <span class="msleft"><b>${nf(h.left)}</b> away (${nf(h.total)} career)</span>
+        <span class="msavg"><b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:''}</span></div>`;
+    }).join('');
+    return `<li class="msrow">${llHead(pp.n)}<div class="msmain">
+      <div class="msline"><button class="pname" data-p="${esc(pp.n)}">${esc(pp.n)}</button>${team?`<span class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(team, latestYear)}</span></span>`:''}</div>${lines}</div></li>`;
   }).join('');
   return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020; the green arrow means that average is enough to reach the next milestone in one season. Not affected by the era toggle above.</p>
     <div class="msgrid">
