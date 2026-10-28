@@ -5985,7 +5985,7 @@ function milestoneHtml(){
     }).join('')}</ol></div>`;
   }).join('');
   const soonCards = STATS.map(st=>{
-    const it = horizonRaw.filter(h=>h.st===st && (h.left/h.T<=0.2 || h.left<=3)).sort((a,b)=>(a.left/a.T)-(b.left/b.T)||a.left-b.left).slice(0, PER); if(!it.length) return '';
+    const it = horizonRaw.filter(h=>h.st===st && (h.left/h.T<=0.2 || h.left<=3)).sort((a,b)=>a.left-b.left||(a.left/a.T)-(b.left/b.T)||a.n.localeCompare(b.n)).slice(0, PER); if(!it.length) return '';
     return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${it.map(h=>{
       const pl = P[h.n];
       const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team && s.year===latestYear);
