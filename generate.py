@@ -1011,15 +1011,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .msol .ln .pname{font-size:.92rem}
 .llist .msol .lt .pname{display:inline;font-size:inherit;font-weight:600}
 .llist .msol li>b{font-size:.9rem}
-.msT{font-weight:800;font-size:1.05em}
-.msA{font-weight:800}
-.llist li b.msA.hot,.msT.hot{color:#14803a}
-.llist li b.msA.warm,.msT.warm{color:#b45f06}
-.llist li b.msA.cool,.msT.cool{color:#46607a}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msT.hot,:root:not([data-theme="light"]) .msA.hot{color:#46e08a}:root:not([data-theme="light"]) .msT.warm,:root:not([data-theme="light"]) .msA.warm{color:#ffb454}:root:not([data-theme="light"]) .msT.cool,:root:not([data-theme="light"]) .msA.cool{color:#9db4cc}}
-:root[data-theme="dark"] .msT.hot,:root[data-theme="dark"] .msA.hot{color:#46e08a}
-:root[data-theme="dark"] .msT.warm,:root[data-theme="dark"] .msA.warm{color:#ffb454}
-:root[data-theme="dark"] .msT.cool,:root[data-theme="dark"] .msA.cool{color:#9db4cc}
+.llist li .msT{font-weight:800;color:var(--ink)}
 .msup{color:#14803a;font-weight:700;margin-left:2px;font-size:.9rem}
 .msdown{color:#c41e30;font-weight:700;margin-left:2px;font-size:.9rem}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msup{color:#46e08a}:root:not([data-theme="light"]) .msdown{color:#ff7a88}}
@@ -6007,9 +5999,8 @@ function milestoneHtml(){
       const team = rows.length ? rows[rows.length-1].team : null;
       const logo = team ? teamLogoForYear(team, latestYear) : null;
       const on = h.avg >= h.left;
-      const cls = h.left<=5 ? 'hot' : h.left<=15 ? 'warm' : 'cool';   /* by how many are left: 5 or fewer green, 15 or fewer orange */
       const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
-      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT ${cls}">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></span><b class="msA ${cls}">${nf(h.left)} away</b></li>`;
+      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
     }).join('')}</ol></div>`;
   }).join('');
   const slider = (id, title, cards) => `<div class="llslider msl" data-sl="${id}">
