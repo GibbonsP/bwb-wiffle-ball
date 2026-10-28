@@ -1013,10 +1013,12 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist .msol li>b{font-size:.9rem}
 .llist li .msT{font-weight:800;color:var(--ink)}
 .msup{color:#14803a;font-weight:700;margin-left:2px;font-size:.9rem}
+.msmid{color:#d97706;font-weight:700;margin-left:2px;font-size:.9rem}
 .msdown{color:#c41e30;font-weight:700;margin-left:2px;font-size:.9rem}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msup{color:#46e08a}:root:not([data-theme="light"]) .msdown{color:#ff7a88}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msup{color:#46e08a}:root:not([data-theme="light"]) .msdown{color:#ff7a88}:root:not([data-theme="light"]) .msmid{color:#ffb454}}
 :root[data-theme="dark"] .msup{color:#46e08a}
 :root[data-theme="dark"] .msdown{color:#ff7a88}
+:root[data-theme="dark"] .msmid{color:#ffb454}
 .llgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px;margin-bottom:38px}
 .llsliders{margin-bottom:38px}
 .llslider{margin:0 0 22px;position:relative}
@@ -6000,7 +6002,7 @@ function milestoneHtml(){
       const logo = team ? teamLogoForYear(team, latestYear) : null;
       const on = h.avg >= h.left;
       const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
-      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
+      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:h.avg>=h.left*2/3?`<span class="msmid" title="At this pace a 15-game season gets within reach (66%–99% of what is needed)">▶</span>`:`<span class="msdown" title="At this pace a 15-game season falls well short (under 66% of what is needed)">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
     }).join('')}</ol></div>`;
   }).join('');
   const slider = (id, title, cards) => `<div class="llslider msl" data-sl="${id}">
