@@ -5976,7 +5976,7 @@ function milestoneHtml(){
   const ORDER = ['HR','H','RBI','W','pK','R','2B','BB','TB','G_bat','IPouts','SV','AB','G_pit','3B'];
   const STATS = MS_STATS.slice().sort((x,y)=>ORDER.indexOf(x.key)-ORDER.indexOf(y.key));
   /* the same card layout as the home page's career leaders: one card per stat, laid out in a sideways slider */
-  const recentCards = STATS.map(st=>{
+  const recentFor = kind => STATS.filter(st=>st.kind===kind).map(st=>{
     const ev = achievedRaw.filter(a=>a.st===st).slice(0, PER); if(ev.length<PER) return '';
     const top = Math.max(...ev.map(e=>e.T));
     return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${ev.map(e=>{
@@ -6001,13 +6001,15 @@ function milestoneHtml(){
       <div class="lltrack" tabindex="0" aria-label="${title} — scroll sideways">${cards}</div>
     </div>`;
   const kindSw = `<span class="segs mskind" role="group" aria-label="Batting or pitching"><button data-mskind="bat" aria-pressed="true">Batting</button><button data-mskind="pit" aria-pressed="false">Pitching</button></span>`;
-  const horizonSlider = `<div class="llslider msl" data-sl="msh">
-      <div class="llslide-head"><h4>Milestones on the Horizon</h4>${kindSw}<span class="llslide-hint">Drag or scroll sideways →</span></div>
-      <div class="lltrack" data-mskind-pane="bat" tabindex="0" aria-label="Batting milestones on the horizon — scroll sideways">${soonFor('bat')}</div>
-      <div class="lltrack" data-mskind-pane="pit" tabindex="0" aria-label="Pitching milestones on the horizon — scroll sideways" hidden>${soonFor('pit')}</div>
+  const switched = (id, title, f) => `<div class="llslider msl" data-sl="${id}">
+      <div class="llslide-head"><h4>${title}</h4>${kindSw}<span class="llslide-hint">Drag or scroll sideways →</span></div>
+      <div class="lltrack" data-mskind-pane="bat" tabindex="0" aria-label="Batting ${title} — scroll sideways">${f('bat')}</div>
+      <div class="lltrack" data-mskind-pane="pit" tabindex="0" aria-label="Pitching ${title} — scroll sideways" hidden>${f('pit')}</div>
     </div>`;
+  const horizonSlider = switched('msh','Milestones on the Horizon',soonFor);
+  const recentSlider = switched('msr','Recent Milestones Achieved',recentFor);
   return `<div class="phase"><p class="pmeta">Career round numbers, regular season. Recent Milestones Achieved shows the game where the player's running career total reached the number, with a box score link (box scores begin in 2017, so earlier milestones aren't listed). Milestones on the Horizon shows how many each active player still needs; "avg" is their rate per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020 — a green ▲ means that average is enough to reach the milestone in one season, a red ▼ means it falls short. Not affected by the era toggle above.</p>
-    <div class="llsliders">${slider('msr','Recent Milestones Achieved',recentCards)}${horizonSlider}</div></div>`;
+    <div class="llsliders">${recentSlider}${horizonSlider}</div></div>`;
 }
 function renderRecords(){
   setNav('records');
