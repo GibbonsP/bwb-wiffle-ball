@@ -794,12 +794,13 @@ table.h2hsub thead th{padding:7px 10px}
 .tk-r{font-weight:600}
 .tk-logo{width:16px;height:16px;object-fit:contain;flex:none}
 .tk-w{font-weight:700}
-.nav{max-width:none;margin:0 0 20px;padding:0 28px;display:flex;flex-wrap:wrap;gap:0 10px;justify-content:space-between;
+.nav{max-width:1180px;margin:0 auto 20px;padding:0 20px;display:flex;flex-wrap:wrap;gap:0 8px;justify-content:space-between;
   border-bottom:1px solid var(--line);overflow:visible}
-@media (max-width:1150px){.nav{justify-content:flex-start;gap:0 16px}}
+@media (max-width:1230px){.nav button{font-size:.78rem}}
+@media (max-width:1100px){.nav{justify-content:flex-start;gap:0 16px}}
 .nav button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 2px;
   margin-bottom:-1px;font-family:"Oswald","Arial Narrow",sans-serif;
-  font-size:clamp(.78rem,1.05vw,.95rem);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .nav button.active{color:var(--ink);border-color:var(--clay);font-weight:600}
 .nav button:hover{color:var(--ink)}
 .subtabs{display:flex;gap:20px;margin:20px 0 26px;border-bottom:1px solid var(--line);overflow-x:auto}
