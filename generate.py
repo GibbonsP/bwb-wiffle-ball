@@ -1024,6 +1024,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .msavg{color:var(--ink);flex-basis:100%;display:block}
 .msnear{padding-bottom:5px}
 .msup{color:#1fa34a;font-weight:700;margin-left:3px}
+.msdown{color:#d62839;font-weight:700;margin-left:3px}
 .llgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px;margin-bottom:38px}
 .llsliders{margin-bottom:38px}
 .llslider{margin:0 0 22px;position:relative}
@@ -5996,12 +5997,12 @@ function milestoneHtml(){
       const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
       return `<div class="msnear"><span class="msbadge msnext">${h.T.toLocaleString()} ${esc(h.st.unit)}</span>
         <span class="msleft"><b>${nf(h.left)}</b> away (${nf(h.total)} career)</span>
-        <span class="msavg"><b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:''}</span></div>`;
+        <span class="msavg"><b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:`<span class="msdown" title="At this pace a 15-game season falls short">▼</span>`}</span></div>`;
     }).join('');
     return `<li class="msrow">${llHead(pp.n)}<div class="msmain">
       <div class="msline"><button class="pname" data-p="${esc(pp.n)}">${esc(pp.n)}</button>${team?`<span class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(team, latestYear)}</span></span>`:''}</div>${lines}</div></li>`;
   }).join('');
-  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020; the green arrow means that average is enough to reach the next milestone in one season. Not affected by the era toggle above.</p>
+  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020; a green ▲ means that average is enough to reach the next milestone in one season, a red ▼ means it falls short. Not affected by the era toggle above.</p>
     <div class="msgrid">
       <section class="mscol"><h4 class="hsub">Recent Milestones Achieved</h4><ul class="mslist">${recent||'<li class="lead">None yet.</li>'}</ul></section>
       <section class="mscol"><h4 class="hsub">Milestones on the Horizon</h4><ul class="mslist">${soon||'<li class="lead">None close.</li>'}</ul></section>
