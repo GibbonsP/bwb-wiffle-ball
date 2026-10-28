@@ -6002,7 +6002,7 @@ function milestoneHtml(){
       const logo = team ? teamLogoForYear(team, latestYear) : null;
       const on = h.avg >= h.left;
       const avg = h.avg>=10 ? h.avg.toFixed(0) : h.avg.toFixed(1);
-      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:h.avg>=h.left*2/3?`<span class="msmid" title="At this pace a 15-game season gets within reach (66%–99% of what is needed)">▶</span>`:`<span class="msdown" title="At this pace a 15-game season falls well short (under 66% of what is needed)">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
+      return `<li style="--w:${Math.min(100,h.total/h.T*100).toFixed(1)}%">${llHead(h.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(h.n)}">${esc(h.n)}</button><span class="lt">to <span class="msT">${h.T.toLocaleString()}</span> · avg ${avg}/15 G ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:h.avg>=h.left*0.66?`<span class="msmid" title="At this pace a 15-game season gets within reach (66%–99% of what is needed)">▶</span>`:`<span class="msdown" title="At this pace a 15-game season falls well short (under 66% of what is needed)">▼</span>`}</span></span><b>${nf(h.left)} away</b></li>`;
     }).join('')}</ol></div>`;
   }).join('');
   const slider = (id, title, cards) => `<div class="llslider msl" data-sl="${id}">
