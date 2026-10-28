@@ -5942,11 +5942,13 @@ function milestoneData(){
       const nextT = st.T.find(T=>T>total); if(!nextT) return;
       const left = nextT - total;
       if(left/nextT > 0.15 && left>3) return;
-      /* average per 15-game season: the player's career total spread over the team games of every season they played (batting
-         seasons for hitting stats, pitching seasons for pitching stats), scaled to 15 team games */
-      const used = rows.filter(r=>(+r[st.kind==='bat'?'G_bat':'G_pit']||0)>0);
+      /* average per 15-game season over the league's last five seasons (hitting was far friendlier before 2020, so a career rate would
+         flatter players chasing a milestone): the stat total in those seasons spread over the team games of the seasons the player
+         batted (or pitched) in, scaled to 15 team games */
+      const used = rows.filter(r=>r.year>latestYear-5 && (+r[st.kind==='bat'?'G_bat':'G_pit']||0)>0);
       const teamG = used.reduce((a,r)=>a+(teamGames[r.team+'|'+r.year]||45),0) || 45;
-      horizon.push({n, st, total, T:nextT, left, avg: total/teamG*15});
+      const recentTotal = used.reduce((a,r)=>a+(+r[st.key]||0),0);
+      horizon.push({n, st, total, T:nextT, left, avg: recentTotal/teamG*15});
     });
   });
   achieved.sort((a,b)=>b.date.localeCompare(a.date)||b.T-a.T||a.n.localeCompare(b.n));
@@ -5975,7 +5977,7 @@ function milestoneHtml(){
       <div class="mssub">${team?`<span class="tmcell">${logoIcon(logo,'')}${histTeamLink(team, latestYear)}</span><span class="msdot">·</span>`:''}<span><b>${h.left}</b> away (${h.total.toLocaleString()} career)</span></div>
       <div class="mssub msavg">Averages <b>${avg}</b> ${esc(h.st.unit==='RBIs'?'RBIs':h.st.unit.toLowerCase())} per 15-game season ${on?`<span class="msup" title="At this pace a 15-game season gets there">▲</span>`:''}</div></div></li>`;
   }).join('');
-  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season (the player's career rate scaled to 15 team games); the green arrow means that average is enough to reach the next milestone in one season. Not affected by the era toggle above.</p>
+  return `<div class="phase"><p class="pmeta">Career round numbers, regular season. The date and box score are the game where the player's running career total reached the number (box scores begin in 2017, so earlier milestones aren't listed). Averages are per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020; the green arrow means that average is enough to reach the next milestone in one season. Not affected by the era toggle above.</p>
     <div class="msgrid">
       <section class="mscol"><h4 class="hsub">Recent Milestones Achieved</h4><ul class="mslist">${recent||'<li class="lead">None yet.</li>'}</ul></section>
       <section class="mscol"><h4 class="hsub">Milestones on the Horizon</h4><ul class="mslist">${soon||'<li class="lead">None close.</li>'}</ul></section>
