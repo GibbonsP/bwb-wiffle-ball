@@ -1023,6 +1023,10 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llslide-head h4{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.02rem;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink);font-weight:600}
 .llslide-hint{color:var(--muted);font-size:.72rem;letter-spacing:.03em}
+.llslide-head .mskind{margin-left:auto;margin-right:14px;display:inline-flex;gap:6px}
+.llslide-head .mskind button{padding:4px 12px;font-size:.78rem}
+.llslide-head .mskind+.llslide-hint{margin-left:0}
+.lltrack[hidden]{display:none}
 .lltrack{display:flex;gap:13px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 14px;cursor:grab;
   scrollbar-width:thin;scrollbar-color:var(--line-strong) var(--line);overscroll-behavior-x:contain;outline-offset:2px}
 .lltrack.drag{cursor:grabbing;scroll-snap-type:none;user-select:none;-webkit-user-select:none}
@@ -3442,6 +3446,9 @@ const PANTHERS_ALT_JERSEYS = [{y:2022, name:'White & Gold'}, {y:2023, name:'Red 
 (function(){
   let tmr = null, cur = null;
   const unpin = () => { clearTimeout(tmr); tmr = null; if(cur){ cur.classList.remove('pinned'); if(cur.contains(document.activeElement)) document.activeElement.blur(); cur = null; } };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-mskind]'); if(!b) return;
+    const sl = b.closest('.msl'); sl.querySelectorAll('[data-mskind]').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    sl.querySelectorAll('[data-mskind-pane]').forEach(p=>{ p.hidden = p.dataset.mskindPane!==b.dataset.mskind; p.scrollLeft = 0; }); });
   document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.numring[tabindex]');
     if(!el){ if(cur) unpin(); return; }
     if(cur && cur!==el) unpin();
@@ -5984,7 +5991,7 @@ function milestoneHtml(){
       return `<li style="--w:0%">${llHead(e.n)}${logoIcon(logo,'')}<span class="ln"><button class="pname" data-p="${esc(e.n)}">${esc(e.n)}</button><span class="lt">${fmt(e.date)} · <button class="pname" data-g="${e.gid}">Box score</button></span></span><b>${e.T.toLocaleString()}</b></li>`;
     }).join('')}</ol></div>`;
   }).join('');
-  const soonCards = STATS.map(st=>{
+  const soonFor = kind => STATS.filter(st=>st.kind===kind).map(st=>{
     const it = horizonRaw.filter(h=>h.st===st).sort((a,b)=>a.left-b.left||(a.left/a.T)-(b.left/b.T)||a.n.localeCompare(b.n)).slice(0, PER); if(it.length<PER) return '';
     return `<div class="llist"><h4>${esc(st.label)}</h4><ol class="msol">${it.map(h=>{
       const pl = P[h.n];
@@ -6000,8 +6007,14 @@ function milestoneHtml(){
       <div class="llslide-head"><h4>${title}</h4><span class="llslide-hint">Drag or scroll sideways →</span></div>
       <div class="lltrack" tabindex="0" aria-label="${title} — scroll sideways">${cards}</div>
     </div>`;
+  const kindSw = `<span class="chips mskind" role="group" aria-label="Batting or pitching"><button data-mskind="bat" aria-pressed="true">Batting</button><button data-mskind="pit" aria-pressed="false">Pitching</button></span>`;
+  const horizonSlider = `<div class="llslider msl" data-sl="msh">
+      <div class="llslide-head"><h4>Milestones on the Horizon</h4>${kindSw}<span class="llslide-hint">Drag or scroll sideways →</span></div>
+      <div class="lltrack" data-mskind-pane="bat" tabindex="0" aria-label="Batting milestones on the horizon — scroll sideways">${soonFor('bat')}</div>
+      <div class="lltrack" data-mskind-pane="pit" tabindex="0" aria-label="Pitching milestones on the horizon — scroll sideways" hidden>${soonFor('pit')}</div>
+    </div>`;
   return `<div class="phase"><p class="pmeta">Career round numbers, regular season. Recent Milestones Achieved shows the game where the player's running career total reached the number, with a box score link (box scores begin in 2017, so earlier milestones aren't listed). Milestones on the Horizon shows how many each active player still needs; "avg" is their rate per 15-game season over the last five seasons (${latestYear-4}–${latestYear}), since scoring was much higher before 2020 — a green ▲ means that average is enough to reach the milestone in one season, a red ▼ means it falls short. Not affected by the era toggle above.</p>
-    <div class="llsliders">${slider('msr','Recent Milestones Achieved',recentCards)}${slider('msh','Milestones on the Horizon',soonCards)}</div></div>`;
+    <div class="llsliders">${slider('msr','Recent Milestones Achieved',recentCards)}${horizonSlider}</div></div>`;
 }
 function renderRecords(){
   setNav('records');
