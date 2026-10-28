@@ -1003,22 +1003,25 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .mslist{list-style:none;margin:0;padding:0}
 .msrow{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
 .msrow:first-child{border-top:0}
-.msrow .lphoto{width:44px;height:44px;border-radius:50%;flex:none;object-fit:cover}
+.msrow .lphoto{width:48px;height:48px;border-radius:50%;flex:none;object-fit:cover}
 .msmain{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
 .msline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
-.msline .pname{font-weight:700}
-.msbadge{font:600 .72rem/1 "Oswald","Arial Narrow",sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--clay);color:#fff;white-space:nowrap}
+.msline .pname{font-weight:700;font-size:1rem}
+.msbadge{font:600 .78rem/1 "Oswald","Arial Narrow",sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:5px 10px;border-radius:999px;background:var(--clay);color:var(--paper);white-space:nowrap}
 .msbadge.msnext{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
-.mssub{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:.82rem;color:var(--muted)}
+.mssub{display:flex;flex-wrap:wrap;align-items:center;gap:3px 14px;font-size:.9rem;color:var(--muted)}
 .mssub .tmcell img{width:18px;height:18px}
-.msbox{font-size:.82rem}
+.msbox{font-size:.9rem}
 .msdot{opacity:.6}
-.msnear{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;font-size:.82rem;color:var(--muted);margin-top:3px}
+.msnear{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;font-size:.9rem;color:var(--muted);margin-top:4px}
 .msnear .msleft{color:var(--ink)}
 .msavg{color:var(--ink);flex-basis:100%;display:block}
 .msnear{padding-bottom:5px}
-.msup{color:#1fa34a;font-weight:700;margin-left:3px}
-.msdown{color:#d62839;font-weight:700;margin-left:3px}
+.msup{color:#14803a;font-weight:700;margin-left:4px;font-size:1rem}
+.msdown{color:#c41e30;font-weight:700;margin-left:4px;font-size:1rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .msup{color:#46e08a}:root:not([data-theme="light"]) .msdown{color:#ff7a88}}
+:root[data-theme="dark"] .msup{color:#46e08a}
+:root[data-theme="dark"] .msdown{color:#ff7a88}
 .llgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px;margin-bottom:38px}
 .llsliders{margin-bottom:38px}
 .llslider{margin:0 0 22px;position:relative}
@@ -5978,7 +5981,7 @@ function milestoneHtml(){
     return `<li class="msrow">${llHead(a.n)}<div class="msmain">
       <div class="msline"><button class="pname" data-p="${esc(a.n)}">${esc(a.n)}</button>${a.items.sort((p,q)=>q.T-p.T).map(m=>`<span class="msbadge">${m.T.toLocaleString()} ${esc(m.st.unit)}</span>`).join('')}</div>
       <div class="mssub"><span class="tmcell">${logoIcon(logo,'')}${histTeamLink(a.team, a.y)}</span>
-        <span class="msdot">·</span><span>${fmt(a.date)}</span><span class="msdot">·</span><button class="pname msbox" data-g="${a.gid}">Box score</button></div></div></li>`;
+        <span>${fmt(a.date)}</span><button class="pname msbox" data-g="${a.gid}">Box score</button></div></div></li>`;
   }).join('');
   const soon = horizon.slice(0, 20).map(pp=>{
     const pl = P[pp.n];
