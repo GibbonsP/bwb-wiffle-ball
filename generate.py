@@ -1023,8 +1023,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llslide-head h4{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.02rem;letter-spacing:.06em;
   text-transform:uppercase;color:var(--ink);font-weight:600}
 .llslide-hint{color:var(--muted);font-size:.72rem;letter-spacing:.03em}
-.llslide-head .mskind{margin-left:auto;margin-right:14px;display:inline-flex;gap:6px}
-.llslide-head .mskind button{padding:4px 12px;font-size:.78rem}
+.llslide-head .mskind{margin-left:auto;margin-right:14px;align-self:center}
 .llslide-head .mskind+.llslide-hint{margin-left:0}
 .lltrack[hidden]{display:none}
 .lltrack{display:flex;gap:13px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 14px;cursor:grab;
@@ -6007,7 +6006,7 @@ function milestoneHtml(){
       <div class="llslide-head"><h4>${title}</h4><span class="llslide-hint">Drag or scroll sideways →</span></div>
       <div class="lltrack" tabindex="0" aria-label="${title} — scroll sideways">${cards}</div>
     </div>`;
-  const kindSw = `<span class="chips mskind" role="group" aria-label="Batting or pitching"><button data-mskind="bat" aria-pressed="true">Batting</button><button data-mskind="pit" aria-pressed="false">Pitching</button></span>`;
+  const kindSw = `<span class="segs mskind" role="group" aria-label="Batting or pitching"><button data-mskind="bat" aria-pressed="true">Batting</button><button data-mskind="pit" aria-pressed="false">Pitching</button></span>`;
   const horizonSlider = `<div class="llslider msl" data-sl="msh">
       <div class="llslide-head"><h4>Milestones on the Horizon</h4>${kindSw}<span class="llslide-hint">Drag or scroll sideways →</span></div>
       <div class="lltrack" data-mskind-pane="bat" tabindex="0" aria-label="Batting milestones on the horizon — scroll sideways">${soonFor('bat')}</div>
