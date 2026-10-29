@@ -410,6 +410,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank{width:100%;padding:8px 14px;display:flex;flex-direction:column;gap:6px;font-size:.82rem}
 .svhrank div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:6px;padding-right:6px}}
+.svhrank b{font-family:"IBM Plex Mono",monospace;font-size:.84rem}
 .svhcomp,.svhsearch{width:100%;padding:8px 12px;display:flex;flex-direction:column;gap:6px;font-size:.78rem}
 .svhcomp-h{color:var(--muted);font-size:.7rem;letter-spacing:.04em;margin-bottom:1px;white-space:nowrap}
 .svhcomp-r{display:grid;grid-template-columns:minmax(0,1fr) 44px 30px;align-items:center;gap:8px}
@@ -1575,6 +1577,74 @@ const ops = d => obp(d)+slg(d);
 const era = d => d.IPouts ? 3*d.ER/(d.IPouts/3) : NaN;
 const whip= d => d.IPouts ? (d.pBB+d.pH)/(d.IPouts/3) : NaN;
 const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
+/* Game Score (Savant): one number per player per game, combining hitting, pitching and fielding: a linear
+   combination of box-score events in the spirit of hockey's Game Score (hockey-graphs.com). Each category's weighted
+   total is compared with what a LEAGUE-AVERAGE player would have produced in the same number of PAs / outs / innings
+   THAT YEAR (the same LEAGUE_BY_YEAR tables OPS+ and ERA+ use), because this league's scoring swung roughly 2.5x across
+   its history and a flat formula would just reward playing in a high-offense year. Every category is zero-baseline
+   (a league-average game scores 0) and purely additive, so a two-way player's number is the sum of what they did.
+   Units are roughly runs above average.
+
+   Hitting and pitching weights (HW / PW) are fit, not hand-picked: OLS of this league's own team-game batting lines
+   against runs scored (R²=0.86) and team-game pitching lines against runs allowed (R²=0.78). They land close to
+   MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples occurred once
+   in the whole dataset, so 0.64 is a call, not a fit; and strikeouts came back with ~0 value once outs, hits and walks
+   are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding weights are
+   a judgment call too (its events are collinear with pitching outs and the sample is thin).
+
+   Every run is credited once. A batter's runs scored and RBI each count RUN_CREDIT (0.5), so a run is worth 1 in
+   total to the hitters involved; an earlier version gave +1 for each, crediting every run twice, and then needed a
+   2.2x pitching multiplier to keep pitchers level. Both are gone: PIT_SCALE is 1, and pitchers still swing about
+   1.25x as much as hitters on their own, because one pitcher covers a whole game's lineup.
+
+   Checked against the 447 regular-season games with full box scores: the team with the higher summed Game Score won
+   92% of them, and the score difference tracks the run margin (r = 0.93). */
+const HW = {single:0.476, double:0.559, triple:0.64, hr:1.599, bb:0.608, out:-0.296};
+const PW = {out:0.337, h:-1.112, bb:-0.735};
+const RUN_CREDIT = 0.5, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = 1;
+const _gsRateCache = {};
+function gameScoreRatesFor(year, post){
+  const key = year+'|'+(post?1:0);
+  if(_gsRateCache[key]) return _gsRateCache[key];
+  const lg = (post ? LEAGUE_BY_YEAR_POST[year] : null) || LEAGUE_BY_YEAR[year];
+  const wb = d => HW.single*(d['1B']||0) + HW.double*(d['2B']||0) + HW.triple*(d['3B']||0) + HW.hr*(d.HR||0)
+    + HW.bb*((d.BB||0)+(d.HBP||0)) + RUN_CREDIT*((d.RBI||0) + (d.R||0)) + (d.SB||0) + HW.out*((d.AB||0)-(d.H||0));
+  const pb = d => PW.out*(d.IPouts||0) + PW.h*(d.pH||0) + PW.bb*(d.pBB||0);
+  const fb = d => (d.PO||0) + 2*(d.A||0) + 4*(d.DP||0) - 3*(d.E||0);
+  const r = lg ? {
+    wbPerPA: lg.PA ? wb(lg)/lg.PA : 0,
+    pbPerOut: lg.IPouts ? pb(lg)/lg.IPouts : 0,
+    fbPerInn: lg.INN ? fb(lg)/lg.INN : 0,
+  } : {wbPerPA:0, pbPerOut:0, fbPerInn:0};
+  _gsRateCache[key] = r;
+  return r;
+}
+/* the three pieces and their sum, each to a tenth */
+function gameScoreParts(bat, pit, fld, year, post){
+  const rates = gameScoreRatesFor(year, post);
+  let hit = 0, pitch = 0, field = 0;
+  if(bat){
+    const h=bat.h||0, d2=bat['2b']||0, d3=bat['3b']||0, hr=bat.hr||0, singles=h-d2-d3-hr;
+    const pa = (bat.ab||0)+(bat.bb||0)+(bat.hbp||0);
+    const wb = HW.single*singles + HW.double*d2 + HW.triple*d3 + HW.hr*hr
+       + HW.bb*((bat.bb||0)+(bat.hbp||0)) + RUN_CREDIT*((bat.rbi||0) + (bat.r||0)) + (bat.sb||0)
+       + HW.out*((bat.ab||0) - h);
+    hit = HIT_SCALE*(wb - rates.wbPerPA*pa);
+  }
+  if(pit){
+    const outs = pit.ip||0;
+    const pb = PW.out*outs + PW.h*(pit.h||0) + PW.bb*(pit.bb||0);
+    pitch = PIT_SCALE*(pb - rates.pbPerOut*outs);
+  }
+  if(fld){
+    const inn = fld.inn||0;
+    const fb = (fld.po||0) + 2*(fld.a||0) + 4*(fld.dp||0) - 3*(fld.e||0);
+    field = FLD_SCALE*(fb - rates.fbPerInn*inn);
+  }
+  const r1 = v => Math.round(v*10)/10;
+  return {hit:r1(hit), pit:r1(pitch), fld:r1(field), total:r1(hit+pitch+field)};
+}
+function gameScoreOf(bat, pit, fld, year, post){ return gameScoreParts(bat, pit, fld, year, post).total; }
 /* Chances handled = PO+A+E, not the separately-recorded TC field — checked
    against the real data and found 8 real season rows (out of 122) where TC
    didn't actually equal PO+A+E, which let fielding % come out above 1.000
@@ -9210,7 +9280,7 @@ function svpShell(tab, inner){
     <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
-    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
+    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gamescore','Game Score')}${t('search','Search')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='home' ? '#/savant' : b.dataset.svpt==='pct' ? '#/savant/rankings' : '#/savant/'+b.dataset.svpt;
@@ -10630,6 +10700,10 @@ function svpHubPreviews(){
   const out = {};
   const qual = svpEntries(y).filter(e=>svpQual('bat', e.row));
   const top = qual.map(e=>({e, v:wrcPlusFor(e.row, y, false)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v);
+  try{
+    const gr = svpGSRows().filter(r=>!r.post && r.y===y).sort((a,b)=>b.v-a.v).slice(0,3);
+    if(gr.length) out.gs = `<div class="svhrank">${gr.map(r=>`<div><span>${esc(r.n)}</span><b>${gsNum(r.v)}</b></div>`).join('')}</div>`;
+  }catch(e){}
   out.n = {bat: qual.length, pit: svpEntries(y).filter(e=>svpQual('pit', e.row)).length, y};
   if(top.length){
     const it = svpPizzaItems(top[0].e.name, y, 'bat', SV_BAT);
@@ -10875,6 +10949,12 @@ function svpTidbits(pv){
         <i><b style="width:${Math.max(8,Math.round(x.sim))}%"></b></i><em>${Math.round(x.sim)}%</em></div>`).join('')}</div>`,
         `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`); }catch(e){ return null; } },
   };
+  playerKinds.bestgame = () => {
+    const Y = pick([...new Set(svpGSRows().filter(r=>!r.post).map(r=>r.y))]); const top = svpGSRows().filter(r=>!r.post && r.y===Y).sort((a,b)=>b.v-a.v).slice(0,3);
+    if(top.length<3) return null;
+    return box(`${Y}’s Best Games`, svqLink('#/savant/gamescore',{y:Y}), `<div class="svhrank">${top.map(r=>`<div><span>${esc(r.n)}</span><b>${gsNum(r.v)}</b></div>`).join('')}</div>`,
+      `${top[0].n} had the top Game Score of ${Y}: ${top[0].v.toFixed(1)} on ${top[0].date}.`);
+  };
   const out = [];
   const kinds = shuffle(Object.keys(teamKinds)), usedYears = new Set();
   for(const k of kinds){
@@ -10949,7 +11029,8 @@ function renderSavantHub(){
       card('#/savant/rankings','Percentile Rankings',`Every qualified player ranked in each stat, one season at a time.${pv.n?` ${pv.n.y}: ${pv.n.bat} hitters, ${pv.n.pit} pitchers.`:''}`,pv.rank)
       + card('#/savant/pizza','Pizza Chart','A player’s percentiles as a wheel. Lay a second player on top to compare.',pv.pizza)
       + card('#/savant/compare','Season Comparison','Pick any qualified season and find the three most similar ones from any year.',pv.comp)
-      + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form))}
+      + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form)
+      + card('#/savant/gamescore','Game Score','One number for how good a player’s game was, hitting, pitching and fielding together. The best games ever and a game-by-game log.',pv.gs))}
     ${group('League', 'How the whole league has changed.',
       card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend))}
     ${group('Explore', 'Dig through every player-season.',
@@ -10958,6 +11039,77 @@ function renderSavantHub(){
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
   svpRankPanelWire();
+}
+/* ---- Game Score (Savant): the league's best single games, and any player's game-by-game log ---- */
+const svpGS = {view:'best', year:'all', phase:'Regular', type:'total', player:''};
+let _gsRows = null;
+function svpGSRows(){
+  if(_gsRows) return _gsRows;
+  const rows = [];
+  GIDS.forEach(gid=>{
+    const g = GAMES[gid]; if(!g || g.noBox) return;
+    if(g.phase!=='Regular' && g.phase!=='Playoffs') return;
+    const y = +g.date.slice(0,4), post = g.phase==='Playoffs';
+    ['away','home'].forEach(sk=>{
+      const s = g[sk], o = g[sk==='away'?'home':'away'];
+      const names = [...new Set([...(s.bat||[]).map(b=>b.n), ...(s.pit||[]).map(p=>p.n), ...(s.fld||[]).map(f=>f.n)].filter(Boolean))];
+      names.forEach(n=>{
+        const bat = (s.bat||[]).find(b=>b.n===n)||null, pit = (s.pit||[]).find(p=>p.n===n)||null, fl = (s.fld||[]).find(f=>f.n===n)||null;
+        const p = gameScoreParts(bat, pit, fl, y, post);
+        rows.push({n, gid, date:g.date, y, post, team:s.team, opp:o.team, rf:s.R, ra:o.R, hit:p.hit, pit:p.pit, fld:p.fld, v:p.total});
+      });
+    });
+  });
+  return (_gsRows = rows);
+}
+const gsSigned = v => v===0 ? '—' : (v>0?'+':'−')+Math.abs(v).toFixed(1);
+const gsNum = v => (v<0?'−':'')+Math.abs(v).toFixed(1);
+function renderSavantGS(){
+  const all = svpGSRows(), post = svpGS.phase==='Playoffs';
+  const inPhase = all.filter(r=>r.post===post);
+  const years = [...new Set(inPhase.map(r=>r.y))].sort((a,b)=>b-a);
+  if(svpGS.year!=='all' && !years.includes(+svpGS.year)) svpGS.year = 'all';
+  const yearOk = r => svpGS.year==='all' || String(r.y)===String(svpGS.year);
+  const teamCell = r => `<span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.y), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.y))}</button></span>`;
+  const gameCell = r => `<button class="pname" data-g="${r.gid}">${esc(r.date)}</button> <span class="smeta gsopp">vs ${esc(histNick(r.opp, r.y))}</span>`;
+  const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
+  const yearSel = `<label>Season <select id="gsYear"><option value="all"${svpGS.year==='all'?' selected':''}>All seasons</option>${years.map(y=>`<option value="${y}"${String(y)===String(svpGS.year)?' selected':''}>${y}</option>`).join('')}</select></label>`;
+  let body = '';
+  if(svpGS.view==='best'){
+    const key = {total:'v', hit:'hit', pit:'pit'}[svpGS.type] || 'v';
+    const top = inPhase.filter(yearOk).sort((a,b)=>b[key]-a[key] || b.v-a.v).slice(0,25);
+    body = `<div class="chips svpmodes">${chip('data-gst','total','Combined',svpGS.type==='total')}${chip('data-gst','hit','Hitting only',svpGS.type==='hit')}${chip('data-gst','pit','Pitching only',svpGS.type==='pit')}</div>
+      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th><th class="lft">Game</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
+      ${top.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
+        <td class="lft svptm gsx">${teamCell(r)}</td><td class="lft">${gameCell(r)}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  } else {
+    const names = [...new Set(inPhase.map(r=>r.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
+    if(!svpGS.player || !names.includes(svpGS.player)) svpGS.player = (inPhase.slice().sort((a,b)=>b.v-a.v)[0]||{}).n || names[0] || '';
+    const mine = inPhase.filter(r=>r.n===svpGS.player && yearOk(r)).sort((a,b)=>b.date.localeCompare(a.date) || b.gid-a.gid);
+    const sum = k => Math.round(mine.reduce((t,r)=>t+r[k],0)*10)/10;
+    body = `<div class="svpform"><label>Player <select id="gsPlayer">${names.map(n=>`<option value="${esc(n)}"${n===svpGS.player?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select></label></div>
+      ${mine.length ? `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Game</th><th>Result</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
+      ${mine.map(r=>`<tr><td class="lft">${gameCell(r)}</td><td class="mono">${r.rf>r.ra?'W':r.rf<r.ra?'L':'T'} ${r.rf}–${r.ra}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td class="lft">${mine.length} game${mine.length===1?'':'s'}</td><td class="mono">avg ${gsNum(sum('v')/mine.length)}</td><td class="mono gsx">${gsSigned(sum('hit'))}</td><td class="mono gsx">${gsSigned(sum('pit'))}</td><td class="mono gsx">${gsSigned(sum('fld'))}</td><td class="mono b">${gsNum(sum('v'))}</td></tr></tfoot></table></div>`
+        : '<p class="empty">No box-score games for that player in this selection.</p>'}`;
+  }
+  svpShell('gamescore', `
+    <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
+      ${chip('data-gsp','Regular','Regular Season',!post)}${chip('data-gsp','Playoffs','Postseason',post)}</div>
+    <div class="svpform">${yearSel}</div>
+    ${body}
+    <p class="smeta">Game Score is one number for how good a player's game was, hitting, pitching and fielding together, from the box score.
+      Each part is measured against what an average player would have done in the same number of at-bats, outs or innings <i>that season</i>,
+      so a big game in a high-scoring year isn't flattered. It reads roughly as runs above average: 0 is a league-average game, and a negative score is a bad one.
+      A strikeout earns nothing beyond the out, and every run is credited once (half to the player who scored it, half to the one who drove it in).
+      Only games with a full box score are counted (2017 onward, the earliest ones as a team total aren't).</p>`);
+  app.querySelectorAll('[data-gsv]').forEach(b=>b.addEventListener('click',()=>{ svpGS.view = b.dataset.gsv; renderSavantGS(); }));
+  app.querySelectorAll('[data-gsp]').forEach(b=>b.addEventListener('click',()=>{ svpGS.phase = b.dataset.gsp; renderSavantGS(); }));
+  app.querySelectorAll('[data-gst]').forEach(b=>b.addEventListener('click',()=>{ svpGS.type = b.dataset.gst; renderSavantGS(); }));
+  document.getElementById('gsYear').addEventListener('change', e=>{ svpGS.year = e.target.value; renderSavantGS(); });
+  const pl = document.getElementById('gsPlayer'); if(pl) pl.addEventListener('change', e=>{ svpGS.player = e.target.value; renderSavantGS(); });
+  app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/g/'+b.dataset.g; }));
 }
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
 const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
@@ -11002,6 +11154,13 @@ const SVQ = {
     ['w', ()=>svpForm.win, v=>{ if([5,10,15].includes(+v)) svpForm.win = +v; }],
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
+  '#/savant/gamescore': [
+    ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log') svpGS.view = v; }],
+    ['ph', ()=>svpGS.phase, v=>{ if(v==='Regular'||v==='Playoffs') svpGS.phase = v; }],
+    ['y', ()=>svpGS.year, v=>{ if(v==='all'||/^[0-9]{4}$/.test(v)) svpGS.year = v; }],
+    ['t', ()=>svpGS.type, v=>{ if(v==='total'||v==='hit'||v==='pit') svpGS.type = v; }],
+    ['p', ()=>svpGS.player, v=>{ if(P[v]) svpGS.player = v; }],
+  ],
   '#/savant/teams': svqTeamView(svpTm),
   '#/savant/teams/offense': svqTeamView(svpTO),
   '#/savant/teams/luck': svqTeamView(svpTL),
@@ -11020,11 +11179,12 @@ const SVQ = {
 /* a view's untouched state is left out of the link, so a plain link stays plain */
 Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
 /* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
-const SVQ0 = {Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+const SVQ0 = {GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
   post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
 const SVQ_RESET = {
   '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
   '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
+  '#/savant/gamescore': ()=>Object.assign(svpGS, SVQ0.GS),
   '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
   '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
   '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
@@ -11062,6 +11222,7 @@ function renderSavant(h0){
   if(h === '#/savant/trends') return renderSavantTrends();
   if(h === '#/savant/pizza') return renderSavantPizza();
   if(h === '#/savant/form') return renderSavantForm();
+  if(h === '#/savant/gamescore') return renderSavantGS();
   if(h === '#/savant/teams/h2h') return renderSavantH2H();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
