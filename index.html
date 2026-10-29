@@ -1592,16 +1592,18 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding weights are
    a judgment call too (its events are collinear with pitching outs and the sample is thin).
 
-   Every run is credited once. A batter's runs scored and RBI each count RUN_CREDIT (0.5), so a run is worth 1 in
-   total to the hitters involved; an earlier version gave +1 for each, crediting every run twice, and then needed a
-   2.2x pitching multiplier to keep pitchers level. Both are gone: PIT_SCALE is 1, and pitchers still swing about
-   1.25x as much as hitters on their own, because one pitcher covers a whole game's lineup.
+   Runs scored and RBI earn nothing (RUN_CREDIT is 0). A hit, walk or home run is credited at its fitted value, and a run
+   that scores because of it is already inside that value; a batter who reaches base and is stranded didn't hurt his team,
+   and didn't help it. That also treats hitters like pitchers, who get no credit or penalty for the runs that score. An
+   earlier version gave +1 for each of R and RBI (every run counted twice) and needed a 2.2x pitching multiplier to keep
+   pitchers level; both are gone (PIT_SCALE is 1), and pitchers still swing about 1.3x as much as hitters on their own,
+   because one pitcher covers a whole game's lineup.
 
    Checked against the 447 regular-season games with full box scores: the team with the higher summed Game Score won
-   92% of them, and the score difference tracks the run margin (r = 0.93). */
+   about 89% of them, and the score difference tracks the run margin (r = 0.88). */
 const HW = {single:0.476, double:0.559, triple:0.64, hr:1.599, bb:0.608, out:-0.296};
 const PW = {out:0.337, h:-1.112, bb:-0.735};
-const RUN_CREDIT = 0.5, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = 1;
+const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = 1;
 const _gsRateCache = {};
 function gameScoreRatesFor(year, post){
   const key = year+'|'+(post?1:0);
@@ -11122,7 +11124,7 @@ function renderSavantGS(){
     <p class="smeta">Game Score is one number for how good a player's game was, hitting, pitching and fielding together, from the box score.
       Each part is measured against what an average player would have done in the same number of at-bats, outs or innings <i>that season</i>,
       so a big game in a high-scoring year isn't flattered. It reads roughly as runs above average: 0 is a league-average game, and a negative score is a bad one.
-      A strikeout earns nothing beyond the out, and every run is credited once (half to the player who scored it, half to the one who drove it in).
+      A strikeout earns nothing beyond the out, and runs scored and RBI earn nothing extra: a hit, walk or home run is credited for what it is, so a runner who is stranded neither helps nor hurts.
       ${avgNote}Only games with a full box score are counted (2017 onward, the earliest ones as a team total aren't).</p>`);
   app.querySelectorAll('[data-gsv]').forEach(b=>b.addEventListener('click',()=>{ svpGS.view = b.dataset.gsv; renderSavantGS(); }));
   app.querySelectorAll('[data-gsp]').forEach(b=>b.addEventListener('click',()=>{ svpGS.phase = b.dataset.gsp; renderSavantGS(); }));
