@@ -1280,6 +1280,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .hero-row{display:flex;align-items:center;gap:2px}
 .svshare{margin-left:auto;align-self:center;font-family:"Oswald","Arial Narrow",sans-serif;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
 .svshare:hover{border-color:var(--accent)}
+.hero-row:has(> .svshare){width:100%}
+@media (max-width:560px){.svshare .lg{display:none}.svshare{padding:5px 11px;flex:none;margin-left:6px}.hero-row:has(> .svshare){max-width:100%}.hero-row:has(> .svshare) h2{min-width:0;font-size:min(2.2rem,8vw)}}
 .namewrap{display:flex;flex-direction:column;gap:6px}
 .sitefoot{max-width:1180px;margin:44px auto 0;padding:22px 20px 34px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -3766,6 +3768,7 @@ function detail(name){
         ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
         <h2>${esc(name)}</h2>
         ${curLogo?`<img class="pheadlogo" src="${curLogo}" alt="" title="${esc(TEAMS[curLogoTeam].nick||curLogoTeam)}">`:''}
+        ${shareBtn('p', name)}
       </div>
       <span class="yrs">${rYrs.length} season${rYrs.length>1?'s':''} · ${yearRanges(rYrs)} · ${cr.G_bat} reg. G${hasPost?` · ${cp.G_bat} postseason G`:''}${curTeamLabel?` · ${esc(curTeamLabel)}`:''}</span>
       ${editBtn('Edit seasons','editSeasonsBtn')}
@@ -5790,11 +5793,11 @@ function teamDetail(name){
   setTeamVars(name, teamYear==='all' || name==='Glenwood Process' ? null : +teamYear);
   const logoImg = t.logo ? `<img class="tlogo" src="${t.logo}" alt="">` : '';
   const hero = FRANCHISE_COLORS[name] ? `<div class="thero">
-      <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
+      <div class="hero-row">${logoImg}<h2>${esc(name)}</h2>${shareBtn('t', name)}</div>
       <p class="tsub"><b>${fr.W}–${fr.L}</b> regular · ${t.years.length} season${t.years.length>1?'s':''}
         · ${t.firstYear}–${t.lastYear}${t.aka&&t.aka.length?` · aka ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}`:''}</p>
       ${teamSocialIcons(name)}
-    </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
+    </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2>${shareBtn('t', name)}</div>
       <span class="yrs">${t.years.length} season${t.years.length>1?'s':''} · ${t.firstYear}–${t.lastYear}
       · ${fr.W}–${fr.L} regular (${rate(g?fr.W/g:NaN)})</span></div>
     ${t.aka&&t.aka.length?`<p class="aka">Also played as ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}.</p>`:''}`;
@@ -9215,7 +9218,7 @@ function svpShell(tab, inner){
   const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
-    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2><button class="svshare" type="button">Copy link</button></div></div>
+    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2><button class="svshare" type="button"><span class="lg">Copy </span>link</button></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
@@ -11062,11 +11065,16 @@ function svpSyncURL(){
   const obj = {}; list.forEach(d=>{ const v = d[1](); const sv = String(v ?? ''); if(sv!=='' && sv!==d.def) obj[d[0]] = sv; });
   const next = svqLink(base, obj); if(next !== h) history.replaceState(null, '', next);
 }
+/* player and team pages share a small static page (.../p/peter-fraioli/) whose link preview shows that player or team; it forwards people to the live page */
+const SITE_URL = 'https://bwbwiffleball.com';
+const shareSlug = n => n.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+const shareBtn = (kind, name) => `<button class="svshare" type="button" data-share="${kind}/${shareSlug(name)}"><span class="lg">Copy </span>link</button>`;
+app.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-share]'); if(b) svpCopyLink(b, SITE_URL+'/'+b.dataset.share+'/'); });
 let svpSyncT = null;
 ['change','click','input'].forEach(ev=>app.addEventListener(ev, ()=>{ clearTimeout(svpSyncT); svpSyncT = setTimeout(svpSyncURL, 60); }));
-function svpCopyLink(btn){
-  const url = location.href;
-  const done = () => { btn.textContent = 'Link copied'; setTimeout(()=>{ btn.textContent = 'Copy link'; }, 1600); };
+function svpCopyLink(btn, url){
+  url = url || location.href; const label = btn.innerHTML;
+  const done = () => { btn.textContent = 'Link copied'; setTimeout(()=>{ btn.innerHTML = label; }, 1600); };
   if(navigator.share && /Mobi|Android/i.test(navigator.userAgent)){ navigator.share({url, title:document.title}).catch(()=>{}); return; }
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, ()=>{ window.prompt('Copy this link', url); });
   else window.prompt('Copy this link', url);
@@ -11414,3 +11422,80 @@ for _t in _json.load(open('players.json'))['teams'].values():
 open('index.html','w').write(HTML.replace('__LOGOPAD__', _json.dumps(_pad)).replace('__DATA__', data).replace('__FAVICON__', '/favicon.png'))
 print('wrote index.html')
 print('wrote favicon.png, favicon.ico')
+
+# ---- share pages -----------------------------------------------------------------------------------------------
+# A hash route (#/p/Peter%20Fraioli) never reaches a server, so a pasted link can only ever preview as the home page.
+# These small static pages (p/<slug>/, t/<slug>/, savant/) carry their own title, description and preview image for
+# the link-preview crawlers and for search engines, then send people on to the live page. scripts/share_cards.json
+# lists them for scripts/make_og.py, which draws the 1200x630 preview images into img/og/.
+import re as _re, unicodedata as _ud, html as _html, datetime as _dt
+def _slug(n): return _re.sub(r'[^a-z0-9]+', '-', _ud.normalize('NFKD', n).encode('ascii', 'ignore').decode().lower()).strip('-')
+_D = _json.load(open('players.json'))
+_SITE = 'https://bwbwiffleball.com'
+def _rate3(v): return ('%.3f' % v).lstrip('0') if v < 1 else '%.3f' % v
+def _yrs(ys): return ('%d–%d' % (min(ys), max(ys))) if len(set(ys)) > 1 else str(min(ys))
+_champs = _D.get('champs') or []
+_cards = []
+for _n, _p in sorted(_D['players'].items()):
+    _c = _p.get('careerReg') or _p.get('career') or {}
+    _ys = [int(y) for y in (_p.get('years') or [])]
+    if not _ys or not _c.get('AB'): continue
+    _last = max(_ys, key=int); _tm = (_p.get('teamsByYear', {}).get(str(_last)) or {}).get('team') or ''
+    _tname = (_D['teams'].get(_tm) or {}).get('nick') and _tm or _tm
+    _ab = _c['AB']; _avg = _c['H'] / _ab; _pa = _ab + _c['BB'] + _c['HBP'] + _c.get('SF', 0)
+    _obp = (_c['H'] + _c['BB'] + _c['HBP']) / _pa if _pa else 0; _slg = _c['TB'] / _ab
+    _bat = '%s/%s/%s' % (_rate3(_avg), _rate3(_obp), _rate3(_slg))
+    _ip = _c.get('IPouts', 0) / 3
+    _pit = ('%d–%d, %.2f ERA' % (_c['W'], _c['L'], 9 * _c['ER'] / _c['IPouts'])) if _c.get('IPouts', 0) >= 300 else ''
+    _titles = sum(1 for _ch in _champs if _n in (_ch.get('pl') or []))
+    _facts = ['%d HR' % _c['HR'], '%d RBI' % _c['RBI']] + ([_pit] if _pit else [])
+    _desc = '%s%s, %s. Career %s with %d HR and %d RBI%s%s. Stats, awards and Savant percentiles on BWB Wiffleball.' % (
+        _n, (' of the ' + _tname) if _tname else '', _yrs(_ys), _bat, _c['HR'], _c['RBI'],
+        ('; ' + _pit + ' on the mound') if _pit else '', ('; %d-time champion' % _titles) if _titles > 1 else ('; champion' if _titles == 1 else ''))
+    _cards.append({'kind': 'p', 'name': _n, 'slug': _slug(_n), 'title': _n, 'sub': '%s · %s' % (_tname or 'BWB Wiffleball', _yrs(_ys)),
+                   'stats': ' · '.join(_facts[:2]) + ('' if not _pit else ' · ' + _pit), 'line': _bat, 'photo': _p.get('photo') or '',
+                   'logo': (_D['teams'].get(_tm) or {}).get('logo') or '', 'titles': _titles, 'desc': _desc, 'route': '#/p/' + _n})
+for _n, _t in sorted(_D['teams'].items()):
+    _tt = sum(1 for _ch in _champs if _ch.get('tm') == _n)
+    _r = _t.get('record') or {}
+    if not _r: continue
+    _rec = '%d–%d' % (_r['W'], _r['L']) + ('–%d' % _r['T'] if _r.get('T') else '')
+    _desc = '%s (%s): %s all-time in the regular season%s. Rosters, results, jerseys and stats on BWB Wiffleball.' % (
+        _n, _yrs([_t['firstYear'], _t['lastYear']]), _rec, ('; %d-time champion' % _tt) if _tt > 1 else ('; champion' if _tt == 1 else ''))
+    _cards.append({'kind': 't', 'name': _n, 'slug': _slug(_n), 'title': _n, 'sub': _yrs([_t['firstYear'], _t['lastYear']]) + ' · BWB Wiffleball',
+                   'stats': _rec + (' · %d championship%s' % (_tt, '' if _tt == 1 else 's') if _tt else ' regular season'), 'line': '',
+                   'photo': '', 'logo': _t.get('logo') or '', 'titles': _tt, 'desc': _desc, 'route': '#/t/' + _n})
+_cards.append({'kind': 's', 'name': 'BWB Savant', 'slug': 'savant', 'title': 'BWB Savant', 'sub': "The league's home for advanced statistics",
+               'stats': 'Rankings · Pizza charts · Playstyle maps · Trends', 'line': '', 'photo': '', 'logo': '', 'titles': 0,
+               'desc': "BWB Savant is the league's home for advanced statistics: percentile rankings, pizza charts, team playstyle maps, league trends and more, built from every box score.",
+               'route': '#/savant'})
+def _q(path): return _re.sub(r'[^A-Za-z0-9\-_.~/#]', lambda m: ''.join('%%%02X' % b for b in m.group(0).encode()), path)
+_made = []
+for _k in _cards:
+    _dir = {'p': 'p', 't': 't', 's': ''}[_k['kind']]
+    _rel = (_dir + '/' if _dir else '') + _k['slug']
+    _url = '%s/%s/' % (_SITE, _rel); _spa = '/' + _q(_k['route'])
+    _ogf = 'img/og/%s-%s.jpg' % (_k['kind'], _k['slug']); _og = '%s/%s' % (_SITE, _ogf if os.path.exists(_ogf) else 'og-image.png')
+    _ti = _html.escape(_k['title'] + ' · BWB Wiffleball' if _k['kind'] != 's' else 'BWB Savant · The league’s home for advanced statistics')
+    _ds = _html.escape(_k['desc'], quote=True)
+    _body = '<p class="eb">BWB Wiffleball</p><h1>%s</h1><p class="sub">%s</p>%s<p class="ds">%s</p><p><a class="go" href="%s">Open the full page</a></p>' % (
+        _html.escape(_k['title']), _html.escape(_k['sub']), ('<p class="st">%s</p>' % _html.escape(_k['stats'])) if _k['stats'] else '', _ds, _spa)
+    _page = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>%s</title><meta name="description" content="%s"><link rel="canonical" href="%s"><link rel="icon" href="/favicon.png">'
+        '<meta property="og:type" content="website"><meta property="og:site_name" content="BWB Wiffleball"><meta property="og:title" content="%s">'
+        '<meta property="og:description" content="%s"><meta property="og:url" content="%s"><meta property="og:image" content="%s">'
+        '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
+        '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="%s"><meta name="twitter:description" content="%s"><meta name="twitter:image" content="%s">'
+        '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1a33;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}'
+        'main{max-width:640px;padding:32px 24px}.eb{margin:0 0 8px;letter-spacing:.14em;text-transform:uppercase;font-size:.8rem;color:#9db3dd}'
+        'h1{margin:0 0 6px;font-size:2.6rem;line-height:1.1}.sub{margin:0 0 14px;color:#c9d4ea}.st{margin:0 0 14px;font-weight:600}.ds{color:#c9d4ea;line-height:1.5}'
+        '.go{display:inline-block;margin-top:10px;padding:10px 20px;border-radius:999px;background:#3b62b0;color:#fff;text-decoration:none;font-weight:600}</style></head>'
+        '<body><main>%s</main><script>if(!/bot|crawl|spider|preview|facebookexternalhit|slurp|whatsapp|telegram|discord|slack|twitter|linkedin|embed|pinterest|skype/i.test(navigator.userAgent))location.replace("%s");</script></body></html>') % (
+        _ti, _ds, _url, _ti, _ds, _url, _og, _ti, _ds, _og, _body, _spa)
+    os.makedirs(_rel, exist_ok=True); open(_rel + '/index.html', 'w').write(_page); _made.append(_url)
+os.makedirs('scripts', exist_ok=True)
+_json.dump(_cards, open('scripts/share_cards.json', 'w'), indent=1, ensure_ascii=False)
+open('sitemap.xml', 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(
+    '  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n    <changefreq>%s</changefreq>\n    <priority>%s</priority>\n  </url>\n' % (u, _dt.date.today().isoformat(), 'daily' if u == _SITE + '/' else 'weekly', '1.0' if u == _SITE + '/' else '0.7')
+    for u in [_SITE + '/'] + _made) + '</urlset>\n')
+print('wrote %d share pages and sitemap.xml' % len(_made))

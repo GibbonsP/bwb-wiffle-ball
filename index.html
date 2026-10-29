@@ -1274,6 +1274,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 .hero-row{display:flex;align-items:center;gap:2px}
 .svshare{margin-left:auto;align-self:center;font-family:"Oswald","Arial Narrow",sans-serif;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
 .svshare:hover{border-color:var(--accent)}
+.hero-row:has(> .svshare){width:100%}
+@media (max-width:560px){.svshare .lg{display:none}.svshare{padding:5px 11px;flex:none;margin-left:6px}.hero-row:has(> .svshare){max-width:100%}.hero-row:has(> .svshare) h2{min-width:0;font-size:min(2.2rem,8vw)}}
 .namewrap{display:flex;flex-direction:column;gap:6px}
 .sitefoot{max-width:1180px;margin:44px auto 0;padding:22px 20px 34px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -3760,6 +3762,7 @@ function detail(name){
         ${pl.photo?`<img class="pphoto" src="${pl.photo}" alt="">`:''}
         <h2>${esc(name)}</h2>
         ${curLogo?`<img class="pheadlogo" src="${curLogo}" alt="" title="${esc(TEAMS[curLogoTeam].nick||curLogoTeam)}">`:''}
+        ${shareBtn('p', name)}
       </div>
       <span class="yrs">${rYrs.length} season${rYrs.length>1?'s':''} · ${yearRanges(rYrs)} · ${cr.G_bat} reg. G${hasPost?` · ${cp.G_bat} postseason G`:''}${curTeamLabel?` · ${esc(curTeamLabel)}`:''}</span>
       ${editBtn('Edit seasons','editSeasonsBtn')}
@@ -5784,11 +5787,11 @@ function teamDetail(name){
   setTeamVars(name, teamYear==='all' || name==='Glenwood Process' ? null : +teamYear);
   const logoImg = t.logo ? `<img class="tlogo" src="${t.logo}" alt="">` : '';
   const hero = FRANCHISE_COLORS[name] ? `<div class="thero">
-      <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
+      <div class="hero-row">${logoImg}<h2>${esc(name)}</h2>${shareBtn('t', name)}</div>
       <p class="tsub"><b>${fr.W}–${fr.L}</b> regular · ${t.years.length} season${t.years.length>1?'s':''}
         · ${t.firstYear}–${t.lastYear}${t.aka&&t.aka.length?` · aka ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}`:''}</p>
       ${teamSocialIcons(name)}
-    </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
+    </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2>${shareBtn('t', name)}</div>
       <span class="yrs">${t.years.length} season${t.years.length>1?'s':''} · ${t.firstYear}–${t.lastYear}
       · ${fr.W}–${fr.L} regular (${rate(g?fr.W/g:NaN)})</span></div>
     ${t.aka&&t.aka.length?`<p class="aka">Also played as ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}.</p>`:''}`;
@@ -9209,7 +9212,7 @@ function svpShell(tab, inner){
   const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
-    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2><button class="svshare" type="button">Copy link</button></div></div>
+    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2><button class="svshare" type="button"><span class="lg">Copy </span>link</button></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
@@ -11056,11 +11059,16 @@ function svpSyncURL(){
   const obj = {}; list.forEach(d=>{ const v = d[1](); const sv = String(v ?? ''); if(sv!=='' && sv!==d.def) obj[d[0]] = sv; });
   const next = svqLink(base, obj); if(next !== h) history.replaceState(null, '', next);
 }
+/* player and team pages share a small static page (.../p/peter-fraioli/) whose link preview shows that player or team; it forwards people to the live page */
+const SITE_URL = 'https://bwbwiffleball.com';
+const shareSlug = n => n.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+const shareBtn = (kind, name) => `<button class="svshare" type="button" data-share="${kind}/${shareSlug(name)}"><span class="lg">Copy </span>link</button>`;
+app.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-share]'); if(b) svpCopyLink(b, SITE_URL+'/'+b.dataset.share+'/'); });
 let svpSyncT = null;
 ['change','click','input'].forEach(ev=>app.addEventListener(ev, ()=>{ clearTimeout(svpSyncT); svpSyncT = setTimeout(svpSyncURL, 60); }));
-function svpCopyLink(btn){
-  const url = location.href;
-  const done = () => { btn.textContent = 'Link copied'; setTimeout(()=>{ btn.textContent = 'Copy link'; }, 1600); };
+function svpCopyLink(btn, url){
+  url = url || location.href; const label = btn.innerHTML;
+  const done = () => { btn.textContent = 'Link copied'; setTimeout(()=>{ btn.innerHTML = label; }, 1600); };
   if(navigator.share && /Mobi|Android/i.test(navigator.userAgent)){ navigator.share({url, title:document.title}).catch(()=>{}); return; }
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, ()=>{ window.prompt('Copy this link', url); });
   else window.prompt('Copy this link', url);
