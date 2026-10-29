@@ -417,7 +417,6 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:4px;padding-right:4px}.svgs td:first-child{width:1%}}
-.pfrun{white-space:nowrap}
 @media (max-width:560px){.svpf .pfx{display:none}}
 .gsdef{margin:6px 0 14px;max-width:70ch;line-height:1.5;color:var(--ink)}
 .gsplus{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--accent);font:700 .9rem/1 "IBM Plex Mono",monospace;cursor:pointer;margin-left:8px;padding:0;vertical-align:middle}
@@ -11209,32 +11208,16 @@ function renderSavantGS(){
   const pl = document.getElementById('gsPlayer'); if(pl) pl.addEventListener('change', e=>{ svpGS.player = e.target.value; renderSavantGS(); });
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/g/'+b.dataset.g; }));
 }
-/* ---- Park Factors (Savant): how much each field changes scoring against the league that season ---- */
-const svpPF = {year:'all'};
+/* ---- Park Factors (Savant): how much each field changes scoring against the league that season, over every season it has been used ---- */
 function renderSavantParks(){
-  const era = /^e[0-9]+$/.test(svpPF.year) ? SVP_ERAS[+svpPF.year.slice(1)] : null;
-  if(/^e[0-9]+$/.test(svpPF.year) && !era) svpPF.year = 'all';
-  const single = /^[0-9]{4}$/.test(svpPF.year);
-  const yearOk = y => svpPF.year==='all' || (era ? y>=era.from && y<=era.to : y===+svpPF.year);
-  const rows = computeParkFactors(yearOk, single ? 8 : PARK_MIN_G);
-  const years = SVP_YEARS.filter(y=>y>=2017).slice().reverse();
-  const yearSel = `<label>Season <select id="pfYear"><option value="all"${svpPF.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${svpPF.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup><optgroup label="Single season">${years.map(y=>`<option value="${y}"${String(y)===String(svpPF.year)?' selected':''}>${y}</option>`).join('')}</optgroup></select></label>`;
-  const det = r => `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${r.perYear.map(p=>`<div class="gsdl"><span>${p.y}</span><i>${p.games} games · ${p.rpg.toFixed(1)} runs a game against ${p.lgRpg.toFixed(1)} for the league</i><b>${p.pf==null?'—':p.pf}</b></div>`).join('')}</div></td></tr>`;
+  const rows = computeParkFactors();
   const body = rows.map(r=>`<tr><td class="lft"><b>${esc(r.loc)}</b></td><td class="mono pfx">${r.games}</td><td class="mono pfx">${r.span}</td>
-      <td class="pfrun">${pfPill(r.runFactor)}</td><td class="pfx">${pfPill(r.obpFactor)}</td><td class="pfx">${pfPill(r.hFactor)}</td><td>${pfPill(r.hrFactor)}</td><td class="pfx">${pfPill(r.bbFactor)}</td><td class="pfx">${pfPill(r.soFactor, true)}</td>
-      <td class="mono">${r.perYear.length>1 ? gsPlus : ''}</td></tr>${r.perYear.length>1 ? det(r) : ''}`).join('');
+      <td>${pfPill(r.runFactor)}</td><td class="pfx">${pfPill(r.obpFactor)}</td><td class="pfx">${pfPill(r.hFactor)}</td><td>${pfPill(r.hrFactor)}</td><td class="pfx">${pfPill(r.bbFactor)}</td><td class="pfx">${pfPill(r.soFactor, true)}</td></tr>`).join('');
   svpShell('parks', `
-    <p class="gsdef"><b>Park factors</b> show how much each field changes scoring compared with the league average that season. 100 is neutral, above 100 favors hitters, and below 100 favors pitchers (strikeouts are the other way around: below 100 means more of them). Tap the <b>+</b> beside a field to see it season by season.</p>
-    <div class="svpform">${yearSel}</div>
-    ${rows.length ? `<div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Field</th><th class="pfx">G</th><th class="pfx">Years</th><th>Runs PF</th><th class="pfx">OBP PF</th><th class="pfx">H PF</th><th>HR PF</th><th class="pfx">BB PF</th><th class="pfx">SO PF</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
-      : '<p class="empty">Not enough games at any one field in that selection.</p>'}
-    <p class="smeta">A field needs ${single ? 8 : PARK_MIN_G}+ games to appear. Runs come from every game's final score. The other columns come from games with a recorded batting line, 2017 onward, and need ${single ? 8 : PARK_MIN_G}+ such games. Forfeits are left out.</p>`);
-  document.getElementById('pfYear').addEventListener('change', e=>{ svpPF.year = e.target.value; renderSavantParks(); });
-  app.querySelectorAll('.gsplus').forEach(b=>b.addEventListener('click',()=>{
-    const row = b.closest('tr'), d = row && row.nextElementSibling; if(!d || !d.classList.contains('gsdetr')) return;
-    const open = d.hidden; d.hidden = !open; b.textContent = open ? '−' : '+'; b.setAttribute('aria-expanded', String(open));
-    if(open){ const cols = [...row.closest('table').querySelectorAll('thead th')].filter(t=>getComputedStyle(t).display!=='none').length; d.firstElementChild.colSpan = cols; }
-  }));
+    <p class="gsdef"><b>Park factors</b> show how much each field changes scoring compared with the league average that season, across every season the field has been used. 100 is neutral, above 100 favors hitters, and below 100 favors pitchers (strikeouts are the other way around: below 100 means more of them).</p>
+    ${rows.length ? `<div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Field</th><th class="pfx">G</th><th class="pfx">Years</th><th>Runs PF</th><th class="pfx">OBP PF</th><th class="pfx">H PF</th><th>HR PF</th><th class="pfx">BB PF</th><th class="pfx">SO PF</th></tr></thead><tbody>${body}</tbody></table></div>`
+      : '<p class="empty">Not enough games at any one field yet.</p>'}
+    <p class="smeta">A field needs ${PARK_MIN_G}+ games to appear, and fields with fewer games are less certain. Runs come from every game's final score. The other columns come from games with a recorded batting line, 2017 onward, and need ${PARK_MIN_G}+ such games. Forfeits are left out.</p>`);
 }
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
 const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
@@ -11286,7 +11269,6 @@ const SVQ = {
     ['t', ()=>svpGS.type, v=>{ if(v==='total'||v==='hit'||v==='pit') svpGS.type = v; }],
     ['p', ()=>svpGS.player, v=>{ if(P[v]) svpGS.player = v; }],
   ],
-  '#/savant/parks': [['y', ()=>svpPF.year, v=>{ if(v==='all'||/^[0-9]{4}$/.test(v)||(/^e[0-9]+$/.test(v) && SVP_ERAS[+v.slice(1)])) svpPF.year = v; }]],
   '#/savant/teams': svqTeamView(svpTm),
   '#/savant/teams/offense': svqTeamView(svpTO),
   '#/savant/teams/luck': svqTeamView(svpTL),
@@ -11305,13 +11287,12 @@ const SVQ = {
 /* a view's untouched state is left out of the link, so a plain link stays plain */
 Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
 /* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
-const SVQ0 = {PF:{...svpPF}, GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+const SVQ0 = {GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
   post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
 const SVQ_RESET = {
   '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
   '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
   '#/savant/gamescore': ()=>Object.assign(svpGS, SVQ0.GS),
-  '#/savant/parks': ()=>Object.assign(svpPF, SVQ0.PF),
   '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
   '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
   '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
