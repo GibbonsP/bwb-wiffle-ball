@@ -418,10 +418,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:4px;padding-right:4px}.svgs td:first-child{width:1%}}
 .pfrun{white-space:nowrap}
-.pfbar{display:inline-block;position:relative;width:90px;height:8px;margin-left:10px;vertical-align:middle;border-radius:4px;background:var(--line)}
-.pfbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
-.pfbar i{position:absolute;top:0;bottom:0;border-radius:4px}
-@media (max-width:560px){.svpf .pfx,.svpf .pfbar{display:none}}
+@media (max-width:560px){.svpf .pfx{display:none}}
 .gsdef{margin:6px 0 14px;max-width:70ch;line-height:1.5;color:var(--ink)}
 .gsplus{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--accent);font:700 .9rem/1 "IBM Plex Mono",monospace;cursor:pointer;margin-left:8px;padding:0;vertical-align:middle}
 .gsplus:hover{border-color:var(--accent)}
@@ -11221,11 +11218,10 @@ function renderSavantParks(){
   const yearOk = y => svpPF.year==='all' || (era ? y>=era.from && y<=era.to : y===+svpPF.year);
   const rows = computeParkFactors(yearOk, single ? 8 : PARK_MIN_G);
   const years = SVP_YEARS.filter(y=>y>=2017).slice().reverse();
-  const bar = v => { if(v==null) return ''; const d = Math.max(-50, Math.min(50, v-100)); return `<span class="pfbar"><i style="${d>=0?`left:50%;width:${d}%`:`right:50%;width:${-d}%`};background:${pfColor(v)}"></i></span>`; };
   const yearSel = `<label>Season <select id="pfYear"><option value="all"${svpPF.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${svpPF.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup><optgroup label="Single season">${years.map(y=>`<option value="${y}"${String(y)===String(svpPF.year)?' selected':''}>${y}</option>`).join('')}</optgroup></select></label>`;
   const det = r => `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${r.perYear.map(p=>`<div class="gsdl"><span>${p.y}</span><i>${p.games} games · ${p.rpg.toFixed(1)} runs a game against ${p.lgRpg.toFixed(1)} for the league</i><b>${p.pf==null?'—':p.pf}</b></div>`).join('')}</div></td></tr>`;
   const body = rows.map(r=>`<tr><td class="lft"><b>${esc(r.loc)}</b></td><td class="mono pfx">${r.games}</td><td class="mono pfx">${r.span}</td>
-      <td class="pfrun">${pfPill(r.runFactor)}${bar(r.runFactor)}</td><td class="pfx">${pfPill(r.obpFactor)}</td><td class="pfx">${pfPill(r.hFactor)}</td><td>${pfPill(r.hrFactor)}</td><td class="pfx">${pfPill(r.bbFactor)}</td><td class="pfx">${pfPill(r.soFactor, true)}</td>
+      <td class="pfrun">${pfPill(r.runFactor)}</td><td class="pfx">${pfPill(r.obpFactor)}</td><td class="pfx">${pfPill(r.hFactor)}</td><td>${pfPill(r.hrFactor)}</td><td class="pfx">${pfPill(r.bbFactor)}</td><td class="pfx">${pfPill(r.soFactor, true)}</td>
       <td class="mono">${r.perYear.length>1 ? gsPlus : ''}</td></tr>${r.perYear.length>1 ? det(r) : ''}`).join('');
   svpShell('parks', `
     <p class="gsdef"><b>Park factors</b> show how much each field changes scoring compared with the league average that season. 100 is neutral, above 100 favors hitters, and below 100 favors pitchers (strikeouts are the other way around: below 100 means more of them). Tap the <b>+</b> beside a field to see it season by season.</p>
