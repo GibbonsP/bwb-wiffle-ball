@@ -5378,6 +5378,17 @@ function rosterPitching(roster, ph, label, weights, photos){
     {l:'ERA+',m:1,f:d=>{const v=weights?eraPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
   return statTable('Pitching'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
+/* per-player fielding for a roster; it was only recorded for 2022 through 2025, so other seasons have no rows */
+function rosterFielding(roster, ph, label, photos){
+  const rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.TC>0);
+  if(!rows.length) return '';
+  rows.sort((a,b)=>b.INN-a.INN || b.TC-a.TC);
+  const cols=[
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
+    {l:'G',f:d=>d.G_fld},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
+  return statTable('Fielding'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
+}
 function gameLog(games, yr){
   if(!games || !games.length) return '';
   const rows=games.map(g=>`<tr>
@@ -5404,6 +5415,7 @@ function teamOneYear(t, y){
   const rosterHTML = roster.length
     ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}], true)
       + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}], true)
+      + (rosterFielding(roster, phKey, undefined, true) || `<p class="smeta">Fielding wasn't recorded for ${y}.</p>`)
     : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
@@ -5649,7 +5661,15 @@ function teamAllYears(t, name){
   const pitchingHTML = pitRows.length
     ? statTable('Franchise Roster · Pitching'+(post?' · Playoffs':''), pitCols, pitRows, pitTotal, 'Total', '', true) : '';
 
-  return phaseToggleHTML() + ((battingHTML + pitchingHTML) || `<p class="lead">No ${post?'playoff':'regular-season'} roster stats recorded for this franchise.</p>`);
+  const fldCols=[
+    {l:'Player',lft:1,f:d=>`<span class="plcell">${llHead(d.name)}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
+    {l:'G',f:d=>d.G_fld},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
+  const fldRows = arows.filter(d=>d.TC>0).sort((x,y)=>y.INN-x.INN || y.TC-x.TC);
+  const fieldingHTML = fldRows.length
+    ? statTable('Franchise Roster · Fielding'+(post?' · Playoffs':''), fldCols, fldRows, sumRows(fldRows), 'Total', '', true)
+      + '<p class="smeta">Fielding was only recorded from 2022 through 2025, so these totals cover those seasons.</p>' : '';
+  return phaseToggleHTML() + ((battingHTML + pitchingHTML + fieldingHTML) || `<p class="lead">No ${post?'playoff':'regular-season'} roster stats recorded for this franchise.</p>`);
 }
 
 /* all-time series record vs every other franchise (regular season + playoffs) */
