@@ -410,7 +410,19 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank{width:100%;padding:8px 14px;display:flex;flex-direction:column;gap:6px;font-size:.82rem}
 .svhrank div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:6px;padding-right:6px}}
+@media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:4px;padding-right:4px}.svgs td:first-child{width:1%}}
+.gsdef{margin:6px 0 14px;max-width:70ch;line-height:1.5;color:var(--ink)}
+.gsplus{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--accent);font:700 .9rem/1 "IBM Plex Mono",monospace;cursor:pointer;margin-left:8px;padding:0;vertical-align:middle}
+.gsplus:hover{border-color:var(--accent)}
+.gsdetr td{background:var(--paper);padding:10px 16px;max-width:0}
+.gsdgame{font-size:.84rem;color:var(--muted)}
+@media (max-width:560px){.gsdl{grid-template-columns:62px 1fr auto;gap:8px}.gsdetr td{padding:10px 10px}.gsplus{margin-left:4px}}
+.gsdet{display:flex;flex-direction:column;gap:6px;max-width:560px;margin-left:auto;white-space:normal}
+.gsdl{display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:baseline;font-size:.84rem}
+.gsdl span{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:.7rem}
+.gsdl i{font-style:normal}
+.gsdl b{font-family:"IBM Plex Mono",monospace}
+.gsdtot{border-top:1px solid var(--line);padding-top:6px}
 .svhrank b{font-family:"IBM Plex Mono",monospace;font-size:.84rem}
 .svhcomp,.svhsearch{width:100%;padding:8px 12px;display:flex;flex-direction:column;gap:6px;font-size:.78rem}
 .svhcomp-h{color:var(--muted);font-size:.7rem;letter-spacing:.04em;margin-bottom:1px;white-space:nowrap}
@@ -11055,12 +11067,14 @@ function svpGSRows(){
     if(g.phase!=='Regular' && g.phase!=='Playoffs') return;
     const y = +g.date.slice(0,4), post = g.phase==='Playoffs';
     ['away','home'].forEach(sk=>{
-      const s = g[sk], o = g[sk==='away'?'home':'away'];
+      const s = g[sk], o = g[sk==='away'?'home':'away'], teamLine = (s.bat||[]).length===1;
       const names = [...new Set([...(s.bat||[]).map(b=>b.n), ...(s.pit||[]).map(p=>p.n), ...(s.fld||[]).map(f=>f.n)].filter(Boolean))];
       names.forEach(n=>{
-        const bat = (s.bat||[]).find(b=>b.n===n)||null, pit = (s.pit||[]).find(p=>p.n===n)||null, fl = (s.fld||[]).find(f=>f.n===n)||null;
+        /* many 2017-2021 games logged a team's whole batting line under one player's name; that isn't one player's game, so it earns no hitting score */
+        const bat = teamLine ? null : ((s.bat||[]).find(b=>b.n===n)||null), pit = (s.pit||[]).find(p=>p.n===n)||null, fl = (s.fld||[]).find(f=>f.n===n)||null;
+        if(!bat && !pit && !fl) return;
         const p = gameScoreParts(bat, pit, fl, y, post);
-        rows.push({n, gid, date:g.date, y, post, team:s.team, opp:o.team, rf:s.R, ra:o.R, hit:p.hit, pit:p.pit, fld:p.fld, v:p.total});
+        rows.push({n, gid, date:g.date, y, post, team:s.team, opp:o.team, rf:s.R, ra:o.R, hit:p.hit, pit:p.pit, fld:p.fld, v:p.total, bl:bat, pl:pit, fl});
       });
     });
   });
@@ -11068,6 +11082,28 @@ function svpGSRows(){
 }
 const gsSigned = v => v===0 ? '—' : (v>0?'+':'−')+Math.abs(v).toFixed(1);
 const gsNum = v => (v<0?'−':'')+Math.abs(v).toFixed(1);
+/* the "+" beside a score opens what's behind it: the box-score line for each part and what that part added */
+const gsPlus = '<button class="gsplus" type="button" aria-expanded="false" aria-label="Show what makes up this score">+</button>';
+function gsBatTxt(b){ if(!b) return ''; const x = [`${b.h||0}-for-${b.ab||0}`]; ['hr','3b','2b'].forEach(k=>{ if(b[k]) x.push(b[k]+' '+k.toUpperCase()); });
+  if(b.bb) x.push(b.bb+' BB'); if(b.hbp) x.push(b.hbp+' HBP'); if(b.rbi) x.push(b.rbi+' RBI'); if(b.r) x.push(b.r+' R'); if(b.sb) x.push(b.sb+' SB'); if(b.k) x.push(b.k+' K'); return x.join(', '); }
+function gsPitTxt(p){ if(!p) return ''; const x = [ipStr(p.ip||0)+' IP', (p.h||0)+' H']; if(p.er!=null) x.push((p.r||0)+' R ('+(p.er||0)+' ER)'); x.push((p.bb||0)+' BB', (p.k||0)+' K'); return x.join(', '); }
+function gsFldTxt(f){ if(!f) return ''; return (f.po||0)+' PO, '+(f.a||0)+' A, '+(f.e||0)+' E'+(f.dp?', '+f.dp+' DP':''); }
+function gsDetRow(r){
+  const line = (lab, txt, v) => `<div class="gsdl"><span>${lab}</span><i>${esc(txt)}</i><b>${gsSigned(v)}</b></div>`;
+  const parts = [];
+  if(r.bl || r.hit) parts.push(line('Hitting', gsBatTxt(r.bl), r.hit));
+  if(r.pl || r.pit) parts.push(line('Pitching', gsPitTxt(r.pl), r.pit));
+  if(r.fl || r.fld) parts.push(line('Fielding', gsFldTxt(r.fl), r.fld));
+  const res = r.rf>r.ra ? 'W' : r.rf<r.ra ? 'L' : 'T';
+  const gm = `<div class="gsdgame"><button class="pname" data-g="${r.gid}">${esc(r.date)}</button> vs ${esc(histNick(r.opp, r.y))} · ${res} ${r.rf}–${r.ra}</div>`;
+  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${gm}${parts.join('')}<div class="gsdl gsdtot"><span>Game Score</span><i></i><b>${gsNum(r.v)}</b></div></div></td></tr>`;
+}
+function gsAvgDetRow(g){
+  const n = g.length, av = k => g.reduce((t,r)=>t+r[k],0)/n, best = g.reduce((m,r)=>r.v>m.v?r:m, g[0]);
+  const line = (lab, txt, v) => `<div class="gsdl"><span>${lab}</span><i>${esc(txt)}</i><b>${gsSigned(Math.round(v*100)/100)}</b></div>`;
+  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${line('Hitting','per game, '+n+' games',av('hit'))}${line('Pitching','per game, '+n+' games',av('pit'))}${line('Fielding','per game, '+n+' games',av('fld'))}
+    <div class="gsdl gsdtot"><span>Best game</span><i>${esc(best.date)} vs ${esc(histNick(best.opp, best.y))}</i><b>${gsNum(best.v)}</b></div></div></td></tr>`;
+}
 function renderSavantGS(){
   const all = svpGSRows(), post = svpGS.phase==='Playoffs';
   const inPhase = all.filter(r=>r.post===post);
@@ -11091,21 +11127,21 @@ function renderSavantGS(){
     inPhase.filter(yearOk).forEach(r=>{ const k = bySeason ? r.n+'|'+r.y : r.n; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
     const list = [...groups.values()].filter(g=>g.length>=minG).map(g=>{
       const tot = g.reduce((t,r)=>t+r.v,0), last = g.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
-      return {n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
+      return {rows:g, n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
     }).sort((a,b)=>b.avg-a.avg).slice(0,25);
     avgNote = `Minimum ${minG} games. `;
     body = `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th><th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game">Average</th></tr></thead><tbody>
       ${list.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
         <td class="lft svptm gsx"><span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.ty), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.ty))}</button></span></td>
-        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}</td></tr>`).join('')}
+        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}${gsPlus}</td></tr>${gsAvgDetRow(r.rows)}`).join('')}
       </tbody></table></div>`;
   } else if(svpGS.view==='best'){
     const key = {total:'v', hit:'hit', pit:'pit'}[svpGS.type] || 'v';
     const top = inPhase.filter(yearOk).sort((a,b)=>b[key]-a[key] || b.v-a.v).slice(0,25);
     body = `<div class="chips svpmodes">${chip('data-gst','total','Combined',svpGS.type==='total')}${chip('data-gst','hit','Hitting only',svpGS.type==='hit')}${chip('data-gst','pit','Pitching only',svpGS.type==='pit')}</div>
-      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th><th class="lft">Game</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
+      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th><th class="lft gsx">Game</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
       ${top.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
-        <td class="lft svptm gsx">${teamCell(r)}</td><td class="lft">${gameCell(r)}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}</td></tr>`).join('')}
+        <td class="lft svptm gsx">${teamCell(r)}</td><td class="lft gsx">${gameCell(r)}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}${gsPlus}</td></tr>${gsDetRow(r)}`).join('')}
       </tbody></table></div>`;
   } else {
     const names = [...new Set(inPhase.map(r=>r.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
@@ -11114,20 +11150,22 @@ function renderSavantGS(){
     const sum = k => Math.round(mine.reduce((t,r)=>t+r[k],0)*10)/10;
     body = `<div class="svpform"><label>Player <select id="gsPlayer">${names.map(n=>`<option value="${esc(n)}"${n===svpGS.player?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select></label></div>
       ${mine.length ? `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Game</th><th>Result</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
-      ${mine.map(r=>`<tr><td class="lft">${gameCell(r)}</td><td class="mono">${r.rf>r.ra?'W':r.rf<r.ra?'L':'T'} ${r.rf}–${r.ra}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}</td></tr>`).join('')}
+      ${mine.map(r=>`<tr><td class="lft">${gameCell(r)}</td><td class="mono">${r.rf>r.ra?'W':r.rf<r.ra?'L':'T'} ${r.rf}–${r.ra}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}${gsPlus}</td></tr>${gsDetRow(r)}`).join('')}
       </tbody><tfoot><tr><td class="lft">${mine.length} game${mine.length===1?'':'s'}</td><td class="mono">avg ${gsNum(sum('v')/mine.length)}</td><td class="mono gsx">${gsSigned(sum('hit'))}</td><td class="mono gsx">${gsSigned(sum('pit'))}</td><td class="mono gsx">${gsSigned(sum('fld'))}</td><td class="mono b">${gsNum(sum('v'))}</td></tr></tfoot></table></div>`
         : '<p class="empty">No box-score games for that player in this selection.</p>'}`;
   }
   svpShell('gamescore', `
+    <p class="gsdef"><b>Game Score</b> is one number for how good a player's game was, hitting, pitching and fielding together. Zero is a league-average game for that season, higher is better, and a negative score is a below-average game. It's adjusted for the season, so a big game in a high-scoring year isn't flattered. Tap the <b>+</b> beside any score to see what's behind it.</p>
     <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','avg','Best averages',svpGS.view==='avg')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
       ${chip('data-gsp','Regular','Regular Season',!post)}${chip('data-gsp','Playoffs','Postseason',post)}</div>
     <div class="svpform">${yearSel}</div>
     ${body}
-    <p class="smeta">Game Score is one number for how good a player's game was, hitting, pitching and fielding together, from the box score.
-      Each part is measured against what an average player would have done in the same number of at-bats, outs or innings <i>that season</i>,
-      so a big game in a high-scoring year isn't flattered. It reads roughly as runs above average: 0 is a league-average game, and a negative score is a bad one.
-      A strikeout earns nothing beyond the out, and runs scored and RBI earn nothing extra: a hit, walk or home run is credited for what it is, so a runner who is stranded neither helps nor hurts.
-      ${avgNote}Only games with a full box score are counted (2017 onward, the earliest ones as a team total aren't).</p>`);
+    <p class="smeta">${avgNote}Only games with a box score are counted, and a batting line that is really a whole team's total (common in 2017 to 2021) is left out.</p>`);
+  app.querySelectorAll('.gsplus').forEach(b=>b.addEventListener('click',()=>{
+    const row = b.closest('tr'), det = row && row.nextElementSibling; if(!det || !det.classList.contains('gsdetr')) return;
+    const open = det.hidden; det.hidden = !open; b.textContent = open ? '−' : '+'; b.setAttribute('aria-expanded', String(open));
+    if(open){ const cols = [...row.closest('table').querySelectorAll('thead th')].filter(t=>getComputedStyle(t).display!=='none').length; det.firstElementChild.colSpan = cols; }
+  }));
   app.querySelectorAll('[data-gsv]').forEach(b=>b.addEventListener('click',()=>{ svpGS.view = b.dataset.gsv; renderSavantGS(); }));
   app.querySelectorAll('[data-gsp]').forEach(b=>b.addEventListener('click',()=>{ svpGS.phase = b.dataset.gsp; renderSavantGS(); }));
   app.querySelectorAll('[data-gst]').forEach(b=>b.addEventListener('click',()=>{ svpGS.type = b.dataset.gst; renderSavantGS(); }));
