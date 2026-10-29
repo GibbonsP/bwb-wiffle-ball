@@ -1272,6 +1272,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
   box-shadow:var(--shadow);display:block}
 .barchart text{font-family:"IBM Plex Sans",sans-serif}
 .hero-row{display:flex;align-items:center;gap:2px}
+.svshare{margin-left:auto;align-self:center;font-family:"Oswald","Arial Narrow",sans-serif;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border:1px solid var(--line-strong);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer}
+.svshare:hover{border-color:var(--accent)}
 .namewrap{display:flex;flex-direction:column;gap:6px}
 .sitefoot{max-width:1180px;margin:44px auto 0;padding:22px 20px 34px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -9207,7 +9209,7 @@ function svpShell(tab, inner){
   const t = (k,l)=>`<button data-svpt="${k}" aria-pressed="${tab===k}">${l}</button>`;
   const span = SVP_YEARS.length ? `${SVP_YEARS[0]}–${SVP_YEARS[SVP_YEARS.length-1]}` : '';
   app.innerHTML = `
-    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
+    <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2><button class="svshare" type="button">Copy link</button></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
     <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('search','Search')}${t('teams','Teams')}</div>
@@ -9219,6 +9221,8 @@ function svpShell(tab, inner){
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
   svpCenterTabs();
+  const sh = app.querySelector('.svshare'); if(sh) sh.addEventListener('click', ()=>svpCopyLink(sh));
+  svpSyncURL();
 }
 /* on a phone the tab rows scroll sideways: start with the current tab in view */
 function svpCenterTabs(){
@@ -10832,22 +10836,22 @@ function svpTidbits(pv){
   const FY = SVP_FULL_YEARS.filter(y=>svpRaceSeries(y).length);
   const teamKinds = {
     style: Y => forYear(Y, ()=>{ const p = svpTeamPoints(); if(p.length<4) return null;
-      return box(`${Y} Playstyles`, '#/savant/teams', mk.mini(p, r=>r.win, r=>r.fun, {cx:0.5, cy:0, quads:['BAD & FUN','GOOD & FUN','BAD & BORING','GOOD & BORING']}, W),
-        `The most fun club of ${Y} was the ${hn(best(p,r=>r.fun).team,Y)}; the ${hn(best(p,r=>r.win).team,Y)} won the most.`, {tm:Y, v:'style'}); }),
+      return box(`${Y} Playstyles`, svqLink('#/savant/teams',{y:Y}), mk.mini(p, r=>r.win, r=>r.fun, {cx:0.5, cy:0, quads:['BAD & FUN','GOOD & FUN','BAD & BORING','GOOD & BORING']}, W),
+        `The most fun club of ${Y} was the ${hn(best(p,r=>r.fun).team,Y)}; the ${hn(best(p,r=>r.win).team,Y)} won the most.`); }),
     offstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('off', String(Y), false); if(p.length<4) return null;
-      return box(`${Y} Offensive Style`, '#/savant/teams/offstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS']}, W),
-        `The ${hn(best(p,r=>r.sy).team,Y)} hit for the most power in ${Y}; the ${hn(best(p,r=>r.sx).team,Y)} were the most patient.`, {tm:Y, v:'offstyle'}); }),
+      return box(`${Y} Offensive Style`, svqLink('#/savant/teams/offstyle',{y:Y}), mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['BOOM OR BUST','PATIENT POWER','FREE-SWINGING','TABLE-SETTERS']}, W),
+        `The ${hn(best(p,r=>r.sy).team,Y)} hit for the most power in ${Y}; the ${hn(best(p,r=>r.sx).team,Y)} were the most patient.`); }),
     pitstyle: Y => forYear(Y, ()=>{ const p = svpStyleAgg('pit', String(Y), false); if(p.length<4) return null;
-      return box(`${Y} Pitching Style`, '#/savant/teams/pitstyle', mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS']}, W),
-        `How every club prevented runs in ${Y}: strikeouts, walks or balls in play.`, {tm:Y, v:'pitstyle'}); }),
+      return box(`${Y} Pitching Style`, svqLink('#/savant/teams/pitstyle',{y:Y}), mk.mini(p, r=>r.sx, r=>r.sy, {cx:0, cy:0, quads:['PITCH-TO-CONTACT','DOMINANT','STRUGGLING','WILD POWER ARMS']}, W),
+        `How every club prevented runs in ${Y}: strikeouts, walks or balls in play.`); }),
     offense: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null;
-      return box(`${Y} Offense vs Defense`, '#/savant/teams/offense', mk.mini(t, r=>r.off, r=>r.def, {cx:0, cy:0, quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST']}, W),
-        `${Y}’s best offense belonged to the ${hn(best(t,r=>r.off).team,Y)}, and its best defense to the ${hn(best(t,r=>r.def).team,Y)}.`, {tm:Y, v:'offense'}); }),
+      return box(`${Y} Offense vs Defense`, svqLink('#/savant/teams/offense',{y:Y}), mk.mini(t, r=>r.off, r=>r.def, {cx:0, cy:0, quads:['PITCHING-FIRST','ELITE','STRUGGLING','OFFENSE-FIRST']}, W),
+        `${Y}’s best offense belonged to the ${hn(best(t,r=>r.off).team,Y)}, and its best defense to the ${hn(best(t,r=>r.def).team,Y)}.`); }),
     luck: Y => forYear(Y, ()=>{ const t = svpTeamAgg(String(Y), false); if(t.length<4) return null; const l = best(t, r=>r.luck), u = worst(t, r=>r.luck);
-      return box(`${Y} Luck`, '#/savant/teams/luck', mk.mini(t, r=>r.exp, r=>r.win, {diag:true, quads:['LUCKY','','','UNLUCKY']}, W),
-        `The ${hn(l.team,Y)} won ${l.luck.toFixed(1)} more games than their runs said they should have. The ${hn(u.team,Y)} won ${Math.abs(u.luck).toFixed(1)} fewer.`, {tm:Y, v:'luck'}); }),
+      return box(`${Y} Luck`, svqLink('#/savant/teams/luck',{y:Y}), mk.mini(t, r=>r.exp, r=>r.win, {diag:true, quads:['LUCKY','','','UNLUCKY']}, W),
+        `The ${hn(l.team,Y)} won ${l.luck.toFixed(1)} more games than their runs said they should have. The ${hn(u.team,Y)} won ${Math.abs(u.luck).toFixed(1)} fewer.`); }),
     race: Y => { const ser = svpRaceSeries(Y); if(!ser.length) return null; const champ = ((CHAMPS||[]).find(c=>c.y===Y)||{}).full;
-      return box(`${Y} Season Race`, '#/savant/teams/race', mk.raceSVG(Y, W), champ ? `How ${Y} unfolded, game by game. The thick line is the ${hn(champ,Y)}, who won the World Series.` : `How ${Y} unfolded, game by game.`, {race:Y}); },
+      return box(`${Y} Season Race`, svqLink('#/savant/teams/race',{y:Y}), mk.raceSVG(Y, W), champ ? `How ${Y} unfolded, game by game. The thick line is the ${hn(champ,Y)}, who won the World Series.` : `How ${Y} unfolded, game by game.`); },
   };
   /* a qualified player-season in the top quarter of the league, picked at random */
   const topSeasons = mode => {
@@ -10860,19 +10864,19 @@ function svpTidbits(pv){
   };
   const playerKinds = {
     pizza: () => { const c = pick(topSeasons(rnd()<0.7 ? 'bat' : 'pit')); if(!c) return null; const it = svpPizzaItems(c.name, c.year, c.mode, c.mode==='bat'?SV_BAT:SV_PIT);
-      return it ? box(`${c.name}, ${c.year}`, '#/savant/pizza', `<div class="svhpz">${svpPizzaSVG(c.mode==='bat'?SV_BAT:SV_PIT, it, null).replace('viewBox="0 0 460 380"','viewBox="108 66 244 248"')}</div>`,
-        `${c.name}’s ${c.year} season as a pizza chart. Longer, redder wedges mean a higher percentile.`, {pz:{mode:c.mode, a:c.name, ay:c.year}}) : null; },
+      return it ? box(`${c.name}, ${c.year}`, svqLink('#/savant/pizza',{m:c.mode, a:c.name, ay:c.year}), `<div class="svhpz">${svpPizzaSVG(c.mode==='bat'?SV_BAT:SV_PIT, it, null).replace('viewBox="0 0 460 380"','viewBox="108 66 244 248"')}</div>`,
+        `${c.name}’s ${c.year} season as a pizza chart. Longer, redder wedges mean a higher percentile.`) : null; },
     best: () => { const Y = pick(SVP_YEARS.slice(1)), q = svpEntries(Y).filter(e=>svpQual('bat', e.row)); if(q.length<3) return null;
       const v = q.map(e=>({e, v:wrcPlusFor(e.row, Y, false)})).filter(x=>isFinite(x.v)).sort((a,b)=>b.v-a.v), all = v.map(x=>x.v);
-      return box(`${Y}’s Best Hitters`, '#/savant/rankings', `<div class="svhrank">${v.slice(0,3).map(x=>`<div><span>${esc(x.e.name)}</span>${svpPill(svPct(all, x.v, false))}</div>`).join('')}</div>`,
-        `The top three by wRC+ in ${Y}. ${v[0].e.name} led at ${Math.round(v[0].v)}.`, {pct:{year:Y, mode:'bat'}}); },
+      return box(`${Y}’s Best Hitters`, svqLink('#/savant/rankings',{m:'bat', y:Y}), `<div class="svhrank">${v.slice(0,3).map(x=>`<div><span>${esc(x.e.name)}</span>${svpPill(svPct(all, x.v, false))}</div>`).join('')}</div>`,
+        `The top three by wRC+ in ${Y}. ${v[0].e.name} led at ${Math.round(v[0].v)}.`); },
     breakout: () => { const mode = rnd()<0.6 ? 'bat' : 'pit', Y = pick(SVP_YEARS.filter(y=>y>=2018 && SVP_YEARS.includes(y-1))), t = svpTrending(mode, Y); if(!t.length) return null;
-      return box(`${Y} Breakouts`, '#/savant/rankings', svpTrendBox(mode, Y), `Biggest ${mode==='bat'?'wRC+':'ERA+'} jumps from ${Y-1} to ${Y}.`, {pct:{year:Y, mode}}); },
+      return box(`${Y} Breakouts`, svqLink('#/savant/rankings',{m:mode, y:Y}), svpTrendBox(mode, Y), `Biggest ${mode==='bat'?'wRC+':'ERA+'} jumps from ${Y-1} to ${Y}.`); },
     comp: () => { try{ const c = pick(topSeasons('bat')); const ent = svpCompIndex().bat.find(o=>o.name===c.name && o.year===c.year); if(!ent) return null;
       const cs = svpCompsFor(ent, svpCompIndex().bat, 3); if(!cs.length) return null;
-      return box('Matched Seasons', '#/savant/compare', `<div class="svhcomp"><div class="svhcomp-h">Closest to ${esc(nameParts(ent.name).last)} ${yy(c.year)}</div>${cs.map(x=>`<div class="svhcomp-r"><span>${esc(nameParts(x.o.name).last)} ${yy(x.o.year)}</span>
+      return box('Matched Seasons', svqLink('#/savant/compare',{y:c.year}), `<div class="svhcomp"><div class="svhcomp-h">Closest to ${esc(nameParts(ent.name).last)} ${yy(c.year)}</div>${cs.map(x=>`<div class="svhcomp-r"><span>${esc(nameParts(x.o.name).last)} ${yy(x.o.year)}</span>
         <i><b style="width:${Math.max(8,Math.round(x.sim))}%"></b></i><em>${Math.round(x.sim)}%</em></div>`).join('')}</div>`,
-        `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`, {pct:{year:c.year, mode:'bat'}}); }catch(e){ return null; } },
+        `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`); }catch(e){ return null; } },
   };
   const out = [];
   const kinds = shuffle(Object.keys(teamKinds)), usedYears = new Set();
@@ -10890,7 +10894,7 @@ function svpTidbits(pv){
 function svpHubTop(pv){
   const picks = svpTidbits(pv);
   const side = `<aside class="svside"><div class="svsidehead"><span class="svfeatlabel">Featured</span></div>
-    ${picks.map(b=>`<a class="svbox" href="${b.link}"${b.pre?` data-pre="${esc(JSON.stringify(b.pre))}"`:''}><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
+    ${picks.map(b=>`<a class="svbox" href="${b.link}"><div class="svboxhead"><b>${esc(b.title)}</b><span>Open →</span></div><div class="svhprev">${b.html}</div><p>${esc(b.cap)}</p></a>`).join('')}</aside>`;
   const main = `<section class="svrk" id="svrk">${svpRankPanelInner()}</section>`;
   return `<section class="svtop">${main}${side}</section>`;
 }
@@ -10957,19 +10961,113 @@ function renderSavantHub(){
     ${group('Teams', 'Franchise-level graphs. Each dot or row is a club-season.', teams)}
     `);
   svpRankPanelWire();
-  app.querySelectorAll('.svbox[data-pre]').forEach(a=>a.addEventListener('click', ()=>{
-    let p = null; try{ p = JSON.parse(a.dataset.pre); }catch(e){}
-    if(!p) return;
-    if(p.tm){   /* each team view keeps its own season selection */
-      const st = {style:svpTm, offense:svpTO, luck:svpTL, offstyle:svpTOS, pitstyle:svpTPS}[p.v] || svpTm;
-      st.year = String(p.tm); st.sel = null; st.split = false; st.hl = ''; svpTmTeam = ''; svpTmGroup = '';
-    }
-    if(p.race){ svpTR.year = p.race; svpTmTeam = ''; }
-    if(p.pz){ Object.assign(svpPz, {mode:p.pz.mode, a:p.pz.a, ay:p.pz.ay, b:'', by:null}); }
-    if(p.pct){ svpYear = p.pct.year; svpMode = p.pct.mode; }
-  }));
 }
-function renderSavant(h){
+/* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
+const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
+const svqTeamView = st => [
+  ['y', ()=>st.year, v=>{ if(svqYr(v)) st.year = v; }],
+  ['sp', ()=>st.split?'1':'', v=>{ st.split = v==='1'; }],
+  ['hl', ()=>st.hl, v=>{ if(TEAMS[v]) st.hl = v; }],
+  ['t', ()=>svpTmTeam, v=>{ if(TEAMS[v]) svpTmTeam = v; }],
+];
+const SVQ = {
+  '#/savant/rankings': [
+    ['m', ()=>svpMode, v=>{ if(v==='bat'||v==='pit') svpMode = v; }],
+    ['y', ()=>svpYear, v=>{ if(SVP_YEARS.includes(+v)) svpYear = +v; }],
+    ['s', ()=>svpSort[svpMode]===svpHead[svpMode] ? '' : svpSort[svpMode], v=>{ svpSort[svpMode] = v==='name' ? 'name' : (+v>=0 && +v<(svpMode==='bat'?SVP_BAT:SVP_PIT).length ? +v : svpHead[svpMode]); }],
+  ],
+  '#/savant/pizza': [
+    ['m', ()=>svpPz.mode, v=>{ if(v==='bat'||v==='pit') svpPz.mode = v; }],
+    ['a', ()=>svpPz.a||'', v=>{ if(P[v]) svpPz.a = v; }],
+    ['ay', ()=>svpPz.ay||'', v=>{ svpPz.ay = +v; }],
+    ['b', ()=>svpPz.b||'', v=>{ svpPz.b = P[v] ? v : ''; }],
+    ['by', ()=>svpPz.b ? (svpPz.by||'') : '', v=>{ svpPz.by = +v; }],
+  ],
+  '#/savant/compare': [['y', ()=>svpYear, v=>{ if(SVP_FULL_YEARS.includes(+v)) svpYear = +v; }]],
+  '#/savant/trends': [
+    ['p', ()=>svpPost?'1':'', v=>{ svpPost = v==='1'; }],
+    ['y', ()=>svpYear, v=>{ if(SVP_YEARS.includes(+v)) svpYear = +v; }],
+  ],
+  '#/savant/scatter': [
+    ['m', ()=>svpSc.mode, v=>{ if(v==='bat'||v==='pit') svpSc.mode = v; }],
+    ['ph', ()=>svpSc.phase, v=>{ if(v==='Regular'||v==='Playoffs') svpSc.phase = v; }],
+    ['yr', ()=>svpSc.year, v=>{ if(svqYr(v)) svpSc.year = v; }],
+    ['t', ()=>svpSc.team, v=>{ if(TEAMS[v]) svpSc.team = v; }],
+    ['ht', ()=>svpSc.hlTeam, v=>{ if(TEAMS[v]) svpSc.hlTeam = v; }],
+    ['x', ()=>svpSc.x, v=>{ svpSc.x = v; }],
+    ['y', ()=>svpSc.y, v=>{ svpSc.y = v; }],
+    ['hl', ()=>svpSc.hl, v=>{ svpSc.hl = v; }],
+  ],
+  '#/savant/form': [
+    ['n', ()=>svpForm.name||'', v=>{ if(P[v]) svpForm.name = v; }],
+    ['y', ()=>svpForm.year||'', v=>{ svpForm.year = +v; }],
+    ['k', ()=>svpForm.metric, v=>{ if(SVP_FORM_METRICS[v]) svpForm.metric = v; }],
+    ['w', ()=>svpForm.win, v=>{ if([5,10,15].includes(+v)) svpForm.win = +v; }],
+    ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
+  ],
+  '#/savant/teams': svqTeamView(svpTm),
+  '#/savant/teams/offense': svqTeamView(svpTO),
+  '#/savant/teams/luck': svqTeamView(svpTL),
+  '#/savant/teams/offstyle': svqTeamView(svpTOS),
+  '#/savant/teams/pitstyle': svqTeamView(svpTPS),
+  '#/savant/teams/race': [
+    ['y', ()=>svpTR.year||'', v=>{ if(SVP_YEARS.includes(+v)) svpTR.year = +v; }],
+    ['hl', ()=>svpTR.hl, v=>{ if(TEAMS[v]) svpTR.hl = v; }],
+    ['t', ()=>svpTmTeam, v=>{ if(TEAMS[v]) svpTmTeam = v; }],
+  ],
+  '#/savant/teams/h2h': [
+    ['y', ()=>svpH2H.year, v=>{ if(svqYr(v)) svpH2H.year = v; }],
+    ['ph', ()=>svpH2H.phase, v=>{ if(['reg','post','both'].includes(v)) svpH2H.phase = v; }],
+  ],
+};
+/* a view's untouched state is left out of the link, so a plain link stays plain */
+Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
+/* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
+const SVQ0 = {Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+  post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
+const SVQ_RESET = {
+  '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
+  '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
+  '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
+  '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
+  '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
+  '#/savant/form': ()=>Object.assign(svpForm, SVQ0.Form),
+  '#/savant/teams': ()=>{ Object.assign(svpTm, SVQ0.Tm); svpTmTeam = ''; svpTmGroup = ''; },
+  '#/savant/teams/offense': ()=>{ Object.assign(svpTO, SVQ0.TO); svpTmTeam = ''; svpTmGroup = ''; },
+  '#/savant/teams/luck': ()=>{ Object.assign(svpTL, SVQ0.TL); svpTmTeam = ''; svpTmGroup = ''; },
+  '#/savant/teams/offstyle': ()=>{ Object.assign(svpTOS, SVQ0.TOS); svpTmTeam = ''; svpTmGroup = ''; },
+  '#/savant/teams/pitstyle': ()=>{ Object.assign(svpTPS, SVQ0.TPS); svpTmTeam = ''; svpTmGroup = ''; },
+  '#/savant/teams/race': ()=>{ Object.assign(svpTR, SVQ0.TR); svpTmTeam = ''; },
+  '#/savant/teams/h2h': ()=>Object.assign(svpH2H, SVQ0.H2H),
+};
+function svqApply(base, params){
+  if(SVQ_RESET[base]) SVQ_RESET[base]();
+  (SVQ[base]||[]).forEach(d=>{ if(params.has(d[0])){ try{ d[2](params.get(d[0])); }catch(e){} } });
+  [svpTm, svpTO, svpTL, svpTOS, svpTPS].forEach(st=>{ st.sel = null; });
+}
+function svqLink(base, obj){
+  const p = new URLSearchParams(); Object.entries(obj||{}).forEach(([k,v])=>{ if(v!=null && v!=='') p.set(k, v); });
+  const qs = p.toString().replace(/\+/g,'%20');
+  return base + (qs ? '?'+qs : '');
+}
+function svpSyncURL(){
+  const h = location.hash; if(!h.startsWith('#/savant')) return;
+  const base = h.split('?')[0], list = SVQ[base]; if(!list) return;
+  const obj = {}; list.forEach(d=>{ const v = d[1](); const sv = String(v ?? ''); if(sv!=='' && sv!==d.def) obj[d[0]] = sv; });
+  const next = svqLink(base, obj); if(next !== h) history.replaceState(null, '', next);
+}
+let svpSyncT = null;
+['change','click','input'].forEach(ev=>app.addEventListener(ev, ()=>{ clearTimeout(svpSyncT); svpSyncT = setTimeout(svpSyncURL, 60); }));
+function svpCopyLink(btn){
+  const url = location.href;
+  const done = () => { btn.textContent = 'Link copied'; setTimeout(()=>{ btn.textContent = 'Copy link'; }, 1600); };
+  if(navigator.share && /Mobi|Android/i.test(navigator.userAgent)){ navigator.share({url, title:document.title}).catch(()=>{}); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, ()=>{ window.prompt('Copy this link', url); });
+  else window.prompt('Copy this link', url);
+}
+function renderSavant(h0){
+  const qi = h0.indexOf('?'), h = qi<0 ? h0 : h0.slice(0,qi);
+  if(qi>=0) svqApply(h, new URLSearchParams(h0.slice(qi+1)));
   if(h === '#/savant/compare' || h.startsWith('#/savant/compare/')) return renderSavantCompare();
   if(h === '#/savant/trends') return renderSavantTrends();
   if(h === '#/savant/pizza') return renderSavantPizza();
