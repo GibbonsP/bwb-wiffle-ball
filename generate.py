@@ -11074,14 +11074,34 @@ function renderSavantGS(){
   const all = svpGSRows(), post = svpGS.phase==='Playoffs';
   const inPhase = all.filter(r=>r.post===post);
   const years = [...new Set(inPhase.map(r=>r.y))].sort((a,b)=>b-a);
-  if(svpGS.year!=='all' && !years.includes(+svpGS.year)) svpGS.year = 'all';
-  const yearOk = r => svpGS.year==='all' || String(r.y)===String(svpGS.year);
+  if(/^e[0-9]+$/.test(svpGS.year)){ if(!SVP_ERAS[+svpGS.year.slice(1)]) svpGS.year = 'all'; }
+  else if(svpGS.year!=='all' && svpGS.year!=='seasons' && !years.includes(+svpGS.year)) svpGS.year = 'all';
+  const eraOf = /^e[0-9]+$/.test(svpGS.year) ? SVP_ERAS[+svpGS.year.slice(1)] : null;
+  const yearOk = r => svpGS.year==='all' || svpGS.year==='seasons' || (eraOf ? r.y>=eraOf.from && r.y<=eraOf.to : String(r.y)===String(svpGS.year));
   const teamCell = r => `<span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.y), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.y))}</button></span>`;
   const gameCell = r => `<button class="pname" data-g="${r.gid}">${esc(r.date)}</button> <span class="smeta gsopp">vs ${esc(histNick(r.opp, r.y))}</span>`;
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
-  const yearSel = `<label>Season <select id="gsYear"><option value="all"${svpGS.year==='all'?' selected':''}>All seasons</option>${years.map(y=>`<option value="${y}"${String(y)===String(svpGS.year)?' selected':''}>${y}</option>`).join('')}</select></label>`;
+  const isAvg = svpGS.view==='avg';
+  if(!isAvg && svpGS.year==='seasons') svpGS.year = 'all';
+  const yearSel = `<label>Season <select id="gsYear"><option value="all"${svpGS.year==='all'?' selected':''}>${isAvg?'Careers':'All seasons'}</option>${isAvg?`<option value="seasons"${svpGS.year==='seasons'?' selected':''}>Best single seasons</option>`:''}<optgroup label="Eras">${SVP_ERAS.map((e,i)=>{ return `<option value="e${i}"${svpGS.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`; }).join('')}</optgroup><optgroup label="Single season">${years.map(y=>`<option value="${y}"${String(y)===String(svpGS.year)?' selected':''}>${y}</option>`).join('')}</optgroup></select></label>`;
   let body = '';
-  if(svpGS.view==='best'){
+  let avgNote = '';
+  if(svpGS.view==='avg'){
+    const bySeason = svpGS.year==='seasons' || /^[0-9]{4}$/.test(svpGS.year);
+    const minG = bySeason ? (post ? 3 : 8) : eraOf ? (post ? 4 : 15) : (post ? 6 : 25);
+    const groups = new Map();
+    inPhase.filter(yearOk).forEach(r=>{ const k = bySeason ? r.n+'|'+r.y : r.n; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+    const list = [...groups.values()].filter(g=>g.length>=minG).map(g=>{
+      const tot = g.reduce((t,r)=>t+r.v,0), last = g.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
+      return {n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
+    }).sort((a,b)=>b.avg-a.avg).slice(0,25);
+    avgNote = `Minimum ${minG} games. `;
+    body = `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th><th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game">Average</th></tr></thead><tbody>
+      ${list.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
+        <td class="lft svptm gsx"><span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.ty), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.ty))}</button></span></td>
+        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  } else if(svpGS.view==='best'){
     const key = {total:'v', hit:'hit', pit:'pit'}[svpGS.type] || 'v';
     const top = inPhase.filter(yearOk).sort((a,b)=>b[key]-a[key] || b.v-a.v).slice(0,25);
     body = `<div class="chips svpmodes">${chip('data-gst','total','Combined',svpGS.type==='total')}${chip('data-gst','hit','Hitting only',svpGS.type==='hit')}${chip('data-gst','pit','Pitching only',svpGS.type==='pit')}</div>
@@ -11101,7 +11121,7 @@ function renderSavantGS(){
         : '<p class="empty">No box-score games for that player in this selection.</p>'}`;
   }
   svpShell('gamescore', `
-    <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
+    <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','avg','Best averages',svpGS.view==='avg')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
       ${chip('data-gsp','Regular','Regular Season',!post)}${chip('data-gsp','Playoffs','Postseason',post)}</div>
     <div class="svpform">${yearSel}</div>
     ${body}
@@ -11109,7 +11129,7 @@ function renderSavantGS(){
       Each part is measured against what an average player would have done in the same number of at-bats, outs or innings <i>that season</i>,
       so a big game in a high-scoring year isn't flattered. It reads roughly as runs above average: 0 is a league-average game, and a negative score is a bad one.
       A strikeout earns nothing beyond the out, and every run is credited once (half to the player who scored it, half to the one who drove it in).
-      Only games with a full box score are counted (2017 onward, the earliest ones as a team total aren't).</p>`);
+      ${avgNote}Only games with a full box score are counted (2017 onward, the earliest ones as a team total aren't).</p>`);
   app.querySelectorAll('[data-gsv]').forEach(b=>b.addEventListener('click',()=>{ svpGS.view = b.dataset.gsv; renderSavantGS(); }));
   app.querySelectorAll('[data-gsp]').forEach(b=>b.addEventListener('click',()=>{ svpGS.phase = b.dataset.gsp; renderSavantGS(); }));
   app.querySelectorAll('[data-gst]').forEach(b=>b.addEventListener('click',()=>{ svpGS.type = b.dataset.gst; renderSavantGS(); }));
@@ -11161,9 +11181,9 @@ const SVQ = {
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
   '#/savant/gamescore': [
-    ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log') svpGS.view = v; }],
+    ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log'||v==='avg') svpGS.view = v; }],
     ['ph', ()=>svpGS.phase, v=>{ if(v==='Regular'||v==='Playoffs') svpGS.phase = v; }],
-    ['y', ()=>svpGS.year, v=>{ if(v==='all'||/^[0-9]{4}$/.test(v)) svpGS.year = v; }],
+    ['y', ()=>svpGS.year, v=>{ if(v==='all'||v==='seasons'||/^[0-9]{4}$/.test(v)||(/^e[0-9]+$/.test(v) && SVP_ERAS[+v.slice(1)])) svpGS.year = v; }],
     ['t', ()=>svpGS.type, v=>{ if(v==='total'||v==='hit'||v==='pit') svpGS.type = v; }],
     ['p', ()=>svpGS.player, v=>{ if(P[v]) svpGS.player = v; }],
   ],
