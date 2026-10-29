@@ -9326,13 +9326,25 @@ function svpPhaseRow(pl, y, phase){
 function svpEntries(year, phase){
   return NAMES.map(n=>({name:n, row:svpPhaseRow(P[n], year, phase||'Regular')})).filter(e=>e.row);
 }
+/* average Game Score per game for the rankings table: hitting part for hitters, pitching part for pitchers, from games with a box score (a team-total batting line isn't one player's game) */
+let _gsAvgMap = null;
+function svpGSAvgOf(name, year, mode){
+  if(!_gsAvgMap){
+    _gsAvgMap = new Map(); const acc = {};
+    svpGSRows().filter(r=>!r.post).forEach(r=>{ [['bat', r.bl && !r.tl, r.hit], ['pit', !!r.pl, r.pit]].forEach(([m, ok, v])=>{
+      if(!ok) return; const k = m+'|'+r.n+'|'+r.y; const a = acc[k] || (acc[k] = [0,0]); a[0] += v; a[1]++; }); });
+    Object.entries(acc).forEach(([k,a])=>_gsAvgMap.set(k, a[0]/a[1]));
+  }
+  const v = _gsAvgMap.get(mode+'|'+name+'|'+year); return v==null ? NaN : v;
+}
+const svpGSMetric = mode => ['GmSc', (row, name)=>svpGSAvgOf(name, row.year, mode), v=>isFinite(v)?(v<0?'−':'')+Math.abs(v).toFixed(2):'—', false];
 function svpRankTable(year, mode){
-  const metrics = mode==='bat' ? SVP_BAT : SVP_PIT;
+  const metrics = (mode==='bat' ? SVP_BAT : SVP_PIT).concat([svpGSMetric(mode)]);
   const qual = svpEntries(year).filter(e=> mode==='bat' ? e.row.G_bat>=SV_MING : e.row.IPouts>=SV_MINOUTS);
-  const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row)).filter(isFinite));
+  const vals = metrics.map(([,fn])=>qual.map(e=>fn(e.row, e.name)).filter(isFinite));
   const rows = qual.map(e=>{
     const cells = metrics.map(([,fn,fmt,low],i)=>{
-      const v = fn(e.row);
+      const v = fn(e.row, e.name);
       return {p: isFinite(v) ? svPct(vals[i], v, low) : null, txt: isFinite(v) ? fmt(v) : '—'};
     });
     return {e, cells};
@@ -9369,7 +9381,7 @@ function renderSavantPct(){
     <p class="smeta">${svpYear} regular season · ${t.n} qualified ${svpMode==='bat'?'hitters':'pitchers'} (${bar}).
       Each pill is the player's percentile among that field in that stat —
       <span style="color:${svColor(100)}">red</span> = league-best, <span style="color:${svColor(0)}">blue</span> = trailing —
-      with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better.
+      with the raw number beneath. K%, BB%, ERA, WHIP, BB/3 and OPP AVG are ranked low-is-better. GmSc is the average Game Score per game (hitting for hitters, pitching for pitchers) from games with a box score.
       Click a column to sort.${SVP_EST_YEARS.has(svpYear)?` <b>${svpYear}</b> has no box scores: its doubles, triples, runs and strikeouts are estimated, and the stats built on pitching hits and walks allowed (WHIP, BB% against, K-BB%, opponent average) aren't ranked, and K% uses the league's typical batters faced per out.`:''}</p>
     ${t.n ? t.html : '<p class="empty">No qualified players that year.</p>'}`);
   app.querySelectorAll('[data-svpy]').forEach(b=>b.addEventListener('click',()=>{ svpYear = +b.dataset.svpy; renderSavantPct(); }));
@@ -11083,7 +11095,7 @@ function svpGSRows(){
 const gsSigned = v => v===0 ? '—' : (v>0?'+':'−')+Math.abs(v).toFixed(1);
 const gsNum = v => (v<0?'−':'')+Math.abs(v).toFixed(1);
 /* an average over few games is mostly noise (a single game swings about 3 points; real differences between players are under 1), so averages are eased toward a league-average game as if each player also had GS_PRIOR average games */
-const GS_PRIOR = 10;
+const GS_PRIOR = {total:10, hit:16, pit:5};
 /* the "+" beside a score opens what's behind it: the box-score line for each part and what that part added */
 const gsPlus = '<button class="gsplus" type="button" aria-expanded="false" aria-label="Show what makes up this score">+</button>';
 function gsBatTxt(b){ if(!b) return ''; const x = [`${b.h||0}-for-${b.ab||0}`]; ['hr','3b','2b'].forEach(k=>{ if(b[k]) x.push(b[k]+' '+k.toUpperCase()); });
@@ -11100,11 +11112,15 @@ function gsDetRow(r){
   const gm = `<div class="gsdgame"><button class="pname" data-g="${r.gid}">${esc(r.date)}</button> vs ${esc(histNick(r.opp, r.y))} · ${res} ${r.rf}–${r.ra}</div>${r.tl?'<div class="gsdgame">This game logged the team’s whole batting line under one name, so the hitting part is the team’s, not one player’s.</div>':''}`;
   return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${gm}${parts.join('')}<div class="gsdl gsdtot"><span>Game Score</span><i></i><b>${gsNum(r.v)}</b></div></div></td></tr>`;
 }
-function gsAvgDetRow(g, raw){
-  const n = g.length, av = k => g.reduce((t,r)=>t+r[k],0)/n, best = g.reduce((m,r)=>r.v>m.v?r:m, g[0]);
-  const line = (lab, txt, v) => `<div class="gsdl"><span>${lab}</span><i>${esc(txt)}</i><b>${gsSigned(Math.round(v*100)/100)}</b></div>`;
-  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet"><div class="gsdgame">Plain average ${gsNum(Math.round(raw*100)/100)} over ${n} games. The rating eases a short sample toward average.</div>${line('Hitting','per game, '+n+' games',av('hit'))}${line('Pitching','per game, '+n+' games',av('pit'))}${line('Fielding','per game, '+n+' games',av('fld'))}
-    <div class="gsdl gsdtot"><span>Best game</span><i>${esc(best.date)} vs ${esc(histNick(best.opp, best.y))}</i><b>${gsNum(best.v)}</b></div></div></td></tr>`;
+function gsAvgDetRow(g, raw, type, val, best, asTotal){
+  const n = g.length, r2 = v => Math.round(v*100)/100, av = f => g.reduce((t,r)=>t+f(r),0)/n;
+  const line = (lab, txt, v) => `<div class="gsdl"><span>${lab}</span><i>${esc(txt)}</i><b>${gsSigned(r2(v))}</b></div>`;
+  const per = 'per game, '+n+' games';
+  const parts = type==='hit' ? line('Hitting', per, av(r=>r.hit)) : type==='pit' ? line('Pitching', per, av(r=>r.pit))
+    : line('Hitting', per, av(r=>r.hit)) + line('Pitching', per, av(r=>r.pit)) + line('Fielding', per, av(r=>r.fld));
+  const note = asTotal ? `${n} games, ${gsNum(r2(raw))} per game.` : `Plain average ${gsNum(r2(raw))} over ${n} games. The rating eases a short sample toward average.`;
+  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet"><div class="gsdgame">${note}</div>${parts}
+    <div class="gsdl gsdtot"><span>Best game</span><i>${esc(best.date)} vs ${esc(histNick(best.opp, best.y))}</i><b>${gsNum(val(best))}</b></div></div></td></tr>`;
 }
 function renderSavantGS(){
   const all = svpGSRows(), post = svpGS.phase==='Playoffs';
@@ -11117,30 +11133,40 @@ function renderSavantGS(){
   const teamCell = r => `<span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.y), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.y))}</button></span>`;
   const gameCell = r => `<button class="pname" data-g="${r.gid}">${esc(r.date)}</button> <span class="smeta gsopp">vs ${esc(histNick(r.opp, r.y))}</span>`;
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
-  const isAvg = svpGS.view==='avg';
+  const isAvg = svpGS.view==='avg' || svpGS.view==='tot';
   if(!isAvg && svpGS.year==='seasons') svpGS.year = 'all';
   const yearSel = `<label>Season <select id="gsYear"><option value="all"${svpGS.year==='all'?' selected':''}>${isAvg?'Careers':'All seasons'}</option>${isAvg?`<option value="seasons"${svpGS.year==='seasons'?' selected':''}>Best single seasons</option>`:''}<optgroup label="Eras">${SVP_ERAS.map((e,i)=>{ return `<option value="e${i}"${svpGS.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`; }).join('')}</optgroup><optgroup label="Single season">${years.map(y=>`<option value="${y}"${String(y)===String(svpGS.year)?' selected':''}>${y}</option>`).join('')}</optgroup></select></label>`;
   let body = '';
   let avgNote = '';
-  if(svpGS.view==='avg'){
+  const typeChips = `<div class="chips svpmodes">${chip('data-gst','total','Combined',svpGS.type==='total')}${chip('data-gst','hit','Hitters',svpGS.type==='hit')}${chip('data-gst','pit','Pitchers',svpGS.type==='pit')}</div>`;
+  if(isAvg){
+    const asTotal = svpGS.view==='tot', type = svpGS.type;
+    const val = type==='hit' ? (r=>r.hit) : type==='pit' ? (r=>r.pit) : (r=>r.v);
+    const keep = type==='hit' ? (r=>r.bl && !r.tl) : type==='pit' ? (r=>!!r.pl) : (r=>true);
     const bySeason = svpGS.year==='seasons' || /^[0-9]{4}$/.test(svpGS.year);
-    const minG = bySeason ? (post ? 3 : 8) : eraOf ? (post ? 4 : 15) : (post ? 6 : 25);
+    const minG = asTotal ? 1 : type==='pit' ? (bySeason ? (post ? 2 : 5) : eraOf ? (post ? 3 : 10) : (post ? 4 : 15))
+      : (bySeason ? (post ? 3 : 8) : eraOf ? (post ? 4 : 15) : (post ? 6 : 25));
+    const prior = GS_PRIOR[type] || GS_PRIOR.total;
     const groups = new Map();
-    inPhase.filter(yearOk).forEach(r=>{ const k = bySeason ? r.n+'|'+r.y : r.n; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+    inPhase.filter(yearOk).filter(keep).forEach(r=>{ const k = bySeason ? r.n+'|'+r.y : r.n; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
     const list = [...groups.values()].filter(g=>g.length>=minG).map(g=>{
-      const tot = g.reduce((t,r)=>t+r.v,0), last = g.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
-      return {rows:g, n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/(g.length+GS_PRIOR), raw:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
-    }).sort((a,b)=>b.avg-a.avg).slice(0,25);
-    avgNote = `Minimum ${minG} games. Averages ease small samples toward a league-average game, so a short hot streak doesn't outrank a full season. `;
-    body = `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th><th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game, with small samples eased toward average">Average</th></tr></thead><tbody>
+      const tot = g.reduce((t,r)=>t+val(r),0), last = g.slice().sort((a,b)=>b.date.localeCompare(a.date))[0], best = g.reduce((m,r)=>val(r)>val(m)?r:m, g[0]);
+      return {rows:g, n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/(g.length+prior), raw:tot/g.length, tot, best, team:last.team, ty:last.y};
+    }).sort((a,b)=>asTotal ? b.tot-a.tot : b.avg-a.avg).slice(0,25);
+    avgNote = asTotal ? 'Totals add up every game in the selection. ' : `Minimum ${minG} games. Averages ease small samples toward a league-average game, so a short hot streak doesn't outrank a full season. `;
+    const f2 = v => gsNum(Math.round(v*100)/100).replace(/(\.[0-9])$/,'$10');
+    body = `${typeChips}<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th>
+      ${asTotal ? '<th class="gsx" title="Average per game">Avg</th><th class="gsx">Best game</th><th>Total</th>' : '<th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game, with small samples eased toward average">Average</th>'}</tr></thead><tbody>
       ${list.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
         <td class="lft svptm gsx"><span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.ty), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.ty))}</button></span></td>
-        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}${gsPlus}</td></tr>${gsAvgDetRow(r.rows, r.raw)}`).join('')}
+        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td>
+        ${asTotal ? `<td class="mono gsx">${f2(r.raw)}</td><td class="mono gsx">${gsNum(val(r.best))}</td><td class="mono b">${gsNum(Math.round(r.tot*10)/10)}${gsPlus}</td>`
+          : `<td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(val(r.best))}</td><td class="mono b">${f2(r.avg)}${gsPlus}</td>`}</tr>${gsAvgDetRow(r.rows, r.raw, type, val, r.best, asTotal)}`).join('')}
       </tbody></table></div>`;
   } else if(svpGS.view==='best'){
     const key = {total:'v', hit:'hit', pit:'pit'}[svpGS.type] || 'v';
     const top = inPhase.filter(yearOk).sort((a,b)=>b[key]-a[key] || b.v-a.v).slice(0,25);
-    body = `<div class="chips svpmodes">${chip('data-gst','total','Combined',svpGS.type==='total')}${chip('data-gst','hit','Hitting only',svpGS.type==='hit')}${chip('data-gst','pit','Pitching only',svpGS.type==='pit')}</div>
+    body = `${typeChips}
       <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th><th class="lft gsx">Game</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
       ${top.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
         <td class="lft svptm gsx">${teamCell(r)}</td><td class="lft gsx">${gameCell(r)}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}${gsPlus}</td></tr>${gsDetRow(r)}`).join('')}
@@ -11158,7 +11184,7 @@ function renderSavantGS(){
   }
   svpShell('gamescore', `
     <p class="gsdef"><b>Game Score</b> is one number for how good a player's game was, hitting, pitching and fielding together. Zero is a league-average game for that season, higher is better, and a negative score is a below-average game. It's adjusted for the season, so a big game in a high-scoring year isn't flattered. Tap the <b>+</b> beside any score to see what's behind it.</p>
-    <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','avg','Best averages',svpGS.view==='avg')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
+    <div class="chips svpmodes">${chip('data-gsv','best','Best games',svpGS.view==='best')}${chip('data-gsv','avg','Best averages',svpGS.view==='avg')}${chip('data-gsv','tot','Best totals',svpGS.view==='tot')}${chip('data-gsv','log','Player log',svpGS.view==='log')}
       ${chip('data-gsp','Regular','Regular Season',!post)}${chip('data-gsp','Playoffs','Postseason',post)}</div>
     <div class="svpform">${yearSel}</div>
     ${body}
@@ -11187,7 +11213,7 @@ const SVQ = {
   '#/savant/rankings': [
     ['m', ()=>svpMode, v=>{ if(v==='bat'||v==='pit') svpMode = v; }],
     ['y', ()=>svpYear, v=>{ if(SVP_YEARS.includes(+v)) svpYear = +v; }],
-    ['s', ()=>svpSort[svpMode]===svpHead[svpMode] ? '' : svpSort[svpMode], v=>{ svpSort[svpMode] = v==='name' ? 'name' : (+v>=0 && +v<(svpMode==='bat'?SVP_BAT:SVP_PIT).length ? +v : svpHead[svpMode]); }],
+    ['s', ()=>svpSort[svpMode]===svpHead[svpMode] ? '' : svpSort[svpMode], v=>{ svpSort[svpMode] = v==='name' ? 'name' : (+v>=0 && +v<(svpMode==='bat'?SVP_BAT:SVP_PIT).length+1 ? +v : svpHead[svpMode]); }],
   ],
   '#/savant/pizza': [
     ['m', ()=>svpPz.mode, v=>{ if(v==='bat'||v==='pit') svpPz.mode = v; }],
@@ -11219,7 +11245,7 @@ const SVQ = {
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
   '#/savant/gamescore': [
-    ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log'||v==='avg') svpGS.view = v; }],
+    ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log'||v==='avg'||v==='tot') svpGS.view = v; }],
     ['ph', ()=>svpGS.phase, v=>{ if(v==='Regular'||v==='Playoffs') svpGS.phase = v; }],
     ['y', ()=>svpGS.year, v=>{ if(v==='all'||v==='seasons'||/^[0-9]{4}$/.test(v)||(/^e[0-9]+$/.test(v) && SVP_ERAS[+v.slice(1)])) svpGS.year = v; }],
     ['t', ()=>svpGS.type, v=>{ if(v==='total'||v==='hit'||v==='pit') svpGS.type = v; }],
