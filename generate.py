@@ -263,6 +263,11 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpctl{display:flex;flex-wrap:wrap;gap:0 24px;align-items:flex-start}
 .svpctl .chips,.svpmodes{margin:6px 0 14px}
 .svptabs{margin:14px 0 8px}
+@media (max-width:700px){
+  .chips.svptabs,.chips.svptv{flex-wrap:nowrap;overflow-x:auto;position:relative;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin-left:-16px;margin-right:-16px;padding:2px 16px}
+  .chips.svptabs::-webkit-scrollbar,.chips.svptv::-webkit-scrollbar{display:none}
+  .chips.svptabs button,.chips.svptv button{flex:none;white-space:nowrap}
+}
 .svptable{min-width:100%}
 .svpform{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin:4px 0 14px}
 .svpform label{display:flex;flex-direction:column;gap:3px;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
@@ -9206,6 +9211,14 @@ function svpShell(tab, inner){
   wirePlayerLinks();
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = '#/t/'+encodeURIComponent(b.dataset.t); }));
+  svpCenterTabs();
+}
+/* on a phone the tab rows scroll sideways: start with the current tab in view */
+function svpCenterTabs(){
+  app.querySelectorAll('.svptabs, .svptv').forEach(c=>{
+    const b = c.querySelector('[aria-pressed="true"]'); if(!b || c.scrollWidth<=c.clientWidth) return;
+    c.scrollLeft = Math.max(0, b.offsetLeft - (c.clientWidth - b.offsetWidth)/2);
+  });
 }
 const svpPillInk = p => (p>=30 && p<=70) ? '#1b2433' : '#fff';
 const svpPill = p => p==null ? '<span class="svpv">—</span>'
@@ -9930,6 +9943,7 @@ function svpTeamViews(active){
     `<button data-tmv="${k}" aria-pressed="${active===k}">${l}</button>`).join('')}</div>`;
 }
 function wireTeamViews(){
+  svpCenterTabs();
   app.querySelectorAll('[data-tmv]').forEach(b=>b.addEventListener('click',()=>{
     const v = SVP_TEAM_VIEWS.find(x=>x[0]===b.dataset.tmv);
     location.hash = '#/savant/teams'+v[2];
