@@ -411,6 +411,11 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:4px;padding-right:4px}.svgs td:first-child{width:1%}}
+.pfrun{white-space:nowrap}
+.pfbar{display:inline-block;position:relative;width:90px;height:8px;margin-left:10px;vertical-align:middle;border-radius:4px;background:var(--line)}
+.pfbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
+.pfbar i{position:absolute;top:0;bottom:0;border-radius:4px}
+@media (max-width:560px){.svpf .pfx,.svpf .pfbar{display:none}}
 .gsdef{margin:6px 0 14px;max-width:70ch;line-height:1.5;color:var(--ink)}
 .gsplus{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--accent);font:700 .9rem/1 "IBM Plex Mono",monospace;cursor:pointer;margin-left:8px;padding:0;vertical-align:middle}
 .gsplus:hover{border-color:var(--accent)}
@@ -6625,7 +6630,8 @@ function weightedRatioFactor(byYear, leagueByYear, numKey, denKey){
   });
   return expectedNum ? Math.round(100*actualNum/expectedNum) : null;
 }
-function computeParkFactors(){
+function computeParkFactors(yearOk, minG){
+  yearOk = yearOk || (()=>true); minG = minG || PARK_MIN_G;
   const parkYear = {}, leagueYear = {};
   const touch = (map, key, y) => (map[key] = map[key] || {})[y] = (map[key][y] || {
     games:0, runs:0, boxGames:0, h:0, hr:0, bb:0, so:0, obpNum:0, obpDen:0});
@@ -6638,6 +6644,7 @@ function computeParkFactors(){
        it would drag the league-average baseline down for every park */
     if(!g.away.bat.length && !g.home.bat.length && !(g.away.pit||[]).length && !(g.home.pit||[]).length) return;
     const y = +g.date.slice(0,4);
+    if(!yearOk(y)) return;
     const loc = g.loc && g.loc!=='TBA' ? g.loc : null;
     const runs = g.away.R + g.home.R;
     touch(leagueYear, 'league', y).games++; leagueYear.league[y].runs += runs;
@@ -6677,41 +6684,14 @@ function computeParkFactors(){
     const boxGames = years.reduce((s,y)=>s+byYear[y].boxGames, 0);
     const row = {loc, games, boxGames, span: years.length>1?`${years[0]}–${years[years.length-1]}`:`${years[0]}`};
     factors.forEach(([key, numKey, denKey])=>{
-      row[key] = boxGames>=PARK_MIN_G || denKey==='games'
+      row[key] = boxGames>=minG || denKey==='games'
         ? weightedRatioFactor(byYear, leagueYear.league, numKey, denKey) : null;
     });
-    row.obpFactor = boxGames>=PARK_MIN_G ? weightedRatioFactor(byYear, leagueYear.league, 'obpNum', 'obpDen') : null;
+    row.obpFactor = boxGames>=minG ? weightedRatioFactor(byYear, leagueYear.league, 'obpNum', 'obpDen') : null;
+    row.perYear = years.map(y=>{ const lg = leagueYear.league[y], p = byYear[y]; const lgRpg = lg && lg.games ? lg.runs/lg.games : 0;
+      return {y, games:p.games, rpg:p.games ? p.runs/p.games : 0, lgRpg, pf: lgRpg && p.games ? Math.round(100*(p.runs/p.games)/lgRpg) : null}; });
     return row;
-  }).filter(r=>r.games>=PARK_MIN_G && r.runFactor!=null).sort((a,b)=>b.runFactor-a.runFactor);
-}
-const PARK_COLS = [
-  {l:'Field',lft:1,f:d=>esc(d.loc)},
-  {l:'G',f:d=>d.games},
-  {l:'Years',f:d=>d.span},
-  {l:'Runs PF',m:1,f:d=>pfPill(d.runFactor)},
-  {l:'OBP PF',m:1,f:d=>pfPill(d.obpFactor)},
-  {l:'H PF',m:1,f:d=>pfPill(d.hFactor)},
-  {l:'HR PF',m:1,f:d=>pfPill(d.hrFactor)},
-  {l:'BB PF',m:1,f:d=>pfPill(d.bbFactor)},
-  {l:'SO PF',m:1,f:d=>pfPill(d.soFactor, true)},
-];
-function parkFactorsHTML(){
-  const rows = computeParkFactors();
-  if(!rows.length) return '<p class="empty">Not enough located games on record yet.</p>';
-  const leagueRow = {loc:'League Average', games:'', span:'', boxGames:'',
-    runFactor:100, obpFactor:100, hFactor:100, hrFactor:100, bbFactor:100, soFactor:100};
-  return `<p class="pmeta">How much each field's offensive environment differs from that year's league
-    average, blended across every year it's been used (100 = neutral; above 100 favors hitters, below
-    favors pitchers, reversed for SO PF, where below 100 favors pitchers via more strikeouts), the
-    same era-normalized approach OPS+/ERA+ use, since the league's scoring has swung by roughly 2.5x
-    across history and a flat cross-era number would just reward "used in a high-offense year."
-    Modeled on Baseball Savant's Park Factors leaderboard, minus anything needing batted-ball tracking
-    (exit velocity, Hard Hit%) this league's box scores don't have, and using a simpler park-vs-league
-    method rather than Savant's own same-player-elsewhere matched comparison. Runs PF comes from every
-    regular-season and playoff game's official final score; every other column only from games with
-    a recorded bat line, back to 2017, and needs ${PARK_MIN_G}+ such games on its own. Needs ${PARK_MIN_G}+
-    games at that field to appear at all.</p>
-    ${statTable('', PARK_COLS, rows, leagueRow, 'League Average', '', true)}`;
+  }).filter(r=>r.games>=minG && r.runFactor!=null).sort((a,b)=>b.runFactor-a.runFactor);
 }
 let gamesView = 'list';
 function renderGames(){
@@ -6720,12 +6700,7 @@ function renderGames(){
   if(gYear==null) gYear = yrs[yrs.length-1];
   const viewToggle = `<div class="segs" role="group" aria-label="View">
     <button data-gv="list" aria-pressed="${gamesView==='list'}">Games</button>
-    <button data-gv="parks" aria-pressed="${gamesView==='parks'}">Park Factors</button></div>`;
-  if(gamesView==='parks'){
-    app.innerHTML = `<div class="phead"><h2>Games</h2></div>${viewToggle}${parkFactorsHTML()}`;
-    app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
-    return;
-  }
+    <button data-gv="parks" aria-pressed="false">Park Factors</button></div>`;
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
@@ -6755,7 +6730,7 @@ function renderGames(){
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
     ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
-  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ gamesView=b.dataset.gv; renderGames(); }));
+  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.gv==='parks'){ location.hash = '#/savant/parks'; return; } gamesView=b.dataset.gv; renderGames(); }));
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
@@ -9316,7 +9291,7 @@ function svpShell(tab, inner){
     <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
-    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gamescore','Game Score')}${t('search','Search')}${t('teams','Teams')}</div>
+    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gamescore','Game Score')}${t('search','Search')}${t('parks','Park Factors')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='home' ? '#/savant' : b.dataset.svpt==='pct' ? '#/savant/rankings' : '#/savant/'+b.dataset.svpt;
@@ -10752,6 +10727,10 @@ function svpHubPreviews(){
     const gr = svpGSRows().filter(r=>!r.post && r.y===y).sort((a,b)=>b.v-a.v).slice(0,3);
     if(gr.length) out.gs = `<div class="svhrank">${gr.map(r=>`<div><span>${esc(r.n)}</span><b>${gsNum(r.v)}</b></div>`).join('')}</div>`;
   }catch(e){}
+  try{
+    const pr = computeParkFactors(); if(pr.length>=3){ const top = pr.slice(0,3);
+      out.pf = `<div class="svhrank">${top.map(r=>`<div><span>${esc(r.loc)}</span>${pfPill(r.runFactor)}</div>`).join('')}</div>`; }
+  }catch(e){}
   out.n = {bat: qual.length, pit: svpEntries(y).filter(e=>svpQual('pit', e.row)).length, y};
   if(top.length){
     const it = svpPizzaItems(top[0].e.name, y, 'bat', SV_BAT);
@@ -10997,6 +10976,11 @@ function svpTidbits(pv){
         <i><b style="width:${Math.max(8,Math.round(x.sim))}%"></b></i><em>${Math.round(x.sim)}%</em></div>`).join('')}</div>`,
         `${c.name}’s ${c.year} was most like ${cs[0].o.name}’s ${cs[0].o.year}.`); }catch(e){ return null; } },
   };
+  playerKinds.park = () => {
+    const pr = computeParkFactors(); if(pr.length<4) return null; const hi = pr[0], lo = pr[pr.length-1];
+    return box('Park Factors', svqLink('#/savant/parks',{}), `<div class="svhrank">${[hi, pr[1], lo].map(r=>`<div><span>${esc(r.loc)}</span>${pfPill(r.runFactor)}</div>`).join('')}</div>`,
+      `${hi.loc} is the most hitter-friendly field (${hi.runFactor}) and ${lo.loc} the most pitcher-friendly (${lo.runFactor}). 100 is neutral.`);
+  };
   playerKinds.bestgame = () => {
     const Y = pick([...new Set(svpGSRows().filter(r=>!r.post).map(r=>r.y))]); const top = svpGSRows().filter(r=>!r.post && r.y===Y).sort((a,b)=>b.v-a.v).slice(0,3);
     if(top.length<3) return null;
@@ -11080,7 +11064,8 @@ function renderSavantHub(){
       + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form)
       + card('#/savant/gamescore','Game Score','One number for how good a player’s game was, hitting, pitching and fielding together. The best games ever and a game-by-game log.',pv.gs))}
     ${group('League', 'How the whole league has changed.',
-      card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend))}
+      card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend)
+      + card('#/savant/parks','Park Factors','How each field changes scoring, from hitter-friendly to pitcher-friendly.',pv.pf))}
     ${group('Explore', 'Dig through every player-season.',
       card('#/savant/scatter','Scatter','Plot any two stats against each other, filter by era or team, and highlight a player.',pv.scatter)
       + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',pv.search))}
@@ -11221,6 +11206,34 @@ function renderSavantGS(){
   const pl = document.getElementById('gsPlayer'); if(pl) pl.addEventListener('change', e=>{ svpGS.player = e.target.value; renderSavantGS(); });
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/g/'+b.dataset.g; }));
 }
+/* ---- Park Factors (Savant): how much each field changes scoring against the league that season ---- */
+const svpPF = {year:'all'};
+function renderSavantParks(){
+  const era = /^e[0-9]+$/.test(svpPF.year) ? SVP_ERAS[+svpPF.year.slice(1)] : null;
+  if(/^e[0-9]+$/.test(svpPF.year) && !era) svpPF.year = 'all';
+  const single = /^[0-9]{4}$/.test(svpPF.year);
+  const yearOk = y => svpPF.year==='all' || (era ? y>=era.from && y<=era.to : y===+svpPF.year);
+  const rows = computeParkFactors(yearOk, single ? 8 : PARK_MIN_G);
+  const years = SVP_YEARS.filter(y=>y>=2017).slice().reverse();
+  const bar = v => { if(v==null) return ''; const d = Math.max(-50, Math.min(50, v-100)); return `<span class="pfbar"><i style="${d>=0?`left:50%;width:${d}%`:`right:50%;width:${-d}%`};background:${pfColor(v)}"></i></span>`; };
+  const yearSel = `<label>Season <select id="pfYear"><option value="all"${svpPF.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${svpPF.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup><optgroup label="Single season">${years.map(y=>`<option value="${y}"${String(y)===String(svpPF.year)?' selected':''}>${y}</option>`).join('')}</optgroup></select></label>`;
+  const det = r => `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${r.perYear.map(p=>`<div class="gsdl"><span>${p.y}</span><i>${p.games} games · ${p.rpg.toFixed(1)} runs a game against ${p.lgRpg.toFixed(1)} for the league</i><b>${p.pf==null?'—':p.pf}</b></div>`).join('')}</div></td></tr>`;
+  const body = rows.map(r=>`<tr><td class="lft"><b>${esc(r.loc)}</b></td><td class="mono pfx">${r.games}</td><td class="mono pfx">${r.span}</td>
+      <td class="pfrun">${pfPill(r.runFactor)}${bar(r.runFactor)}</td><td class="pfx">${pfPill(r.obpFactor)}</td><td class="pfx">${pfPill(r.hFactor)}</td><td>${pfPill(r.hrFactor)}</td><td class="pfx">${pfPill(r.bbFactor)}</td><td class="pfx">${pfPill(r.soFactor, true)}</td>
+      <td class="mono">${r.perYear.length>1 ? gsPlus : ''}</td></tr>${r.perYear.length>1 ? det(r) : ''}`).join('');
+  svpShell('parks', `
+    <p class="gsdef"><b>Park factors</b> show how much each field changes scoring compared with the league average that season. 100 is neutral, above 100 favors hitters, and below 100 favors pitchers (strikeouts are the other way around: below 100 means more of them). Tap the <b>+</b> beside a field to see it season by season.</p>
+    <div class="svpform">${yearSel}</div>
+    ${rows.length ? `<div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Field</th><th class="pfx">G</th><th class="pfx">Years</th><th>Runs PF</th><th class="pfx">OBP PF</th><th class="pfx">H PF</th><th>HR PF</th><th class="pfx">BB PF</th><th class="pfx">SO PF</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`
+      : '<p class="empty">Not enough games at any one field in that selection.</p>'}
+    <p class="smeta">A field needs ${single ? 8 : PARK_MIN_G}+ games to appear. Runs come from every game's final score. The other columns come from games with a recorded batting line, 2017 onward, and need ${single ? 8 : PARK_MIN_G}+ such games. Forfeits are left out.</p>`);
+  document.getElementById('pfYear').addEventListener('change', e=>{ svpPF.year = e.target.value; renderSavantParks(); });
+  app.querySelectorAll('.gsplus').forEach(b=>b.addEventListener('click',()=>{
+    const row = b.closest('tr'), d = row && row.nextElementSibling; if(!d || !d.classList.contains('gsdetr')) return;
+    const open = d.hidden; d.hidden = !open; b.textContent = open ? '−' : '+'; b.setAttribute('aria-expanded', String(open));
+    if(open){ const cols = [...row.closest('table').querySelectorAll('thead th')].filter(t=>getComputedStyle(t).display!=='none').length; d.firstElementChild.colSpan = cols; }
+  }));
+}
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
 const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
 const svqTeamView = st => [
@@ -11271,6 +11284,7 @@ const SVQ = {
     ['t', ()=>svpGS.type, v=>{ if(v==='total'||v==='hit'||v==='pit') svpGS.type = v; }],
     ['p', ()=>svpGS.player, v=>{ if(P[v]) svpGS.player = v; }],
   ],
+  '#/savant/parks': [['y', ()=>svpPF.year, v=>{ if(v==='all'||/^[0-9]{4}$/.test(v)||(/^e[0-9]+$/.test(v) && SVP_ERAS[+v.slice(1)])) svpPF.year = v; }]],
   '#/savant/teams': svqTeamView(svpTm),
   '#/savant/teams/offense': svqTeamView(svpTO),
   '#/savant/teams/luck': svqTeamView(svpTL),
@@ -11289,12 +11303,13 @@ const SVQ = {
 /* a view's untouched state is left out of the link, so a plain link stays plain */
 Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
 /* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
-const SVQ0 = {GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+const SVQ0 = {PF:{...svpPF}, GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
   post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
 const SVQ_RESET = {
   '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
   '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
   '#/savant/gamescore': ()=>Object.assign(svpGS, SVQ0.GS),
+  '#/savant/parks': ()=>Object.assign(svpPF, SVQ0.PF),
   '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
   '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
   '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
@@ -11333,6 +11348,7 @@ function renderSavant(h0){
   if(h === '#/savant/pizza') return renderSavantPizza();
   if(h === '#/savant/form') return renderSavantForm();
   if(h === '#/savant/gamescore') return renderSavantGS();
+  if(h === '#/savant/parks') return renderSavantParks();
   if(h === '#/savant/teams/h2h') return renderSavantH2H();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
