@@ -797,6 +797,11 @@ table.h2hsub thead th{padding:7px 10px}
   border-bottom:1px solid var(--line);overflow:visible}
 @media (max-width:1230px){.nav button{font-size:.78rem}}
 @media (max-width:1100px){.nav{justify-content:flex-start;gap:0 16px}}
+@media (max-width:700px){
+  .nav{flex-wrap:nowrap;overflow-x:auto;position:relative;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{flex:none}
+}
 .nav button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 2px;
   margin-bottom:-1px;font-family:"Oswald","Arial Narrow",sans-serif;
   font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
@@ -818,6 +823,12 @@ table.h2hsub thead th{padding:7px 10px}
 .chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);
   border-color:transparent;font-weight:600}
 .chips button:hover{border-color:var(--accent)}
+/* on a phone, a long row of chips (the year pickers, Savant's stat buttons) scrolls sideways in one line instead of wrapping into a block */
+@media (max-width:700px){
+  .chips:has(> :nth-child(8)){flex-wrap:nowrap;overflow-x:auto;position:relative;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin-left:-16px;margin-right:-16px;padding:2px 16px}
+  .chips:has(> :nth-child(8))::-webkit-scrollbar{display:none}
+  .chips:has(> :nth-child(8)) > *{flex:none;white-space:nowrap}
+}
 .svheadrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cardbtn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
   border-radius:999px;padding:7px 16px;font-size:.78rem;font-weight:600;letter-spacing:.03em;
@@ -1546,6 +1557,8 @@ function setNav(v){
     b('home','Home')+b('history','History')+b('players','Players')+b('teams','Teams')+b('standings','Standings')
     +b('leaders','Leaders')+b('records','Records')+b('games','Games')+b('champs','Champions')
     +b('awards','Awards')+b('beavers','Beavers')+b('office','League Office')+b('savant','Savant')+b('arcade','Arcade');
+  { const nv = document.getElementById('nav'), ab = nv.querySelector('.active');     // on a phone the tabs scroll: start with the current one in view
+    if(ab && nv.scrollWidth>nv.clientWidth) nv.scrollLeft = Math.max(0, ab.offsetLeft - (nv.clientWidth - ab.offsetWidth)/2); }
   document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>{
     location.hash = x.dataset.v==='home' ? '#/' : '#/'+x.dataset.v;
   }));
@@ -11171,12 +11184,23 @@ function dispatch(h){
 /* arriving on a team page from a Leaders team link (it carries the season) eases the page down to where
    the stats begin, instead of leaving the reader at the top of the header */
 let teamScrollStats = false;
+/* scrolling chip rows open with the selected chip in view */
+function centerChips(){
+  if(!window.matchMedia('(max-width:700px)').matches) return;
+  app.querySelectorAll('.chips').forEach(c=>{
+    if(c.scrollWidth<=c.clientWidth+2) return;
+    const b = c.querySelector('[aria-pressed="true"]'); if(!b) return;
+    c.scrollLeft = Math.max(0, b.offsetLeft - (c.clientWidth - b.offsetWidth)/2);
+  });
+}
+app.addEventListener('click', e=>{ if(e.target.closest && e.target.closest('.chips')) setTimeout(centerChips, 40); });
 function route(){
   const raw = location.hash || '';
   const h = raw.replace(/#h-[\w-]+$/,'');   // ignore in-page anchor
   ['--tc','--tp','--ts'].forEach(v=>app.style.removeProperty(v)); app.classList.remove('tc-black');  // clear franchise tint
   llistPhotos = false;
   dispatch(h);
+  centerChips();
   document.querySelectorAll('table.sortable').forEach(makeSortable);
   // scroll-to-top belongs to real navigation only (this fires on hashchange); in-page
   // toggles (tabs, year chips, phase switches) call their render function directly
