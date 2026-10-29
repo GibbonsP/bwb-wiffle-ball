@@ -11076,11 +11076,11 @@ function svpGSRows(){
       const s = g[sk], o = g[sk==='away'?'home':'away'], teamLine = (s.bat||[]).length===1;
       const names = [...new Set([...(s.bat||[]).map(b=>b.n), ...(s.pit||[]).map(p=>p.n), ...(s.fld||[]).map(f=>f.n)].filter(Boolean))];
       names.forEach(n=>{
-        /* many 2017-2021 games logged a team's whole batting line under one player's name; that isn't one player's game, so it earns no hitting score */
-        const bat = teamLine ? null : ((s.bat||[]).find(b=>b.n===n)||null), pit = (s.pit||[]).find(p=>p.n===n)||null, fl = (s.fld||[]).find(f=>f.n===n)||null;
+        /* many 2017-2021 games logged a team's whole batting line under one player's name; it is kept as recorded and flagged (tl) */
+        const bat = (s.bat||[]).find(b=>b.n===n)||null, pit = (s.pit||[]).find(p=>p.n===n)||null, fl = (s.fld||[]).find(f=>f.n===n)||null;
         if(!bat && !pit && !fl) return;
         const p = gameScoreParts(bat, pit, fl, y, post);
-        rows.push({n, gid, date:g.date, y, post, team:s.team, opp:o.team, rf:s.R, ra:o.R, hit:p.hit, pit:p.pit, fld:p.fld, v:p.total, bl:bat, pl:pit, fl});
+        rows.push({n, gid, date:g.date, y, post, team:s.team, opp:o.team, rf:s.R, ra:o.R, hit:p.hit, pit:p.pit, fld:p.fld, v:p.total, bl:bat, pl:pit, fl, tl:!!(teamLine && bat)});
       });
     });
   });
@@ -11101,7 +11101,7 @@ function gsDetRow(r){
   if(r.pl || r.pit) parts.push(line('Pitching', gsPitTxt(r.pl), r.pit));
   if(r.fl || r.fld) parts.push(line('Fielding', gsFldTxt(r.fl), r.fld));
   const res = r.rf>r.ra ? 'W' : r.rf<r.ra ? 'L' : 'T';
-  const gm = `<div class="gsdgame"><button class="pname" data-g="${r.gid}">${esc(r.date)}</button> vs ${esc(histNick(r.opp, r.y))} · ${res} ${r.rf}–${r.ra}</div>`;
+  const gm = `<div class="gsdgame"><button class="pname" data-g="${r.gid}">${esc(r.date)}</button> vs ${esc(histNick(r.opp, r.y))} · ${res} ${r.rf}–${r.ra}</div>${r.tl?'<div class="gsdgame">This game logged the team’s whole batting line under one name, so the hitting part is the team’s, not one player’s.</div>':''}`;
   return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${gm}${parts.join('')}<div class="gsdl gsdtot"><span>Game Score</span><i></i><b>${gsNum(r.v)}</b></div></div></td></tr>`;
 }
 function gsAvgDetRow(g){
@@ -11166,7 +11166,7 @@ function renderSavantGS(){
       ${chip('data-gsp','Regular','Regular Season',!post)}${chip('data-gsp','Playoffs','Postseason',post)}</div>
     <div class="svpform">${yearSel}</div>
     ${body}
-    <p class="smeta">${avgNote}Only games with a box score are counted, and a batting line that is really a whole team's total (common in 2017 to 2021) is left out.</p>`);
+    <p class="smeta">${avgNote}Only games with a box score are counted. Some early games (2017 to 2021) logged a team's whole batting line under one player, so those hitting scores are the team's, not one player's; the era filter is the way to separate that period.</p>`);
   app.querySelectorAll('.gsplus').forEach(b=>b.addEventListener('click',()=>{
     const row = b.closest('tr'), det = row && row.nextElementSibling; if(!det || !det.classList.contains('gsdetr')) return;
     const open = det.hidden; det.hidden = !open; b.textContent = open ? '−' : '+'; b.setAttribute('aria-expanded', String(open));
