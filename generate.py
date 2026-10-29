@@ -1595,8 +1595,10 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    against runs scored (R²=0.86) and team-game pitching lines against runs allowed (R²=0.78). They land close to
    MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples occurred once
    in the whole dataset, so 0.64 is a call, not a fit; and strikeouts came back with ~0 value once outs, hits and walks
-   are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding weights are
-   a judgment call too (its events are collinear with pitching outs and the sample is thin).
+   are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding isn't regressed
+   (its events are collinear with pitching outs and the sample is thin); its raw weights (putout 1, assist 2, double play 4,
+   error -3) are scaled by PW.out, so a putout is worth what an out is worth to a pitcher and an error costs about a hit
+   allowed. At full size fielding swung more than hitting and made the score a worse predictor of who won (86% against 89%).
 
    Runs scored and RBI earn nothing (RUN_CREDIT is 0). A hit, walk or home run is credited at its fitted value, and a run
    that scores because of it is already inside that value; a batter who reaches base and is stranded didn't hurt his team,
@@ -1609,7 +1611,7 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    about 89% of them, and the score difference tracks the run margin (r = 0.88). */
 const HW = {single:0.476, double:0.559, triple:0.64, hr:1.599, bb:0.608, out:-0.296};
 const PW = {out:0.337, h:-1.112, bb:-0.735};
-const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = 1;
+const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = PW.out;
 const _gsRateCache = {};
 function gameScoreRatesFor(year, post){
   const key = year+'|'+(post?1:0);
