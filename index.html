@@ -1598,9 +1598,9 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    Units are roughly runs above average.
 
    Hitting and pitching weights (HW / PW) are fit, not hand-picked: OLS of this league's own team-game batting lines
-   against runs scored (R²=0.86) and team-game pitching lines against runs allowed (R²=0.78). They land close to
-   MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples occurred once
-   in the whole dataset, so 0.64 is a call, not a fit; and strikeouts came back with ~0 value once outs, hits and walks
+   against runs scored (R²=0.89, 976 team-games) and team-game pitching lines against runs allowed (R²=0.78). They land close to
+   MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples are rare enough
+   that their fit (about 1.2, with a wide margin of error) is rounded down to 1.0; and strikeouts came back with ~0 value once outs, hits and walks
    are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding isn't regressed
    (its events are collinear with pitching outs and the sample is thin); its raw weights (putout 1, assist 2, double play 4,
    error -3) are scaled by PW.out, so a putout is worth what an out is worth to a pitcher and an error costs about a hit
@@ -1615,7 +1615,7 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
 
    Checked against the 447 regular-season games with full box scores: the team with the higher summed Game Score won
    about 89% of them, and the score difference tracks the run margin (r = 0.88). */
-const HW = {single:0.476, double:0.559, triple:0.64, hr:1.599, bb:0.608, out:-0.296};
+const HW = {single:0.58, double:0.73, triple:1.0, hr:1.50, bb:0.67, out:-0.27};
 const PW = {out:0.337, h:-1.112, bb:-0.735};
 const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = PW.out;
 const _gsRateCache = {};
@@ -11082,6 +11082,8 @@ function svpGSRows(){
 }
 const gsSigned = v => v===0 ? '—' : (v>0?'+':'−')+Math.abs(v).toFixed(1);
 const gsNum = v => (v<0?'−':'')+Math.abs(v).toFixed(1);
+/* an average over few games is mostly noise (a single game swings about 3 points; real differences between players are under 1), so averages are eased toward a league-average game as if each player also had GS_PRIOR average games */
+const GS_PRIOR = 10;
 /* the "+" beside a score opens what's behind it: the box-score line for each part and what that part added */
 const gsPlus = '<button class="gsplus" type="button" aria-expanded="false" aria-label="Show what makes up this score">+</button>';
 function gsBatTxt(b){ if(!b) return ''; const x = [`${b.h||0}-for-${b.ab||0}`]; ['hr','3b','2b'].forEach(k=>{ if(b[k]) x.push(b[k]+' '+k.toUpperCase()); });
@@ -11098,10 +11100,10 @@ function gsDetRow(r){
   const gm = `<div class="gsdgame"><button class="pname" data-g="${r.gid}">${esc(r.date)}</button> vs ${esc(histNick(r.opp, r.y))} · ${res} ${r.rf}–${r.ra}</div>${r.tl?'<div class="gsdgame">This game logged the team’s whole batting line under one name, so the hitting part is the team’s, not one player’s.</div>':''}`;
   return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${gm}${parts.join('')}<div class="gsdl gsdtot"><span>Game Score</span><i></i><b>${gsNum(r.v)}</b></div></div></td></tr>`;
 }
-function gsAvgDetRow(g){
+function gsAvgDetRow(g, raw){
   const n = g.length, av = k => g.reduce((t,r)=>t+r[k],0)/n, best = g.reduce((m,r)=>r.v>m.v?r:m, g[0]);
   const line = (lab, txt, v) => `<div class="gsdl"><span>${lab}</span><i>${esc(txt)}</i><b>${gsSigned(Math.round(v*100)/100)}</b></div>`;
-  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet">${line('Hitting','per game, '+n+' games',av('hit'))}${line('Pitching','per game, '+n+' games',av('pit'))}${line('Fielding','per game, '+n+' games',av('fld'))}
+  return `<tr class="gsdetr" hidden><td colspan="1"><div class="gsdet"><div class="gsdgame">Plain average ${gsNum(Math.round(raw*100)/100)} over ${n} games. The rating eases a short sample toward average.</div>${line('Hitting','per game, '+n+' games',av('hit'))}${line('Pitching','per game, '+n+' games',av('pit'))}${line('Fielding','per game, '+n+' games',av('fld'))}
     <div class="gsdl gsdtot"><span>Best game</span><i>${esc(best.date)} vs ${esc(histNick(best.opp, best.y))}</i><b>${gsNum(best.v)}</b></div></div></td></tr>`;
 }
 function renderSavantGS(){
@@ -11127,13 +11129,13 @@ function renderSavantGS(){
     inPhase.filter(yearOk).forEach(r=>{ const k = bySeason ? r.n+'|'+r.y : r.n; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
     const list = [...groups.values()].filter(g=>g.length>=minG).map(g=>{
       const tot = g.reduce((t,r)=>t+r.v,0), last = g.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
-      return {rows:g, n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
+      return {rows:g, n:g[0].n, y:bySeason?g[0].y:null, g:g.length, avg:tot/(g.length+GS_PRIOR), raw:tot/g.length, tot, best:g.reduce((m,r)=>Math.max(m,r.v),-Infinity), team:last.team, ty:last.y};
     }).sort((a,b)=>b.avg-a.avg).slice(0,25);
-    avgNote = `Minimum ${minG} games. `;
-    body = `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th><th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game">Average</th></tr></thead><tbody>
+    avgNote = `Minimum ${minG} games. Averages ease small samples toward a league-average game, so a short hot streak doesn't outrank a full season. `;
+    body = `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th>#</th><th class="lft">Player</th><th class="lft svptm gsx">Team</th>${bySeason?'<th>Season</th>':''}<th>G</th><th class="gsx">Total</th><th class="gsx">Best game</th><th title="Average Game Score per game, with small samples eased toward average">Average</th></tr></thead><tbody>
       ${list.map((r,i)=>`<tr><td class="mono">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.n)}<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button></span></td>
         <td class="lft svptm gsx"><span class="tmcell">${logoIcon(teamLogoForYear(r.team, r.ty), '', 'llogo')}<button class="pname" data-t="${esc(r.team)}">${esc(histNick(r.team, r.ty))}</button></span></td>
-        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}${gsPlus}</td></tr>${gsAvgDetRow(r.rows)}`).join('')}
+        ${bySeason?`<td class="mono">${r.y}</td>`:''}<td class="mono">${r.g}</td><td class="mono gsx">${gsNum(Math.round(r.tot*10)/10)}</td><td class="mono gsx">${gsNum(r.best)}</td><td class="mono b">${gsNum(Math.round(r.avg*100)/100).replace(/(\.[0-9])$/,'$10')}${gsPlus}</td></tr>${gsAvgDetRow(r.rows, r.raw)}`).join('')}
       </tbody></table></div>`;
   } else if(svpGS.view==='best'){
     const key = {total:'v', hit:'hit', pit:'pit'}[svpGS.type] || 'v';
