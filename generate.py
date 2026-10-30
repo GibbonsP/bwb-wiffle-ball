@@ -1615,9 +1615,11 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples are rare enough
    that their fit (about 1.2, with a wide margin of error) is rounded down to 1.0; and strikeouts came back with ~0 value once outs, hits and walks
    are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding isn't regressed (its events are collinear with pitching outs and the sample is thin). It is credited only for what a
-   fielder does with a chance: a putout is worth 0.5, an assist 2 and a double play 4, an error costs 3, each scaled by PW.out so an
-   error costs about a hit allowed. The putout credit is deliberately small, since the pitcher is already paid for the out. A player
-   with no chances scores zero rather than being marked down against an average fielder's chances.
+   fielder does with a chance: a putout is worth 0.125, an assist 0.5 and a double play 1, an error costs 3, each scaled by PW.out so
+   an error costs about a hit allowed. The credits are small on purpose: with them larger, the average fielding line scored about
+   +0.4, which hands everyone in the seasons that recorded fielding (2022-2025) a free few points over a season; at this size the
+   average line is about zero, like hitting and pitching. A player with no chances scores zero rather than being marked down
+   against an average fielder's chances.
 
    Runs scored and RBI earn nothing (RUN_CREDIT is 0). A hit, walk or home run is credited at its fitted value, and a run
    that scores because of it is already inside that value; a batter who reaches base and is stranded didn't hurt his team,
@@ -1669,7 +1671,7 @@ function gameScoreParts(bat, pit, fld, year, post){
   }
   if(fld){
     /* only what a fielder does with a chance counts: putouts earn a little, assists and double plays more, errors cost, and a player with no chances scores zero */
-    field = PW.out*(0.5*(fld.po||0) + 2*(fld.a||0) + 4*(fld.dp||0) - 3*(fld.e||0));
+    field = PW.out*(0.125*(fld.po||0) + 0.5*(fld.a||0) + 1*(fld.dp||0) - 3*(fld.e||0));
   }
   const r1 = v => Math.round(v*10)/10;
   return {hit:r1(hit), pit:r1(pitch), fld:r1(field), total:r1(hit+pitch+field)};
