@@ -1488,7 +1488,7 @@ function gsTrending(){
   });
   const teams = Object.values(byT).filter(o=>o.w+o.l>=2)
     .sort((a,b)=>(b.w/(b.w+b.l))-(a.w/(a.w+a.l)) || b.d-a.d || (b.w+b.l)-(a.w+a.l)).slice(0,3)
-    .map(o=>({type:'team', key:o.t, label:TEAMS[o.t].nick||o.t, sub:o.w+'–'+o.l+' lately', logo:TEAMS[o.t].logo}));
+    .map(o=>({type:'team', key:o.t, label:TEAMS[o.t].nick||o.t, sub:o.t, logo:TEAMS[o.t].logo}));
   return (_gsTrend = [...players, ...teams]);
 }
 function gsRender(items, heading){
