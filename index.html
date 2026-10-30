@@ -1603,8 +1603,9 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
    (a league-average game scores 0) and purely additive, so a two-way player's number is the sum of what they did.
    Units are roughly runs above average.
 
-   Hitting and pitching weights (HW / PW) are fit, not hand-picked: OLS of this league's own team-game batting lines
-   against runs scored (R²=0.89, 976 team-games) and team-game pitching lines against runs allowed (R²=0.78). They land close to
+   Hitting and pitching weights (HW_ERA / PW_ERA) are fit, not hand-picked: OLS of this league's own team-game batting lines
+   against runs scored (R²=0.89, 976 team-games) and team-game pitching lines against runs allowed (R²=0.78), fit separately for
+   2017-2021 and 2022 on (the sets differ by more than their margins of error for walks, home runs and outs). They land close to
    MLB's long-established linear weights (single ≈0.5, HR ≈1.4, out ≈-0.3). Two judgment calls: triples are rare enough
    that their fit (about 1.2, with a wide margin of error) is rounded down to 1.0; and strikeouts came back with ~0 value once outs, hits and walks
    are known, so (unlike Bill James's Game Score) a strikeout earns nothing beyond the out it is. Fielding isn't regressed
@@ -1621,13 +1622,17 @@ const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
 
    Checked against the 447 regular-season games with full box scores: the team with the higher summed Game Score won
    about 89% of them, and the score difference tracks the run margin (r = 0.88). */
-const HW = {single:0.58, double:0.73, triple:1.0, hr:1.50, bb:0.67, out:-0.27};
-const PW = {out:0.337, h:-1.112, bb:-0.735};
-const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1, FLD_SCALE = PW.out;
+/* two weight sets, because what an event is worth depends on how much scoring there is: 2017-2021 averaged about 8.9 runs
+   a team-game and 2022 on about 4.8, and a walk costs a pitcher more, and a home run is worth more, in the lower-scoring years */
+const HW_ERA = [{single:0.62, double:0.73, triple:1.0, hr:1.47, bb:0.71, out:-0.33}, {single:0.55, double:0.90, triple:1.0, hr:1.62, bb:0.61, out:-0.22}];
+const PW_ERA = [{out:0.36, h:-1.08, bb:-0.84}, {out:0.31, h:-1.00, bb:-0.65}];
+const gsWeights = year => { const i = year>=2022 ? 1 : 0; return {HW:HW_ERA[i], PW:PW_ERA[i]}; };
+const RUN_CREDIT = 0, HIT_SCALE = 1, PIT_SCALE = 1;
 const _gsRateCache = {};
 function gameScoreRatesFor(year, post){
   const key = year+'|'+(post?1:0);
   if(_gsRateCache[key]) return _gsRateCache[key];
+  const {HW, PW} = gsWeights(year);
   const lg = (post ? LEAGUE_BY_YEAR_POST[year] : null) || LEAGUE_BY_YEAR[year];
   const wb = d => HW.single*(d['1B']||0) + HW.double*(d['2B']||0) + HW.triple*(d['3B']||0) + HW.hr*(d.HR||0)
     + HW.bb*((d.BB||0)+(d.HBP||0)) + RUN_CREDIT*((d.RBI||0) + (d.R||0)) + (d.SB||0) + HW.out*((d.AB||0)-(d.H||0));
@@ -1643,7 +1648,7 @@ function gameScoreRatesFor(year, post){
 }
 /* the three pieces and their sum, each to a tenth */
 function gameScoreParts(bat, pit, fld, year, post){
-  const rates = gameScoreRatesFor(year, post);
+  const rates = gameScoreRatesFor(year, post), {HW, PW} = gsWeights(year);
   let hit = 0, pitch = 0, field = 0;
   if(bat){
     const h=bat.h||0, d2=bat['2b']||0, d3=bat['3b']||0, hr=bat.hr||0, singles=h-d2-d3-hr;
@@ -1661,7 +1666,7 @@ function gameScoreParts(bat, pit, fld, year, post){
   if(fld){
     const inn = fld.inn||0;
     const fb = (fld.po||0) + 2*(fld.a||0) + 4*(fld.dp||0) - 3*(fld.e||0);
-    field = FLD_SCALE*(fb - rates.fbPerInn*inn);
+    field = PW.out*(fb - rates.fbPerInn*inn);
   }
   const r1 = v => Math.round(v*10)/10;
   return {hit:r1(hit), pit:r1(pitch), fld:r1(field), total:r1(hit+pitch+field)};
