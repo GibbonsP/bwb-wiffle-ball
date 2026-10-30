@@ -1902,12 +1902,13 @@ function rowVals(name){
   return {
     name, team: latestTeam(pl) || '—', teamCount: careerTeams(pl).length,
     yrs: yearsOf(pl, isPost?'Playoffs':'Regular').length,
-    G: mode==='bat'? c.G_bat : c.G_pit, GS: c.GS_pit,
+    G: mode==='bat'? c.G_bat : mode==='fld'? c.G_fld : c.G_pit, GS: c.GS_pit,
     PA:c.PA, AB:c.AB, R:c.R, H:c.H, HR:c.HR, RBI:c.RBI, BB:c.BB, K:c.K,
     AVG:avg(c), OBP:obp(c), SLG:slg(c), OPS:ops(c), 'OPS+':opsPlusFor(c, careerWeights(pl, isPost)),
     IP:c.IPouts/3, W:c.W, L:c.L, SV:c.SV, pH:c.pH, ER:c.ER, pBB:c.pBB, pK:c.pK,
     ERA:era(c), WHIP:whip(c), K9:k9(c), 'ERA+':eraPlusFor(c, careerWeightsPit(pl, isPost)),
-    _ipouts:c.IPouts, _bat:c.G_bat
+    INN:c.INN, TC:c.TC, PO:c.PO, A:c.A, E:c.E, DP:c.DP, 'FLD%':fld(c),
+    _ipouts:c.IPouts, _bat:c.G_bat, _tc:c.TC
   };
 }
 function cell(v,type,key){
@@ -2225,9 +2226,9 @@ function renderHome(){
 
 function renderDir(){
   setNav('players');
-  const cols = mode==='bat'?BAT_COLS:PIT_COLS;
+  const cols = mode==='bat'?BAT_COLS:mode==='pit'?PIT_COLS:FLD_COLS;
   let rows = NAMES.map(rowVals);
-  rows = rows.filter(r => mode==='pit' ? r._ipouts>0 : r._bat>0);
+  rows = rows.filter(r => mode==='pit' ? r._ipouts>0 : mode==='fld' ? r._tc>0 : r._bat>0);
   if(query){ const q=query.toLowerCase(); rows = rows.filter(r=>r.name.toLowerCase().includes(q)); }
   rows.sort((a,b)=>{
     let x=a[sortKey], y=b[sortKey];
@@ -2278,6 +2279,7 @@ function renderDir(){
       <div class="segs" role="group" aria-label="Stat group">
         <button data-m="bat" aria-pressed="${mode==='bat'}">Batting</button>
         <button data-m="pit" aria-pressed="${mode==='pit'}">Pitching</button>
+        <button data-m="fld" aria-pressed="${mode==='fld'}">Fielding</button>
       </div>`:''}
       <button class="pname" id="cmpLink">Compare Players →</button>
     </div>
@@ -2303,10 +2305,8 @@ function renderDir(){
   app.querySelectorAll('.segs [data-m]').forEach(b=>b.addEventListener('click',()=>{
     if(mode===b.dataset.m) return;
     mode=b.dataset.m;
-    const batKeys=['PA','AB','H','HR','RBI','AVG','OBP','SLG','OPS','OPS+'];
-    const pitKeys=['IP','W','L','SV','pH','ER','pBB','pK','ERA','WHIP','K9','ERA+'];
-    if(mode==='pit' && batKeys.includes(sortKey)) sortKey='W';
-    if(mode==='bat' && pitKeys.includes(sortKey)) sortKey='HR';
+    const nowCols = (mode==='bat'?BAT_COLS:mode==='pit'?PIT_COLS:FLD_COLS).map(c=>c[0]);
+    if(!nowCols.includes(sortKey)) sortKey = mode==='pit' ? 'W' : mode==='fld' ? 'TC' : 'HR';
     sortDir=-1; renderDir();
   }));
   app.querySelectorAll('thead th').forEach(h=>h.addEventListener('click',()=>{
