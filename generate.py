@@ -6733,14 +6733,10 @@ function computeParkFactors(yearOk, minG){
     return row;
   }).filter(r=>r.games>=minG && r.runFactor!=null).sort((a,b)=>b.runFactor-a.runFactor);
 }
-let gamesView = 'list';
 function renderGames(){
   setNav('games');
   const yrs=[...new Set(GIDS.map(id=>GAMES[id].date.slice(0,4)))].sort();
   if(gYear==null) gYear = yrs[yrs.length-1];
-  const viewToggle = `<div class="segs" role="group" aria-label="View">
-    <button data-gv="list" aria-pressed="${gamesView==='list'}">Games</button>
-    <button data-gv="parks" aria-pressed="false">Park Factors</button></div>`;
   const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
@@ -6765,12 +6761,11 @@ function renderGames(){
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
-  app.innerHTML=`<div class="phead"><h2>Games</h2></div>${viewToggle}${chips}
+  app.innerHTML=`<div class="phead"><h2>Games</h2></div>${chips}
     <div class="tscroll"><table class="dir glog"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
     ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
-  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.gv==='parks'){ location.hash = '#/savant/parks'; return; } gamesView=b.dataset.gv; renderGames(); }));
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
