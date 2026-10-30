@@ -418,6 +418,10 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svhrank span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:560px){.svgs .gsx,.svgs .gsopp,.svgs .lphoto{display:none}.svgs td,.svgs th{padding-left:4px;padding-right:4px}.svgs td:first-child{width:1%}}
 @media (max-width:560px){.svpf .pfx{display:none}}
+.gsplhead{display:flex;align-items:center;gap:14px;margin:4px 0 14px}
+.gsplhead .lphoto{width:64px;height:64px;font-size:1.1rem}
+.gsplhead .pname{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.5rem;font-weight:700;padding:0}
+.gsplhead span{display:block;margin-top:2px;font-size:.84rem;color:var(--muted)}
 .gsdef{margin:6px 0 14px;max-width:70ch;line-height:1.5;color:var(--ink)}
 .gsplus{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:var(--card);color:var(--accent);font:700 .9rem/1 "IBM Plex Mono",monospace;cursor:pointer;margin-left:8px;padding:0;vertical-align:middle}
 .gsplus:hover{border-color:var(--accent)}
@@ -11183,7 +11187,9 @@ function renderSavantGS(){
     if(!svpGS.player || !names.includes(svpGS.player)) svpGS.player = (inPhase.slice().sort((a,b)=>b.v-a.v)[0]||{}).n || names[0] || '';
     const mine = inPhase.filter(r=>r.n===svpGS.player && yearOk(r)).sort((a,b)=>b.date.localeCompare(a.date) || b.gid-a.gid);
     const sum = k => Math.round(mine.reduce((t,r)=>t+r[k],0)*10)/10;
+    const plHead = `<div class="gsplhead">${llHead(svpGS.player)}<div><button class="pname" data-p="${esc(svpGS.player)}">${esc(svpGS.player)}</button>${mine.length ? `<span>${mine.length} game${mine.length===1?'':'s'} · average ${gsNum(Math.round(sum('v')/mine.length*100)/100)} · total ${gsNum(sum('v'))}</span>` : ''}</div></div>`;
     body = `<div class="svpform"><label>Player <select id="gsPlayer">${names.map(n=>`<option value="${esc(n)}"${n===svpGS.player?' selected':''}>${esc(nameLF(n))}</option>`).join('')}</select></label></div>
+      ${plHead}
       ${mine.length ? `<div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Game</th><th>Result</th><th class="gsx">Hit</th><th class="gsx">Pit</th><th class="gsx">Fld</th><th>Game Score</th></tr></thead><tbody>
       ${mine.map(r=>`<tr><td class="lft">${gameCell(r)}</td><td class="mono">${r.rf>r.ra?'W':r.rf<r.ra?'L':'T'} ${r.rf}–${r.ra}</td><td class="mono gsx">${gsSigned(r.hit)}</td><td class="mono gsx">${gsSigned(r.pit)}</td><td class="mono gsx">${gsSigned(r.fld)}</td><td class="mono b">${gsNum(r.v)}${gsPlus}</td></tr>${gsDetRow(r)}`).join('')}
       </tbody><tfoot><tr><td class="lft">${mine.length} game${mine.length===1?'':'s'}</td><td class="mono">avg ${gsNum(sum('v')/mine.length)}</td><td class="mono gsx">${gsSigned(sum('hit'))}</td><td class="mono gsx">${gsSigned(sum('pit'))}</td><td class="mono gsx">${gsSigned(sum('fld'))}</td><td class="mono b">${gsNum(sum('v'))}</td></tr></tfoot></table></div>`
