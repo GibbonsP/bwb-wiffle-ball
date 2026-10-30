@@ -5316,6 +5316,7 @@ function renderLeaders(){
     cat('Batting Average', s=>avg(s), rate, {min:'ab'}),
     cat('On-Base %', s=>obp(s), rate, {min:'pa'}),
     cat('Slugging %', s=>slg(s), rate, {min:'ab'}),
+    cat('ISO', s=>slg(s)-avg(s), rate, {min:'ab'}),
     cat('OPS', s=>ops(s), rate, {min:'pa'}),
     cat('OPS+', s=>opsPlusFor(s, opsPlusWeights.get(s)), v=>isFinite(v)?String(v):'—', {min:'pa'}),
     cat('Walk %', s=>bbPct(s), pctfmt, {min:'pa'}),
