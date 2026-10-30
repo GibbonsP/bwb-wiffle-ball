@@ -91,6 +91,7 @@ header.mast{background:var(--brandbar)}
 .gsr-item img{width:20px;height:20px;object-fit:contain;flex:none;border-radius:4px}
 .gsr-item .gsr-dot{width:20px;height:20px;border-radius:50%;flex:none;background:var(--line-strong)}
 .gsr-tag{margin-left:auto;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gsr-head{padding:9px 12px 6px;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
 .gsr-empty{padding:12px;font-size:.82rem;color:var(--muted)}
 .perf{max-width:1180px;margin:0 auto 22px;padding:0 20px}
 .perf i{display:block;height:3px;background:var(--pa,var(--clay));margin-top:3px}
@@ -1462,14 +1463,42 @@ function gsMatches(qRaw){
   former.sort((a,b)=>a._r-b._r || a.label.localeCompare(b.label));
   return [...players, ...teams, ...oldTeams, ...former.slice(0,4)];
 }
-function gsRender(items){
+/* what the header search offers before anything is typed: the players and teams that have been hottest in the
+   league's most recent three weeks of games (regular season and playoffs). Players are ranked by their total
+   Game Score over that stretch (two or more games), teams by record then run differential. */
+let _gsTrend = null;
+function gsTrending(){
+  if(_gsTrend) return _gsTrend;
+  const rows = svpGSRows();
+  if(!rows.length) return (_gsTrend = []);
+  const latest = rows.reduce((m,r)=>r.date>m?r.date:m, '');
+  const d0 = new Date(latest+'T12:00:00'); d0.setDate(d0.getDate()-21);
+  const cut = d0.toISOString().slice(0,10);
+  const rec = rows.filter(r=>r.date>=cut);
+  const byP = {};
+  rec.forEach(r=>{ const o = byP[r.n] || (byP[r.n] = {n:r.n, g:0, v:0}); o.g++; o.v += r.v; });
+  const players = Object.values(byP).filter(o=>o.g>=2 && P[o.n]).sort((a,b)=>b.v-a.v).slice(0,5)
+    .map(o=>({type:'player', key:o.n, label:o.n, sub:(TEAMS[latestTeam(P[o.n])]||{}).nick || '', photo:P[o.n].photo}));
+  const seen = new Set(), byT = {};
+  rec.forEach(r=>{
+    const k = r.gid+'|'+r.team; if(seen.has(k)) return; seen.add(k);
+    const t = TEAMS[r.team]; if(!t) return;
+    const o = byT[r.team] || (byT[r.team] = {t:r.team, w:0, l:0, d:0});
+    if(r.rf>r.ra) o.w++; else if(r.rf<r.ra) o.l++; o.d += r.rf-r.ra;
+  });
+  const teams = Object.values(byT).filter(o=>o.w+o.l>=2)
+    .sort((a,b)=>(b.w/(b.w+b.l))-(a.w/(a.w+a.l)) || b.d-a.d || (b.w+b.l)-(a.w+a.l)).slice(0,3)
+    .map(o=>({type:'team', key:o.t, label:TEAMS[o.t].nick||o.t, sub:o.w+'–'+o.l+' lately', logo:TEAMS[o.t].logo}));
+  return (_gsTrend = [...players, ...teams]);
+}
+function gsRender(items, heading){
   const box = document.getElementById('gsearchResults');
   if(!items.length){
     box.innerHTML = '<div class="gsr-empty">No players or teams match.</div>';
     box.hidden = false;
     return;
   }
-  box.innerHTML = items.map((it,i)=>{
+  box.innerHTML = (heading ? `<div class="gsr-head">${esc(heading)}</div>` : '') + items.map((it,i)=>{
     const mark = it.type==='player'
       ? (it.photo?`<img src="${it.photo}" alt="">`:'<span class="gsr-dot"></span>')
       : (it.logo?`<img src="${it.logo}" alt="">`:'<span class="gsr-dot"></span>');
@@ -1495,8 +1524,14 @@ function gsRender(items){
   input.addEventListener('input', ()=>{
     items = gsMatches(input.value);
     activeIdx = 0;
-    if(input.value.trim()) gsRender(items); else box.hidden = true;
+    if(input.value.trim()) gsRender(items); else showTrending();
   });
+  const showTrending = () => {
+    items = gsTrending(); activeIdx = 0;
+    if(items.length) gsRender(items, 'Trending now'); else box.hidden = true;
+  };
+  input.addEventListener('focus', ()=>{ if(!input.value.trim()) showTrending(); });
+  input.addEventListener('click', ()=>{ if(!input.value.trim() && box.hidden) showTrending(); });
   input.addEventListener('keydown', e=>{
     if(box.hidden || !items.length) return;
     if(e.key==='ArrowDown'){ e.preventDefault(); setActive(activeIdx+1); }
