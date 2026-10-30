@@ -2000,7 +2000,7 @@ function savantPromoCard(){
     peek = `<div class="svpp"><div class="svppz">${it ? svpPizzaSVG(SV_BAT, it, null).replace('viewBox="0 0 460 380"','viewBox="108 66 244 248"') : ''}</div>
       <div class="svpplist"><span class="svpphead">${y} hitters by wRC+</span>${top.slice(0,3).map(x=>`<div><span>${esc(x.e.name)}</span>${svpPill(svPct(all, x.v, false))}</div>`).join('')}</div></div>`;
   }
-  const feats = ['Percentile rankings','Pizza charts','Team playstyle maps','League trends','Season races','Matched seasons'];
+  const feats = ['Percentile rankings','Pizza charts','Team playstyle maps','League trends','Season races','Matched seasons','Park factors'];
   return `<a class="svpromo" href="#/savant">
     <div class="svpromo-logo">${savantLogoSVG(124)}</div>
     <div class="svpromo-main">
