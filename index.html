@@ -356,8 +356,15 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svpplist div{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .svpplist div>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .svpplist .svpill{flex:none}
-@media (max-width:900px){.svpromo{grid-template-columns:auto minmax(0,1fr)}.svpp{grid-column:1 / -1}}
-@media (max-width:560px){.svpromo{grid-template-columns:1fr;padding:20px 18px}.svppz{width:84px;height:84px}.svpromo-logo .svlogo{width:88px;height:88px}}
+.arpromo::before{background:linear-gradient(90deg,#2e9b5f,#e9b44c 50%,#d22d49)}
+.arico{width:124px;height:124px;display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25))}
+.arlist{display:flex;flex-direction:column;gap:9px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);min-width:0;font-size:.84rem}
+.arlist .svpphead{margin-bottom:1px}
+.arlist div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arlist b{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.9rem}
+.arlist span{color:var(--muted);line-height:1.35}
+@media (max-width:900px){.svpromo{grid-template-columns:auto minmax(0,1fr)}.svpp,.arlist{grid-column:1 / -1}}
+@media (max-width:560px){.svpromo{grid-template-columns:1fr;padding:20px 18px}.svppz{width:84px;height:84px}.svpromo-logo .svlogo,.arico{width:88px;height:88px}}
 .svfeat_unused{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px 8px;margin:6px 0 22px}
 .svfeathead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:6px}
 .svfeatlabel{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
@@ -2017,6 +2024,23 @@ function savantPromoCard(){
     ${peek}
   </a>`;
 }
+/* the home page's Arcade card: the Grid board as its icon, and a line on each of the four daily games */
+function arcadePromoCard(){
+  const cell = (x,y,c) => `<rect x="${x}" y="${y}" width="30" height="30" rx="5" fill="${c}"/>`;
+  const G='#2e9b5f', R='#d22d49', N='var(--line-strong)';
+  const board = [[G,G,N],[R,G,G],[N,R,G]].map((row,r)=>row.map((c,i)=>cell(4+i*34,4+r*34,c)).join('')).join('');
+  const games = [['Grid','Name a player who fits both categories'],['Stat Pad','Find the biggest single seasons'],
+    ['15-0','Draft a team and play a 15-game season'],['Guess the Player','A mystery player, with more hints after each miss']];
+  return `<a class="svpromo arpromo" href="#/arcade">
+    <div class="svpromo-logo"><svg class="arico" viewBox="0 0 108 108" role="img" aria-label="Arcade">${board}</svg></div>
+    <div class="svpromo-main">
+      <h2>BWB Arcade</h2>
+      <p>Four games built from the league’s own history, with new puzzles every day</p>
+      <span class="svpromo-cta">Play today’s games →</span>
+    </div>
+    <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
+  </a>`;
+}
 /* one slide of the home-page news ticker: its photo(s) and caption */
 function tickerSlideHTML(s){
   return `${s.art==='savant' ? `<div class="heroart">${savantLogoSVG(280)}<div class="heroart-txt"><b>BWB Savant</b><span>The league’s home for advanced statistics</span><i></i></div></div>`
@@ -2198,7 +2222,7 @@ function renderHome(){
       allowfullscreen></iframe></div>`;
 
   const nwlaCard = nwlaHomeCard();
-  const savantHome = savantPromoCard();
+  const savantHome = savantPromoCard() + arcadePromoCard();
   app.innerHTML = `
     ${DB.banner?`<img class="banner" src="${DB.banner}" alt="">`:''}
     ${editBtn('Edit banner','editBannerBtn')}
