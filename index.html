@@ -2113,10 +2113,6 @@ function renderHome(){
     ll('Strikeouts', yRank(yStat(s=>s.pK), 1), v=>v),
     ll('ERA · 12+ IP', yRank(yStat(s=>era(s), x=>x.s.IPouts>=36), -1), two, true),
   ].join('');
-  const recent = GIDS.slice(0,7).map(id=>{ const g=GAMES[id];
-    return `<li><button class="pname" data-g="${id}">${g.date}</button>
-      <span>${teamLink(g.away.team)} <b>${g.away.R}–${g.home.R}</b> ${teamLink(g.home.team)}
-      ${g.phase!=='Regular'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</span></li>`; }).join('');
   const rc = CHAMPS[0], rcColor = colorsFor(rc.tm, rc.y);
   /* homeTicker: an editable array of {photo | photos[], tag, title, caption, link, linkText | links[{link,linkText}], fit}
      slides (photos: two or more images shown side by side as squares, e.g. a pair of 1080x1080 graphics;
@@ -2205,8 +2201,6 @@ function renderHome(){
     ${trailerHTML}
     <h3 class="hsub">Career leaders · regular season</h3>
     <div class="llsliders">${cGrid}</div>
-    <h3 class="hsub">Latest games</h3>
-    <ul class="recent">${recent}</ul>
     <h3 class="hsub">Follow BWB Wiffleball</h3>
     <div class="followgrid">
       <a class="followcard ig" href="https://www.instagram.com/bwbwiffleball" target="_blank" rel="noopener">
