@@ -1719,6 +1719,8 @@ function gameScoreOf(bat, pit, fld, year, post){ return gameScoreParts(bat, pit,
    Deriving the denominator from PO+A+E instead makes a >1.000 percentage
    mathematically impossible, regardless of what TC itself was recorded as. */
 const fld = d => (d.PO+d.A+d.E) ? (d.PO+d.A)/(d.PO+d.A+d.E) : NaN;
+/* games fielded: a season whose fielding lines were entered without a games count (2026 so far) shows a dash, not a 0 */
+const fldG = d => (d.G_fld || !d.INN) ? d.G_fld : '—';
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TROPHY = '<svg class="trophy" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M6 3h12v2h2a1 1 0 0 1 1 1c0 3.3-2.2 5.6-5 5.95A5.5 5.5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5.5 5.5 0 0 1 8 11.95C5.2 11.6 3 9.3 3 6a1 1 0 0 1 1-1h2V3Zm0 4H4.6c.3 1.7 1.6 3 3.2 3.4A7.4 7.4 0 0 1 6 7Zm12 0a7.4 7.4 0 0 1-1.8 3.4c1.6-.4 2.9-1.7 3.2-3.4H18Z"/></svg>';
 const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p;
@@ -2913,7 +2915,7 @@ function phaseBlock(pl, type){
   let fldT='';
   if(career.TC>0 || career.G_fld>0){
     const fCols = [...seasonCols,
-      {l:'G',f:d=>d.G_fld},{l:'INN',f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},
+      {l:'G',f:fldG},{l:'INN',f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},
       {l:'A',f:d=>d.A},{l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
     fldT = statTable('Fielding', leadCols(fCols,'fld'), rows.filter(d=>d.TC>0||d.G_fld>0), career, meta.tot, meta.cls, true, teamTotalsFor(d=>d.TC>0||d.G_fld>0));
   }
@@ -5233,7 +5235,7 @@ function renderLeaders(){
       const s = x.s, ti = teamOf(x);
       return {
         name:x.n, teamLabel:ti.label, teamHTML:ti.html, lt:ti.lt, ly:ti.ly, logo:ti.logo, logo2:ti.logo2,
-        G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : s.G_fld, GS: s.GS_pit,
+        G: leadMode==='bat'? s.G_bat : leadMode==='pit' ? s.G_pit : (s.G_fld || !s.INN ? s.G_fld : NaN), GS: s.GS_pit,
         PA:s.PA, AB:s.AB, R:s.R, H:s.H, HR:s.HR, RBI:s.RBI, BB:s.BB, K:s.K,
         AVG:avg(s), OBP:obp(s), SLG:slg(s), OPS:ops(s),
         'OPS+': opsPlusFor(s, isCareer ? careerWeights(P[x.n], isPost) : [{year:leadYear, pa:s.PA, post:isPost}]),
@@ -5417,14 +5419,14 @@ function rosterPitching(roster, ph, label, weights, photos){
     {l:'ERA+',m:1,f:d=>{const v=weights?eraPlusFor(d,weights):NaN;return isFinite(v)?String(v):'—';}}];
   return statTable('Pitching'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
-/* per-player fielding for a roster; it was only recorded for 2022 through 2025, so other seasons have no rows */
+/* per-player fielding for a roster; it has only been recorded since 2022, so earlier seasons have no rows */
 function rosterFielding(roster, ph, label, photos){
-  const rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.TC>0);
+  const rows = roster.map(e=>({name:e.name, ...e[ph]})).filter(d=>d.TC>0 || d.INN>0);
   if(!rows.length) return '';
   rows.sort((a,b)=>b.INN-a.INN || b.TC-a.TC);
   const cols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_fld},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'G',f:fldG},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
     {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
   return statTable('Fielding'+(label?' · '+label:''), cols, rows, sumRows(rows), 'Team', '', true);
 }
@@ -5702,12 +5704,12 @@ function teamAllYears(t, name){
 
   const fldCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${llHead(d.name)}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_fld},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
+    {l:'G',f:fldG},{l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
     {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-  const fldRows = arows.filter(d=>d.TC>0).sort((x,y)=>y.INN-x.INN || y.TC-x.TC);
+  const fldRows = arows.filter(d=>d.TC>0 || d.INN>0).sort((x,y)=>y.INN-x.INN || y.TC-x.TC);
   const fieldingHTML = fldRows.length
     ? statTable('Franchise Roster · Fielding'+(post?' · Playoffs':''), fldCols, fldRows, sumRows(fldRows), 'Total', '', true)
-      + '<p class="smeta">Fielding was only recorded from 2022 through 2025, so these totals cover those seasons.</p>' : '';
+      + '<p class="smeta">Fielding has only been recorded since 2022, so these totals cover those seasons.</p>' : '';
   return phaseToggleHTML() + ((battingHTML + pitchingHTML + fieldingHTML) || `<p class="lead">No ${post?'playoff':'regular-season'} roster stats recorded for this franchise.</p>`);
 }
 
