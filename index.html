@@ -2783,12 +2783,12 @@ function yearAwards(pl, y, phase){
 
 /* League-leading seasons are set in bold on a player's Regular Season and Postseason tables.
    Counting stats lead among everyone who recorded one; rate stats (AVG, ERA, ...) lead only
-   among QUALIFIED players that season — 9+ G batting, 12+ IP pitching, 30+ innings fielded in
+   among QUALIFIED players that season — 9+ G batting, 12+ IP pitching, 20+ innings fielded in
    the regular season; the postseason is a few games, so its bar is the site's "worth showing"
    floor of 3 G / 3 IP. Ties share the bold. Every stat in the table can be bolded, including games played and
    the ones where leading isn't a compliment (batter K, runs allowed, errors); ERA and WHIP lead by being lowest. */
 const LEAD_Q = {
-  Regular:  {bat:d=>d.G_bat>=SV_MING, pit:d=>d.IPouts>=SV_MINOUTS, fld:d=>d.INN>=30},
+  Regular:  {bat:d=>d.G_bat>=SV_MING, pit:d=>d.IPouts>=SV_MINOUTS, fld:d=>d.INN>=20},
   Playoffs: {bat:d=>d.G_bat>=SV_MIN_SHOW_G, pit:d=>d.IPouts>=SV_MIN_SHOW_OUTS, fld:d=>d.G_fld>=SV_MIN_SHOW_G},
 };
 /* [label, value, kind] — kind: 'c' counting (max), 'r' rate (max among qualified), 'rl' rate (min among qualified) */
@@ -2928,7 +2928,7 @@ function phaseBlock(pl, type){
     <h3>${meta.head}</h3>
     <p class="pmeta">${yrs.length} ${meta.unit}${yrs.length>1?'s':''} · ${span}${evNote}</p>
     ${bat}${pit}${fldT}${nLead ? `<p class="pmeta ldrnote"><b class="ldr">Bold</b> = led the league that ${type==='Playoffs'?'postseason':'season'}.
-      Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 30+ innings fielded`}).</p>` : ''}</div>`;
+      Rate stats count qualified players only (${type==='Playoffs' ? `${SV_MIN_SHOW_G}+ G batting, ${SV_MIN_SHOW_OUTS/3}+ IP pitching` : `${SV_MING}+ G batting, ${SV_MINOUTS/3}+ IP pitching, 20+ innings fielded`}).</p>` : ''}</div>`;
 }
 
 /* ---- Baseball-Savant-style percentile rankings (per regular season) ---- */
@@ -5279,7 +5279,7 @@ function renderLeaders(){
     if(o.min==='ab') a = a.filter(x=>isCareer ? x.s.AB>=minAB : x.s.G_bat>=minG);
     else if(o.min==='pa') a = a.filter(x=>isCareer ? x.s.PA>=minPA : x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
-    else if(o.min==='fldg') a = a.filter(x=> isCareer ? x.s.G_fld>=minG : x.s.INN>=(isPost?0:30));
+    else if(o.min==='fldg') a = a.filter(x=> isCareer ? x.s.INN>=(isPost?0:45) : x.s.INN>=(isPost?0:20));
     const dir = o.dir||1;
     const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, tmh:ti.html, lt:ti.lt, ly:ti.ly, logo:ti.logo, logo2:ti.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -5343,7 +5343,7 @@ function renderLeaders(){
       ? `Every player who ${leadMode==='bat'?'batted':'pitched'} in this scope, no minimum — click a header to sort.`
       : `Top 10 per category, ${isPost?'postseason':'regular season'}.${isPost
         ? ' No minimum AB/PA/IP — small postseason samples all qualify.'
-        : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP (fielding % needs 9+ games fielded)':'9+ games played and 12+ IP (fielding % needs 30+ innings fielded)'};`}
+        : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP (fielding % needs 45+ innings fielded)':'9+ games played and 12+ IP (fielding % needs 20+ innings fielded)'};`}
     ERA and WHIP list the lowest.`} Career covers ${RANGE}. Names link to player pages.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{
     leadYear = b.dataset.ly==='career' ? 'career' : +b.dataset.ly; renderLeaders();
@@ -6215,7 +6215,7 @@ function renderRecords(){
     let a = seasonPool;
     if(o.min==='g') a = a.filter(x=>x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
-    else if(o.min==='fldg') a = a.filter(x=>x.s.INN>=30);
+    else if(o.min==='fldg') a = a.filter(x=>x.s.INN>=20);
     const dir = o.dir||1;
     const items = a.map(x=>{ const lg=sLogo(x); return {n:x.n, v:f(x.s), tm:ySub(x), logo:lg.logo, logo2:lg.logo2}; })
       .filter(x=>isFinite(x.v) && (o.zero||x.v!==0)).sort((p,q)=>dir*(q.v-p.v)).slice(0,10);
@@ -6559,7 +6559,7 @@ function renderRecords(){
     ['season', 'Single-Season', 'Single-Season Records', `<div class="phase">
       <p class="pmeta">Best individual regular seasons in league history, ${eraLabel} — one row per player-season
       (a player split across two clubs counts once, combined). Rate stats need 9+ games batting, 12+ IP pitching,
-      or 30+ innings fielded.</p>
+      or 20+ innings fielded.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${seasonBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${seasonPit}</div>
       <h4 class="hsub">Fielding</h4><div class="llgrid">${seasonFld}</div>
