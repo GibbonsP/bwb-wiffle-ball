@@ -1630,6 +1630,15 @@ const ops = d => obp(d)+slg(d);
 const era = d => d.IPouts ? 3*d.ER/(d.IPouts/3) : NaN;
 const whip= d => d.IPouts ? (d.pBB+d.pH)/(d.IPouts/3) : NaN;
 const k9  = d => d.IPouts ? 3*d.pK/(d.IPouts/3) : NaN;
+/* batters faced aren't recorded, so at-bats against are estimated as outs recorded plus hits allowed */
+const oppAvg = d => (d.IPouts+d.pH) ? d.pH/(d.IPouts+d.pH) : NaN;
+const oppObp = d => { const pa = d.IPouts+d.pH+d.pBB+(d.pHB||0); return pa ? (d.pH+d.pBB+(d.pHB||0))/pa : NaN; };
+const bb3 = d => d.IPouts ? 3*d.pBB/(d.IPouts/3) : NaN;
+const h3  = d => d.IPouts ? 3*d.pH/(d.IPouts/3) : NaN;
+const kbb = d => d.pBB ? d.pK/d.pBB : NaN;
+const bbPct = d => d.PA ? d.BB/d.PA : NaN;
+const kPct  = d => d.PA ? d.K/d.PA : NaN;
+const babip = d => { const den = d.AB-d.K-d.HR+(d.SF||0); return den>0 ? (d.H-d.HR)/den : NaN; };
 /* Game Score (Savant): one number per player per game, combining hitting, pitching and fielding: a linear
    combination of box-score events in the spirit of hockey's Game Score (hockey-graphs.com). Each category's weighted
    total is compared with what a LEAGUE-AVERAGE player would have produced in the same number of PAs / outs / innings
@@ -5286,6 +5295,7 @@ function renderLeaders(){
     return items.length ? llist(title, items, fmt, dir<0) : '';
   };
   const ipfmt = v => ipStr(Math.round(v*3));
+  const pctfmt = v => (100*v).toFixed(1)+'%';
   /* cat()'s formatter only ever sees a stat bucket, not the player name or
      year it came from — precompute bucket→weights by object identity (each
      pool item's `s` is the very same careerReg/careerPO/season-row object
@@ -5302,12 +5312,16 @@ function renderLeaders(){
     cat('Slugging %', s=>slg(s), rate, {min:'ab'}),
     cat('OPS', s=>ops(s), rate, {min:'pa'}),
     cat('OPS+', s=>opsPlusFor(s, opsPlusWeights.get(s)), v=>isFinite(v)?String(v):'—', {min:'pa'}),
+    cat('Walk %', s=>bbPct(s), pctfmt, {min:'pa'}),
+    cat('Strikeout %', s=>kPct(s), pctfmt, {min:'pa', dir:-1, zero:true}),
+    cat('BABIP', s=>babip(s), rate, {min:'ab'}),
     cat('Home Runs', s=>s.HR, v=>v),
     cat('RBI', s=>s.RBI, v=>v),
     cat('Runs', s=>s.R, v=>v),
     cat('Hits', s=>s.H, v=>v),
     cat('Total Bases', s=>s.TB, v=>v),
     cat('Doubles', s=>s['2B'], v=>v),
+    cat('Triples', s=>s['3B'], v=>v),
     cat('Walks', s=>s.BB, v=>v),
     cat('Stolen Bases', s=>s.SB, v=>v),
   ].join('');
@@ -5317,7 +5331,12 @@ function renderLeaders(){
     cat('ERA+', s=>eraPlusFor(s, eraPlusWeights.get(s)), v=>isFinite(v)?String(v):'—', {min:'o'}),
     cat('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
     cat('Strikeouts', s=>s.pK, v=>v),
+    cat('Opponent AVG', s=>oppAvg(s), rate, {min:'o', dir:-1, zero:true}),
+    cat('Opponent OBP', s=>oppObp(s), rate, {min:'o', dir:-1, zero:true}),
     cat('K per 3 IP', s=>k9(s), two, {min:'o'}),
+    cat('K/BB', s=>kbb(s), two, {min:'o'}),
+    cat('Walks per 3 IP', s=>bb3(s), two, {min:'o', dir:-1, zero:true}),
+    cat('Hits per 3 IP', s=>h3(s), two, {min:'o', dir:-1, zero:true}),
     cat('Saves', s=>s.SV, v=>v),
     cat('Innings Pitched', s=>s.IPouts/3, ipfmt),
     cat('Games Started', s=>s.GS_pit, v=>v),
@@ -5328,6 +5347,8 @@ function renderLeaders(){
     cat('Putouts', s=>s.PO, v=>v),
     cat('Assists', s=>s.A, v=>v),
     cat('Double Plays', s=>s.DP, v=>v),
+    cat('Total Chances', s=>s.TC, v=>v),
+    cat('Innings Fielded', s=>s.INN, v=>v),
   ].join('');
 
   app.innerHTML = `
@@ -5344,7 +5365,7 @@ function renderLeaders(){
       : `Top 10 per category, ${isPost?'postseason':'regular season'}.${isPost
         ? ' No minimum AB/PA/IP — small postseason samples all qualify.'
         : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP (fielding % needs 45+ innings fielded)':'9+ games played and 12+ IP (fielding % needs 20+ innings fielded)'};`}
-    ERA and WHIP list the lowest.`} Career covers ${RANGE}. Names link to player pages.</p>`;
+    ERA, WHIP, opponent AVG/OBP, walks and hits per 3 IP and strikeout % list the lowest. Opponent AVG and OBP estimate at-bats against as outs recorded plus hits allowed, since batters faced aren't recorded.`} Career covers ${RANGE}. Names link to player pages.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{
     leadYear = b.dataset.ly==='career' ? 'career' : +b.dataset.ly; renderLeaders();
   }));
