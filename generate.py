@@ -2079,8 +2079,8 @@ function homePhotoShow(){
   const ph = DB.homeSlideshow || [];
   if(!ph.length) return '';
   const slides = ph.map((p,i)=>`<div class="hsl${i===0?' on':''}" data-i="${i}" data-src="${p.src}"><img alt="${i===0?'BWB Wiffleball photo':''}" decoding="async"></div>`).join('');
-  return `<h3 class="hsub">Best Photos</h3>
-    <div class="hshow" aria-roledescription="carousel" aria-label="Best photos from the 2022 and 2023 seasons">${slides}
+  return `<h3 class="hsub">Gallery</h3>
+    <div class="hshow" aria-roledescription="carousel" aria-label="Photo gallery">${slides}
       <button type="button" class="pbarrow prev" data-hsd="-1" aria-label="Previous photo">‹</button>
       <button type="button" class="pbarrow next" data-hsd="1" aria-label="Next photo">›</button>
       <span class="hscap"><b>${ph[0].season} season</b><i>1 / ${ph.length}</i></span></div>`;
