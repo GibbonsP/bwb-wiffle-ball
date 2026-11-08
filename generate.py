@@ -168,7 +168,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbanner:hover .pbarrow,.pbarrow:focus-visible{opacity:1}
 .pbarrow:hover{background:rgba(0,0,0,.65)}
 @media (hover:none){.pbarrow{opacity:.85;width:34px;height:34px}}
-.hshow{position:relative;aspect-ratio:3/2;max-width:760px;border-radius:12px;overflow:hidden;background:var(--line);box-shadow:var(--shadow);margin:0 auto 26px}
+.hshow{position:relative;aspect-ratio:39/20;border-radius:12px;overflow:hidden;background:var(--line);box-shadow:var(--shadow);margin:0 0 26px}
 .hsl{position:absolute;inset:0;opacity:0;transition:opacity .9s ease}
 .hsl.on{opacity:1}
 .hsl img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -2067,12 +2067,12 @@ function arcadePromoCard(){
     <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
   </a>`;
 }
-/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): the frame is 3:2, the shape of every photo, so each is shown whole. Only the current and next photo are loaded. */
+/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): the frame is the same 39:20 shape as the player banners, and each photo's y frames its subject. Only the current and next photo are loaded. */
 let hsTimer = null;
 function homePhotoShow(){
   const ph = DB.homeSlideshow || [];
   if(!ph.length) return '';
-  const slides = ph.map((p,i)=>`<div class="hsl${i===0?' on':''}" data-i="${i}" data-src="${p.src}"><img alt="${i===0?'BWB Wiffleball photo':''}" decoding="async"></div>`).join('');
+  const slides = ph.map((p,i)=>`<div class="hsl${i===0?' on':''}" data-i="${i}" data-src="${p.src}"><img alt="${i===0?'BWB Wiffleball photo':''}" style="object-position:50% ${p.y==null?50:p.y}%" decoding="async"></div>`).join('');
   return `<h3 class="hsub">Gallery</h3>
     <div class="hshow" aria-roledescription="carousel" aria-label="Photo gallery">${slides}
       <button type="button" class="pbarrow prev" data-hsd="-1" aria-label="Previous photo">‹</button>
