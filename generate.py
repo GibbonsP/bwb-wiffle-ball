@@ -2155,11 +2155,12 @@ function arcadePromoCard(){
     <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
   </a>`;
 }
-/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): the frame is the same 39:20 shape as the player banners, and each photo's y frames its subject. Only the current and next photo are loaded. */
+/* the home page's photo slideshow (DB.homeSlideshow = [{src, season, y}], shown in a random order each visit): the frame is the same 39:20 shape as the player banners, and each photo's y frames its subject. Only the current and next photo are loaded. */
 let hsTimer = null;
 function homePhotoShow(){
-  const ph = DB.homeSlideshow || [];
+  const ph = (DB.homeSlideshow || []).slice();
   if(!ph.length) return '';
+  for(let i=ph.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [ph[i],ph[j]] = [ph[j],ph[i]]; }   // a fresh random order on every visit
   const slides = ph.map((p,i)=>`<div class="hsl${i===0?' on':''}" data-i="${i}" data-src="${p.src}"><img alt="${i===0?'BWB Wiffleball photo':''}" style="object-position:50% ${p.y==null?50:p.y}%" decoding="async"></div>`).join('');
   return `<h3 class="hsub">Gallery</h3>
     <div class="hshow" aria-roledescription="carousel" aria-label="Photo gallery">${slides}
