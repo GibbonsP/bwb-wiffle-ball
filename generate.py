@@ -174,9 +174,6 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .hsl::before{content:"";position:absolute;inset:-30px;background:var(--bg) center/cover;filter:blur(26px) brightness(.62) saturate(1.1)}
 .hsl img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .hshow:hover .pbarrow,.hshow .pbarrow:focus-visible{opacity:1}
-.hscap{position:absolute;left:14px;bottom:12px;display:flex;gap:10px;align-items:baseline;z-index:2;color:#fff;font-size:.8rem;text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none}
-.hscap b{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:.9rem}
-.hscap i{font-style:normal;opacity:.85;font-variant-numeric:tabular-nums}
 @media (max-width:700px){.hshow{aspect-ratio:3/2}}
 @media (prefers-reduced-motion:reduce){.hsl{transition:none}}
 .fgrid{display:flex;flex-direction:column;gap:20px;margin:6px 0 18px}
@@ -2082,21 +2079,18 @@ function homePhotoShow(){
   return `<h3 class="hsub">Gallery</h3>
     <div class="hshow" aria-roledescription="carousel" aria-label="Photo gallery">${slides}
       <button type="button" class="pbarrow prev" data-hsd="-1" aria-label="Previous photo">‹</button>
-      <button type="button" class="pbarrow next" data-hsd="1" aria-label="Next photo">›</button>
-      <span class="hscap"><b>${ph[0].season} season</b><i>1 / ${ph.length}</i></span></div>`;
+      <button type="button" class="pbarrow next" data-hsd="1" aria-label="Next photo">›</button></div>`;
 }
 function initHomePhotoShow(){
   if(hsTimer){ clearInterval(hsTimer); hsTimer = null; }
   const box = document.querySelector('.hshow'); if(!box) return;
-  const sl = [...box.querySelectorAll('.hsl')], cap = box.querySelector('.hscap');
-  const ph = DB.homeSlideshow || [];
+  const sl = [...box.querySelectorAll('.hsl')];
   let cur = 0, paused = false;
   const load = i => { const el = sl[i]; if(!el || el.dataset.loaded) return; el.dataset.loaded = '1';
     const im = el.querySelector('img'); im.onload = ()=>el.style.setProperty('--bg', `url("${el.dataset.src}")`); im.src = el.dataset.src; };
   const show = i => {
     cur = (i+sl.length)%sl.length; load(cur); load((cur+1)%sl.length);
     sl.forEach((el,k)=>{ el.classList.toggle('on', k===cur); el.querySelector('img').alt = k===cur ? 'BWB Wiffleball photo' : ''; });
-    cap.innerHTML = `<b>${ph[cur].season} season</b><i>${cur+1} / ${sl.length}</i>`;
   };
   load(0); load(1);
   box.querySelectorAll('[data-hsd]').forEach(b=>b.addEventListener('click',()=>show(cur + +b.dataset.hsd)));
