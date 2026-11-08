@@ -86,6 +86,7 @@ header.mast{background:var(--brandbar)}
 .gsr-item .gsr-dot{width:20px;height:20px;border-radius:50%;flex:none;background:var(--line-strong)}
 .gsr-tag{margin-left:auto;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .gsr-head{padding:9px 12px 6px;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.gsr-dot.gsr-pg{display:grid;place-items:center;font-size:.7rem;color:var(--muted);background:var(--accent-soft)}
 .gsr-empty{padding:12px;font-size:.82rem;color:var(--muted)}
 .perf{max-width:1180px;margin:0 auto 22px;padding:0 20px}
 .perf i{display:block;height:3px;background:var(--pa,var(--clay));margin-top:3px}
@@ -1363,7 +1364,7 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
     <div class="mast-tools">
       <div class="gsearch">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="gsearch" type="search" placeholder="Search players & teams…" autocomplete="off" aria-label="Search players and teams">
+        <input id="gsearch" type="search" placeholder="Search players, teams & pages…" autocomplete="off" aria-label="Search players, teams and pages">
         <div class="gsearch-results" id="gsearchResults" hidden></div>
       </div>
       <button class="tog" id="tog" aria-label="Toggle colour theme">
@@ -1446,6 +1447,90 @@ tog.addEventListener('click',()=>{
    outside the router-controlled #app, wired once here). Substring match,
    ranked so a name/team that STARTS WITH the query beats one that merely
    contains it; each list capped so one category can't crowd out the other. */
+/* ---- site search: pages, sections and views ------------------------------------------------------------------
+   Beyond players and teams, the header search jumps straight to a page, a tab inside it, or a specific season view
+   ("2017 Leaders", "Fields", "Milestone Tracker", "2019 Standings"). Each destination is a hash plus an optional
+   `apply` that sets the page's own state (year, tab, phase) after the route has rendered. */
+let gsPendingJump = null;
+function gsJump(hash, apply){
+  gsPendingJump = apply || null;
+  if(location.hash === hash || (hash==='#/' && !location.hash)) route(); else location.hash = hash;
+}
+let _gsDest = null;
+function gsDestinations(){
+  if(_gsDest) return _gsDest;
+  const D = [], add = (label, sub, kw, hash, apply, extra) => D.push(Object.assign({type:'page', key:label, label, sub, kw:kw||'', hash, apply}, extra||{}));
+  add('Home','Page','front page news ticker','#/');
+  add('History','Page','story league history timeline','#/history');
+  add('Players','Page','player directory stats batting pitching fielding','#/players');
+  add('Teams','Page','franchises team directory','#/teams');
+  add('Standings','Page','table division wild card','#/standings');
+  add('Leaders','Page','leaderboard top stats','#/leaders');
+  add('Records','Page','record book all-time','#/records');
+  add('Games','Page','scores box scores schedule results','#/games');
+  add('Fields','Games · fields','field park parks ballpark stadium photos','#/games/fields');
+  add('Champions','Page','champs world series winners titles','#/champs');
+  add('Awards','Page','mvp cy young honors','#/awards');
+  add('Beavers','Page','beaver brook tournament','#/beavers');
+  add('League Office','Page','office rules commissioner','#/office');
+  add('Savant','Page','advanced analytics sabermetrics','#/savant');
+  add('Arcade','Page','games puzzles play','#/arcade');
+  add('Compare Players','Page','head to head versus','#/compare');
+  [['compare','Savant Compare','Savant · compare players'],['trends','Savant Trends','Savant · trends over time'],
+   ['pizza','Pizza Charts','Savant · percentile pizza'],['form','Savant Form','Savant · hot cold recent form'],
+   ['gamescore','Game Score','Savant · game score'],['parks','Park Factors','Savant · parks hitter pitcher friendly'],
+   ['scatter','Scatter Plot','Savant · scatter chart'],['search','Stat Search','Savant · find players by stat filters'],
+   ['rankings','Percentile Rankings','Savant · player rankings percentiles'],['teams','Team Savant','Savant · team ratings'],
+   ['teams/h2h','Team Head-to-Head','Savant · team h2h matchups'],['teams/offense','Team Offense','Savant · team offense'],
+   ['teams/offstyle','Offensive Style','Savant · team offense style'],['teams/pitstyle','Pitching Style','Savant · team pitching style'],
+   ['teams/luck','Team Luck','Savant · luck pythagorean'],['teams/race','Division Race','Savant · standings race chart']
+  ].forEach(([p,l,sub])=>add(l,sub,'savant advanced', '#/savant/'+p));
+  add('Grid','Arcade','immaculate grid puzzle','#/grid');
+  add('Stat Pad','Arcade','statpad puzzle','#/statpad');
+  add('15-0','Arcade','perfect game','#/15-0');
+  add('Guess the Player','Arcade','guess mystery player daily','#/guess');
+  [['season','Single-Season Records'],['game','Single-Game Records'],['postseason','Postseason Records'],['streaks','Streaks'],
+   ['nohit','No-Hitters & Perfect Games'],['milestones','Milestone Tracker']].forEach(([k,l])=>
+    add(l,'Records',(k==='nohit'?'no-hitter nohitter perfect game ':k==='milestones'?'milestones horizon recent achieved ':'')+'records tab',
+      '#/records', ()=>{ recordsTab = k; renderRecords(); }));
+  [['awards','Awards','mvp cy young gold glove honors'],['asg','All-Star Games','asg all star game'],
+   ['series','Series & Weekly Awards','series mvp weekly player of the week'],['nwla','NWLA Awards','nwla']
+  ].forEach(([k,l,kw])=>add(l,'Awards',kw+' awards tab','#/awards',()=>{ awardsTab = k; renderAwards(); }));
+  const poYears = new Set(Object.values(GAMES).filter(g=>g.phase==='Playoffs').map(g=>+g.date.slice(0,4)));
+  add('Career Leaders','Leaders','all-time career leaderboard','#/leaders',()=>{ leadYear = 'career'; leadPhase = 'reg'; renderLeaders(); });
+  ALL_YEARS.slice().reverse().forEach(y=>{
+    add(y+' Leaders','Leaders · regular season','leaderboard stats season '+y,'#/leaders',()=>{ leadYear = y; leadPhase = 'reg'; renderLeaders(); });
+    if(poYears.has(y)) add(y+' Playoff Leaders','Leaders · playoffs','postseason leaderboard '+y,'#/leaders',()=>{ leadYear = y; leadPhase = 'post'; renderLeaders(); });
+    if(TEAMNAMES.some(n=>standRow(n,y))){
+      add(y+' Standings','Standings','table division '+y,'#/standings',()=>{ standYear = y; standPhase = 'reg'; renderStandings(); });
+    }
+  });
+  [...new Set(GIDS.map(id=>GAMES[id].date.slice(0,4)))].sort().reverse().forEach(y=>
+    add(y+' Games','Games','scores box scores schedule '+y,'#/games',()=>{ gYear = y; renderGames(); }));
+  FIELDS.forEach(f=>add('Games at '+f.name,'Games · field','field park ballpark '+f.name,'#/games?f='+encodeURIComponent(f.name)));
+  TEAMNAMES.forEach(n=>(TEAMS[n].years||[]).forEach(y=>{
+    if(!standRow(n,y)) return;
+    add(y+' '+histName(n,y),'Team page · '+y,'season roster stats '+n,'#/t/'+encodeURIComponent(n)+'?y='+y,null,{needsYear:true,logo:teamLogoForYear(n,y)});
+  }));
+  D.forEach(d=>{ d._tok = (d.label+' '+d.sub+' '+d.kw).toLowerCase().replace(/[^a-z0-9\- ]+/g,' ').split(/\s+/).filter(Boolean);
+                 d._lab = d.label.toLowerCase(); });
+  return (_gsDest = D);
+}
+function gsPageMatches(qRaw){
+  const qt = qRaw.trim().toLowerCase().replace(/[^a-z0-9\- ]+/g,' ').split(/\s+/).filter(Boolean);
+  if(!qt.length) return {items:[], lead:false};
+  const hasYear = qt.some(t=>/^\d{4}$/.test(t));
+  const out = [];
+  gsDestinations().forEach(d=>{
+    if(d.needsYear && !hasYear) return;
+    if(!qt.every(t=>d._tok.some(w=>w===t || (t.length>=2 && w.startsWith(t))))) return;
+    const labStart = d._lab.startsWith(qt.join(' ')) ? 0 : qt.every(t=>d._lab.split(/\s+/).some(w=>w.startsWith(t))) ? 1 : 2;
+    out.push({d, r:labStart, len:d._lab.length});
+  });
+  out.sort((a,b)=>a.r-b.r || a.len-b.len || a.d._lab.localeCompare(b.d._lab));
+  const items = out.slice(0, hasYear ? 6 : 5).map(o=>o.d);
+  return {items, lead: hasYear || (out.length>0 && out[0].r===0 && qt.join(' ').length>=3 && !NAMES.some(n=>n.toLowerCase().startsWith(qt.join(' '))))};
+}
 function gsMatches(qRaw){
   const q = qRaw.trim().toLowerCase();
   if(!q) return [];
@@ -1482,7 +1567,9 @@ function gsMatches(qRaw){
     });
   });
   former.sort((a,b)=>a._r-b._r || a.label.localeCompare(b.label));
-  return [...players, ...teams, ...oldTeams, ...former.slice(0,4)];
+  const base = [...players, ...teams, ...oldTeams, ...former.slice(0,4)];
+  const pg = gsPageMatches(qRaw);
+  return pg.lead ? [...pg.items, ...base] : [...base, ...pg.items.slice(0,4)];
 }
 /* what the header search offers before anything is typed: the players and teams that have been hottest in the
    league's most recent three weeks of games (regular season and playoffs). Players are ranked by their total
@@ -1515,12 +1602,12 @@ function gsTrending(){
 function gsRender(items, heading){
   const box = document.getElementById('gsearchResults');
   if(!items.length){
-    box.innerHTML = '<div class="gsr-empty">No players or teams match.</div>';
+    box.innerHTML = '<div class="gsr-empty">No players, teams or pages match.</div>';
     box.hidden = false;
     return;
   }
   box.innerHTML = (heading ? `<div class="gsr-head">${esc(heading)}</div>` : '') + items.map((it,i)=>{
-    const mark = it.type==='player'
+    const mark = it.type==='page' ? (it.logo?`<img src="${it.logo}" alt="">`:'<span class="gsr-dot gsr-pg">↗</span>') : it.type==='player'
       ? (it.photo?`<img src="${it.photo}" alt="">`:'<span class="gsr-dot"></span>')
       : (it.logo?`<img src="${it.logo}" alt="">`:'<span class="gsr-dot"></span>');
     return `<button type="button" class="gsr-item${i===0?' active':''}" data-i="${i}">
@@ -1535,8 +1622,9 @@ function gsRender(items, heading){
   let items = [], activeIdx = 0;
   const go = it => {
     if(!it) return;
-    location.hash = it.type==='player' ? '#/p/'+encodeURIComponent(it.key) : '#/t/'+encodeURIComponent(it.key);
     input.value = ''; box.hidden = true; items = [];
+    if(it.type==='page') return gsJump(it.hash, it.apply);
+    location.hash = it.type==='player' ? '#/p/'+encodeURIComponent(it.key) : '#/t/'+encodeURIComponent(it.key);
   };
   const setActive = idx => {
     activeIdx = Math.max(0, Math.min(items.length-1, idx));
@@ -11750,6 +11838,7 @@ function route(){
   ['--tc','--tp','--ts'].forEach(v=>app.style.removeProperty(v)); app.classList.remove('tc-black');  // clear franchise tint
   llistPhotos = false;
   dispatch(h);
+  if(gsPendingJump){ const f = gsPendingJump; gsPendingJump = null; f(); }
   centerChips();
   document.querySelectorAll('table.sortable').forEach(makeSortable);
   // scroll-to-top belongs to real navigation only (this fires on hashchange); in-page
