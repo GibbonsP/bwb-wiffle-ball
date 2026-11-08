@@ -168,6 +168,20 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbanner:hover .pbarrow,.pbarrow:focus-visible{opacity:1}
 .pbarrow:hover{background:rgba(0,0,0,.65)}
 @media (hover:none){.pbarrow{opacity:.85;width:34px;height:34px}}
+.fgrid{display:flex;flex-direction:column;gap:20px;margin:6px 0 18px}
+.fcard{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+.fshow{position:relative;aspect-ratio:3/2;background:var(--line);overflow:hidden}
+.fshow img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
+.fshow img.on{opacity:1}
+.fshow:hover .pbarrow,.fshow .pbarrow:focus-visible{opacity:1}
+.finfo{padding:20px 22px;display:flex;flex-direction:column;gap:14px;justify-content:center;min-width:0}
+.finfo h3{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(1.6rem,3.4vw,2.2rem);line-height:1.05}
+.fstats{display:flex;flex-direction:column;gap:8px}
+.fstats div{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:7px;font-size:.92rem}
+.fstats span{color:var(--muted)}
+.factions{display:flex;flex-wrap:wrap;gap:6px 18px}
+@media (max-width:760px){.fcard{grid-template-columns:1fr}.finfo{padding:16px 18px}}
+@media (prefers-reduced-motion:reduce){.fshow img{transition:none}}
 .pbdots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:7px;pointer-events:none}
 .pbdots button{pointer-events:auto;width:9px;height:9px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);cursor:pointer;box-shadow:0 0 3px rgba(0,0,0,.5)}
 .pbdots button.on{background:var(--tc,var(--accent));border-color:#fff}
@@ -6085,7 +6099,7 @@ function renderHistoricalTeam(d){
 const GAMES = DB.games || {};
 const gkey = g => (GAMES[g].dt || GAMES[g].date) + '|' + g;
 const GIDS = Object.keys(GAMES).sort((a,b)=>gkey(b).localeCompare(gkey(a)));
-let gYear=null;
+let gYear=null, gField=null;
 let recordsEra='all';
 let recordsTab='season';
 
@@ -6785,7 +6799,11 @@ function renderGames(){
   setNav('games');
   const yrs=[...new Set(GIDS.map(id=>GAMES[id].date.slice(0,4)))].sort();
   if(gYear==null) gYear = yrs[yrs.length-1];
-  const list=GIDS.filter(id=> gYear==='all' || GAMES[id].date.slice(0,4)===gYear);
+  const viewToggle = `<div class="segs" role="group" aria-label="View">
+    <button data-gv="list" aria-pressed="true">Games</button>
+    <button data-gv="fields" aria-pressed="false">Fields</button></div>`;
+  const list=GIDS.filter(id=> (gYear==='all' || GAMES[id].date.slice(0,4)===gYear) && (!gField || GAMES[id].loc===gField));
+  const fieldNote = gField ? `<p class="note">Showing games at <b>${esc(gField)}</b> · <button class="pname" id="gfClear">Show all fields</button></p>` : '';
   const chips=`<div class="chips"><button data-gy="all" aria-pressed="${gYear==='all'}">All</button>
     ${yrs.map(y=>`<button data-gy="${y}" aria-pressed="${gYear===y}">${y}</button>`).join('')}</div>`;
   /* an All-Star side is a division ("North Division", "Brookside Division") — link to its
@@ -6809,15 +6827,74 @@ function renderGames(){
       <td class="lft">${g.loc?esc(g.loc):'TBA'}</td>
       <td class="lft">${g.date.slice(0,4)}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</td></tr>`;
   }).join('');
-  app.innerHTML=`<div class="phead"><h2>Games</h2></div>${chips}
+  app.innerHTML=`<div class="phead"><h2>Games</h2></div>${viewToggle}${chips}${fieldNote}
     <div class="tscroll"><table class="dir glog"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
     ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
+  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.gv==='fields') location.hash = '#/games/fields'; }));
+  const gfc = document.getElementById('gfClear'); if(gfc) gfc.addEventListener('click',()=>{ gField=null; renderGames(); });
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
   app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
   app.querySelectorAll('.pname[data-div]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/div/'+encodeURIComponent(b.dataset.div); }));
+}
+
+/* ---- Fields: every ground the league has played on, with a photo slideshow, the years it was in use, how many
+   games are on record there and its run park factor. Photos and years are DB.fields (newest photo first). ---- */
+const FIELDS = DB.fields || [];
+let fsTimer = null;
+function initFieldShows(){
+  if(fsTimer){ clearInterval(fsTimer); fsTimer = null; }
+  const shows = [...document.querySelectorAll('.fshow')]; if(!shows.length) return;
+  const st = shows.map(box=>{
+    const imgs = [...box.querySelectorAll('img')], dots = [...box.querySelectorAll('.pbdots button')];
+    const o = {box, imgs, dots, cur:0, paused:false};
+    const load = i => { const im = imgs[i]; if(im && !im.getAttribute('src') && im.dataset.src) im.src = im.dataset.src; };
+    o.show = i => { o.cur = (i+imgs.length)%imgs.length; load(o.cur); load((o.cur+1)%imgs.length);
+      imgs.forEach((im,k)=>im.classList.toggle('on', k===o.cur)); dots.forEach((d,k)=>d.classList.toggle('on', k===o.cur)); };
+    load(1 % imgs.length);
+    box.addEventListener('mouseenter', ()=>{ o.paused = true; });
+    box.addEventListener('mouseleave', ()=>{ o.paused = false; });
+    dots.forEach(d=>d.addEventListener('click', ()=>o.show(+d.dataset.pbi)));
+    box.querySelectorAll('.pbarrow').forEach(b=>b.addEventListener('click', ()=>o.show(o.cur + +b.dataset.pbd)));
+    return o;
+  });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let n = 0;
+  if(!reduce) fsTimer = setInterval(()=>{
+    if(!document.body.contains(shows[0])){ clearInterval(fsTimer); fsTimer = null; return; }
+    n++; st.forEach((o,k)=>{ if(o.imgs.length>1 && !o.paused && (n+k)%2===0) o.show(o.cur+1); });   // staggered so the cards don't all change at once
+  }, 3500);
+}
+function renderFields(){
+  setNav('games');
+  const counts = {}; GIDS.forEach(id=>{ const l = GAMES[id].loc; if(l) counts[l] = (counts[l]||0)+1; });
+  let pf = {}; try{ computeParkFactors().forEach(r=>{ pf[r.loc] = r.runFactor; }); }catch(e){}
+  const viewToggle = `<div class="segs" role="group" aria-label="View">
+    <button data-gv="list" aria-pressed="false">Games</button>
+    <button data-gv="fields" aria-pressed="true">Fields</button></div>`;
+  const cards = FIELDS.map((f,fi)=>{
+    const ph = f.photos || [];
+    const imgs = ph.map((p,i)=>`<img ${i===0?`src="${p.src}" class="on"`:`data-src="${p.src}"`} alt="${i===0?esc(f.name):''}" style="object-position:50% ${p.y==null?50:p.y}%" decoding="async">`).join('');
+    const dots = ph.length>1 ? `<div class="pbdots">${ph.map((p,i)=>`<button type="button" data-pbi="${i}" aria-label="Photo ${i+1} of ${ph.length}"${i===0?' class="on"':''}></button>`).join('')}</div>` : '';
+    const arrows = ph.length>1 ? `<button type="button" class="pbarrow prev" data-pbd="-1" aria-label="Previous photo">‹</button><button type="button" class="pbarrow next" data-pbd="1" aria-label="Next photo">›</button>` : '';
+    const n = counts[f.name] || 0;
+    const stats = [`<div><span>Active</span><b>${esc(f.years)}</b></div>`,
+      `<div><span>Games on record</span><b>${n||'—'}</b></div>`,
+      pf[f.name]!=null ? `<div><span>Runs park factor</span><b>${pfPill(pf[f.name])}</b></div>` : ''].join('');
+    return `<section class="fcard"><div class="fshow">${imgs}${arrows}${dots}</div>
+      <div class="finfo"><h3>${esc(f.name)}</h3><div class="fstats">${stats}</div>
+        <div class="factions">${n?`<button class="pname" data-ff="${esc(f.name)}">View games here →</button>`:''}${pf[f.name]!=null?`<button class="pname" data-fpf="1">Park factors →</button>`:''}</div></div></section>`;
+  }).join('');
+  app.innerHTML = `<div class="phead"><h2>Games</h2></div>${viewToggle}
+    <p class="lead">Every field the league has played on, with the years it was in use.</p>
+    <div class="fgrid">${cards}</div>
+    <p class="note">Park factors compare a field's scoring with the league average of the same seasons, so 100 is neutral; they need at least 15 games on record at the field.</p>`;
+  app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.gv==='list') location.hash = '#/games'; }));
+  app.querySelectorAll('[data-ff]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/games?f='+encodeURIComponent(b.dataset.ff); }));
+  app.querySelectorAll('[data-fpf]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/savant/parks'; }));
+  initFieldShows();
 }
 
 const BOX_BAT=[
@@ -11599,7 +11676,8 @@ function dispatch(h){
   if((m = h.match(/^#\/beavers\/t\/(.+)$/))) return renderBeaverTournament(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/beavers\/(.+)$/))) return bvBoxScore(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/g\/(\d+)$/))) return boxScore(m[1]);
-  if(h === '#/games'){ gYear = null; return renderGames(); }
+  if(h === '#/games/fields') return renderFields();
+  if((m = h.match(/^#\/games(?:\?f=(.+))?$/))){ gField = m[1] ? decodeURIComponent(m[1]) : null; gYear = gField ? 'all' : null; return renderGames(); }
   if((m = h.match(/^#\/t\/(.+)\/awards$/))) return renderTeamAwards(decodeURIComponent(m[1]));
   if((m = h.match(/^#\/t\/([^?]+)(?:\?y=(\d{4}))?$/))){ teamYear = m[2] ? +m[2] : null; teamScrollStats = !!m[2]; teamStatMode = 'bat'; return teamDetail(decodeURIComponent(m[1])); }
   if(h === '#/teams') return renderTeams();
