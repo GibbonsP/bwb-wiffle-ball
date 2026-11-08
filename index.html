@@ -6993,7 +6993,7 @@ function renderFields(){
   const viewToggle = `<div class="segs" role="group" aria-label="View">
     <button data-gv="list" aria-pressed="false">Games</button>
     <button data-gv="fields" aria-pressed="true">Fields</button></div>`;
-  const cards = FIELDS.map((f,fi)=>{
+  const cards = FIELDS.slice().sort((a,b)=>(a.from||9999)-(b.from||9999)).map((f,fi)=>{   // oldest field first
     const ph = f.photos || [];
     const imgs = ph.map((p,i)=>`<img ${i===0?`src="${p.src}" class="on"`:`data-src="${p.src}"`} alt="${i===0?esc(f.name):''}" style="object-position:50% ${p.y==null?50:p.y}%" decoding="async">`).join('');
     const dots = ph.length>1 ? `<div class="pbdots">${ph.map((p,i)=>`<button type="button" data-pbi="${i}" aria-label="Photo ${i+1} of ${ph.length}"${i===0?' class="on"':''}></button>`).join('')}</div>` : '';
