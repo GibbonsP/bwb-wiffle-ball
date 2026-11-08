@@ -168,6 +168,17 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbanner:hover .pbarrow,.pbarrow:focus-visible{opacity:1}
 .pbarrow:hover{background:rgba(0,0,0,.65)}
 @media (hover:none){.pbarrow{opacity:.85;width:34px;height:34px}}
+.hshow{position:relative;aspect-ratio:2/1;border-radius:12px;overflow:hidden;background:var(--line);box-shadow:var(--shadow);margin:0 0 26px}
+.hsl{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;--bg:none}
+.hsl.on{opacity:1}
+.hsl::before{content:"";position:absolute;inset:-30px;background:var(--bg) center/cover;filter:blur(26px) brightness(.62) saturate(1.1)}
+.hsl img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.hshow:hover .pbarrow,.hshow .pbarrow:focus-visible{opacity:1}
+.hscap{position:absolute;left:14px;bottom:12px;display:flex;gap:10px;align-items:baseline;z-index:2;color:#fff;font-size:.8rem;text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none}
+.hscap b{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:.9rem}
+.hscap i{font-style:normal;opacity:.85;font-variant-numeric:tabular-nums}
+@media (max-width:700px){.hshow{aspect-ratio:3/2}}
+@media (prefers-reduced-motion:reduce){.hsl{transition:none}}
 .fgrid{display:flex;flex-direction:column;gap:20px;margin:6px 0 18px}
 .fcard{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
 .fshow{position:relative;aspect-ratio:3/2;background:var(--line);overflow:hidden}
@@ -2061,6 +2072,39 @@ function arcadePromoCard(){
     <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
   </a>`;
 }
+/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): each photo is shown whole, centered
+   on a blurred copy of itself, so nothing is cropped. Only the current and next photo are loaded. */
+let hsTimer = null;
+function homePhotoShow(){
+  const ph = DB.homeSlideshow || [];
+  if(!ph.length) return '';
+  const slides = ph.map((p,i)=>`<div class="hsl${i===0?' on':''}" data-i="${i}" data-src="${p.src}"><img alt="${i===0?'BWB Wiffleball photo':''}" decoding="async"></div>`).join('');
+  return `<h3 class="hsub">Best Photos</h3>
+    <div class="hshow" aria-roledescription="carousel" aria-label="Best photos from the 2022 and 2023 seasons">${slides}
+      <button type="button" class="pbarrow prev" data-hsd="-1" aria-label="Previous photo">‹</button>
+      <button type="button" class="pbarrow next" data-hsd="1" aria-label="Next photo">›</button>
+      <span class="hscap"><b>${ph[0].season} season</b><i>1 / ${ph.length}</i></span></div>`;
+}
+function initHomePhotoShow(){
+  if(hsTimer){ clearInterval(hsTimer); hsTimer = null; }
+  const box = document.querySelector('.hshow'); if(!box) return;
+  const sl = [...box.querySelectorAll('.hsl')], cap = box.querySelector('.hscap');
+  const ph = DB.homeSlideshow || [];
+  let cur = 0, paused = false;
+  const load = i => { const el = sl[i]; if(!el || el.dataset.loaded) return; el.dataset.loaded = '1';
+    const im = el.querySelector('img'); im.onload = ()=>el.style.setProperty('--bg', `url("${el.dataset.src}")`); im.src = el.dataset.src; };
+  const show = i => {
+    cur = (i+sl.length)%sl.length; load(cur); load((cur+1)%sl.length);
+    sl.forEach((el,k)=>{ el.classList.toggle('on', k===cur); el.querySelector('img').alt = k===cur ? 'BWB Wiffleball photo' : ''; });
+    cap.innerHTML = `<b>${ph[cur].season} season</b><i>${cur+1} / ${sl.length}</i>`;
+  };
+  load(0); load(1);
+  box.querySelectorAll('[data-hsd]').forEach(b=>b.addEventListener('click',()=>show(cur + +b.dataset.hsd)));
+  box.addEventListener('mouseenter', ()=>{ paused = true; });
+  box.addEventListener('mouseleave', ()=>{ paused = false; });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce) hsTimer = setInterval(()=>{ if(!document.body.contains(box)){ clearInterval(hsTimer); hsTimer = null; return; } if(!paused) show(cur+1); }, 5000);
+}
 /* one slide of the home-page news ticker: its photo(s) and caption */
 function tickerSlideHTML(s){
   return `${s.art==='savant' ? `<div class="heroart">${savantLogoSVG(280)}<div class="heroart-txt"><b>BWB Savant</b><span>The league’s home for advanced statistics</span><i></i></div></div>`
@@ -2256,6 +2300,7 @@ function renderHome(){
     ${trailerHTML}
     <h3 class="hsub">Career leaders · regular season</h3>
     <div class="llsliders">${cGrid}</div>
+    ${homePhotoShow()}
     <h3 class="hsub">Follow BWB Wiffleball</h3>
     <div class="followgrid">
       <a class="followcard ig" href="https://www.instagram.com/bwbwiffleball" target="_blank" rel="noopener">
@@ -2298,6 +2343,7 @@ function renderHome(){
   app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
     const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
   initHomeTicker(slides);
+  initHomePhotoShow();
   document.getElementById('editBannerBtn').addEventListener('click', ()=>{
     openImageEditor('Home Banner', DB.banner, 900, async url=>{
       const before = DB.banner;
