@@ -168,13 +168,11 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .pbanner:hover .pbarrow,.pbarrow:focus-visible{opacity:1}
 .pbarrow:hover{background:rgba(0,0,0,.65)}
 @media (hover:none){.pbarrow{opacity:.85;width:34px;height:34px}}
-.hshow{position:relative;aspect-ratio:2/1;border-radius:12px;overflow:hidden;background:var(--line);box-shadow:var(--shadow);margin:0 0 26px}
-.hsl{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;--bg:none}
+.hshow{position:relative;aspect-ratio:3/2;border-radius:12px;overflow:hidden;background:var(--line);box-shadow:var(--shadow);margin:0 0 26px}
+.hsl{position:absolute;inset:0;opacity:0;transition:opacity .9s ease}
 .hsl.on{opacity:1}
-.hsl::before{content:"";position:absolute;inset:-30px;background:var(--bg) center/cover;filter:blur(26px) brightness(.62) saturate(1.1)}
-.hsl img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.hsl img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .hshow:hover .pbarrow,.hshow .pbarrow:focus-visible{opacity:1}
-@media (max-width:700px){.hshow{aspect-ratio:3/2}}
 @media (prefers-reduced-motion:reduce){.hsl{transition:none}}
 .fgrid{display:flex;flex-direction:column;gap:20px;margin:6px 0 18px}
 .fcard{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
@@ -2069,8 +2067,7 @@ function arcadePromoCard(){
     <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
   </a>`;
 }
-/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): each photo is shown whole, centered
-   on a blurred copy of itself, so nothing is cropped. Only the current and next photo are loaded. */
+/* the home page's photo slideshow (DB.homeSlideshow = [{src, season}], newest first): the frame is 3:2, the shape of every photo, so each is shown whole. Only the current and next photo are loaded. */
 let hsTimer = null;
 function homePhotoShow(){
   const ph = DB.homeSlideshow || [];
@@ -2087,7 +2084,7 @@ function initHomePhotoShow(){
   const sl = [...box.querySelectorAll('.hsl')];
   let cur = 0, paused = false;
   const load = i => { const el = sl[i]; if(!el || el.dataset.loaded) return; el.dataset.loaded = '1';
-    const im = el.querySelector('img'); im.onload = ()=>el.style.setProperty('--bg', `url("${el.dataset.src}")`); im.src = el.dataset.src; };
+    const im = el.querySelector('img'); im.src = el.dataset.src; };
   const show = i => {
     cur = (i+sl.length)%sl.length; load(cur); load((cur+1)%sl.length);
     sl.forEach((el,k)=>{ el.classList.toggle('on', k===cur); el.querySelector('img').alt = k===cur ? 'BWB Wiffleball photo' : ''; });
