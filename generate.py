@@ -11753,6 +11753,7 @@ function renderSavantHub(){
    the hot streak. A game that leaves the stat unchanged ends the run, and a streak has to last 3 or more games.
    Each streak also carries a "vs league" level (100 = the league average that year) so a cold streak from an elite level
    reads as exactly that. */
+const babipOf = d => { const den = d.AB-d.K-d.HR+(d.SF||0); return den>0 ? (d.H-d.HR)/den : NaN; };
 const GL_MINRUN = 3;                                 // a streak is more than 2 games in a row
 const GL_MING = {bat:8, pit:5};                      // games a season needs to count
 const glIdx = (lg, low) => (v,d,y) => { const l = lg(y); return (isFinite(v)&&isFinite(l)&&l&&v) ? 100*(low ? l/v : v/l) : NaN; };
@@ -11764,6 +11765,7 @@ const GL_METRICS = [
   {k:'AVG', l:'AVG', kind:'bat', fmt:rate, fn:d=>avg(d), idx:glIdx(y=>{const q=wobaLeague(y,false);return q?avg(q):NaN})},
   {k:'OBP', l:'OBP', kind:'bat', fmt:rate, fn:d=>obp(d), idx:glIdx(y=>{const q=wobaLeague(y,false);return q?obp(q):NaN})},
   {k:'SLG', l:'SLG', kind:'bat', fmt:rate, fn:d=>slg(d), idx:glIdx(y=>{const q=wobaLeague(y,false);return q?slg(q):NaN})},
+  {k:'BABIP', l:'BABIP', kind:'bat', fmt:rate, fn:d=>babipOf(d), idx:glIdx(y=>{const q=wobaLeague(y,false);return q?babipOf(q):NaN})},
   {k:'ERA', l:'ERA', kind:'pit', low:true, fmt:two, fn:d=>era(d), idx:glIdx(y=>{const q=LEAGUE_BY_YEAR[y];return q?era(q):NaN},true)},
   {k:'ERA+', l:'ERA+', kind:'pit', fmt:v=>String(Math.round(v)), fn:(d,y)=>eraPlusFor(d,[{year:y,outs:d.IPouts}]), idx:v=>v},
   {k:'WHIP', l:'WHIP', kind:'pit', low:true, fmt:two, fn:d=>whip(d), idx:glIdx(y=>{const q=LEAGUE_BY_YEAR[y];return q?whip(q):NaN},true)},
@@ -11871,7 +11873,7 @@ function renderSavantGains(){
     }).join('');
   } else if(svpGL.view==='streaks'){
     const flat = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) flat.push({se,r}); }));
-    const top = hot => flat.filter(x=>x.r.hot===hot).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,15).map(x=>streakRow(x.se, x.r)).join('');
+    const top = hot => flat.filter(x=>x.r.hot===hot).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,15).map(x=>streakRow(x.se, x.r)).join('') || '<tr><td colspan="6" class="lft">No streaks of 3+ games in this selection.</td></tr>';
     body = `<div class="glcols"><section class="stat"><h4><span class="glup">▲</span> Biggest Gains <small>hot streaks</small></h4>
       <div class="tscroll"><table class="detail glt"><thead><tr>${streakHead}</tr></thead><tbody>${top(true)}</tbody></table></div></section>
       <section class="stat"><h4><span class="gldn">▼</span> Biggest Losses <small>cold streaks</small></h4>
