@@ -7178,12 +7178,34 @@ const boxNameLink = n => `<button class="pname" data-p="${esc(n)}">${esc(n)}</bu
 const BOX_PIT=[
   {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>${d._tag||''}`:''},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
-  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
+  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'ERA',m:1,f:d=>d._era||''}];
 /* the pitching decision rides next to the name instead of its own W/L/SV
    columns, with that pitcher's running record for the same season and phase
    (regular season or postseason) through this game — "(W, 2-0)", "(SV, 2)" —
    same as a printed box score. Counts only games with logged pitching lines. */
 const _decCache = {};
+/* a pitcher's ERA for the same season and phase through and including this game (3 × ER ÷ IP, like
+   every ERA on the site), built from the logged pitching lines */
+const _eraCache = {};
+function pitEraToDate(g, p){
+  const yr = g.date.slice(0,4), key = p.n+'|'+yr+'|'+g.phase, pl = P[p.n];
+  let list = _eraCache[key];
+  if(!list){
+    list = [];
+    ((pl&&pl.gids)||[]).forEach(id=>{
+      const gg = GAMES[id];
+      if(!gg || gg.phase!==g.phase || gg.date.slice(0,4)!==yr) return;
+      const row = [...(gg.away.pit||[]), ...(gg.home.pit||[])].find(x=>x.n===p.n);
+      if(row) list.push({id:String(id), k:(gg.dt||gg.date)+'|'+id, row});
+    });
+    list.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:0);
+    const t={IPouts:0,ER:0};
+    list.forEach(r=>{ t.IPouts+=r.row.ip||0; t.ER+=r.row.er||0; r.era = two(era(t)); });
+    _eraCache[key] = list;
+  }
+  const r = list.find(x=>x.id===String(g.gid));
+  return r ? r.era : '';
+}
 function decisionTag(g, p){
   if(!(p.w>0 || p.l>0 || p.sv>0)) return '';
   const pl = P[p.n], yr = g.date.slice(0,4);
@@ -7232,7 +7254,7 @@ function boxSide(g, sk, yr){
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
-    const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p)}));
+    const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p),_era:pitEraToDate(g,p)}));
     out+=cell(3, statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt'));
   }
   if((s.fld||[]).length){
@@ -7336,7 +7358,7 @@ function playerGameLog(pl, type, selYear){
     <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td>${noHbp?'':`<td>${bat.hbp}</td>`}<td class="mono">${td._avg||'—'}</td><td class="mono">${td._ops||'—'}</td></tr>`; }).join('');
   const pitBody = rows.filter(r=>r.pit).map(({g,side,pit,opp})=>`<tr>${oppCell(g,side,opp)}
     <td>${pit.gs}</td><td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
-    <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td></tr>`).join('');
+    <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td><td class="mono">${pitEraToDate(g,{n:pl.name})||'—'}</td></tr>`).join('');
   const fldBody = rows.filter(r=>r.fldLine).map(({g,side,fldLine,opp})=>`<tr>${oppCell(g,side,opp)}
     <td class="mono">${fldLine.inn}</td><td>${fldLine.tc}</td><td>${fldLine.po}</td>
     <td>${fldLine.a}</td><td>${fldLine.e}</td><td>${fldLine.dp}</td></tr>`).join('');
@@ -7354,7 +7376,7 @@ function playerGameLog(pl, type, selYear){
     <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td>${noHbp?'':`<td>${batTot.hbp}</td>`}<td class="mono">${rate(avg(batAgg))}</td><td class="mono">${rate(ops(batAgg))}</td></tr>`;
   const pitFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${pitTot.gs}</td><td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
-    <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td></tr>`;
+    <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td><td class="mono">${two(era({IPouts:pitTot.ip, ER:pitTot.er}))}</td></tr>`;
   const fldFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td class="mono">${fldTot.inn}</td><td>${fldTot.tc}</td><td>${fldTot.po}</td>
     <td>${fldTot.a}</td><td>${fldTot.e}</td><td>${fldTot.dp}</td></tr>`;
@@ -7362,7 +7384,7 @@ function playerGameLog(pl, type, selYear){
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
     ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>'+(noHbp?'':'<th>HBP</th>')+'<th class="mono">AVG</th><th class="mono">OPS</th>', batBody, batFoot)}
-    ${tbl('Pitching', '<th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
+    ${tbl('Pitching', '<th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th><th class="mono">ERA</th>', pitBody, pitFoot)}
     ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody, fldFoot)}
   </section>`;
 }
@@ -7384,6 +7406,10 @@ function playerNWLALog(pl, selYear){
       const b=(g.bat||[]).find(x=>x.n===pl.name); if(!b) return;
       t.AB+=b.ab||0; t.H+=b.h||0; t.BB+=b.bb||0; t.TB+=(b.h||0)+(b['2b']||0)+2*(b['3b']||0)+3*(b.hr||0);
       runAvg.set(g.gid, [rate(avg(t)), rate(ops(t))]); }); }
+  const runEra = new Map(); { const t={IPouts:0,ER:0};
+    byYr[y].slice().sort((a,b)=>((a.date||'')+String(a.g).padStart(3,'0')).localeCompare((b.date||'')+String(b.g).padStart(3,'0'))).forEach(g=>{
+      const p=(g.pit||[]).find(x=>x.n===pl.name); if(!p) return;
+      t.IPouts+=p.ip||0; t.ER+=p.er||0; runEra.set(g.gid, two(era(t))); }); }
   const rows = byYr[y].map(g=>{
     const bat = (g.bat||[]).find(b=>b.n===pl.name);
     const pit = (g.pit||[]).find(p=>p.n===pl.name);
@@ -7394,7 +7420,7 @@ function playerNWLALog(pl, selYear){
       <td>${bat?bat.rbi:''}</td><td>${bat?bat.bb:''}</td><td>${bat?bat.k:''}</td>
       <td class="mono">${bat&&runAvg.get(g.gid)?runAvg.get(g.gid)[0]:''}</td><td class="mono">${bat&&runAvg.get(g.gid)?runAvg.get(g.gid)[1]:''}</td>
       <td>${pit?(g.pit[0]===pit?1:0):''}</td><td class="mono">${pit?ipStr(pit.ip):''}</td><td>${pit?pit.h:''}</td><td>${pit?pit.r:''}</td>
-      <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td></tr>`;
+      <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td><td class="mono">${pit&&runEra.get(g.gid)?runEra.get(g.gid):''}</td></tr>`;
   }).join('');
   const yearChips = yrs.length>1 ? `<div class="chips logchips">${yrs.map(yy=>
     `<button data-ly="${yy}" aria-pressed="${yy===y}">${yy}</button>`).join('')}</div>` : '';
@@ -7403,7 +7429,7 @@ function playerNWLALog(pl, selYear){
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
     <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th class="mono">AVG</th><th class="mono">OPS</th>
-    <th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    <th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th><th class="mono">ERA</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 /* ------------------------------ PLAYER SPLITS ------------------------------
@@ -8297,7 +8323,7 @@ const BV_BAT = [
 const BV_PIT = [
   {l:'Pitching',lft:1,f:d=>bvName(d.n)+(d._tag||'')},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
-  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
+  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'ERA',m:1,f:d=>d._era||''}];
 function bvAnnotate(t, g, isBea){
   const games = t.games.filter(x=>isBea || x.opp===g.opp).sort((a,b)=>a.g-b.g).filter(x=>x.g<=g.g);
   const batKey = isBea ? 'bat' : 'opp_bat', pitKey = isBea ? 'pit' : 'opp_pit';
@@ -8313,11 +8339,11 @@ function bvAnnotate(t, g, isBea){
       if(cur) out.bat.push({...b, _avg:rate(avg(a)), _ops:rate(ops(a)), _tb:a.TB, _c:{...a.c}});
     });
     (x[pitKey]||[]).forEach(p=>{
-      const a = pt[p.n] || (pt[p.n]={w:0,l:0,sv:0});
-      a.w+=p.w||0; a.l+=p.l||0; a.sv+=p.sv||0;
+      const a = pt[p.n] || (pt[p.n]={w:0,l:0,sv:0,IPouts:0,ER:0});
+      a.w+=p.w||0; a.l+=p.l||0; a.sv+=p.sv||0; a.IPouts+=p.ip||0; a.ER+=p.er||0;
       if(cur){
         const lbl = p.w>0?'W':p.l>0?'L':p.sv>0?'SV':'';
-        out.pit.push({...p, _tag: lbl ? ` <span class="dec">(${lbl}, ${lbl==='SV'?a.sv:a.w+'-'+a.l})</span>` : ''});
+        out.pit.push({...p, _era: two(era(a)), _tag: lbl ? ` <span class="dec">(${lbl}, ${lbl==='SV'?a.sv:a.w+'-'+a.l})</span>` : ''});
       }
     });
   });
