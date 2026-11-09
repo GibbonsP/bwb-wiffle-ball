@@ -11746,6 +11746,7 @@ function renderSavantHub(){
    and its percent drop is a Loss. A game that leaves OPS unchanged ends the run. The first game only sets the starting
    point (it can't rise or fall by itself), exactly as the season's first OPS does for the first streak. */
 const svpGL = {view:'streaks', year:'all', start:1, player:''};
+const GL_MINRUN = 3;                                 // a streak is more than 2 games in a row
 const GL_MING = 8;                                   // a season needs this many games to count
 let _glSeasons = null;
 function glSeasons(){
@@ -11764,7 +11765,8 @@ function glStreaks(se, start){
   /* start = the game whose season OPS is the first starting point; 0 = before Game 1 (Game 1 itself is the first move, from nothing) */
   const pre = start===0, v = pre ? [0, ...se.vals] : se.vals, sh = pre ? 1 : 0, res = [];
   let i = Math.max(1, start), run = null;
-  const close = () => { if(run){ run.pct = run.from>0 ? (run.to-run.from)/run.from : null; res.push(run); run = null; } };
+  const close = () => { if(run && run.b-run.a+1 < GL_MINRUN) run = null;
+    if(run){ run.pct = run.from>0 ? (run.to-run.from)/run.from : null; res.push(run); run = null; } };
   for(; i<v.length; i++){
     const d = v[i]-v[i-1];
     if(Math.abs(d)<1e-9){ close(); continue; }
@@ -11834,7 +11836,7 @@ function renderSavantGains(){
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     <p class="smeta">Follow a hitter’s season OPS game by game. Each run of games where it keeps rising is a hot streak, and the percent it rose is a
-      <b>Gain</b>; each run where it keeps falling is a cold streak, and the percent it fell is a <b>Loss</b>. A game that doesn’t move OPS ends the run.
+      <b>Gain</b>; each run where it keeps falling is a cold streak, and the percent it fell is a <b>Loss</b>. A streak has to last more than 2 games (3 or more in a row); shorter runs don’t count. A game that doesn’t move OPS ends the run.
       Game 1 sets the starting point. Regular-season games from 2017 on with a box score; seasons of ${GL_MING}+ games.</p>
     ${sel ? '' : tabs}${yearChips}${controls}${body}
     <p class="smeta">Gains and Losses are the percent change in season-to-date OPS across each streak, added up for the season; Net is Gains plus Losses. Early in a season a single
