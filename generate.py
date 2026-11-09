@@ -3588,6 +3588,9 @@ async function buildPlayerCard(pl, year){
      seasons and anything after 2026 once the anniversary has passed — gets
      the plain league logo instead. */
   const brandLogoImg = await loadImg(year===2026 ? DB.anniversaryLogo : DB.leagueLogo);
+  /* the Savant mark rides beside the league logo in the header's top-right — drawn from the same SVG the site uses */
+  const savantImg = await loadImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(
+    savantLogoSVG(400).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ')));
 
   const panelsNeeded = (batShow?1:0) + (pitShow?1:0);
   const rowsTotal = (batShow?SV_BAT.length:0) + (pitShow?SV_PIT.length:0);
@@ -3662,14 +3665,37 @@ async function buildPlayerCard(pl, year){
   /* the header's top-right is empty (headshot/logo/name/team all sit left),
      so the league badge gets real room to read as a seal there instead of
      being squeezed down to a tiny icon next to the wordmark. */
-  if(brandLogoImg){
-    const BLS = 130;
-    const bx = CARD_W-PAD-BLS, by = 34;
-    ctx.drawImage(brandLogoImg, bx, by, BLS, BLS);
+  /* league logo and Savant logo side by side, big, in the top-right corner; the name shrinks to fit the
+     room left of them */
+  const BLS = 178, BGAP = 12;
+  const nLogos = (brandLogoImg?1:0) + (savantImg?1:0);
+  const logosLeft = CARD_W - PAD - nLogos*BLS - Math.max(0,nLogos-1)*BGAP;
+  { let lx = logosLeft; const by = 30;
+    /* the league logos carry transparent padding, so trim to the visible pixels and fit that to the same
+       box as the Savant mark — otherwise the same nominal size reads much smaller */
+    const fitLogo = (img, x) => {
+      let src = img, sx = 0, sy = 0, sw = img.width, sh = img.height;
+      try{
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const cx = c.getContext('2d'); cx.drawImage(img,0,0);
+        const d = cx.getImageData(0,0,c.width,c.height).data;
+        let x0=c.width, y0=c.height, x1=-1, y1=-1;
+        for(let yy=0; yy<c.height; yy++) for(let xx=0; xx<c.width; xx++) if(d[(yy*c.width+xx)*4+3]>12){
+          if(xx<x0) x0=xx; if(xx>x1) x1=xx; if(yy<y0) y0=yy; if(yy>y1) y1=yy; }
+        if(x1>=x0 && y1>=y0){ sx=x0; sy=y0; sw=x1-x0+1; sh=y1-y0+1; }
+      }catch(e){}
+      const k = Math.min(BLS/sw, BLS/sh), w = sw*k, h = sh*k;
+      ctx.drawImage(src, sx, sy, sw, sh, x+(BLS-w)/2, by+(BLS-h)/2, w, h);
+    };
+    if(brandLogoImg){ fitLogo(brandLogoImg, lx); lx += BLS + BGAP; }
+    if(savantImg){ fitLogo(savantImg, lx); }
   }
 
   ctx.fillStyle = '#fff';
-  ctx.font = '700 62px Oswald, Arial, sans-serif';
+  let nameSize = 62;
+  const nameMaxW = logosLeft - 28 - textX;
+  ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`;
+  while(ctx.measureText(pl.name).width > nameMaxW && nameSize > 38){ nameSize -= 2; ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`; }
   ctx.fillText(pl.name, textX, 150);
   ctx.font = '500 30px "IBM Plex Sans", Arial, sans-serif';
   ctx.globalAlpha = 0.9;
