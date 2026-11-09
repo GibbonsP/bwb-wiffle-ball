@@ -136,12 +136,12 @@ tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
 .bxt{max-width:660px}
-.bxpl{display:flex;align-items:center;gap:8px;min-height:20px}
+.bxpl{display:flex;align-items:center;gap:10px;min-height:30px}
 .bxpl .pname{line-height:1.2;text-align:left}
 .bxt td.lft{vertical-align:middle}
-.bxph{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft);box-shadow:0 0 0 1px var(--line)}
+.bxph{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft);box-shadow:0 0 0 1px var(--line)}
 .bxph-blank{display:inline-block}
-@media (max-width:560px){.bxpl{gap:6px}.bxph{width:18px;height:18px}}
+@media (max-width:560px){.bxpl{gap:6px}.bxph{width:26px;height:26px}}
 .bxgrid{margin-top:28px}
 @media (min-width:980px){.bxgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;align-items:start}
 .bxgrid>.bxl{grid-column:1;grid-row:var(--r)}.bxgrid>.bxr{grid-column:2;grid-row:var(--r)}.bxgrid .bxt{max-width:none}}
