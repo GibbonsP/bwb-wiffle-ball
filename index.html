@@ -205,7 +205,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   pointer-events:none}
 .thero h2{margin:0;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;letter-spacing:.02em;
   font-size:clamp(1.8rem,5.4vw,2.8rem);color:inherit;position:relative}
-.thero .tsub{margin:5px 0 0;font-size:.85rem;letter-spacing:.03em;opacity:.9;position:relative}
+.thero .tsub{margin:5px 0 0;font-size:.85rem;letter-spacing:.03em;opacity:.9;position:relative;color:var(--tsr,inherit)}
 .thero .tsub b{font-weight:700}
 .tsocial{position:absolute;top:16px;right:18px;display:flex;gap:8px;z-index:1}
 .tsocial a{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;
@@ -1109,7 +1109,7 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llist{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:12px 13px 14px;
   box-shadow:var(--shadow)}
 .llist h4{margin:0 0 8px;font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
-.llist ol{margin:0;padding-left:1.4em;font-size:.88rem}
+.llist ol{margin:0;padding-left:0;list-style:none;font-size:.88rem}
 .llist li{margin:5px 0;display:flex;justify-content:space-between;gap:8px;align-items:center;
   position:relative;padding:4px 6px;border-radius:5px;isolation:isolate}
 .llist li::before{content:"";position:absolute;left:0;top:0;bottom:0;z-index:-1;
@@ -1136,6 +1136,29 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .llogo-lg{width:38px;height:38px;object-fit:contain;flex:none;border-radius:7px;vertical-align:middle}
 .muteam{display:inline-flex;align-items:center;gap:10px}
 .tmchips{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+@media (max-width:700px){.detail td.am{min-width:240px}}   /* long award notes were squeezed into a ~110px column and made every row 130px tall */
+.glog .mloc{display:none}
+@media (max-width:700px){
+  /* the six-column games table ran the score and home team off the right edge of a phone: lay each
+     game out as a two-line card instead — away over home with the score beside them, date and field below */
+  table.glog thead{display:none}
+  table.glog,table.glog tbody{display:block}
+  table.glog tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"away score" "home score" "meta meta";align-items:center;padding:9px 10px;border-bottom:1px solid var(--line)}
+  table.glog td{display:block;padding:2px 0;border:0;min-width:0}
+  table.glog td:nth-child(1){grid-area:meta;position:static;background:none;box-shadow:none;color:var(--muted);font-size:.78rem;padding-top:5px}
+  table.glog td:nth-child(2){grid-area:away}
+  table.glog td:nth-child(3){grid-area:score;font-size:1.05rem;padding-left:14px;text-align:right}
+  table.glog td:nth-child(4){grid-area:home}
+  table.glog td:nth-child(5),table.glog td:nth-child(6){display:none}
+  .glog .mloc{display:inline}
+}
+@media (max-width:700px){.dir td.tm .tmchips{width:74px;max-width:74px}}
+@media (max-width:700px){
+  /* keep the player's name pinned while the stat columns scroll sideways under it */
+  table.dir th:first-child,table.dir td:first-child{position:sticky;left:0;z-index:3}
+  table.dir td:first-child{background:var(--card);box-shadow:1px 0 0 var(--line)}
+  table.dir th:first-child{background:var(--accent);opacity:1;z-index:4}
+}   /* squeezed by the sideways-scrolling table the logos stacked one per row; give them room to wrap ~3 across */
 .tmchip{padding:0;border:none;background:none;cursor:pointer;line-height:0;border-radius:4px}
 .tmchip:hover{outline:1.5px solid var(--line-strong)}
 .numhist{margin:0 0 26px}
@@ -1224,6 +1247,13 @@ details .tscroll{border:0;box-shadow:none;border-radius:0}
 .altrow{position:absolute;left:100%;top:50%;transform:translateY(-50%);display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s .45s;align-items:center;gap:20px;padding:6px 8px 6px 18px;z-index:6}
 .numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
 .altrow .numring{flex:none}
+.altrow{--x:0}
+@media (max-width:700px){
+  /* a hidden row off to the right still widens the page on a phone: keep it out of layout until
+     the number is tapped, then wrap it under the number instead of running off-screen */
+  .altrow{display:none;left:0;top:calc(100% + 10px);transform:none;flex-wrap:wrap;width:max-content;max-width:calc(100vw - 32px);gap:34px 18px;padding:12px 14px 34px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .numring[tabindex]:hover>.altrow,.numring[tabindex]:focus-within>.altrow,.numring.pinned>.altrow{display:flex}
+}
 .numring>i.krl{white-space:nowrap;position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);font:600 .62rem/1 "IBM Plex Mono",monospace;font-style:normal;color:var(--muted);letter-spacing:.02em;opacity:0;transition:opacity .45s ease;pointer-events:none;text-align:center}
 .numring[tabindex]:hover>i.krl,.numring[tabindex]:focus-within>i.krl,.numring.pinned>i.krl{opacity:1}
 .numring i{white-space:nowrap}
@@ -1724,10 +1754,20 @@ function primaryAccent(full, year){
 function setTeamVars(full, year){
   const c = colorsFor(full, year);
   app.classList.remove('tc-black');
-  app.style.removeProperty('--tc'); app.style.removeProperty('--tp'); app.style.removeProperty('--ts');
+  app.style.removeProperty('--tc'); app.style.removeProperty('--tp'); app.style.removeProperty('--ts'); app.style.removeProperty('--tsr');
   const a = teamAccent(full, year);
   if(a) app.style.setProperty('--tc', a);
-  if(c){ app.style.setProperty('--tp', c.p); app.style.setProperty('--ts', c.s); }
+  if(c){
+    app.style.setProperty('--tp', c.p); app.style.setProperty('--ts', c.s);
+    /* a franchise's second colour is sometimes close to its first (Kraken: hot pink on light cyan), which
+       makes the small text under the team name unreadable — fall back to dark or white when contrast is low */
+    const lum = h => { const m=/^#?([0-9a-f]{6})$/i.exec(h||''); if(!m) return null;
+      const v=[0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255).map(x=>x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4));
+      return .2126*v[0]+.7152*v[1]+.0722*v[2]; };
+    const lp=lum(c.p), ls=lum(c.s);
+    if(lp!=null && ls!=null && (Math.max(lp,ls)+.05)/(Math.min(lp,ls)+.05) < 3.5)
+      app.style.setProperty('--tsr', lp>.35 ? '#0d1b2e' : '#ffffff');
+  }
 }
 
 function setNav(v){
@@ -6993,7 +7033,7 @@ function renderGames(){
   const body=list.map(id=>{
     const g=GAMES[id], a=g.away.R, hh=g.home.R, yr=+g.date.slice(0,4);
     return `<tr>
-      <td class="lft">${g.noBox ? `<span class="mono">${g.date}</span>` : `<button class="pname" data-g="${id}">${g.date}</button>`}</td>
+      <td class="lft">${g.noBox ? `<span class="mono">${g.date}</span>` : `<button class="pname" data-g="${id}">${g.date}</button>`}<span class="mloc">${g.loc?' · '+esc(g.loc):''}${g.phase!=='Regular'?` <span class="gtag">${esc(gameTag(g))}</span>`:''}</span></td>
       <td class="lft ${a>hh?'wteam':''}">${gamesTeamCell(g.away.team, yr)}</td>
       <td class="mono b">${a}–${hh}</td>
       <td class="lft ${hh>a?'wteam':''}">${gamesTeamCell(g.home.team, yr)}</td>
@@ -7284,9 +7324,10 @@ function playerGameLog(pl, type, selYear){
   const batRows = rows.filter(r=>r.bat).map(r=>r.bat);
   const pitRows = rows.filter(r=>r.pit).map(r=>r.pit);
   const fldRows = rows.filter(r=>r.fldLine).map(r=>r.fldLine);
-  const batBody = rows.filter(r=>r.bat).map(({g,side,bat,opp})=>`<tr>${oppCell(g,side,opp)}
+  /* running AVG and OPS for the season (or postseason) through each game, same numbers the box score shows */
+  const batBody = rows.filter(r=>r.bat).map(({g,side,bat,opp})=>{ const td = battingToDate(g, {n:pl.name}); return `<tr>${oppCell(g,side,opp)}
     <td>${bat.ab}</td><td>${bat.r}</td><td>${bat.h}</td><td>${bat['2b']}</td><td>${bat['3b']}</td><td>${bat.hr}</td>
-    <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td>${noHbp?'':`<td>${bat.hbp}</td>`}</tr>`).join('');
+    <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td>${noHbp?'':`<td>${bat.hbp}</td>`}<td class="mono">${td._avg||'—'}</td><td class="mono">${td._ops||'—'}</td></tr>`; }).join('');
   const pitBody = rows.filter(r=>r.pit).map(({g,side,pit,opp})=>`<tr>${oppCell(g,side,opp)}
     <td>${pit.gs}</td><td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
     <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td></tr>`).join('');
@@ -7299,11 +7340,12 @@ function playerGameLog(pl, type, selYear){
     <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Date</th><th class="lft">Opp</th>${th}
     </tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div></section>` : '';
   const batTot = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
+  const batAgg = {AB:batTot.ab, H:batTot.h, BB:batTot.bb, HBP:batTot.hbp, SF:0, TB:batTot.h+batTot['2b']+2*batTot['3b']+3*batTot.hr};
   const pitTot = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv','gs']);
   const fldTot = sumBox(fldRows,['inn','tc','po','a','e','dp']);
   const batFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${batTot.ab}</td><td>${batTot.r}</td><td>${batTot.h}</td><td>${batTot['2b']}</td><td>${batTot['3b']}</td><td>${batTot.hr}</td>
-    <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td>${noHbp?'':`<td>${batTot.hbp}</td>`}</tr>`;
+    <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td>${noHbp?'':`<td>${batTot.hbp}</td>`}<td class="mono">${rate(avg(batAgg))}</td><td class="mono">${rate(ops(batAgg))}</td></tr>`;
   const pitFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${pitTot.gs}</td><td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
     <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td></tr>`;
@@ -7313,7 +7355,7 @@ function playerGameLog(pl, type, selYear){
   return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
-    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>'+(noHbp?'':'<th>HBP</th>'), batBody, batFoot)}
+    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>'+(noHbp?'':'<th>HBP</th>')+'<th class="mono">AVG</th><th class="mono">OPS</th>', batBody, batFoot)}
     ${tbl('Pitching', '<th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
     ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody, fldFoot)}
   </section>`;
@@ -7330,6 +7372,12 @@ function playerNWLALog(pl, selYear){
   games.forEach(g=>{ (byYr[(g.date||'').slice(0,4)] = byYr[(g.date||'').slice(0,4)] || []).push(g); });
   const yrs=Object.keys(byYr).sort();
   const y = yrs.includes(String(selYear)) ? String(selYear) : yrs[yrs.length-1];
+  /* running AVG/OPS through each game of that year's tournament (chronological), shown beside the hitting line */
+  const runAvg = new Map(); { const t={AB:0,H:0,BB:0,HBP:0,SF:0,TB:0};
+    byYr[y].slice().sort((a,b)=>((a.date||'')+String(a.g).padStart(3,'0')).localeCompare((b.date||'')+String(b.g).padStart(3,'0'))).forEach(g=>{
+      const b=(g.bat||[]).find(x=>x.n===pl.name); if(!b) return;
+      t.AB+=b.ab||0; t.H+=b.h||0; t.BB+=b.bb||0; t.TB+=(b.h||0)+(b['2b']||0)+2*(b['3b']||0)+3*(b.hr||0);
+      runAvg.set(g.gid, [rate(avg(t)), rate(ops(t))]); }); }
   const rows = byYr[y].map(g=>{
     const bat = (g.bat||[]).find(b=>b.n===pl.name);
     const pit = (g.pit||[]).find(p=>p.n===pl.name);
@@ -7338,6 +7386,7 @@ function playerNWLALog(pl, selYear){
       <td class="lft">${g.ha==='H'?'vs':'@'} ${esc(g.opp)}${g.phase?`<span class="gtag">${esc(g.phase)}</span>`:''}</td>
       <td>${bat?bat.ab:''}</td><td>${bat?bat.r:''}</td><td>${bat?bat.h:''}</td><td>${bat?bat.hr:''}</td>
       <td>${bat?bat.rbi:''}</td><td>${bat?bat.bb:''}</td><td>${bat?bat.k:''}</td>
+      <td class="mono">${bat&&runAvg.get(g.gid)?runAvg.get(g.gid)[0]:''}</td><td class="mono">${bat&&runAvg.get(g.gid)?runAvg.get(g.gid)[1]:''}</td>
       <td>${pit?(g.pit[0]===pit?1:0):''}</td><td class="mono">${pit?ipStr(pit.ip):''}</td><td>${pit?pit.h:''}</td><td>${pit?pit.r:''}</td>
       <td>${pit?pit.er:''}</td><td>${pit?pit.k:''}</td></tr>`;
   }).join('');
@@ -7347,7 +7396,7 @@ function playerNWLALog(pl, selYear){
     <p class="pmeta">From the <button class="pname" data-beavers>Brookside Beavers</button>' NWLA tournament box scores. Click a date for the full box score.</p>
     ${yearChips}
     <div class="tscroll"><table class="detail"><thead><tr>
-    <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>
+    <th class="lft">Date</th><th class="lft">Opp</th><th>AB</th><th>R</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th class="mono">AVG</th><th class="mono">OPS</th>
     <th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>K</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
