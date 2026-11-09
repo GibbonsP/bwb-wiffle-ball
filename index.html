@@ -5457,6 +5457,7 @@ function renderLeaders(){
     if(o.min==='ab') a = a.filter(x=>isCareer ? x.s.AB>=minAB : x.s.G_bat>=minG);
     else if(o.min==='pa') a = a.filter(x=>isCareer ? x.s.PA>=minPA : x.s.G_bat>=minG);
     else if(o.min==='o') a = a.filter(x=>x.s.IPouts>=minO);
+    else if(o.min==='dec') a = a.filter(x=>x.s.W+x.s.L>=(isPost ? (isCareer ? 3 : 1) : (isCareer ? 20 : 4)));
     else if(o.min==='fldg') a = a.filter(x=> isCareer ? x.s.INN>=(isPost?0:45) : x.s.INN>=(isPost?0:20));
     const dir = o.dir||1;
     const items = a.map(x=>{ const ti=teamOf(x); return {n:x.n, v:f(x.s), tm:ti.label, tmh:ti.html, lt:ti.lt, ly:ti.ly, logo:ti.logo, logo2:ti.logo2}; })
@@ -5493,10 +5494,18 @@ function renderLeaders(){
     cat('Doubles', s=>s['2B'], v=>v),
     cat('Triples', s=>s['3B'], v=>v),
     cat('Walks', s=>s.BB, v=>v),
+    cat('Singles', s=>s['1B'], v=>v),
+    cat('Extra-Base Hits', s=>s['2B']+s['3B']+s.HR, v=>v),
+    cat('Strikeouts', s=>s.K, v=>v),
+    cat('Games Played', s=>s.G_bat, v=>v),
+    cat('Plate Appearances', s=>s.PA, v=>v),
+    cat('At Bats', s=>s.AB, v=>v),
     cat('Stolen Bases', s=>s.SB, v=>v),
   ].join('');
   const pit = [
     cat('Wins', s=>s.W, v=>v),
+    cat('Win %', s=>s.W/(s.W+s.L), rate, {min:'dec'}),
+    cat('Losses', s=>s.L, v=>v),
     cat('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
     cat('ERA+', s=>eraPlusFor(s, eraPlusWeights.get(s)), v=>isFinite(v)?String(v):'—', {min:'o'}),
     cat('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
@@ -5509,6 +5518,7 @@ function renderLeaders(){
     cat('Hits per 3 IP', s=>h3(s), two, {min:'o', dir:-1, zero:true}),
     cat('Saves', s=>s.SV, v=>v),
     cat('Innings Pitched', s=>s.IPouts/3, ipfmt),
+    cat('Games Pitched', s=>s.G_pit, v=>v),
     cat('Games Started', s=>s.GS_pit, v=>v),
     cat('Complete Games', s=>s.CG, v=>v),
   ].join('');
@@ -5535,7 +5545,7 @@ function renderLeaders(){
       : `Top 10 per category, ${isPost?'postseason':'regular season'}.${isPost
         ? ' No minimum AB/PA/IP — small postseason samples all qualify.'
         : ` Rate stats need ${isCareer?'150+ AB/PA and 60+ IP (fielding % needs 45+ innings fielded)':'9+ games played and 12+ IP (fielding % needs 20+ innings fielded)'};`}
-    ERA, WHIP, opponent AVG/OBP, walks and hits per 3 IP and strikeout % list the lowest. Opponent AVG and OBP estimate at-bats against as outs recorded plus hits allowed, since batters faced aren't recorded.`} Career covers ${RANGE}. Names link to player pages.</p>`;
+    ERA, WHIP, opponent AVG/OBP, walks and hits per 3 IP and strikeout % list the lowest. Win % needs ${isPost?(isCareer?'3+':'1+'):(isCareer?'20+':'4+')} decisions. Opponent AVG and OBP estimate at-bats against as outs recorded plus hits allowed, since batters faced aren't recorded.`} Career covers ${RANGE}. Names link to player pages.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{
     leadYear = b.dataset.ly==='career' ? 'career' : +b.dataset.ly; renderLeaders();
   }));
@@ -6414,6 +6424,8 @@ function renderRecords(){
   };
   const seasonBat = [
     catS('Batting Average', s=>avg(s), rate, {min:'g'}),
+    catS('On-Base %', s=>obp(s), rate, {min:'g'}),
+    catS('Slugging %', s=>slg(s), rate, {min:'g'}),
     catS('OPS', s=>ops(s), rate, {min:'g'}),
     catS('OPS+', s=>opsPlusFor(s, [{year:s.year, pa:1}]), v=>isFinite(v)?String(v):'—', {min:'g'}),
     catS('Home Runs', s=>s.HR, v=>v),
@@ -6421,6 +6433,9 @@ function renderRecords(){
     catS('Runs', s=>s.R, v=>v),
     catS('Hits', s=>s.H, v=>v),
     catS('Total Bases', s=>s.TB, v=>v),
+    catS('Doubles', s=>s['2B'], v=>v),
+    catS('Triples', s=>s['3B'], v=>v),
+    catS('Extra-Base Hits', s=>s['2B']+s['3B']+s.HR, v=>v),
     catS('Walks', s=>s.BB, v=>v),
   ].join('');
   const seasonPit = [
@@ -6429,14 +6444,21 @@ function renderRecords(){
     catS('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
     catS('ERA+', s=>eraPlusFor(s, [{year:s.year, outs:1}]), v=>isFinite(v)?String(v):'—', {min:'o'}),
     catS('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
+    catS('Opponent AVG', s=>oppAvg(s), rate, {min:'o', dir:-1, zero:true}),
+    catS('K per 3 IP', s=>k9(s), two, {min:'o'}),
+    catS('K/BB', s=>kbb(s), two, {min:'o'}),
     catS('Saves', s=>s.SV, v=>v),
     catS('Innings Pitched', s=>s.IPouts/3, ipfmt),
+    catS('Complete Games', s=>s.CG, v=>v),
+    catS('Games Started', s=>s.GS_pit, v=>v),
   ].join('');
   const seasonFld = [
     catS('Fielding %', s=>fld(s), rate, {min:'fldg'}),
     catS('Putouts', s=>s.PO, v=>v),
     catS('Assists', s=>s.A, v=>v),
     catS('Double Plays', s=>s.DP, v=>v),
+    catS('Total Chances', s=>s.TC, v=>v),
+    catS('Innings Fielded', s=>s.INN, v=>v),
   ].join('');
 
   // ---- single-game records (regular season + playoffs, from recorded box scores) ----
@@ -6470,6 +6492,8 @@ function renderRecords(){
     catG(batPool, 'Runs in a Game', s=>s.r, v=>v),
     catG(batPool, 'Doubles in a Game', s=>s['2b'], v=>v),
     catG(batPool, 'Triples in a Game', s=>s['3b'], v=>v),
+    catG(batPool, 'Total Bases in a Game', s=>s.h+s['2b']+2*s['3b']+3*s.hr, v=>v),
+    catG(batPool, 'Walks in a Game', s=>s.bb, v=>v),
   ].join('');
   const gamePit = [
     catG(pitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
@@ -6479,6 +6503,7 @@ function renderRecords(){
     catG(fldPool, 'Putouts in a Game', s=>s.po, v=>v),
     catG(fldPool, 'Assists in a Game', s=>s.a, v=>v),
     catG(fldPool, 'Double Plays in a Game', s=>s.dp, v=>v),
+    catG(fldPool, 'Total Chances in a Game', s=>s.tc, v=>v),
   ].join('');
 
   // ---- postseason records: "single postseason" = one player's whole playoff run in a
@@ -6508,6 +6533,8 @@ function renderRecords(){
   };
   const poBat = [
     catPO('Batting Average', s=>avg(s), rate, {min:'g'}),
+    catPO('On-Base %', s=>obp(s), rate, {min:'g'}),
+    catPO('Slugging %', s=>slg(s), rate, {min:'g'}),
     catPO('OPS', s=>ops(s), rate, {min:'g'}),
     catPO('OPS+', s=>opsPlusFor(s, [{year:s.year, pa:1, post:true}]), v=>isFinite(v)?String(v):'—', {min:'g'}),
     catPO('Home Runs', s=>s.HR, v=>v),
@@ -6515,6 +6542,9 @@ function renderRecords(){
     catPO('Runs', s=>s.R, v=>v),
     catPO('Hits', s=>s.H, v=>v),
     catPO('Total Bases', s=>s.TB, v=>v),
+    catPO('Doubles', s=>s['2B'], v=>v),
+    catPO('Triples', s=>s['3B'], v=>v),
+    catPO('Extra-Base Hits', s=>s['2B']+s['3B']+s.HR, v=>v),
     catPO('Walks', s=>s.BB, v=>v),
   ].join('');
   const poPit = [
@@ -6523,14 +6553,21 @@ function renderRecords(){
     catPO('ERA', s=>era(s), two, {min:'o', dir:-1, zero:true}),
     catPO('ERA+', s=>eraPlusFor(s, [{year:s.year, outs:1, post:true}]), v=>isFinite(v)?String(v):'—', {min:'o'}),
     catPO('WHIP', s=>whip(s), two, {min:'o', dir:-1, zero:true}),
+    catPO('Opponent AVG', s=>oppAvg(s), rate, {min:'o', dir:-1, zero:true}),
+    catPO('K per 3 IP', s=>k9(s), two, {min:'o'}),
+    catPO('K/BB', s=>kbb(s), two, {min:'o'}),
     catPO('Saves', s=>s.SV, v=>v),
     catPO('Innings Pitched', s=>s.IPouts/3, ipfmt),
+    catPO('Complete Games', s=>s.CG, v=>v),
+    catPO('Games Started', s=>s.GS_pit, v=>v),
   ].join('');
   const poFld = [
     catPO('Fielding %', s=>fld(s), rate, {min:'fldg'}),
     catPO('Putouts', s=>s.PO, v=>v),
     catPO('Assists', s=>s.A, v=>v),
     catPO('Double Plays', s=>s.DP, v=>v),
+    catPO('Total Chances', s=>s.TC, v=>v),
+    catPO('Innings Fielded', s=>s.INN, v=>v),
   ].join('');
   const poBatPool = batPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
   const poPitPool = pitPool.filter(x=>GAMES[x.gid].phase==='Playoffs');
@@ -6542,6 +6579,8 @@ function renderRecords(){
     catG(poBatPool, 'Runs in a Game', s=>s.r, v=>v),
     catG(poBatPool, 'Doubles in a Game', s=>s['2b'], v=>v),
     catG(poBatPool, 'Triples in a Game', s=>s['3b'], v=>v),
+    catG(poBatPool, 'Total Bases in a Game', s=>s.h+s['2b']+2*s['3b']+3*s.hr, v=>v),
+    catG(poBatPool, 'Walks in a Game', s=>s.bb, v=>v),
   ].join('');
   const poGamePit = [
     catG(poPitPool, 'Strikeouts in a Game', s=>s.k, v=>v),
@@ -6551,6 +6590,7 @@ function renderRecords(){
     catG(poFldPool, 'Putouts in a Game', s=>s.po, v=>v),
     catG(poFldPool, 'Assists in a Game', s=>s.a, v=>v),
     catG(poFldPool, 'Double Plays in a Game', s=>s.dp, v=>v),
+    catG(poFldPool, 'Total Chances in a Game', s=>s.tc, v=>v),
   ].join('');
 
   // ---- streaks (era-filtered, like the rest of the page) ----
