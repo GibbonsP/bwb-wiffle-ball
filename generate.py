@@ -135,6 +135,7 @@ tbody td{text-align:right;padding:9px 10px;font-size:.86rem;white-space:nowrap;
 tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
+.bxn{font-size:.82rem;color:var(--muted);line-height:1.6;margin:-6px 0 16px;padding:0 2px}.bxn b{color:var(--ink);font-weight:700}
 .dec{font-weight:500;font-size:.85em;color:var(--muted,#888);white-space:nowrap}
 .pname{background:none;border:0;padding:0;font-weight:600;color:var(--accent);
   font-size:.9rem;text-align:left;text-decoration:none;cursor:pointer}
@@ -7070,8 +7071,7 @@ function renderFields(){
 
 const BOX_BAT=[
   {l:'Batting',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
-  {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'2B',f:d=>d['2b']},{l:'3B',f:d=>d['3b']},
-  {l:'HR',f:d=>d.hr},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'HBP',f:d=>d.hbp},
+  {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},
   {l:'AVG',m:1,f:d=>d._avg||''},{l:'OPS',m:1,f:d=>d._ops||''}];
 /* each hitter's AVG and OPS for the same season and phase (regular season or
    postseason) through and including this game, built from the logged game
@@ -7090,16 +7090,43 @@ function battingToDate(g, b){
       if(row) list.push({id:String(id), k:(gg.dt||gg.date)+'|'+id, row});
     });
     list.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:0);
-    const t={AB:0,H:0,BB:0,HBP:0,SF:0,TB:0};
+    const t={AB:0,H:0,BB:0,HBP:0,SF:0,TB:0}, c={'2b':0,'3b':0,hr:0,rbi:0,hbp:0};
     list.forEach(r=>{ const x=r.row;
       t.AB+=x.ab||0; t.H+=x.h||0; t.BB+=x.bb||0; t.HBP+=x.hbp||0;
       t.TB+=(x.h||0)+(x['2b']||0)+2*(x['3b']||0)+3*(x.hr||0);
-      r.avg = rate(avg(t)); r.ops = rate(ops(t)); });
+      c['2b']+=x['2b']||0; c['3b']+=x['3b']||0; c.hr+=x.hr||0; c.rbi+=x.rbi||0; c.hbp+=x.hbp||0;
+      r.avg = rate(avg(t)); r.ops = rate(ops(t)); r.tb = t.TB; r.c = {...c}; });
     _batCache[key] = list;
   }
   const r = list.find(x=>x.id===String(g.gid));
-  return r ? {_avg:r.avg, _ops:r.ops} : {};
+  return r ? {_avg:r.avg, _ops:r.ops, _tb:r.tb, _c:r.c} : {};
 }
+/* the lines printed under a hitting table in a real box score — 2B, 3B, HR,
+   TB, RBI (and HBP in the years it still existed) — each naming just the players
+   with one: "Name" for a single, "Name 2" when more than one in the game, then
+   the season total through that game in parentheses. TB and RBI always show the
+   game count. Season = same year and phase as the game, like AVG/OPS above. */
+function boxBatNotes(rows, yr){
+  const one = (label, key, always, getG, getS) => {
+    const parts = rows.map(b=>{
+      const n = getG(b); if(!(n>0)) return '';
+      const tot = getS(b);
+      return `${boxNameLink(b.n)}${(always||n>1)?' '+n:''}${tot!=null?` (${tot})`:''}`;
+    }).filter(Boolean);
+    return parts.length ? `<div><b>${label}:</b> ${parts.join(', ')}</div>` : '';
+  };
+  const tbOf = b => (b.h||0)+(b['2b']||0)+2*(b['3b']||0)+3*(b.hr||0);
+  const html = [
+    one('2B','2b',false,b=>b['2b']||0,b=>b._c?b._c['2b']:null),
+    one('3B','3b',false,b=>b['3b']||0,b=>b._c?b._c['3b']:null),
+    one('HR','hr',false,b=>b.hr||0,b=>b._c?b._c.hr:null),
+    one('TB','tb',true,tbOf,b=>b._tb!=null?b._tb:null),
+    one('RBI','rbi',true,b=>b.rbi||0,b=>b._c?b._c.rbi:null),
+    yr>2020 ? '' : one('HBP','hbp',false,b=>b.hbp||0,b=>b._c?b._c.hbp:null),
+  ].join('');
+  return html ? `<div class="bxn">${html}</div>` : '';
+}
+const boxNameLink = n => `<button class="pname" data-p="${esc(n)}">${esc(n)}</button>`;
 const BOX_PIT=[
   {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>${d._tag||''}`:''},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
@@ -7146,7 +7173,7 @@ function boxSide(g, sk, yr){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
     /* hit-by-pitch was dropped from the game after 2020, so no column from 2021 on */
     const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Batting', yr>2020 ? BOX_BAT.filter(c=>c.l!=='HBP') : BOX_BAT, brows, tot, 'Total', '');
+    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', '')+boxBatNotes(brows, yr);
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
