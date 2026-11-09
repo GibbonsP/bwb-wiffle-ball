@@ -7179,16 +7179,19 @@ function boxSide(g, sk, yr){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
     /* hit-by-pitch was dropped from the game after 2020, so it shows in the notes only through 2020 */
     const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
-    out+=cell(1, statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', 'bxt')+boxBatNotes(brows, yr));
+    out+=cell(1, statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', 'bxt'));
+    /* the 2B/HR/TB/RBI lines get a grid row of their own so, side by side, they start
+       together under the longer lineup rather than right under each short table */
+    const nt=boxBatNotes(brows, yr); if(nt) out+=cell(2, nt);
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
     const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p)}));
-    out+=cell(2, statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt'));
+    out+=cell(3, statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt'));
   }
   if((s.fld||[]).length){
     const tot=sumBox(s.fld,['inn','tc','po','a','e','dp']);
-    out+=cell(3, statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', 'bxt'));
+    out+=cell(4, statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', 'bxt'));
   }
   return out;
 }
@@ -8270,11 +8273,12 @@ function bvBox(name, batRows, pitRows, side){
   const cell = (row, html) => `<div class="${side==='away'?'bxl':'bxr'}" style="--r:${row}">${html}</div>`;
   if(batRows && batRows.length){
     const bt = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k']);
-    out += cell(1, statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', 'bxt')+boxBatNotes(batRows, 2026, bvName));
+    out += cell(1, statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', 'bxt'));
+    const nt = boxBatNotes(batRows, 2026, bvName); if(nt) out += cell(2, nt);
   }
   if(pitRows && pitRows.length){
     const pt = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
-    out += cell(2, statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', 'bxt'));
+    out += cell(3, statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', 'bxt'));
   }
   return out;
 }
