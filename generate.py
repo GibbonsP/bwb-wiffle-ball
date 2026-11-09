@@ -143,6 +143,10 @@ tbody tr:hover{background:var(--accent-soft)}
 .gltag{font-size:.78rem;font-weight:600}
 .glp{font-weight:700}
 .glt td:not(.lft){white-space:nowrap}
+.glcols .glt td,.glcols .glt th{padding-left:6px;padding-right:6px}
+.glcols .glt .bxph{width:26px;height:26px}
+.glcols .glt .bxpl{gap:7px;min-height:26px}
+.glcols .glt td.lft{padding-left:10px}
 .glhead{display:flex;align-items:center;gap:6px}
 .stat h4 small{font-weight:500;color:var(--muted);font-size:.7em;letter-spacing:.04em;text-transform:uppercase;margin-left:4px}
 .svhprev svg{max-width:90%}
