@@ -135,6 +135,7 @@ tbody td{text-align:right;padding:9px 10px;font-size:.86rem;white-space:nowrap;
 tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
+.dec{font-weight:500;font-size:.85em;color:var(--muted,#888);white-space:nowrap}
 .pname{background:none;border:0;padding:0;font-weight:600;color:var(--accent);
   font-size:.9rem;text-align:left;text-decoration:none;cursor:pointer}
 .pname:hover{text-decoration:underline}
@@ -7026,11 +7027,66 @@ function renderFields(){
 const BOX_BAT=[
   {l:'Batting',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
   {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'2B',f:d=>d['2b']},{l:'3B',f:d=>d['3b']},
-  {l:'HR',f:d=>d.hr},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'HBP',f:d=>d.hbp}];
+  {l:'HR',f:d=>d.hr},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'HBP',f:d=>d.hbp},
+  {l:'AVG',m:1,f:d=>d._avg||''},{l:'OPS',m:1,f:d=>d._ops||''}];
+/* each hitter's AVG and OPS for the same season and phase (regular season or
+   postseason) through and including this game, built from the logged game
+   lines. Game lines carry no sacrifice flies, so OBP leaves them out (only 11
+   in all of league history). */
+const _batCache = {};
+function battingToDate(g, b){
+  const yr = g.date.slice(0,4), key = b.n+'|'+yr+'|'+g.phase, pl = P[b.n];
+  let list = _batCache[key];
+  if(!list){
+    list = [];
+    ((pl&&pl.gids)||[]).forEach(id=>{
+      const gg = GAMES[id];
+      if(!gg || gg.phase!==g.phase || gg.date.slice(0,4)!==yr) return;
+      const row = [...(gg.away.bat||[]), ...(gg.home.bat||[])].find(x=>x.n===b.n);
+      if(row) list.push({id:String(id), k:(gg.dt||gg.date)+'|'+id, row});
+    });
+    list.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:0);
+    const t={AB:0,H:0,BB:0,HBP:0,SF:0,TB:0};
+    list.forEach(r=>{ const x=r.row;
+      t.AB+=x.ab||0; t.H+=x.h||0; t.BB+=x.bb||0; t.HBP+=x.hbp||0;
+      t.TB+=(x.h||0)+(x['2b']||0)+2*(x['3b']||0)+3*(x.hr||0);
+      r.avg = rate(avg(t)); r.ops = rate(ops(t)); });
+    _batCache[key] = list;
+  }
+  const r = list.find(x=>x.id===String(g.gid));
+  return r ? {_avg:r.avg, _ops:r.ops} : {};
+}
 const BOX_PIT=[
-  {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
+  {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>${d._tag||''}`:''},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
-  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'W',f:d=>d.w},{l:'L',f:d=>d.l},{l:'SV',f:d=>d.sv}];
+  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
+/* the pitching decision rides next to the name instead of its own W/L/SV
+   columns, with that pitcher's running record for the same season and phase
+   (regular season or postseason) through this game — "(W, 2-0)", "(SV, 2)" —
+   same as a printed box score. Counts only games with logged pitching lines. */
+const _decCache = {};
+function decisionTag(g, p){
+  if(!(p.w>0 || p.l>0 || p.sv>0)) return '';
+  const pl = P[p.n], yr = g.date.slice(0,4);
+  const key = p.n+'|'+yr+'|'+g.phase;
+  let list = _decCache[key];
+  if(!list){
+    list = [];
+    ((pl&&pl.gids)||[]).forEach(id=>{
+      const gg = GAMES[id];
+      if(!gg || gg.phase!==g.phase || gg.date.slice(0,4)!==yr) return;
+      const row = [...(gg.away.pit||[]), ...(gg.home.pit||[])].find(x=>x.n===p.n);
+      if(row) list.push({id:String(id), k:(gg.dt||gg.date)+'|'+id, w:row.w||0, l:row.l||0, sv:row.sv||0});
+    });
+    list.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:0);
+    let w=0,l=0,sv=0; list.forEach(r=>{ w+=r.w; l+=r.l; sv+=r.sv; r.cw=w; r.cl=l; r.csv=sv; });
+    _decCache[key] = list;
+  }
+  const r = list.find(x=>x.id===String(g.gid));
+  const lbl = p.w>0 ? 'W' : p.l>0 ? 'L' : 'SV';
+  const rec = !r ? '' : lbl==='SV' ? `, ${r.csv}` : `, ${r.cw}-${r.cl}`;
+  return ` <span class="dec">(${lbl}${rec})</span>`;
+}
 /* fld entries are per-game (from the league's own lineup export, matched to
    each existing game by player name) — only present for games this has
    actually been imported for, so every caller guards with (s.fld||[]) */
@@ -7044,11 +7100,13 @@ function boxSide(g, sk, yr){
   const s=g[sk]; let out='';
   if(s.bat.length){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
-    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, s.bat, tot, 'Total', '');
+    const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
+    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', '');
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
-    out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, s.pit, tot, 'Total', '');
+    const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p)}));
+    out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', '');
   }
   if((s.fld||[]).length){
     const tot=sumBox(s.fld,['inn','tc','po','a','e','dp']);
