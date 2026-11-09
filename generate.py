@@ -136,6 +136,12 @@ tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
 .bxt{max-width:660px}
+.bxpl{display:flex;align-items:center;gap:8px;min-height:20px}
+.bxpl .pname{line-height:1.2;text-align:left}
+.bxt td.lft{vertical-align:middle}
+.bxph{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none;background:var(--accent-soft);box-shadow:0 0 0 1px var(--line)}
+.bxph-blank{display:inline-block}
+@media (max-width:560px){.bxpl{gap:6px}.bxph{width:18px;height:18px}}
 .bxgrid{margin-top:28px}
 @media (min-width:980px){.bxgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;align-items:start}
 .bxgrid>.bxl{grid-column:1;grid-row:var(--r)}.bxgrid>.bxr{grid-column:2;grid-row:var(--r)}.bxgrid .bxt{max-width:none}}
@@ -7076,8 +7082,12 @@ function renderFields(){
   initFieldShows();
 }
 
+/* small headshot beside a name in the box score: kept to 22px and drawn quietly so the numbers stay the focus;
+   a player with no photo gets an empty circle so the names still line up */
+const bxName = (n, after) => { const pl = P[n];
+  return `<span class="bxpl">${pl && pl.photo ? `<img class="bxph" src="${pl.photo}" alt="" loading="lazy" decoding="async">` : '<span class="bxph bxph-blank"></span>'}<button class="pname" data-p="${esc(n)}">${esc(n)}</button>${after||''}</span>`; };
 const BOX_BAT=[
-  {l:'Batting',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
+  {l:'Batting',lft:1,f:d=>d.n?bxName(d.n):''},
   {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},
   {l:'AVG',m:1,f:d=>d._avg||''},{l:'OPS',m:1,f:d=>d._ops||''}];
 /* each hitter's AVG and OPS for the same season and phase (regular season or
@@ -7136,7 +7146,7 @@ function boxBatNotes(rows, yr, nameFn){
 }
 const boxNameLink = n => `<button class="pname" data-p="${esc(n)}">${esc(n)}</button>`;
 const BOX_PIT=[
-  {l:'Pitching',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>${d._tag||''}`:''},
+  {l:'Pitching',lft:1,f:d=>d.n?bxName(d.n, d._tag):''},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
   {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
 /* the pitching decision rides next to the name instead of its own W/L/SV
@@ -7170,7 +7180,7 @@ function decisionTag(g, p){
    each existing game by player name) — only present for games this has
    actually been imported for, so every caller guards with (s.fld||[]) */
 const BOX_FLD=[
-  {l:'Fielding',lft:1,f:d=>d.n?`<button class="pname" data-p="${esc(d.n)}">${esc(d.n)}</button>`:''},
+  {l:'Fielding',lft:1,f:d=>d.n?bxName(d.n):''},
   {l:'INN',m:1,f:d=>d.inn},{l:'TC',f:d=>d.tc},{l:'PO',f:d=>d.po},{l:'A',f:d=>d.a},
   {l:'E',f:d=>d.e},{l:'DP',f:d=>d.dp}];
 const sumBox=(rows,keys)=>{ const t={}; keys.forEach(k=>t[k]=0); rows.forEach(r=>keys.forEach(k=>t[k]+=(r[k]||0))); return t; };
