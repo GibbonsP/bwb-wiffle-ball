@@ -7100,12 +7100,13 @@ function battingToDate(g, b){
    with one: "Name" for a single, "Name 2" when more than one in the game, then
    the season total through that game in parentheses. TB and RBI always show the
    game count. Season = same year and phase as the game, like AVG/OPS above. */
-function boxBatNotes(rows, yr){
+function boxBatNotes(rows, yr, nameFn){
+  nameFn = nameFn || boxNameLink;
   const one = (label, key, always, getG, getS) => {
     const parts = rows.map(b=>{
       const n = getG(b); if(!(n>0)) return '';
       const tot = getS(b);
-      return `${boxNameLink(b.n)}${(always||n>1)?' '+n:''}${tot!=null?` (${tot})`:''}`;
+      return `${nameFn(b.n)}${(always||n>1)?' '+n:''}${tot!=null?` (${tot})`:''}`;
     }).filter(Boolean);
     return parts.length ? `<div><b>${label}:</b> ${parts.join(', ')}</div>` : '';
   };
@@ -8216,20 +8217,48 @@ function bvLineScore(g){
     ${rw(away, away.R>home.R)}${rw(home, home.R>away.R)}</tbody></table></div>`;
 }
 
+/* same layout as the league box score: AB R H RBI BB K AVG OPS, with 2B/3B/HR/TB/RBI
+   lines beneath and the pitching decision "(W, 1-0)" next to the name. Running
+   numbers are scoped to the tournament — for the Beavers every game of it, for
+   an opponent just its games against the Beavers — through the game being shown. */
 const BV_BAT = [
   {l:'Batting',lft:1,f:d=>bvName(d.n)},
-  {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'2B',f:d=>d['2b']},
-  {l:'3B',f:d=>d['3b']},{l:'HR',f:d=>d.hr},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
+  {l:'AB',f:d=>d.ab},{l:'R',f:d=>d.r},{l:'H',f:d=>d.h},{l:'RBI',f:d=>d.rbi},{l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},
+  {l:'AVG',m:1,f:d=>d._avg||''},{l:'OPS',m:1,f:d=>d._ops||''}];
 const BV_PIT = [
-  {l:'Pitching',lft:1,f:d=>bvName(d.n)},
+  {l:'Pitching',lft:1,f:d=>bvName(d.n)+(d._tag||'')},
   {l:'IP',m:1,f:d=>ipStr(d.ip)},{l:'H',f:d=>d.h},{l:'R',f:d=>d.r},{l:'ER',f:d=>d.er},
-  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k},{l:'W',f:d=>d.w},{l:'L',f:d=>d.l},{l:'SV',f:d=>d.sv}];
-
+  {l:'BB',f:d=>d.bb},{l:'K',f:d=>d.k}];
+function bvAnnotate(t, g, isBea){
+  const games = t.games.filter(x=>isBea || x.opp===g.opp).sort((a,b)=>a.g-b.g).filter(x=>x.g<=g.g);
+  const batKey = isBea ? 'bat' : 'opp_bat', pitKey = isBea ? 'pit' : 'opp_pit';
+  const bt = {}, pt = {};
+  const out = {bat:[], pit:[]};
+  games.forEach(x=>{
+    const cur = x===g;
+    (x[batKey]||[]).forEach(b=>{
+      const a = bt[b.n] || (bt[b.n]={AB:0,H:0,BB:0,HBP:0,SF:0,TB:0,c:{'2b':0,'3b':0,hr:0,rbi:0,hbp:0}});
+      a.AB+=b.ab||0; a.H+=b.h||0; a.BB+=b.bb||0;
+      a.TB+=(b.h||0)+(b['2b']||0)+2*(b['3b']||0)+3*(b.hr||0);
+      a.c['2b']+=b['2b']||0; a.c['3b']+=b['3b']||0; a.c.hr+=b.hr||0; a.c.rbi+=b.rbi||0;
+      if(cur) out.bat.push({...b, _avg:rate(avg(a)), _ops:rate(ops(a)), _tb:a.TB, _c:{...a.c}});
+    });
+    (x[pitKey]||[]).forEach(p=>{
+      const a = pt[p.n] || (pt[p.n]={w:0,l:0,sv:0});
+      a.w+=p.w||0; a.l+=p.l||0; a.sv+=p.sv||0;
+      if(cur){
+        const lbl = p.w>0?'W':p.l>0?'L':p.sv>0?'SV':'';
+        out.pit.push({...p, _tag: lbl ? ` <span class="dec">(${lbl}, ${lbl==='SV'?a.sv:a.w+'-'+a.l})</span>` : ''});
+      }
+    });
+  });
+  return out;
+}
 function bvBox(name, batRows, pitRows){
   let out = '';
   if(batRows && batRows.length){
     const bt = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k']);
-    out += statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', '');
+    out += statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', '')+boxBatNotes(batRows, 2026, bvName);
   }
   if(pitRows && pitRows.length){
     const pt = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
@@ -8281,8 +8310,9 @@ function bvBoxScore(gid){
   const g = t && t.games.find(x=>String(x.gid)===String(gid));
   if(!t || !g){ location.hash = '#/beavers'; return; }
   setNav('beavers');
-  const bea = ['Brookside Beavers', g.bat, g.pit];
-  const opp = [g.opp, g.opp_bat||[], g.opp_pit||[]];
+  const aBea = bvAnnotate(t, g, true), aOpp = bvAnnotate(t, g, false);
+  const bea = ['Brookside Beavers', aBea.bat, aBea.pit];
+  const opp = [g.opp, aOpp.bat, aOpp.pit];
   const [away, home] = g.ha==='H' ? [opp, bea] : [bea, opp];
   const tag = `${g.ha==='H'?'vs':'@'} ${esc(g.opp)}`;
   const note = g.opp_note ? `<p class="note">${esc(g.opp_note)}</p>` : '';
