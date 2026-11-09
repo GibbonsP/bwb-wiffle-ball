@@ -11771,7 +11771,7 @@ const glPct = p => p==null ? '—' : (p>=0?'+':'−')+Math.abs(p*100).toFixed(1)
 function renderSavantGains(){
   const all = glSeasons();
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
-  if(!/^(all|e\d+|\d{4})$/.test(String(svpGL.year))) svpGL.year = 'all';
+  if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   const yrSet = new Set(svpYearsFor(svpGL.year, years));
   const start = Math.max(1, +svpGL.start||1);
   const pool = all.filter(s=>yrSet.has(s.y) && s.vals.length>start);
@@ -11787,10 +11787,12 @@ function renderSavantGains(){
     <button data-glv="seasons" aria-pressed="${svpGL.view==='seasons'}">Player seasons</button></div>`;
   const startOpts = [1,2,3,5].map(k=>`<option value="${k}"${k===start?' selected':''}>${k===1?'Game 1 (every game counts)':'After game '+k}</option>`).join('');
   const controls = `<div class="svpform">
-    <label>Season / era <select id="glYear">${svpYearOptions(svpGL.year, years)}</select></label>
     <label>Start measuring from <select id="glStart">${startOpts}</select></label>
     <label>Player <input id="glPlayer" list="glNames" placeholder="All players" value="${esc(sel)}"></label>
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
+  const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
+    <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">All Years</button>
+    ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
   let body = '';
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
   else if(sel){
@@ -11826,11 +11828,11 @@ function renderSavantGains(){
     <p class="smeta">Follow a hitter’s season OPS game by game. Each run of games where it keeps rising is a hot streak, and the percent it rose is a
       <b>Gain</b>; each run where it keeps falling is a cold streak, and the percent it fell is a <b>Loss</b>. A game that doesn’t move OPS ends the run.
       Game 1 sets the starting point. Regular-season games from 2017 on with a box score; seasons of ${GL_MING}+ games.</p>
-    ${sel ? '' : tabs}${controls}${body}
+    ${sel ? '' : tabs}${yearChips}${controls}${body}
     <p class="smeta">Gains and Losses are the percent change in season-to-date OPS across each streak, added up for the season; Net is Gains plus Losses. Early in a season a single
       game moves OPS a lot, so use “Start measuring from” to skip the first few games. A streak that starts from a .000 OPS has no percent and is left out of the totals.</p>`);
   const re = () => renderSavantGains();
-  document.getElementById('glYear').addEventListener('change', e=>{ svpGL.year = e.target.value; re(); });
+  app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   document.getElementById('glStart').addEventListener('change', e=>{ svpGL.start = +e.target.value; re(); });
   document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim(); svpGL.player = P[v] ? v : ''; re(); });
   app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ svpGL.view = b.dataset.glv; re(); }));
