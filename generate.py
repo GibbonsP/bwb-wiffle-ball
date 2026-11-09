@@ -3612,6 +3612,14 @@ async function buildPlayerCard(pl, year){
   grad.addColorStop(1, colors.s || accent);
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,CARD_W,HEADER_H);
+  /* depth: a soft light from the top-left, a darker foot under the wordmark, and a thin rule where the header meets the stats */
+  { const sheen = ctx.createRadialGradient(CARD_W*0.18,-60,30,CARD_W*0.18,-60,760);
+    sheen.addColorStop(0,'rgba(255,255,255,.26)'); sheen.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = sheen; ctx.fillRect(0,0,CARD_W,HEADER_H);
+    const shade = ctx.createLinearGradient(0,HEADER_H-120,0,HEADER_H);
+    shade.addColorStop(0,'rgba(0,0,0,0)'); shade.addColorStop(1,'rgba(0,0,0,.38)');
+    ctx.fillStyle = shade; ctx.fillRect(0,HEADER_H-120,CARD_W,120);
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(0,HEADER_H-3,CARD_W,3); }
 
   let textX = PAD;
   /* headshot leads (this is a PLAYER card), team logo rides along as a small
@@ -3619,7 +3627,11 @@ async function buildPlayerCard(pl, year){
      player cards use. A player with no headshot on file (52 of 96 don't
      have one) falls back to the team logo alone, same as before. */
   if(photoImg){
-    const LS=170, top=64;
+    const LS=170, top=58;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.arc(PAD+LS/2, top+LS/2, LS/2+6, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.restore();
     ctx.save();
     ctx.beginPath();
     ctx.arc(PAD+LS/2, top+LS/2, LS/2, 0, Math.PI*2);
@@ -3670,6 +3682,10 @@ async function buildPlayerCard(pl, year){
   const BLS = 178, BGAP = 12;
   const nLogos = (brandLogoImg?1:0) + (savantImg?1:0);
   const logosLeft = CARD_W - PAD - nLogos*BLS - Math.max(0,nLogos-1)*BGAP;
+  /* a soft glass plate behind the logos so they read as one badge instead of floating on the colour */
+  if(nLogos){ const PP = 16, px = logosLeft-PP, py = 30-PP+4, pw = CARD_W-PAD-logosLeft+PP*2, ph = BLS+PP*2-8;
+    ctx.save(); roundRect(ctx, px, py, pw, ph, 30); ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.38)'; ctx.stroke(); ctx.restore(); }
   { let lx = logosLeft; const by = 30;
     /* the league logos carry transparent padding, so trim to the visible pixels and fit that to the same
        box as the Savant mark — otherwise the same nominal size reads much smaller */
@@ -3693,16 +3709,24 @@ async function buildPlayerCard(pl, year){
 
   ctx.fillStyle = '#fff';
   let nameSize = 62;
-  const nameMaxW = logosLeft - 28 - textX;
+  const nameMaxW = logosLeft - 16 - 28 - textX;
   ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`;
   while(ctx.measureText(pl.name).width > nameMaxW && nameSize > 38){ nameSize -= 2; ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`; }
-  ctx.fillText(pl.name, textX, 150);
-  ctx.font = '500 30px "IBM Plex Sans", Arial, sans-serif';
-  ctx.globalAlpha = 0.9;
-  ctx.fillText(`${year} · ${histNick(full, year)}`, textX, 194);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+  ctx.fillText(pl.name, textX, 146);
+  ctx.restore();
+  /* season and club as a small pill under the name */
+  { const tag = `${year} · ${histNick(full, year)}`;
+    ctx.font = '600 28px "IBM Plex Sans", Arial, sans-serif';
+    const tw = ctx.measureText(tag).width, ph = 46, py = 168;
+    ctx.save(); roundRect(ctx, textX, py, tw+36, ph, ph/2); ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.fill(); ctx.restore();
+    ctx.fillStyle = '#fff'; ctx.fillText(tag, textX+18, py+32); }
+  ctx.font = '600 22px "IBM Plex Mono", monospace';
+  try{ ctx.letterSpacing = '4px'; }catch(e){}
+  ctx.globalAlpha = 0.92;
+  ctx.fillText('BWB WIFFLEBALL  ·  SAVANT', PAD, HEADER_H-30);
   ctx.globalAlpha = 1;
-  ctx.font = '600 24px "IBM Plex Mono", monospace';
-  ctx.fillText('BWB WIFFLEBALL', PAD, HEADER_H-28);
+  try{ ctx.letterSpacing = '0px'; }catch(e){}
 
   let y = HEADER_H + 30;
   function drawHeadline(tiles){
