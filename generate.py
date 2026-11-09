@@ -135,6 +135,7 @@ tbody td{text-align:right;padding:9px 10px;font-size:.86rem;white-space:nowrap;
 tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
+.bxt{max-width:660px}
 .bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:3.4rem;padding-left:6px;padding-right:6px}
 .bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:4.2rem}
 @media (max-width:560px){.bxt table.detail th,.bxt table.detail td{padding:8px 4px}.bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:2.2rem}.bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:3.2rem}.bxt table.detail td.lft,.bxt table.detail th.lft{white-space:normal;min-width:5.5rem}}
