@@ -136,6 +136,8 @@ tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
 .bxt{max-width:660px}
+@media (min-width:980px){.bxgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;align-items:start}
+.bxgrid>.bxl{grid-column:1;grid-row:var(--r)}.bxgrid>.bxr{grid-column:2;grid-row:var(--r)}.bxgrid .bxt{max-width:none}}
 .bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:3.4rem;padding-left:6px;padding-right:6px}
 .bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:4.2rem}
 @media (max-width:560px){.bxt table.detail th,.bxt table.detail td{padding:8px 4px}.bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:2.2rem}.bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:3.2rem}.bxt table.detail td.lft,.bxt table.detail th.lft{white-space:normal;min-width:5.5rem}}
@@ -7174,20 +7176,24 @@ const sumBox=(rows,keys)=>{ const t={}; keys.forEach(k=>t[k]=0); rows.forEach(r=
 
 function boxSide(g, sk, yr){
   const s=g[sk]; let out='';
+  /* each section carries its side (bxl = away, bxr = home) and a row number so a wide
+     screen can set the two teams side by side with batting, pitching and fielding lined
+     up row for row; a narrow one just stacks them away-then-home */
+  const cell = (row, html) => `<div class="${sk==='away'?'bxl':'bxr'}" style="--r:${row}">${html}</div>`;
   if(s.bat.length){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
-    /* hit-by-pitch was dropped from the game after 2020, so no column from 2021 on */
+    /* hit-by-pitch was dropped from the game after 2020, so it shows in the notes only through 2020 */
     const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', 'bxt')+boxBatNotes(brows, yr);
+    out+=cell(1, statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', 'bxt')+boxBatNotes(brows, yr));
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
     const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt');
+    out+=cell(2, statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt'));
   }
   if((s.fld||[]).length){
     const tot=sumBox(s.fld,['inn','tc','po','a','e','dp']);
-    out+=statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', 'bxt');
+    out+=cell(3, statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', 'bxt'));
   }
   return out;
 }
@@ -7230,7 +7236,7 @@ function boxScore(gid){
     <div class="phead"><h2>${muTeam(g.away.team,yr)}<span class="vs">${a}–${hh}</span>${muTeam(g.home.team,yr)}</h2></div>
     <p class="pmeta">${esc(g.div)} · ${g.date}${g.loc?' · '+esc(g.loc):''} · ${g.innings} innings</p>
     ${lineScore(g, yr)}
-    ${boxSide(g,'away',yr)}${boxSide(g,'home',yr)}
+    <div class="bxgrid">${boxSide(g,'away',yr)}${boxSide(g,'home',yr)}</div>
     <p class="note">The line score is the recorded official result. Batting and pitching lines are the
     player stats logged for the game${untied?', whose totals do not tie to the line score — both appear as recorded':''}.${g.away.bat.length<3&&g.home.bat.length<3?' This game predates per-player logging; the single line is the team total.':''}</p>`;
   document.getElementById('back').addEventListener('click',()=>{ location.hash='#/games'; });
@@ -8264,15 +8270,16 @@ function bvAnnotate(t, g, isBea){
   });
   return out;
 }
-function bvBox(name, batRows, pitRows){
+function bvBox(name, batRows, pitRows, side){
   let out = '';
+  const cell = (row, html) => `<div class="${side==='away'?'bxl':'bxr'}" style="--r:${row}">${html}</div>`;
   if(batRows && batRows.length){
     const bt = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k']);
-    out += statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', 'bxt')+boxBatNotes(batRows, 2026, bvName);
+    out += cell(1, statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', 'bxt')+boxBatNotes(batRows, 2026, bvName));
   }
   if(pitRows && pitRows.length){
     const pt = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
-    out += statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', 'bxt');
+    out += cell(2, statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', 'bxt'));
   }
   return out;
 }
@@ -8331,8 +8338,7 @@ function bvBoxScore(gid){
     <div class="phead"><h2>Brookside Beavers ${tag}<span class="vs">${g.rf}–${g.ra}</span></h2></div>
     <p class="pmeta">Game ${g.g} · ${esc(g.phase)} · ${g.date} · ${g.time} ET</p>
     ${bvLineScore(g)}
-    ${bvBox(away[0], away[1], away[2])}
-    ${bvBox(home[0], home[1], home[2])}
+    <div class="bxgrid">${bvBox(away[0], away[1], away[2], 'away')}${bvBox(home[0], home[1], home[2], 'home')}</div>
     ${note}
     <p class="note">Two-sided box score from the team's GameChanger books. Beavers lines reconcile to
       the printed team totals; opponent batting is best-effort from the same screenshots (cells that
