@@ -11761,14 +11761,16 @@ function glSeasons(){
 }
 /* streaks for one season: [{hot, a, b, from, to, pct}] where a..b are the 0-based games that moved OPS (a = first, b = last) */
 function glStreaks(se, start){
-  const v = se.vals, res = []; let i = Math.max(1, start), run = null;
+  /* start = the game whose season OPS is the first starting point; 0 = before Game 1 (Game 1 itself is the first move, from nothing) */
+  const pre = start===0, v = pre ? [0, ...se.vals] : se.vals, sh = pre ? 1 : 0, res = [];
+  let i = Math.max(1, start), run = null;
   const close = () => { if(run){ run.pct = run.from>0 ? (run.to-run.from)/run.from : null; res.push(run); run = null; } };
   for(; i<v.length; i++){
     const d = v[i]-v[i-1];
     if(Math.abs(d)<1e-9){ close(); continue; }
     const hot = d>0;
-    if(run && run.hot===hot){ run.b = i; run.to = v[i]; }
-    else { close(); run = {hot, a:i, b:i, from:v[i-1], to:v[i]}; }
+    if(run && run.hot===hot){ run.b = i-sh; run.to = v[i]; }
+    else { close(); run = {hot, a:i-sh, b:i-sh, from:v[i-1], to:v[i]}; }
   }
   close();
   return res;
@@ -11779,9 +11781,9 @@ function renderSavantGains(){
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
   if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   const yrSet = new Set(svpYearsFor(svpGL.year, years));
-  const start = Math.max(1, +svpGL.start||1);
-  const pool = all.filter(s=>yrSet.has(s.y) && s.vals.length>start);
-  const ps = pool.map(se=>({se, st:glStreaks(se, start-1)}));
+  const start = [0,1,2,3,5].includes(+svpGL.start) ? +svpGL.start : 1;
+  const pool = all.filter(s=>yrSet.has(s.y) && s.vals.length>Math.max(1,start));
+  const ps = pool.map(se=>({se, st:glStreaks(se, start)}));
   const sel = svpGL.player && P[svpGL.player] ? svpGL.player : '';
   const who = (n,y) => `${bxName(n)}`;
   const gRange = r => r.a===r.b ? `G${r.a+1}` : `G${r.a+1}–G${r.b+1}`;
@@ -11791,7 +11793,7 @@ function renderSavantGains(){
   const tabs = `<div class="chips" role="group" aria-label="View">
     <button data-glv="streaks" aria-pressed="${svpGL.view==='streaks'}">Biggest streaks</button>
     <button data-glv="seasons" aria-pressed="${svpGL.view==='seasons'}">Player seasons</button></div>`;
-  const startOpts = [1,2,3,5].map(k=>`<option value="${k}"${k===start?' selected':''}>${k===1?'Game 1 (every game counts)':'After game '+k}</option>`).join('');
+  const startOpts = [0,1,2,3,5].map(k=>`<option value="${k}"${k===start?' selected':''}>${k===0?'Prior to Game 1':k===1?'Game 1 (every game counts)':'After game '+k}</option>`).join('');
   const controls = `<div class="svpform">
     <label>Start measuring from <select id="glStart">${startOpts}</select></label>
     <label>Player <input id="glPlayer" list="glNames" placeholder="All players" value="${esc(sel)}"></label>
@@ -11836,7 +11838,7 @@ function renderSavantGains(){
       Game 1 sets the starting point. Regular-season games from 2017 on with a box score; seasons of ${GL_MING}+ games.</p>
     ${sel ? '' : tabs}${yearChips}${controls}${body}
     <p class="smeta">Gains and Losses are the percent change in season-to-date OPS across each streak, added up for the season; Net is Gains plus Losses. Early in a season a single
-      game moves OPS a lot, so use “Start measuring from” to skip the first few games. A streak that starts from a .000 OPS has no percent and is left out of the totals.</p>`);
+      game moves OPS a lot, so use “Start measuring from” to skip the first few games, or pick “Prior to Game 1” to count Game 1 itself as the first move. A streak that starts from a .000 OPS (as the first one does before Game 1) has no percent and is left out of the totals.</p>`);
   const re = () => renderSavantGains();
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   document.getElementById('glStart').addEventListener('change', e=>{ svpGL.start = +e.target.value; re(); });
