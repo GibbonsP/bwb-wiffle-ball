@@ -3059,10 +3059,14 @@ function phaseBlock(pl, type){
       : opsPlusFor(d, d._wbat || rows.filter(r=>!r.split).map(r=>({year:r.year, pa:r.PA, post:type==='Playoffs'})));
     return isFinite(v)?String(v):'—';
   }}];
+  /* hit-by-pitch was dropped from the game after 2020: 2021+ seasons show a dash, and a
+     player whose seasons are all 2021 or later has no HBP column at all */
+  const hbpCol = rows.some(r=>r.year!=null && r.year<=2020)
+    ? [{l:'HBP',f:d=>(d.year!=null && d.year>2020) ? '—' : d.HBP}] : [];
   const batCols = [...seasonCols,
     {l:'G',f:d=>d.G_bat},{l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},
     {l:'H',f:d=>d.H},{l:'2B',f:d=>d['2B']},{l:'3B',f:d=>d['3B']},{l:'HR',f:d=>d.HR},
-    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},{l:'HBP',f:d=>d.HBP},
+    {l:'RBI',f:d=>d.RBI},{l:'BB',f:d=>d.BB},{l:'K',f:d=>d.K},...hbpCol,
     {l:'AVG',m:1,f:d=>rate(avg(d))},{l:'OBP',m:1,f:d=>rate(obp(d))},
     {l:'SLG',m:1,f:d=>rate(slg(d))},{l:'OPS',m:1,f:d=>rate(ops(d))},
     ...opsPlusCol, ...awCol];
@@ -7200,12 +7204,13 @@ function playerGameLog(pl, type, selYear){
   const rows = byYr[y];
   const oppCell = (g,side,opp) => `<td class="lft"><button class="pname" data-g="${g.gid}">${g.date.slice(5)}</button></td>
     <td class="lft">${side==='away'?'@':'vs'} ${histTeamLink(opp, +g.date.slice(0,4))}${type==='Playoffs'?`<span class="gtag">${esc(gameTag(g))}</span>`:''}</td>`;
+  const noHbp = +y > 2020;   // hit-by-pitch was dropped after 2020
   const batRows = rows.filter(r=>r.bat).map(r=>r.bat);
   const pitRows = rows.filter(r=>r.pit).map(r=>r.pit);
   const fldRows = rows.filter(r=>r.fldLine).map(r=>r.fldLine);
   const batBody = rows.filter(r=>r.bat).map(({g,side,bat,opp})=>`<tr>${oppCell(g,side,opp)}
     <td>${bat.ab}</td><td>${bat.r}</td><td>${bat.h}</td><td>${bat['2b']}</td><td>${bat['3b']}</td><td>${bat.hr}</td>
-    <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td><td>${bat.hbp}</td></tr>`).join('');
+    <td>${bat.rbi}</td><td>${bat.bb}</td><td>${bat.k}</td>${noHbp?'':`<td>${bat.hbp}</td>`}</tr>`).join('');
   const pitBody = rows.filter(r=>r.pit).map(({g,side,pit,opp})=>`<tr>${oppCell(g,side,opp)}
     <td>${pit.gs}</td><td class="mono">${ipStr(pit.ip)}</td><td>${pit.h}</td><td>${pit.r}</td><td>${pit.er}</td>
     <td>${pit.bb}</td><td>${pit.k}</td><td>${pit.w}</td><td>${pit.l}</td><td>${pit.sv}</td></tr>`).join('');
@@ -7222,7 +7227,7 @@ function playerGameLog(pl, type, selYear){
   const fldTot = sumBox(fldRows,['inn','tc','po','a','e','dp']);
   const batFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${batTot.ab}</td><td>${batTot.r}</td><td>${batTot.h}</td><td>${batTot['2b']}</td><td>${batTot['3b']}</td><td>${batTot.hr}</td>
-    <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td><td>${batTot.hbp}</td></tr>`;
+    <td>${batTot.rbi}</td><td>${batTot.bb}</td><td>${batTot.k}</td>${noHbp?'':`<td>${batTot.hbp}</td>`}</tr>`;
   const pitFoot = `<tr><td class="lft">Total</td><td class="lft"></td>
     <td>${pitTot.gs}</td><td class="mono">${ipStr(pitTot.ip)}</td><td>${pitTot.h}</td><td>${pitTot.r}</td><td>${pitTot.er}</td>
     <td>${pitTot.bb}</td><td>${pitTot.k}</td><td>${pitTot.w}</td><td>${pitTot.l}</td><td>${pitTot.sv}</td></tr>`;
@@ -7232,7 +7237,7 @@ function playerGameLog(pl, type, selYear){
   return `<section class="stat"><h3 class="viewhead">Game Log</h3>
     <p class="pmeta">Per-game lines where recorded (2020 on). Click a date for the full box score.</p>
     ${yearChips}
-    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>HBP</th>', batBody, batFoot)}
+    ${tbl('Hitting', '<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th>'+(noHbp?'':'<th>HBP</th>'), batBody, batFoot)}
     ${tbl('Pitching', '<th>GS</th><th class="mono">IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>W</th><th>L</th><th>SV</th>', pitBody, pitFoot)}
     ${tbl('Fielding', '<th class="mono">INN</th><th>TC</th><th>PO</th><th>A</th><th>E</th><th>DP</th>', fldBody, fldFoot)}
   </section>`;
