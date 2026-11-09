@@ -129,6 +129,9 @@ tbody td{text-align:right;padding:9px 10px;font-size:.86rem;white-space:nowrap;
 tbody td:first-child{text-align:left;font-weight:500}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
+.bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:3.4rem;padding-left:6px;padding-right:6px}
+.bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:4.2rem}
+@media (max-width:560px){.bxt table.detail th,.bxt table.detail td{padding:8px 4px}.bxt table.detail th:not(.lft),.bxt table.detail td:not(.lft){width:2.2rem}.bxt table.detail th.mono:not(.lft),.bxt table.detail td.mono:not(.lft){width:3.2rem}.bxt table.detail td.lft,.bxt table.detail th.lft{white-space:normal;min-width:5.5rem}}
 .bxn{font-size:.82rem;color:var(--muted);line-height:1.6;margin:-6px 0 16px;padding:0 2px}.bxn b{color:var(--ink);font-weight:700}
 .dec{font-weight:500;font-size:.85em;color:var(--muted,#888);white-space:nowrap}
 .pname{background:none;border:0;padding:0;font-weight:600;color:var(--accent);
@@ -7168,16 +7171,16 @@ function boxSide(g, sk, yr){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
     /* hit-by-pitch was dropped from the game after 2020, so no column from 2021 on */
     const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', '')+boxBatNotes(brows, yr);
+    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', 'bxt')+boxBatNotes(brows, yr);
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
     const rows=s.pit.map(p=>({...p,_tag:decisionTag(g,p)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', '');
+    out+=statTable(esc(histName(s.team, yr))+' — Pitching', BOX_PIT, rows, tot, 'Total', 'bxt');
   }
   if((s.fld||[]).length){
     const tot=sumBox(s.fld,['inn','tc','po','a','e','dp']);
-    out+=statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', '');
+    out+=statTable(esc(histName(s.team, yr))+' — Fielding', BOX_FLD, s.fld, tot, 'Total', 'bxt');
   }
   return out;
 }
@@ -8258,11 +8261,11 @@ function bvBox(name, batRows, pitRows){
   let out = '';
   if(batRows && batRows.length){
     const bt = sumBox(batRows,['ab','r','h','2b','3b','hr','rbi','bb','k']);
-    out += statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', '')+boxBatNotes(batRows, 2026, bvName);
+    out += statTable(esc(name)+' — Batting', BV_BAT, batRows, bt, 'Total', 'bxt')+boxBatNotes(batRows, 2026, bvName);
   }
   if(pitRows && pitRows.length){
     const pt = sumBox(pitRows,['ip','h','r','er','bb','k','w','l','sv']);
-    out += statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', '');
+    out += statTable(esc(name)+' — Pitching', BV_PIT, pitRows, pt, 'Total', 'bxt');
   }
   return out;
 }
