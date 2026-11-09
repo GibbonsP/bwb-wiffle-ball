@@ -3682,10 +3682,6 @@ async function buildPlayerCard(pl, year){
   const BLS = 178, BGAP = 12;
   const nLogos = (brandLogoImg?1:0) + (savantImg?1:0);
   const logosLeft = CARD_W - PAD - nLogos*BLS - Math.max(0,nLogos-1)*BGAP;
-  /* a soft glass plate behind the logos so they read as one badge instead of floating on the colour */
-  if(nLogos){ const PP = 16, px = logosLeft-PP, py = 30-PP+4, pw = CARD_W-PAD-logosLeft+PP*2, ph = BLS+PP*2-8;
-    ctx.save(); roundRect(ctx, px, py, pw, ph, 30); ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.38)'; ctx.stroke(); ctx.restore(); }
   { let lx = logosLeft; const by = 30;
     /* the league logos carry transparent padding, so trim to the visible pixels and fit that to the same
        box as the Savant mark — otherwise the same nominal size reads much smaller */
@@ -3709,7 +3705,7 @@ async function buildPlayerCard(pl, year){
 
   ctx.fillStyle = '#fff';
   let nameSize = 62;
-  const nameMaxW = logosLeft - 16 - 28 - textX;
+  const nameMaxW = logosLeft - 28 - textX;
   ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`;
   while(ctx.measureText(pl.name).width > nameMaxW && nameSize > 38){ nameSize -= 2; ctx.font = `700 ${nameSize}px Oswald, Arial, sans-serif`; }
   ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
