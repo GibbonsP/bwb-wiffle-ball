@@ -7100,8 +7100,9 @@ function boxSide(g, sk, yr){
   const s=g[sk]; let out='';
   if(s.bat.length){
     const tot=sumBox(s.bat,['ab','r','h','2b','3b','hr','rbi','bb','k','hbp']);
+    /* hit-by-pitch was dropped from the game after 2020, so no column from 2021 on */
     const brows=s.bat.map(b=>({...b,...battingToDate(g,b)}));
-    out+=statTable(esc(histName(s.team, yr))+' — Batting', BOX_BAT, brows, tot, 'Total', '');
+    out+=statTable(esc(histName(s.team, yr))+' — Batting', yr>2020 ? BOX_BAT.filter(c=>c.l!=='HBP') : BOX_BAT, brows, tot, 'Total', '');
   }
   if(s.pit.length){
     const tot=sumBox(s.pit,['ip','h','r','er','bb','k','w','l','sv']);
