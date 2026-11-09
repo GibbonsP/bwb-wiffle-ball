@@ -539,6 +539,17 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .cmpsvname{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.05rem;margin:0 0 6px}
 
 .accolades{margin:0 0 34px}
+.mslist li{align-items:center;flex-wrap:wrap;gap:6px 14px}
+.msbs{display:inline-flex;flex-wrap:wrap;gap:6px}
+.msb{display:inline-block;background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:5px;padding:2px 9px;font-size:.84rem;font-weight:600;white-space:nowrap}
+.msb b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.msw{display:inline-flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.82rem}
+.msw .rt{color:var(--muted)}
+@media (max-width:560px){.mslist .msw{flex-basis:100%}}
+.msmore{margin-top:4px}
+.msmore summary{cursor:pointer;color:var(--accent);font-size:.84rem;padding:6px 0}
+.msp .ring b{font-family:"IBM Plex Mono",monospace}
+.msp .ring .rt{margin-left:6px}
 .acc-block{margin:0 0 16px}
 .acc-block h4{font-size:.72rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
 .pa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-bottom:20px}
@@ -4012,6 +4023,80 @@ function accolades(pl){
     A <span class="asgstar">★</span> next to the year marks an All-Star season.${nh.length?' No-hitters and perfect games are from the league\'s own record — see the Records page.':''}</p></section>`;
 }
 
+/* ---- Milestones on a player page: every multiple of 50 a player has reached in a handful of career
+   (regular-season) totals, linked to the game it happened in, plus the ones he's closing in on.
+   The game comes from box scores, which start in 2017 — a milestone reached before that shows the
+   season only, with no link. A milestone is the first game where the running career total reached it. */
+const MSP_STEP = 50;
+const MSP_STATS = [
+  {key:'G_bat', label:'Games Played',  one:'Game Played',  kind:'bat', short:'G',  g:b=>1},
+  {key:'H',     label:'Hits',          one:'Hit',          kind:'bat', short:'H',  g:b=>b.h||0},
+  {key:'HR',    label:'Home Runs',     one:'Home Run',     kind:'bat', short:'HR', g:b=>b.hr||0},
+  {key:'W',     label:'Pitching Wins', one:'Pitching Win', kind:'pit', short:'W',  g:p=>p.w||0},
+  {key:'pK',    label:'Strikeouts',    one:'Strikeout',    kind:'pit', short:'K',  g:p=>p.k||0},
+];
+function playerMilestones(pl){
+  const rows = pl.seasons.filter(s=>s.type==='Regular' && !s.tot && s.team);
+  if(!rows.length) return {reached:[], next:[]};
+  const latest = Math.max(...Object.values(P).flatMap(x=>x.seasons.map(s=>s.year)));
+  const games = collectPlayerGames(pl, 'Regular').slice()
+    .sort((a,b)=>((a.g.dt||a.g.date)+'|'+a.g.gid).localeCompare((b.g.dt||b.g.date)+'|'+b.g.gid));
+  const reached = [], next = [];
+  MSP_STATS.forEach(st=>{
+    const byYear = {};
+    rows.forEach(r=>{ byYear[r.year] = (byYear[r.year]||0) + (+r[st.key]||0); });
+    const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    const total = years.reduce((a,y)=>a+byYear[y],0);
+    if(total<=0) return;
+    for(let T=MSP_STEP; T<=total; T+=MSP_STEP){
+      let before = 0, Y = null;
+      for(const y of years){ if(before+byYear[y] >= T){ Y = y; break; } before += byYear[y]; }
+      if(Y==null) continue;
+      let ev = null;
+      if(Y>=2017){
+        const need = T - before; let run = 0, last = null;
+        games.filter(r=>+r.g.date.slice(0,4)===Y && r[st.kind==='bat'?'bat':'pit']).forEach(r=>{
+          last = r; if(ev) return; run += st.g(r[st.kind==='bat'?'bat':'pit']); if(run>=need) ev = r; });
+        ev = ev || last;
+      }
+      reached.push({st, T, year:Y, ev});
+    }
+    if(byYear[latest]){
+      const nextT = (Math.floor(total/MSP_STEP)+1)*MSP_STEP, left = nextT - total;
+      if(left<=MSP_STEP/2) next.push({st, T:nextT, left});
+    }
+  });
+  /* newest first; a player who reached several in the same game gets one line with several badges */
+  const key = r => r.ev ? (r.ev.g.dt||r.ev.g.date)+'|'+r.ev.g.gid : r.year+'|0';
+  reached.sort((a,b)=>key(b).localeCompare(key(a)) || b.T-a.T);
+  const lines = [];
+  reached.forEach(r=>{ const k = r.ev ? 'g'+r.ev.g.gid : 'y'+r.year+r.st.key+r.T;
+    const ln = lines.find(l=>l.k===k); if(ln) ln.items.push(r); else lines.push({k, ev:r.ev, year:r.year, items:[r]}); });
+  next.sort((a,b)=>(a.left/a.T)-(b.left/b.T));
+  return {reached:lines, next};
+}
+function milestonesCard(pl){
+  const {reached, next} = playerMilestones(pl);
+  if(!reached.length && !next.length) return '';
+  const badge = r => `<span class="msb"><b>${r.T}</b> ${esc(r.st.label)}</span>`;
+  const line = l => {
+    const g = l.ev && l.ev.g;
+    const when = g ? `<button class="pname" data-g="${g.gid}">${esc(g.date)}</button>
+        <span class="rt">${l.ev.side==='away'?'@':'vs'} ${histTeamLink(l.ev.opp, +g.date.slice(0,4))}</span>`
+      : `<span class="rt">${l.year} season</span>`;
+    return `<li><span class="msbs">${l.items.map(badge).join('')}</span><span class="msw">${when}</span></li>`;
+  };
+  const head = reached.slice(0,3), rest = reached.slice(3);
+  const nextHTML = next.length ? `<div class="acc-block"><h4>Next up</h4><div class="rings">${next.map(n=>
+    `<span class="ring"><b>${n.left}</b>&nbsp;${esc((n.left===1?n.st.one:n.st.label).replace('Pitching ',''))}<span class="rt">to ${n.T}</span></span>`).join('')}</div></div>` : '';
+  const reachedHTML = reached.length ? `<div class="acc-block"><h4>Reached</h4>
+    <ul class="pa-list mslist">${head.map(line).join('')}</ul>
+    ${rest.length?`<details class="msmore"><summary>Show ${rest.length} more</summary><ul class="pa-list mslist">${rest.map(line).join('')}</ul></details>`:''}
+  </div>` : '';
+  return `<section class="stat accolades msp"><h3>Milestones</h3>${nextHTML}${reachedHTML}
+    <p class="note">Every ${MSP_STEP} career games played, hits, home runs, pitching wins and strikeouts, regular season. Each date links to the box score of the game it happened in; box scores start in 2017, so earlier milestones show only the season.</p></section>`;
+}
+
 let playerTab = 'Regular', logYear = null, splitYear = 'all', playerSubView = 'stats';
 function detail(name){
   const pl = P[name];
@@ -4036,6 +4121,7 @@ function detail(name){
       ${hitCard}
       ${pitCard}
     </div>
+    ${milestonesCard(pl)}
     ${accolades(pl)}
     ${savantCard(pl)}`;
 
