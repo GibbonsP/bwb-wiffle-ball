@@ -546,6 +546,22 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .msw{display:inline-flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.82rem}
 .msw .rt{color:var(--muted)}
 @media (max-width:560px){.mslist .msw{flex-basis:100%}}
+/* the closed Milestones card */
+.mscard{border:1px solid var(--line);border-radius:6px;background:var(--card);box-shadow:var(--shadow);margin:0 0 34px}
+.mscard summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;padding:14px 44px 14px 16px;position:relative}
+.mscard summary::-webkit-details-marker{display:none}
+.mscard summary::before,.mscard[open] summary::before{content:none}
+.mscard summary::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+.mscard[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+.mscard summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:6px}
+.mscard .mst{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;font-size:1.15rem;letter-spacing:.01em}
+.mscard .mstz{color:var(--muted);font-size:.84rem;flex:1 1 220px;min-width:0}
+.mscard .mstz b{color:var(--ink);font-weight:600}
+.mscard .nw{white-space:nowrap}
+.mscard .msc{font-family:"IBM Plex Mono",monospace;font-size:.76rem;background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:999px;padding:1px 9px}
+.mscard .msbody{padding:4px 16px 14px;border-top:1px solid var(--line)}
+.mscard .msbody .acc-block:first-child{margin-top:14px}
+.mscard .msbody .note{margin:8px 0 0}
 .msmore{margin-top:4px}
 .msmore summary{cursor:pointer;color:var(--accent);font-size:.84rem;padding:6px 0}
 .msp .ring b{font-family:"IBM Plex Mono",monospace}
@@ -4086,15 +4102,20 @@ function milestonesCard(pl){
       : `<span class="rt">${l.year} season</span>`;
     return `<li><span class="msbs">${l.items.map(badge).join('')}</span><span class="msw">${when}</span></li>`;
   };
-  const head = reached.slice(0,3), rest = reached.slice(3);
   const nextHTML = next.length ? `<div class="acc-block"><h4>Next up</h4><div class="rings">${next.map(n=>
     `<span class="ring"><b>${n.left}</b>&nbsp;${esc((n.left===1?n.st.one:n.st.label).replace('Pitching ',''))}<span class="rt">to ${n.T}</span></span>`).join('')}</div></div>` : '';
   const reachedHTML = reached.length ? `<div class="acc-block"><h4>Reached</h4>
-    <ul class="pa-list mslist">${head.map(line).join('')}</ul>
-    ${rest.length?`<details class="msmore"><summary>Show ${rest.length} more</summary><ul class="pa-list mslist">${rest.map(line).join('')}</ul></details>`:''}
-  </div>` : '';
-  return `<section class="stat accolades msp"><h3>Milestones</h3>${nextHTML}${reachedHTML}
-    <p class="note">Every ${MSP_STEP} career games played, hits, home runs, pitching wins and strikeouts, regular season. Each date links to the box score of the game it happened in; box scores start in 2017, so earlier milestones show only the season.</p></section>`;
+    <ul class="pa-list mslist">${reached.map(line).join('')}</ul></div>` : '';
+  /* one closed card on the overview: the title, the latest milestone as a teaser, and a chevron; the
+     whole list (next up + every milestone reached) opens inside it */
+  const top = reached[0];
+  const teaser = top ? `Latest: <b>${top.items.map(r=>`${r.T} ${esc(r.st.label)}`).join(', ')}</b> · <span class="nw">${top.ev?esc(top.ev.g.date):top.year}</span>`
+    : `Next: <b>${next[0].left} ${esc(next[0].st.label.replace('Pitching ',''))}</b> to ${next[0].T}`;
+  const count = reached.reduce((a,l)=>a+l.items.length,0);
+  return `<details class="mscard msp"><summary><span class="mst">Milestones</span>
+      <span class="mstz">${teaser}</span>${count?`<span class="msc">${count}</span>`:''}</summary>
+    <div class="msbody">${nextHTML}${reachedHTML}
+      <p class="note">Every ${MSP_STEP} career games played, hits, home runs, pitching wins and strikeouts, regular season. Each date links to the box score of the game it happened in; box scores start in 2017, so earlier milestones show only the season.</p></div></details>`;
 }
 
 let playerTab = 'Regular', logYear = null, splitYear = 'all', playerSubView = 'stats';
@@ -4121,8 +4142,8 @@ function detail(name){
       ${hitCard}
       ${pitCard}
     </div>
-    ${milestonesCard(pl)}
     ${accolades(pl)}
+    ${milestonesCard(pl)}
     ${savantCard(pl)}`;
 
   /* each phase's Stats/Splits/Game Log used to be concatenated into one long
