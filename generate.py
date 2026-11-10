@@ -12178,7 +12178,7 @@ function renderSavantGains(){
     document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
       clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); svgEl.appendChild(c);
-      fadeT = setTimeout(()=>svgEl.classList.remove('glg-has-sel'), 8000);   // the focus fades after 8 seconds; the dot and its details stay selected
+      fadeT = setTimeout(()=>svgEl.classList.remove('glg-has-sel'), 5000);   // the focus fades after 5 seconds; the dot and its details stay selected
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
