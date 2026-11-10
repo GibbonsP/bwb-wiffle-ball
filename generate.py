@@ -203,7 +203,9 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt td.lft{padding-left:10px}
 .glcols.glstack .glt.glfit td:not(.lft),.glcols.glstack .glt.glfit th:not(.lft){padding-left:12px;padding-right:12px}
 .glt.glfix2{table-layout:auto;width:100%}
-.glt.glfix2 td,.glt.glfix2 th{padding-left:8px;padding-right:8px}
+.glt.glfix2 td,.glt.glfix2 th{padding-left:4px;padding-right:4px}
+.glcols .glt.glfix2{font-size:.8rem}
+.glt.glfix2 .bxpl{gap:5px}
 .glt.glfix2 td:nth-child(2),.glt.glfix2 th:nth-child(2){text-align:center}
 .glt{--x:0}
 .glt.glfix{table-layout:fixed;width:100%;min-width:680px}
