@@ -11922,8 +11922,9 @@ function glStrip(se, st, M){
 }
 /* the last 5 games against the season: the improvement in the stat (positive = better) */
 function glLast5(se, M, first){
+  const sl = first==='mid' ? (a=>{const o=Math.floor((a.length-5)/2); return a.slice(o,o+5);}) : first ? (a=>a.slice(0,5)) : (a=>a.slice(-5));
   const n = se.rows.length; if(n<8) return null;
-  const tot = sumRows(se.rows.map(r=>r.row)), l5 = sumRows((first ? se.rows.slice(0,5) : se.rows.slice(-5)).map(r=>r.row));
+  const tot = sumRows(se.rows.map(r=>r.row)), l5 = sumRows(sl(se.rows).map(r=>r.row));
   if(M.kind==='bat' ? l5.PA<10 : l5.IPouts<9) return null;
   const sv = M.fn(tot, se.y), lv = M.fn(l5, se.y);
   if(!isFinite(sv) || !isFinite(lv) || sv<=0) return null;
@@ -11990,6 +11991,8 @@ function renderSavantGains(){
     const l5Row = x => `<tr><td class="lft">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td>${sparkTd(x.se,x.st)}</tr>`;
     const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th>Trend</th>`;
     const f5Head = l5Head.replace('Last 5','First 5');
+    const m5Head = l5Head.replace('Last 5','Middle 5');
+    const m5 = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, 'mid'); if(t) m5.push({se,st,t}); });
     const f5 = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, true); if(t) f5.push({se,st,t}); });
     const live = nowYear===years[0];
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
@@ -12001,6 +12004,11 @@ function renderSavantGains(){
       ${twoCols('Trending up','Trending down',
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
         tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 5)}
+      <h3 class="hsub">Middle 5 games vs season</h3>
+      <p class="smeta">${esc(M.l)} over the 5 games in the middle of a player’s season (centered between the first and last game) against their full-season number. Same minimum as above.</p>
+      ${twoCols('Hot in the middle','Cold in the middle',
+        m5.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
+        m5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), m5Head, 5)}
       <h3 class="hsub">First 5 games vs season</h3>
       <p class="smeta">${esc(M.l)} over a player’s first 5 games of the season against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Same minimum as above.</p>
       ${twoCols('Started hot','Started cold',
