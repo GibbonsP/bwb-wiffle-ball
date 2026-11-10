@@ -205,6 +205,10 @@ tbody tr:hover{background:var(--accent-soft)}
 .glt.glfix{table-layout:fixed;width:100%;min-width:680px}
 .glt.glfix td,.glt.glfix th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .glt.glfix td:nth-child(2),.glt.glfix th:nth-child(2){text-align:center}
+.glpg{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0 2px;font-size:.82rem;color:var(--muted)}
+.glpgb{font:inherit;font-weight:600;font-size:.82rem;border:1px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:3px 12px;cursor:pointer}
+.glpgb:hover:not(:disabled){background:var(--ink);color:var(--card)}
+.glpgb:disabled{opacity:.35;cursor:default}
 .glsec{margin:22px 0 8px;font-size:.95rem}
 .glsec small{font-weight:500;color:var(--muted);margin-left:6px}
 .glrun{font-size:.95rem;font-weight:700;padding:1px 9px;margin:0}
@@ -11893,6 +11897,7 @@ GL_METRICS.splice(8, 0,
 GL_METRICS.push(glPer('K/G', glP(d=>d.pK), 'pit'), glPer('BB/3', d=>bb3(d), 'pit', true), glPer('H/3', d=>h3(d), 'pit', true), glPer('K/BB', d=>kbb(d), 'pit'));
 
 let GLG_PTS = [];
+const GLR = [];                                       // the 'In a row' streaks on screen, so a clicked one can list its games
 const GL_CONDS = [
   {k:'hit', l:'Hit in the game', kind:'bat', t:d=>d.H>=1}, {k:'obp', l:'Reached base', kind:'bat', t:d=>d.H+d.BB+d.HBP>=1},
   {k:'hr', l:'Home run', kind:'bat', t:d=>d.HR>=1}, {k:'rbi', l:'RBI', kind:'bat', t:d=>d.RBI>=1}, {k:'run', l:'Scored a run', kind:'bat', t:d=>d.R>=1},
@@ -11911,7 +11916,7 @@ function glRuns(c, year, post, only){
   const out = [], maxY = Math.max(...SVP_FULL_YEARS), min = post ? 2 : 3;
   NAMES.forEach(n=>{
     if(only && n!==only) return;
-    const rows = glChain(n, c.kind, post).filter(g=>year==='all' || +g.date.slice(0,4)===+year); if(!rows.length) return;
+    const rows = glChain(n, c.kind, post).filter(g=>{ const y = +g.date.slice(0,4); return year==='all' || (year==='early' ? y<=2021 : year==='modern' ? y>=2022 : y===+year); }); if(!rows.length) return;
     let a = -1;
     for(let i=0; i<=rows.length; i++){
       const ok = i<rows.length && c.t(rows[i].row);
@@ -12069,13 +12074,13 @@ function renderSavantGains(){
   });
   all.forEach(se=>GLX.set(se.n+'|'+se.y, se));
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
-  if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
+  if(svpGL.view==='straight' && (svpGL.year==='early' || svpGL.year==='modern')){} else if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   if(svpGL.view==='long') svpGL.view = 'streaks';
   if(svpGL.view==='seasons') svpGL.view = 'totals';
   if(!['now','streaks','carry','straight','totals','graph'].includes(svpGL.view)) svpGL.view = 'now';
   const filt = svpGL.view==='graph' || svpGL.view==='carry' || svpGL.view==='straight';      // these views filter by the chosen player instead of switching to the single-player page
   const nowYear = svpGL.year==='all' ? years[0] : +svpGL.year;          // "now" looks at one season: the chosen one, else the latest
-  const yrSet = new Set(svpGL.view==='now' ? [nowYear] : (svpGL.view==='carry' || svpGL.year==='all') ? years : [+svpGL.year]);
+  const yrSet = new Set(svpGL.view==='now' ? [nowYear] : (svpGL.view==='carry' || svpGL.view==='straight' || svpGL.year==='all') ? years : [+svpGL.year]);
   const start = 1;                                   // Game 1's season-to-date stat is the starting point
   const pool = all.filter(s=>yrSet.has(s.y));
   const ps = svpGL.view==='straight' ? [] : pool.map(se=>({se, st:glStreaks(se, start, M)}));
@@ -12095,6 +12100,7 @@ function renderSavantGains(){
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k && !(sel && !filt)}">${l}</button>`).join('')}</div>`;
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
     <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${svpGL.view==='now'?'Latest':'All Years'}</button>
+    ${svpGL.view==='straight' ? `<button data-gly="early" aria-pressed="${svpGL.year==='early'}">2016–2021 Era</button><button data-gly="modern" aria-pressed="${svpGL.year==='modern'}">2022–Present Era</button>` : ''}
     ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
   const inPlayer = !!sel && !filt;
   const bk = svpGL.back;
@@ -12128,18 +12134,19 @@ function renderSavantGains(){
   let gTeams = [];
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
   else if(svpGL.view==='straight'){
+    GLR.length = 0;
     const runs = glRuns(cdef, svpGL.year, post, sel);
     const fd = (d,y) => glDate(d)+(y?', '+d.slice(0,4):'');
     const row = x => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
       const dates = a.date===b.date ? fd(a.date,1) : ya===yb ? `${fd(a.date)} – ${fd(b.date,1)}` : `${fd(a.date,1)} – ${fd(b.date,1)}`;
       const line = cdef.kind==='bat' ? `${t.H}-for-${t.AB} (${rate(avg(t))}) · ${t.HR} HR · ${t.RBI} RBI` : `${ipStr(t.IPouts)} IP · ${t.ER} ER · ${t.pK} K · ${t.pBB} BB`;
-      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><span class="glg-n glrun">${x.len}</span></td><td class="lft" data-v="${a.date}">${dates}</td><td data-v="${x.active?1:0}">${x.active?'<span class="gltag glup">● Active</span>':''}</td><td class="lft mono">${line}</td></tr>`; };
+      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button></td><td class="lft" data-v="${a.date}">${dates}</td><td data-v="${x.active?1:0}">${x.active?'<span class="gltag glup">● Active</span>':''}</td><td class="lft mono">${line}</td></tr>`; };
     const head = `<tr><th class="lft">Player</th><th title="Games in a row">Games</th><th class="lft">Dates</th><th title="Still going after the player's latest game">Status</th><th class="lft">During the streak</th></tr>`;
     const tbl = rs => `<div class="tscroll"><table class="detail sortable glt glfix"><colgroup><col style="width:26%"><col style="width:9%"><col style="width:23%"><col style="width:11%"><col style="width:31%"></colgroup><thead>${head}</thead><tbody>${rs.map(row).join('') || empty(5)}</tbody></table></div>`;
     const byLen = (p, q) => q.len-p.len || q.rows[q.rows.length-1].date.localeCompare(p.rows[p.rows.length-1].date);
     const act = runs.filter(x=>x.active).sort(byLen).slice(0,12);
     const top = runs.slice().sort(byLen).slice(0,50);
-    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season${svpGL.year==='all'?'':' (here limited to '+svpGL.year+')'}.</p>`
+    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the 2016–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
       + (act.length && !sel ? `<h4 class="glsec"><span class="glup">●</span> Active now <small>still going</small></h4>${tbl(act)}` : '')
       + `<h4 class="glsec">Longest streaks <small>${runs.length} found${runs.length>top.length?', top '+top.length+' shown':''}</small></h4>${tbl(top)}`;
   } else if(svpGL.view==='graph'){
@@ -12325,8 +12332,28 @@ function renderSavantGains(){
     row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}</ul></td>`;
     tr.after(row); btn.setAttribute('aria-expanded','true');
   }));
+  /* an 'In a row' streak's games: 10 box-score rows at a time, oldest first, with arrows to page through the rest */
+  app.querySelectorAll('.glg3').forEach(btn=>btn.addEventListener('click',()=>{
+    const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
+    if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
+    const x = GLR[+btn.dataset.rk]; if(!x) return;
+    const PER = 10, pages = Math.ceil(x.rows.length/PER), bat = x.rows[0].row.G_bat!=null;
+    const lineOf = r => bat ? `${r.H}-for-${r.AB}${r.HR?', '+r.HR+' HR':''}${r.RBI?', '+r.RBI+' RBI':''}${r.BB?', '+r.BB+' BB':''}${r.R?', '+r.R+' R':''}`
+                            : `${ipStr(r.IPouts)} IP, ${r.pH} H, ${r.ER} ER, ${r.pK} K, ${r.pBB} BB`;
+    const T = sumRows(x.rows.map(g=>g.row));
+    let pg = 0;
+    const row = document.createElement('tr'); row.className = 'glx';
+    const draw = () => {
+      const from = pg*PER, to = Math.min(x.rows.length, from+PER);
+      const items = x.rows.slice(from, to).map((g,i)=>`<li><a href="#/g/${g.id}">${glDate(g.date)}, ${g.date.slice(0,4)} · ${g.away?'at':'vs'} ${esc(g.opp||'')}</a><span class="glxl">${lineOf(g.row)}</span><span class="mono">Game ${from+i+1}</span></li>`);
+      const nav = pages>1 ? `<div class="glpg"><button type="button" class="glpgb" data-d="-1" ${pg===0?'disabled':''} aria-label="Earlier games">‹ Earlier</button><span>Games ${from+1}–${to} of ${x.rows.length}</span><button type="button" class="glpgb" data-d="1" ${pg===pages-1?'disabled':''} aria-label="Later games">Later ›</button></div>` : '';
+      row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}<li class="glxt"><span>Streak total · ${x.rows.length} games</span><span class="glxl">${lineOf(T)}</span><span></span></li></ul>${nav}</td>`;
+      row.querySelectorAll('.glpgb').forEach(b=>b.addEventListener('click',()=>{ pg = Math.max(0, Math.min(pages-1, pg+(+b.dataset.d))); draw(); }));
+    };
+    draw(); tr.after(row); btn.setAttribute('aria-expanded','true');
+  }));
   /* a streak's games, one click away: the games that made it, each linking to its box score */
-  app.querySelectorAll('.glg:not(.glg2)').forEach(btn=>btn.addEventListener('click',()=>{
+  app.querySelectorAll('.glg:not(.glg2):not(.glg3)').forEach(btn=>btn.addEventListener('click',()=>{
     const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
     if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
     const [n, y, a, b] = btn.dataset.gk.split('|'), se = GLX.get(n+'|'+y); if(!se) return;
