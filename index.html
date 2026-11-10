@@ -12029,7 +12029,7 @@ function renderSavantGains(){
   const inPlayer = !!sel && svpGL.view!=='graph';
   const bk = svpGL.back;
   const playerBar = sel ? `<div class="glbar" role="status">
-      <span>${inPlayer ? `Viewing <b>${esc(sel)}</b>’s ${svpGL.year==='all'?'streaks':svpGL.year+' streaks'}` : `Showing only <b>${esc(sel)}</b>’s streaks`}</span>
+      <span>${inPlayer ? `Viewing <b>${esc(sel)}</b>’s ${svpGL.year==='all'?'Gains &amp; Losses':svpGL.year+' Gains &amp; Losses'}` : `Showing only <b>${esc(sel)}</b>’s streaks`}</span>
       ${inPlayer && bk ? `<button type="button" class="glbarb" data-glback="1">← Back to ${esc(bk.label)}</button>` : ''}
       <button type="button" class="glbarb" data-glclear="1">✕ All players</button></div>` : '';
   const metOpt = kind => GL_METRICS.filter(m=>m.kind===kind).map(m=>`<option value="${m.k}"${m.k===M.k?' selected':''}>${esc(m.l)}</option>`).join('');
@@ -12162,7 +12162,7 @@ function renderSavantGains(){
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
     gg.addEventListener('mouseout', e=>{ if(e.target.closest('.glg-d')) tip.hidden = true; });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
-      pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Streaks</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
+      pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
   /* the games that made a streak (each linking to its box score) plus a total row, as list items */
