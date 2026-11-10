@@ -196,6 +196,10 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt .glg-n{margin-left:4px;padding:0 4px;font-size:.74rem}
 .glcols .glt td.lft{padding-left:10px}
 .glcols.glstack .glt.glfit td:not(.lft),.glcols.glstack .glt.glfit th:not(.lft){padding-left:12px;padding-right:12px}
+.glt.glfix2{table-layout:auto;width:100%}
+.glt.glfix2 td,.glt.glfix2 th{padding-left:8px;padding-right:8px}
+.glt.glfix2 td:nth-child(2),.glt.glfix2 th:nth-child(2){text-align:center}
+.glt{--x:0}
 .glt.glfix{table-layout:fixed;width:100%;min-width:680px}
 .glt.glfix td,.glt.glfix th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .glt.glfix td:nth-child(2),.glt.glfix th:nth-child(2){text-align:center}
@@ -11893,12 +11897,12 @@ GL_METRICS.push(glPer('K/G', glP(d=>d.pK), 'pit'), glPer('BB/3', d=>bb3(d), 'pit
 let GLG_PTS = [];
 const GLR = [];                                       // the 'In a row' streaks on screen, so a clicked one can list its games
 const GL_CONDS = [
-  {k:'hit', l:'Hit in the game', kind:'bat', t:d=>d.H>=1}, {k:'obp', l:'Reached base', kind:'bat', t:d=>d.H+d.BB+d.HBP>=1},
-  {k:'hr', l:'Home run', kind:'bat', t:d=>d.HR>=1}, {k:'rbi', l:'RBI', kind:'bat', t:d=>d.RBI>=1}, {k:'run', l:'Scored a run', kind:'bat', t:d=>d.R>=1},
-  {k:'xbh', l:'Extra-base hit', kind:'bat', t:d=>d['2B']+d['3B']+d.HR>=1}, {k:'multi', l:'2+ hits', kind:'bat', t:d=>d.H>=2},
-  {k:'bb', l:'Walk', kind:'bat', t:d=>d.BB>=1}, {k:'nok', l:'No strikeouts', kind:'bat', t:d=>d.K===0},
-  {k:'noer', l:'No earned runs', kind:'pit', t:d=>d.ER===0}, {k:'nobb', l:'No walks', kind:'pit', t:d=>d.pBB===0},
-  {k:'k3', l:'3+ strikeouts', kind:'pit', t:d=>d.pK>=3}, {k:'win', l:'Win', kind:'pit', t:d=>d.W>=1}];
+  {k:'hit', w:'With a hit', o:'Without a hit', l:'Hit in the game', kind:'bat', t:d=>d.H>=1}, {k:'obp', w:'Reaching base', o:'Without reaching base', l:'Reached base', kind:'bat', t:d=>d.H+d.BB+d.HBP>=1},
+  {k:'hr', w:'With a home run', o:'Without a home run', l:'Home run', kind:'bat', t:d=>d.HR>=1}, {k:'rbi', w:'With an RBI', o:'Without an RBI', l:'RBI', kind:'bat', t:d=>d.RBI>=1}, {k:'run', w:'Scoring a run', o:'Without scoring a run', l:'Scored a run', kind:'bat', t:d=>d.R>=1},
+  {k:'xbh', w:'With an extra-base hit', o:'Without an extra-base hit', l:'Extra-base hit', kind:'bat', t:d=>d['2B']+d['3B']+d.HR>=1}, {k:'multi', w:'With 2+ hits', o:'Without 2+ hits', l:'2+ hits', kind:'bat', t:d=>d.H>=2},
+  {k:'bb', w:'With a walk', o:'Without a walk', l:'Walk', kind:'bat', t:d=>d.BB>=1}, {k:'nok', w:'With no strikeouts', o:'With a strikeout', l:'No strikeouts', kind:'bat', t:d=>d.K===0},
+  {k:'noer', w:'With no earned runs', o:'Allowing an earned run', l:'No earned runs', kind:'pit', t:d=>d.ER===0}, {k:'nobb', w:'With no walks', o:'Issuing a walk', l:'No walks', kind:'pit', t:d=>d.pBB===0},
+  {k:'k3', w:'With 3+ strikeouts', o:'Under 3 strikeouts', l:'3+ strikeouts', kind:'pit', t:d=>d.pK>=3}, {k:'win', w:'Winning', o:'Without a win', l:'Win', kind:'pit', t:d=>d.W>=1}];
 const _glChain = {};
 /* every game a player played (batted or pitched), oldest first, across all box-score seasons — a run of games carries over the off-season */
 function glChain(n, kind, post){
@@ -11906,14 +11910,14 @@ function glChain(n, kind, post){
   let all = []; SVP_FULL_YEARS.slice().sort((a,b)=>a-b).forEach(y=>{ all = all.concat(kind==='bat' ? svpFormGames(n, y, post) : glPitGames(n, y, post)); });
   return (_glChain[ck] = all);
 }
-function glRuns(c, year, post, only){
+function glRuns(c, year, post, only, neg){
   const out = [], maxY = Math.max(...SVP_FULL_YEARS), min = post ? 2 : 3;
   NAMES.forEach(n=>{
     if(only && n!==only) return;
     const rows = glChain(n, c.kind, post).filter(g=>{ const y = +g.date.slice(0,4); return year==='all' || (year==='early' ? y<=2021 : year==='modern' ? y>=2022 : y===+year); }); if(!rows.length) return;
     let a = -1;
     for(let i=0; i<=rows.length; i++){
-      const ok = i<rows.length && c.t(rows[i].row);
+      const ok = i<rows.length && (neg ? !c.t(rows[i].row) : c.t(rows[i].row));
       if(ok){ if(a<0) a = i; continue; }
       if(a>=0){ const b = i-1; if(b-a+1>=min) out.push({n, a, b, len:b-a+1, rows:rows.slice(a, b+1), active: b===rows.length-1 && +rows[b].date.slice(0,4)===maxY}); a = -1; }
     }
@@ -12129,7 +12133,7 @@ function renderSavantGains(){
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
   else if(svpGL.view==='straight'){
     GLR.length = 0;
-    const runs = glRuns(cdef, svpGL.year, post, sel);
+    const runs = glRuns(cdef, svpGL.year, post, sel), noRuns = glRuns(cdef, svpGL.year, post, sel, true);
     const fd = (d,y) => glDate(d)+(y?', '+d.slice(0,4):'');
     const row = x => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
       const dates = a.date===b.date ? fd(a.date,1) : ya===yb ? `${fd(a.date)} – ${fd(b.date,1)}` : `${fd(a.date,1)} – ${fd(b.date,1)}`;
@@ -12139,10 +12143,19 @@ function renderSavantGains(){
     const tbl = rs => `<div class="tscroll"><table class="detail sortable glt glfix"><colgroup><col style="width:26%"><col style="width:9%"><col style="width:23%"><col style="width:11%"><col style="width:31%"></colgroup><thead>${head}</thead><tbody>${rs.map(row).join('') || empty(5)}</tbody></table></div>`;
     const byLen = (p, q) => q.len-p.len || q.rows[q.rows.length-1].date.localeCompare(p.rows[p.rows.length-1].date);
     const act = runs.filter(x=>x.active).sort(byLen).slice(0,12);
-    const top = runs.slice().sort(byLen).slice(0,50);
-    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the 2016–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
+    const top = runs.slice().sort(byLen).slice(0,50), noTop = noRuns.slice().sort(byLen).slice(0,50);
+    const row2 = x => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
+      const sd = d => glDate(d)+" ’"+d.slice(2,4), dates = a.date===b.date ? sd(a.date) : `${sd(a.date)} – ${sd(b.date)}`;
+      const line = cdef.kind==='bat' ? `${t.H}-for-${t.AB}` : `${ipStr(t.IPouts)} IP · ${t.pK} K`;
+      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button>${x.active?' <span class="glup" title="Still going">●</span>':''}</td><td class="lft" data-v="${a.date}">${dates}</td><td class="lft mono">${line}</td></tr>`; };
+    const head2 = `<tr><th class="lft">Player</th><th title="Games in a row">Games</th><th class="lft">Dates</th><th class="lft">Totals</th></tr>`;
+    const tbl2 = rs => `<div class="tscroll"><table class="detail sortable glt glfix2"><thead>${head2}</thead><tbody>${rs.map(row2).join('') || empty(4)}</tbody></table></div>`;
+    const cnt = (all, shown) => `${all.length} found${all.length>shown.length?', top '+shown.length+' shown':''}`;
+    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season. The longest streaks are listed both ways, with it and without it${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the 2016–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
       + (act.length && !sel ? `<h4 class="glsec"><span class="glup">●</span> Active now <small>still going</small></h4>${tbl(act)}` : '')
-      + `<h4 class="glsec">Longest streaks <small>${runs.length} found${runs.length>top.length?', top '+top.length+' shown':''}</small></h4>${tbl(top)}`;
+      + `<h4 class="glsec">Longest streaks <small>● = still going</small></h4><div class="glcols">
+        <section class="stat"><h4><span class="glup">▲</span> ${esc(cdef.w)} <small>${cnt(runs, top)}</small></h4>${tbl2(top)}</section>
+        <section class="stat"><h4><span class="gldn">▼</span> ${esc(cdef.o)} <small>${cnt(noRuns, noTop)}</small></h4>${tbl2(noTop)}</section></div>`;
   } else if(svpGL.view==='graph'){
     let pts = []; flatStreaks().forEach(x=>{ const q = glQuad(x.se, x.r); if(q) pts.push({...x, q, team:x.se.rows[x.r.b].team||''}); });
     if(sel) pts = pts.filter(x=>x.se.n===sel);
