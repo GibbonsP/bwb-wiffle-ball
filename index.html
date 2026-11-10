@@ -12170,7 +12170,7 @@ function renderSavantGains(){
     gg.addEventListener('click', e=>{ if(!e.target.closest('.glg-d') && e.target.closest('.glgsvg')){ clearSel(); pin.hidden = true; } });
     document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
-      clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); c.setAttribute('r', (+c.dataset.r + 3).toFixed(1)); svgEl.appendChild(c);
+      clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); svgEl.appendChild(c);
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
