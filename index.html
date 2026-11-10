@@ -148,6 +148,8 @@ tbody tr:hover{background:var(--accent-soft)}
 .glxu li{display:grid;grid-template-columns:minmax(120px,auto) 1fr auto;gap:10px;align-items:baseline;font-size:.82rem}
 .glxu a{font-weight:600}
 .glxl{color:var(--muted)}
+.glxu li.glxt{margin-top:3px;padding-top:5px;border-top:1px solid var(--muted);font-weight:700}
+.glxu li.glxt .glxl{color:var(--ink)}
 .glnote{font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 @media (max-width:560px){.glxu li{grid-template-columns:1fr auto}.glxl{grid-column:1/-1}}
 .glup{color:#1f9d55}.gldn{color:#d22d49}
@@ -12056,6 +12058,10 @@ function renderSavantGains(){
                                          : `${ipStr(r.IPouts)} IP, ${r.pH} H, ${r.ER} ER, ${r.pK} K`;
       items.push(`<li><a href="#/g/${g.id}">${glDate(g.date)} · ${g.away?'at':'vs'} ${esc(g.opp||'')}</a><span class="glxl">${line}</span><span class="mono">${esc(M.l)} ${fv(v)}</span></li>`);
     }
+    const T = sumRows(se.rows.slice(+a, +b+1).map(g=>g.row));
+    const tline = se.rows[+a].row.AB!=null && se.rows[+a].row.G_bat ? `${T.H}-for-${T.AB}${T.HR?', '+T.HR+' HR':''}${T.RBI?', '+T.RBI+' RBI':''}${T.BB?', '+T.BB+' BB':''}`
+                                                                    : `${ipStr(T.IPouts)} IP, ${T.pH} H, ${T.ER} ER, ${T.pK} K`;
+    items.push(`<li class="glxt"><span>Streak total · ${+b-+a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(se.vals[+b])}</span></li>`);
     const row = document.createElement('tr'); row.className = 'glx';
     row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}</ul></td>`;
     tr.after(row); btn.setAttribute('aria-expanded','true');
