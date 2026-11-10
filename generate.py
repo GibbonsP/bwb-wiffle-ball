@@ -11921,9 +11921,9 @@ function glStrip(se, st, M){
   }).join('') + '</div>';
 }
 /* the last 5 games against the season: the improvement in the stat (positive = better) */
-function glLast5(se, M){
+function glLast5(se, M, first){
   const n = se.rows.length; if(n<8) return null;
-  const tot = sumRows(se.rows.map(r=>r.row)), l5 = sumRows(se.rows.slice(-5).map(r=>r.row));
+  const tot = sumRows(se.rows.map(r=>r.row)), l5 = sumRows((first ? se.rows.slice(0,5) : se.rows.slice(-5)).map(r=>r.row));
   if(M.kind==='bat' ? l5.PA<10 : l5.IPouts<9) return null;
   const sv = M.fn(tot, se.y), lv = M.fn(l5, se.y);
   if(!isFinite(sv) || !isFinite(lv) || sv<=0) return null;
@@ -11989,6 +11989,8 @@ function renderSavantGains(){
     const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M); if(t) tr.push({se,st,t}); });
     const l5Row = x => `<tr><td class="lft">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td>${sparkTd(x.se,x.st)}</tr>`;
     const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th>Trend</th>`;
+    const f5Head = l5Head.replace('Last 5','First 5');
+    const f5 = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, true); if(t) f5.push({se,st,t}); });
     const live = nowYear===years[0];
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
       <h3 class="hsub">${live?'Active streaks':'Streaks still going when '+nowYear+' ended'}</h3>
@@ -11998,7 +12000,12 @@ function renderSavantGains(){
       <p class="smeta">${esc(M.l)} over a player’s last 5 games against their season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?'10+ plate appearances':'3+ innings'} in those games.</p>
       ${twoCols('Trending up','Trending down',
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 5)}`;
+        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 5)}
+      <h3 class="hsub">First 5 games vs season</h3>
+      <p class="smeta">${esc(M.l)} over a player’s first 5 games of the season against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Same minimum as above.</p>
+      ${twoCols('Started hot','Started cold',
+        f5.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
+        f5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), f5Head, 5)}`;
   } else if(svpGL.view==='streaks'){
     const f = flatStreaks();
     const top = hot => f.filter(x=>x.r.hot===hot).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,15).map(x=>streakRow(x.se,x.r,x.st,false)).join('');
