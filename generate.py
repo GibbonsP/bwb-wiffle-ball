@@ -11992,7 +11992,8 @@ function glLast5(se, M, first){
   if(M.kind==='bat' ? l5.PA<(post?8:10) : l5.IPouts<(post?6:9)) return null;
   const sv = M.fn(tot, se.y), lv = M.fn(l5, se.y);
   if(!isFinite(sv) || !isFinite(lv) || sv<=0) return null;
-  return {sv, lv, pct:(M.low ? sv-lv : lv-sv)/sv};
+  const win = sl(se.rows); let st = 0, sn = 0; win.forEach(g=>{ const p = glOppPct(g.opp, se.y); if(p!=null){ st += p; sn++; } });
+  return {sv, lv, pct:(M.low ? sv-lv : lv-sv)/sv, sos: sn ? st/sn : null};
 }
 function renderSavantGains(){
   const M = GL_METRICS.find(m=>m.k===svpGL.metric) || (svpGL.metric = 'OPS', GL_METRICS[0]);
@@ -12091,8 +12092,8 @@ function renderSavantGains(){
     const act = []; ps.forEach(({se,st})=>{ const r = st[st.length-1]; if(r && r.b===last(se)) act.push({se,st,r}); });
     const aRows = hot => act.filter(x=>x.r.hot===hot && x.r.pct!=null).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,12).map(x=>streakRow(x.se,x.r,x.st,true)).join('');
     const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M); if(t) tr.push({se,st,t}); });
-    const l5Row = x => `<tr><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td>${sparkTd(x.se,x.st)}</tr>`;
-    const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th data-nosort>Trend</th>`;
+    const l5Row = x => `<tr><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td><td class="mono glsos" data-v="${x.t.sos==null?'':x.t.sos}" title="Strength of schedule: the average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">${x.t.sos==null?'—':x.t.sos.toFixed(3).replace(/^0/,'')}</td>${sparkTd(x.se,x.st)}</tr>`;
+    const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th title="Strength of schedule: average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">SOS</th><th data-nosort>Trend</th>`;
     const f5Head = l5Head.replace('Last 5','First 5');
     const m5Head = l5Head.replace('Last 5','Middle 5');
     const m5 = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, 'mid'); if(t) m5.push({se,st,t}); });
@@ -12106,17 +12107,17 @@ function renderSavantGains(){
       <p class="smeta">${esc(M.l)} over a player’s last 5 games against their season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
       ${twoCols('Trending up','Trending down',
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 5)}
+        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6)}
       <h3 class="hsub">Middle 5 games vs season</h3>
       <p class="smeta">${esc(M.l)} over the 5 games in the middle of a player’s season (centered between the first and last game) against their full-season number. Same minimum as above.</p>
       ${twoCols('Hot in the middle','Cold in the middle',
         m5.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        m5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), m5Head, 5)}
+        m5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), m5Head, 6)}
       <h3 class="hsub">First 5 games vs season</h3>
       <p class="smeta">${esc(M.l)} over a player’s first 5 games of the season against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Same minimum as above.</p>
       ${twoCols('Started hot','Started cold',
         f5.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        f5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), f5Head, 5)}`;
+        f5.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), f5Head, 6)}`;
   } else if(svpGL.view==='streaks'){
     const f = flatStreaks();
     const top = hot => f.filter(x=>x.r.hot===hot).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,15).map(x=>streakRow(x.se,x.r,x.st,false)).join('');
