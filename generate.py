@@ -153,6 +153,8 @@ tbody tr:hover{background:var(--accent-soft)}
 .glxu{list-style:none;margin:0;padding:0;display:grid;gap:3px}
 .glxu li{display:grid;grid-template-columns:minmax(120px,auto) 1fr auto;gap:10px;align-items:baseline;font-size:.82rem}
 .glxu a{font-weight:600}
+.glcols.glstack{grid-template-columns:minmax(0,1fr)}
+.glcols.glstack .glt{font-size:.9rem}
 .glxl{color:var(--muted)}
 .glxu li.glxt{margin-top:3px;padding-top:5px;border-top:1px solid var(--muted);font-weight:700}
 .glxu li.glxt .glxl{color:var(--ink)}
@@ -11875,6 +11877,17 @@ function glBase(kind){
 }
 /* streaks for one season: [{hot, a, b, from, to, pct, lvl}] — a..b are the 0-based games that moved the stat, pct is the improvement
    (positive for a Gain, negative for a Loss) and lvl the player's level against the league at the end of the streak */
+/* strength of schedule for a streak: the average winning percentage (that season, regular season) of the opponents in its games */
+const _glOpp = {};
+function glOppPct(opp, y){
+  const k = opp+'|'+y; if(k in _glOpp) return _glOpp[k];
+  let v = null; try { const r = TEAMS[opp] ? standRow(opp, y) : null; if(r && (r.W+r.L)>0) v = r.PCT; } catch(e){}
+  return (_glOpp[k] = v);
+}
+function glSos(se, r){
+  let t = 0, n = 0; for(let i=r.a;i<=r.b;i++){ const p = glOppPct(se.rows[i].opp, se.y); if(p!=null){ t+=p; n++; } }
+  return n ? t/n : null;
+}
 function glStreaks(se, start, M){
   /* start = the game whose season-to-date stat is the first starting point; 0 = before Game 1 (Game 1 itself is the first move, from nothing) */
   const pre = start===0, v = pre ? [0, ...se.vals] : se.vals, sh = pre ? 1 : 0, res = [];
@@ -11953,11 +11966,12 @@ function renderSavantGains(){
   const sel = svpGL.player && pool.some(s=>s.n===svpGL.player) ? svpGL.player : '';
   const gRange = r => r.a===r.b ? `G${r.a+1}` : `G${r.a+1}–G${r.b+1}`;
   const fv = v => isFinite(v) ? M.fmt(v) : '—';
+  const sosTd = (se, r) => { const v = glSos(se, r); return `<td class="mono glsos" data-v="${v==null?'':v}" title="Strength of schedule: the average winning percentage of the opponents in this streak (.500 = average, higher = tougher)">${v==null?'—':v.toFixed(3).replace(/^0/,'')}</td>`; };
   const gcell = (se, r) => `<button class="glg" data-gk="${esc(se.n)}|${se.y}|${r.a}|${r.b}" aria-expanded="false" title="Show the games in this streak">${gRange(r)}<span class="glg-n">${r.b-r.a+1}</span></button>`;
   const sparkTd = (se, st) => `<td class="glspt">${glSpark(se, st, 62, 22)}</td>`;
   const streakRow = (se, r, st, spark) => `<tr><td class="lft" data-v="${esc(nameLast(se.n))}">${bxName(se.n)}${spark?'':`<small class="glsn">${se.y}</small>`}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td>
-    <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${spark?sparkTd(se, st):''}</tr>`;
-  const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th>${spark?'<th data-nosort>Trend</th>':''}`;
+    <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
+  const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
   const tabsDef = [['now','Trending now'],['streaks','Biggest streaks'],['long','Longest streaks'],['seasons','Player seasons']];
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k}">${l}</button>`).join('')}</div>`;
@@ -11970,7 +11984,7 @@ function renderSavantGains(){
     <label>Player <input id="glPlayer" list="glNames" placeholder="All players" value="${esc(sel)}"></label>
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
-  const twoCols = (hTitle, cTitle, hRows, cRows, head, cols) => `<div class="glcols">
+  const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack) => `<div class="glcols${stack?' glstack':''}">
     <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt"><thead><tr>${head}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
     <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt"><thead><tr>${head}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
   const flatStreaks = () => { const f = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) f.push({se,st,r}); })); return f; };
@@ -11985,8 +11999,8 @@ function renderSavantGains(){
       return `<section class="stat"><h4>${se.y} · ${se.rows.length} games · season ${esc(M.l)} ${fv(se.vals[end])} · ${isFinite(se.idx[end])?Math.round(se.idx[end])+' vs league':''}</h4>
         <p class="smeta"><b class="glup">Gains ${glPct(g)}</b> · <b class="gldn">Losses ${glPct(l)}</b> · Net <b>${glPct(g+l)}</b></p>
         <div class="glhero">${glSpark(se, st, 260, 54)}${glStrip(se, st, M)}</div>
-        <div class="tscroll"><table class="detail sortable"><thead><tr><th class="lft">Streak</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th>vs Lg</th><th class="lft">Ended</th></tr></thead><tbody>${
-          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td><td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td><td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="6" class="lft">No streak of 3+ games.</td></tr>'}</tbody></table></div></section>`;
+        <div class="tscroll"><table class="detail sortable"><thead><tr><th class="lft">Streak</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th>vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th><th class="lft">Ended</th></tr></thead><tbody>${
+          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td><td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}<td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="7" class="lft">No streak of 3+ games.</td></tr>'}</tbody></table></div></section>`;
     }).join('');
   } else if(svpGL.view==='now'){
     const last = se => se.vals.length-1;
@@ -12003,7 +12017,7 @@ function renderSavantGains(){
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
       <h3 class="hsub">${live?'Active streaks':'Streaks still going when '+nowYear+' ended'}</h3>
       <p class="smeta">${live?'Players whose current run of 3+ games is still going after their last game.':'Players whose final run of 3+ games was still going at the end of the season.'} Click a streak to see its games.</p>
-      ${twoCols('Hot now','Cold now',aRows(true),aRows(false),streakHead(true),6)}
+      ${twoCols('Hot now','Cold now',aRows(true),aRows(false),streakHead(true),7,true)}
       <h3 class="hsub">Last 5 games vs season</h3>
       <p class="smeta">${esc(M.l)} over a player’s last 5 games against their season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?'10+ plate appearances':'3+ innings'} in those games.</p>
       ${twoCols('Trending up','Trending down',
@@ -12022,11 +12036,11 @@ function renderSavantGains(){
   } else if(svpGL.view==='streaks'){
     const f = flatStreaks();
     const top = hot => f.filter(x=>x.r.hot===hot).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,15).map(x=>streakRow(x.se,x.r,x.st,false)).join('');
-    body = twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),6);
+    body = twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7);
   } else if(svpGL.view==='long'){
     const f = flatStreaks();
     const top = hot => f.filter(x=>x.r.hot===hot).sort((a,b)=>(b.r.b-b.r.a)-(a.r.b-a.r.a) || Math.abs(b.r.pct)-Math.abs(a.r.pct)).slice(0,15).map(x=>streakRow(x.se,x.r,x.st,false)).join('');
-    body = `<p class="smeta">Ranked by how many games in a row, not by percent; ties go to the bigger move.</p>` + twoCols('Longest Hot Streaks','Longest Cold Streaks',top(true),top(false),streakHead(false),6);
+    body = `<p class="smeta">Ranked by how many games in a row, not by percent; ties go to the bigger move.</p>` + twoCols('Longest Hot Streaks','Longest Cold Streaks',top(true),top(false),streakHead(false),7);
   } else {
     const rows = ps.map(({se,st})=>{
       const hot = st.filter(r=>r.hot&&r.pct!=null), cold = st.filter(r=>!r.hot&&r.pct!=null), {g,l} = sums(st), end = se.vals.length-1;
@@ -12047,7 +12061,7 @@ function renderSavantGains(){
     ${sel ? '' : tabs}${yearChips}${controls}${body}
     <p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season; Net is Gains plus Losses. Early in a season a single
       game moves the number a lot, so the biggest early streaks can show very large percents. Game 1 sets the starting point. A streak that starts from zero has no percent and is left out of the totals.
-      In the small season line, grey is the whole season and green / red mark the streaks.</p>`);
+      In the small season line, grey is the whole season and green / red mark the streaks. SOS (strength of schedule) is the average winning percentage of the opponents a streak was played against, so .500 is an average schedule and higher means tougher opponents; a hot streak at a high SOS is the more impressive one.</p>`);
   const re = () => renderSavantGains();
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   document.getElementById('glMetric').addEventListener('change', e=>{ svpGL.metric = e.target.value; re(); });
