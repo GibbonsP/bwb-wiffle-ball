@@ -12104,8 +12104,8 @@ function renderSavantGains(){
       <h3 class="hsub">${live?'Active streaks':'Streaks still going when '+nowYear+' ended'}</h3>
       <p class="smeta">${live?`Players whose current run of ${glMinRun()}+ games is still going after their last game.`:`Players whose final run of ${glMinRun()}+ games was still going at the end of the ${post?'postseason':'season'}.`} Click a streak to see its games.</p>
       ${twoCols('Hot now','Cold now',aRows(true),aRows(false),streakHead(true),7,true)}
-      <h3 class="hsub">Last, middle and first 5 games vs season</h3>
-      <div class="chips" role="group" aria-label="Five-game window">${[['last','Last 5'],['mid','Middle 5'],['first','First 5']].map(([k,l])=>`<button data-glw="${k}" aria-pressed="${svpGL.win===k}">${l}</button>`).join('')}</div>
+      <h3 class="hsub">First, middle and last 5 games vs season</h3>
+      <div class="chips" role="group" aria-label="Five-game window">${[['first','First 5'],['mid','Middle 5'],['last','Last 5']].map(([k,l])=>`<button data-glw="${k}" aria-pressed="${svpGL.win===k}">${l}</button>`).join('')}</div>
       <p class="smeta">${esc(M.l)} over ${W5.d} against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
       ${twoCols(W5.up,W5.dn,
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
