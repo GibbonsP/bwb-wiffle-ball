@@ -11958,7 +11958,14 @@ function glStreaks(se, start, M){
   for(; i<v.length; i++){
     if(!isFinite(v[i]) || !isFinite(v[i-1])){ close(); continue; }
     const d = v[i]-v[i-1];
-    if(Math.abs(d)<1e-9){ close(); continue; }
+    if(Math.abs(d)<1e-9){
+      /* a stat already at its best possible value (0.00 ERA / WHIP, 1.000 AVG / OBP) can't improve, so holding it counts as staying hot */
+      const best = M.low ? v[i]<=1e-9 : (M.k==='AVG'||M.k==='OBP') && v[i]>=1-1e-9;
+      if(!best || (pre && i===1)){ close(); continue; }
+      if(run && run.hot){ run.b = i-sh; run.to = v[i]; }
+      else { close(); run = {hot:true, a:i-sh, b:i-sh, from:v[i-1], to:v[i]}; }
+      continue;
+    }
     const hot = M.low ? d<0 : d>0;
     if(run && run.hot===hot){ run.b = i-sh; run.to = v[i]; }
     else { close(); run = {hot, a:i-sh, b:i-sh, from:v[i-1], to:v[i]}; }
@@ -12186,7 +12193,7 @@ function renderSavantGains(){
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     <p class="smeta">Follow a player’s season ${esc(M.l)} game by game. A run of games where it keeps getting better is a hot streak, and the percent it improved is a <b>Gain</b>; a run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
-      A streak needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>
+      A streak needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it${M.low?' (unless it is already perfect, like a 0.00 '+esc(M.l)+', which can’t get any better and stays hot)':''}. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>
     ${phaseChips}${tabs}${svpGL.view==='carry'?'':yearChips}${controls}${playerBar}${body}
     <p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
       <b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. <b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
