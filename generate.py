@@ -160,7 +160,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glg-tk{font:11px var(--mono,monospace);fill:var(--muted)}.glg-ax{font:600 12px var(--sans,system-ui);fill:var(--muted)}
 .glg-d{stroke:var(--card);stroke-width:1;opacity:.72;cursor:pointer}.glg-d:hover{opacity:1;stroke:var(--ink);stroke-width:1.5}
 .glg-h{fill:#1f9d55}.glg-c{fill:#d22d49}
-.glg-d{transition:opacity .15s,filter .15s}
+.glg-d{transition:opacity .6s,filter .6s}
 .glgsvg.glg-has-sel .glg-d:not(.glg-sel){opacity:.22;filter:blur(1.3px)}
 .glgsvg.glg-has-sel .glg-d:not(.glg-sel):hover{opacity:.6;filter:none}
 .glg-d.glg-sel{opacity:1;stroke:var(--ink);stroke-width:3;filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
@@ -12172,11 +12172,13 @@ function renderSavantGains(){
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
     gg.addEventListener('mouseout', e=>{ if(e.target.closest('.glg-d')) tip.hidden = true; });
     const svgEl = gg.querySelector('.glgsvg');
-    const clearSel = () => { svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
+    let fadeT = null;
+    const clearSel = () => { clearTimeout(fadeT); svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
     gg.addEventListener('click', e=>{ if(!e.target.closest('.glg-d') && e.target.closest('.glgsvg')){ clearSel(); pin.hidden = true; } });
     document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
       clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); svgEl.appendChild(c);
+      fadeT = setTimeout(()=>svgEl.classList.remove('glg-has-sel'), 8000);   // the focus fades after 8 seconds; the dot and its details stay selected
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
