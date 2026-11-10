@@ -173,6 +173,8 @@ tbody tr:hover{background:var(--accent-soft)}
 .glbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 4px;padding:8px 12px;background:var(--accent-soft);border-radius:10px;font-size:.88rem}
 .glbarb{font:inherit;font-weight:600;font-size:.84rem;border:1px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
 .glbarb:hover{background:var(--ink);color:var(--card)}
+.glxu li.glxh{grid-column:1/-1;margin-top:6px;font-weight:700;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.glxu li.glxh:first-child{margin-top:0}
 .glcols.glstack{grid-template-columns:minmax(0,1fr)}
 .glcols.glstack .glt{font-size:.9rem}
 .glxl{color:var(--muted)}
@@ -12013,9 +12015,10 @@ function renderSavantGains(){
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
   if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   if(svpGL.view==='long') svpGL.view = 'streaks';
-  if(!['now','streaks','seasons','graph'].includes(svpGL.view)) svpGL.view = 'now';
+  if(!['now','streaks','carry','seasons','graph'].includes(svpGL.view)) svpGL.view = 'now';
+  const filt = svpGL.view==='graph' || svpGL.view==='carry';      // these views filter by the chosen player instead of switching to the single-player page
   const nowYear = svpGL.year==='all' ? years[0] : +svpGL.year;          // "now" looks at one season: the chosen one, else the latest
-  const yrSet = new Set(svpGL.view==='now' ? [nowYear] : svpGL.year==='all' ? years : [+svpGL.year]);
+  const yrSet = new Set(svpGL.view==='now' ? [nowYear] : (svpGL.view==='carry' || svpGL.year==='all') ? years : [+svpGL.year]);
   const start = 1;                                   // Game 1's season-to-date stat is the starting point
   const pool = all.filter(s=>yrSet.has(s.y));
   const ps = pool.map(se=>({se, st:glStreaks(se, start, M)}));
@@ -12029,14 +12032,14 @@ function renderSavantGains(){
     <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
   const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
-  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['seasons','Player seasons'],['graph','Graph']];
+  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['carry','Carryover'],['seasons','Player seasons'],['graph','Graph']];
   const post = svpGL.phase==='Playoffs';
   const phaseChips = `<div class="segs post glphase" role="group" aria-label="Season type">${[['Regular','Regular'],['Playoffs','Playoffs']].map(([k,l])=>`<button data-glp="${k}" aria-pressed="${svpGL.phase===k}">${l}</button>`).join('')}</div>`;
-  const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k && !(sel && svpGL.view!=='graph')}">${l}</button>`).join('')}</div>`;
+  const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k && !(sel && !filt)}">${l}</button>`).join('')}</div>`;
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
     <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${svpGL.view==='now'?'Latest':'All Years'}</button>
     ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
-  const inPlayer = !!sel && svpGL.view!=='graph';
+  const inPlayer = !!sel && !filt;
   const bk = svpGL.back;
   const playerBar = sel ? `<div class="glbar" role="status">
       <span>${inPlayer ? `Viewing <b>${esc(sel)}</b>’s ${svpGL.year==='all'?'Gains &amp; Losses':svpGL.year+' Gains &amp; Losses'}` : `Showing only <b>${esc(sel)}</b>’s streaks`}</span>
@@ -12090,6 +12093,23 @@ function renderSavantGains(){
       <div class="svpform">${ghChips}
         <label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label></div>
       <div class="glgraph">${svg}<div class="glgtip" hidden></div></div><div class="glpin" hidden></div>`;
+  } else if(svpGL.view==='carry'){
+    const by = new Map(); ps.forEach(p=>{ if(!by.has(p.se.n)) by.set(p.se.n, []); by.get(p.se.n).push(p); });
+    let rows = [];
+    by.forEach(list=>{ list.sort((a,b)=>a.se.y-b.se.y); for(let i=0;i+1<list.length;i++){ const A = list[i], B = list[i+1]; if(B.se.y!==A.se.y+1) continue;
+      const r1 = A.st[A.st.length-1], r2 = B.st[0];
+      if(!r1 || !r2 || r1.b!==A.se.vals.length-1 || r2.a!==1 || r1.hot!==r2.hot) continue;
+      rows.push({A, B, r1, r2, hot:r1.hot, total:(r1.b-r1.a+1)+(r2.b-r2.a+1)}); } });
+    if(sel) rows = rows.filter(x=>x.A.se.n===sel);
+    if(svpGL.year!=='all') rows = rows.filter(x=>x.A.se.y===+svpGL.year);
+    rows.sort((a,b)=>b.total-a.total || (Math.abs(b.r1.pct||0)+Math.abs(b.r2.pct||0))-(Math.abs(a.r1.pct||0)+Math.abs(a.r2.pct||0)));
+    const seg = r => `<td class="mono" data-v="${isFinite(r.to)?r.to:''}">${gRange(r)} <span class="glg-n">${r.b-r.a+1}</span> · ${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}" data-v="${r.pct==null?'':r.pct}">${glPct(r.pct)}</td>`;
+    const cRow = x => `<tr><td class="lft" data-v="${esc(nameLast(x.A.se.n))}">${bxName(x.A.se.n)}<small class="glsn">${x.A.se.y} → ${x.B.se.y}</small></td>
+      <td data-v="${x.total}"><button class="glg glg2" data-gk2="${esc(x.A.se.n)}|${x.A.se.y}|${x.r1.a}|${x.r1.b}|${x.r2.a}|${x.r2.b}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n">${x.total}</span></button></td>${seg(x.r1)}${seg(x.r2)}</tr>`;
+    const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The streak that was still going when the season ended">Finished the season</th><th></th><th title="The same-direction streak that began the next season, from Game 2 (Game 1 sets the baseline)">Started the next</th><th></th>`;
+    const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
+    body = `<p class="smeta">Streaks that crossed an off-season: a player finished a season in a hot (or cold) streak and opened the next season in the same direction, starting with the first move at Game 2 (Game 1 sets each season’s baseline). The season chips pick the season the streak finished in. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
+      + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,6,true);
   } else if(sel){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
     body = mine.map(({se,st})=>{
@@ -12154,7 +12174,7 @@ function renderSavantGains(){
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   document.getElementById('glMetric').addEventListener('change', e=>{ svpGL.metric = e.target.value; re(); });
   document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim(); svpGL.player = P[v] ? v : ''; svpGL.back = null; re(); });
-  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph') svpGL.player = ''; re(); }));
+  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry') svpGL.player = ''; re(); }));
   app.querySelectorAll('[data-glclear]').forEach(b=>b.addEventListener('click',()=>{ svpGL.player = ''; svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glback]').forEach(b=>b.addEventListener('click',()=>{ const k = svpGL.back; if(k){ svpGL.view = k.view; svpGL.year = k.year; svpGL.team = k.team; svpGL.gh = k.gh; svpGL.player = k.player; } svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glp]').forEach(b=>b.addEventListener('click',()=>{ svpGL.phase = b.dataset.glp; svpGL.team = ''; re(); }));
@@ -12196,8 +12216,18 @@ function renderSavantGains(){
     items.push(`<li class="glxt"><span>Streak total · ${b-a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(se.vals[b])}</span></li>`);
     return items;
   }
+  /* a carryover streak's games: the finish of one season, then the start of the next */
+  app.querySelectorAll('.glg2').forEach(btn=>btn.addEventListener('click',()=>{
+    const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
+    if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
+    const [n, y, a1, b1, a2, b2] = btn.dataset.gk2.split('|'), s1 = GLX.get(n+'|'+y), s2 = GLX.get(n+'|'+(+y+1)); if(!s1 || !s2) return;
+    const items = [`<li class="glxh">${y} · how the season finished</li>`, ...glGames(s1, +a1, +b1), `<li class="glxh">${+y+1} · how the next season started</li>`, ...glGames(s2, +a2, +b2)];
+    const row = document.createElement('tr'); row.className = 'glx';
+    row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}</ul></td>`;
+    tr.after(row); btn.setAttribute('aria-expanded','true');
+  }));
   /* a streak's games, one click away: the games that made it, each linking to its box score */
-  app.querySelectorAll('.glg').forEach(btn=>btn.addEventListener('click',()=>{
+  app.querySelectorAll('.glg:not(.glg2)').forEach(btn=>btn.addEventListener('click',()=>{
     const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
     if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
     const [n, y, a, b] = btn.dataset.gk.split('|'), se = GLX.get(n+'|'+y); if(!se) return;
