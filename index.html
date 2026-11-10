@@ -158,6 +158,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glpin{max-width:760px;margin:10px auto 0;padding:10px 12px;background:var(--accent-soft);border-radius:10px;font-size:.84rem;line-height:1.5;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .glpin[hidden]{display:none}
 .glpinb{font:inherit;font-weight:600;border:1px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
+.glphase{margin:14px 0 4px}
 .glcols.glstack{grid-template-columns:minmax(0,1fr)}
 .glcols.glstack .glt{font-size:.9rem}
 .glxl{color:var(--muted)}
@@ -11836,9 +11837,9 @@ function renderSavantHub(){
    Each streak also carries a "vs league" level (100 = the league average that year) so a cold streak from an elite level
    reads as exactly that. */
 const babipOf = d => { const den = d.AB-d.K-d.HR+(d.SF||0); return den>0 ? (d.H-d.HR)/den : NaN; };
-const GL_MINRUN = 3;                                 // a streak is more than 2 games in a row
+const glMinRun = () => svpGL.phase==='Playoffs' ? 2 : 3;   // a streak is 3+ games in a row (2+ in the shorter postseason)
 const GL_MING = {bat:8, pit:5};                      // games a season needs to count
-const GL_MING_POST = {bat:3, pit:3};                 // …and a postseason run (a streak needs 3 games anyway)
+const GL_MING_POST = {bat:2, pit:2};                 // …and a postseason run (a postseason streak needs 2 games)
 const glMing = kind => (svpGL.phase==='Playoffs' ? GL_MING_POST : GL_MING)[kind];
 const glIdx = (lg, low) => (v,d,y) => { const l = lg(y); return (isFinite(v)&&isFinite(l)&&l&&v) ? 100*(low ? l/v : v/l) : NaN; };
 const GL_METRICS = [
@@ -11932,7 +11933,7 @@ function glStreaks(se, start, M){
   const pre = start===0, v = pre ? [0, ...se.vals] : se.vals, sh = pre ? 1 : 0, res = [];
   let i = Math.max(1, start), run = null;
   const close = () => {
-    if(run && run.b-run.a+1 < GL_MINRUN) run = null;
+    if(run && run.b-run.a+1 < glMinRun()) run = null;
     if(run){
       run.pct = run.from>0 ? (M.low ? (run.from-run.to) : (run.to-run.from))/run.from : null;
       run.lvl = se.idx[run.b];
@@ -12014,7 +12015,7 @@ function renderSavantGains(){
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
   const tabsDef = [['now','Trending now'],['streaks','Biggest streaks'],['long','Longest streaks'],['seasons','Player seasons'],['graph','Graph']];
   const post = svpGL.phase==='Playoffs';
-  const phaseChips = `<div class="chips" role="group" aria-label="Season type">${[['Regular','Regular season'],['Playoffs','Postseason']].map(([k,l])=>`<button data-glp="${k}" aria-pressed="${svpGL.phase===k}">${l}</button>`).join('')}</div>`;
+  const phaseChips = `<div class="segs post glphase" role="group" aria-label="Season type">${[['Regular','Regular'],['Playoffs','Playoffs']].map(([k,l])=>`<button data-glp="${k}" aria-pressed="${svpGL.phase===k}">${l}</button>`).join('')}</div>`;
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k}">${l}</button>`).join('')}</div>`;
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
     <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${svpGL.view==='now'?'Latest':'All Years'}</button>
@@ -12077,7 +12078,7 @@ function renderSavantGains(){
         <p class="smeta"><b class="glup">Gains ${glPct(g)}</b> · <b class="gldn">Losses ${glPct(l)}</b> · Net <b>${glPct(g+l)}</b></p>
         <div class="glhero">${glSpark(se, st, 260, 54)}${glStrip(se, st, M)}</div>
         <div class="tscroll"><table class="detail sortable"><thead><tr><th class="lft">Streak</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th>vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th><th class="lft">Ended</th></tr></thead><tbody>${
-          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td><td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}<td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="7" class="lft">No streak of 3+ games.</td></tr>'}</tbody></table></div></section>`;
+          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td><td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}<td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="7" class="lft">No streak of ${glMinRun()}+ games.</td></tr>'}</tbody></table></div></section>`;
     }).join('');
   } else if(svpGL.view==='now'){
     const last = se => se.vals.length-1;
@@ -12093,7 +12094,7 @@ function renderSavantGains(){
     const live = nowYear===years[0];
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
       <h3 class="hsub">${live?'Active streaks':'Streaks still going when '+nowYear+' ended'}</h3>
-      <p class="smeta">${live?'Players whose current run of 3+ games is still going after their last game.':'Players whose final run of 3+ games was still going at the end of the season.'} Click a streak to see its games.</p>
+      <p class="smeta">${live?`Players whose current run of ${glMinRun()}+ games is still going after their last game.`:`Players whose final run of ${glMinRun()}+ games was still going at the end of the ${post?'postseason':'season'}.`} Click a streak to see its games.</p>
       ${twoCols('Hot now','Cold now',aRows(true),aRows(false),streakHead(true),7,true)}
       <h3 class="hsub">Last 5 games vs season</h3>
       <p class="smeta">${esc(M.l)} over a player’s last 5 games against their season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
@@ -12132,7 +12133,7 @@ function renderSavantGains(){
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     <p class="smeta">Follow a player’s season ${esc(M.l)} game by game. Each run of games where it keeps getting better is a hot streak, and the percent it improved is a
       <b>Gain</b>; each run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
-      A streak has to last more than 2 games (3 or more in a row); shorter runs don’t count, and a game that doesn’t move ${esc(M.l)} ends the run.
+      A streak has to last ${post?'2 or more games in a row (the postseason is much shorter)':'more than 2 games (3 or more in a row)'}; shorter runs don’t count, and a game that doesn’t move ${esc(M.l)} ends the run.
       <b>vs Lg</b> is the player’s ${esc(M.l)} against that year’s league average, 100 = average, so a cold streak from an elite level shows as exactly that.
       ${post?'Postseason games':'Regular-season games'} from 2017 on with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.${post?' The league comparisons (vs Lg, OPS+, ERA+ and so on) use that year’s regular-season league averages, and SOS uses the opponents’ regular-season records.':''}</p>
     ${phaseChips}${(sel && svpGL.view!=='graph') ? '' : tabs}${yearChips}${controls}${body}
