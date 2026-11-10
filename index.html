@@ -11874,7 +11874,7 @@ function renderSavantGains(){
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
   if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   const yrSet = new Set(svpGL.year==='all' ? years : [+svpGL.year]);
-  const start = [0,1,2,3,5].includes(+svpGL.start) ? +svpGL.start : 1;
+  const start = 1;                                   // Game 1's season-to-date stat is the starting point
   const pool = all.filter(s=>yrSet.has(s.y) && s.vals.length>Math.max(1,start));
   const ps = pool.map(se=>({se, st:glStreaks(se, start, M)}));
   const sel = svpGL.player && pool.some(s=>s.n===svpGL.player) ? svpGL.player : '';
@@ -11890,11 +11890,9 @@ function renderSavantGains(){
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
     <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">All Years</button>
     ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
-  const startOpts = [0,1,2,3,5].map(k=>`<option value="${k}"${k===start?' selected':''}>${k===0?'Prior to Game 1':k===1?'Game 1 (every game counts)':'After game '+k}</option>`).join('');
   const metOpt = kind => GL_METRICS.filter(m=>m.kind===kind).map(m=>`<option value="${m.k}"${m.k===M.k?' selected':''}>${esc(m.l)}</option>`).join('');
   const controls = `<div class="svpform">
     <label>Stat <select id="glMetric"><optgroup label="Batting">${metOpt('bat')}</optgroup><optgroup label="Pitching">${metOpt('pit')}</optgroup></select></label>
-    <label>Start measuring from <select id="glStart">${startOpts}</select></label>
     <label>Player <input id="glPlayer" list="glNames" placeholder="All players" value="${esc(sel)}"></label>
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
@@ -11937,12 +11935,11 @@ function renderSavantGains(){
       Regular-season games from 2017 on with a box score; ${M.kind==='bat'?GL_MING.bat+'+ games batting':GL_MING.pit+'+ games pitched'} in a season.</p>
     ${sel ? '' : tabs}${yearChips}${controls}${body}
     <p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season; Net is Gains plus Losses. Early in a season a single
-      game moves the number a lot, so use “Start measuring from” to skip the first few games, or pick “Prior to Game 1” to count Game 1 itself as the first move. A streak that starts from zero
-      (as the first one does before Game 1) has no percent and is left out of the totals.</p>`);
+      game moves the number a lot, so the biggest early streaks can show very large percents. Game 1 sets the starting point. A streak that starts from zero
+      has no percent and is left out of the totals.</p>`);
   const re = () => renderSavantGains();
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   document.getElementById('glMetric').addEventListener('change', e=>{ svpGL.metric = e.target.value; re(); });
-  document.getElementById('glStart').addEventListener('change', e=>{ svpGL.start = +e.target.value; re(); });
   document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim(); svpGL.player = P[v] ? v : ''; re(); });
   app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ svpGL.view = b.dataset.glv; re(); }));
 }
