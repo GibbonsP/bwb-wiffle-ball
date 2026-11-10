@@ -160,6 +160,10 @@ tbody tr:hover{background:var(--accent-soft)}
 .glg-tk{font:11px var(--mono,monospace);fill:var(--muted)}.glg-ax{font:600 12px var(--sans,system-ui);fill:var(--muted)}
 .glg-d{stroke:var(--card);stroke-width:1;opacity:.72;cursor:pointer}.glg-d:hover{opacity:1;stroke:var(--ink);stroke-width:1.5}
 .glg-h{fill:#1f9d55}.glg-c{fill:#d22d49}
+.glg-d{transition:opacity .15s,filter .15s}
+.glgsvg.glg-has-sel .glg-d:not(.glg-sel){opacity:.22;filter:blur(1.3px)}
+.glgsvg.glg-has-sel .glg-d:not(.glg-sel):hover{opacity:.6;filter:none}
+.glg-d.glg-sel{opacity:1;stroke:var(--ink);stroke-width:3;filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
 .glgtip{position:absolute;z-index:3;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--muted);border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.18);max-width:330px}
 .glpin{max-width:760px;margin:10px auto 0;padding:10px 12px;background:var(--accent-soft);border-radius:10px;font-size:.84rem;line-height:1.5;display:grid;gap:10px}
 .glpinh{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -12079,7 +12083,7 @@ function renderSavantGains(){
       ${ql(L+pw-8, T+ph-26, 'end', 'Weak hitting · good pitching', cnt(false,true))}
       <text x="${L+pw/2}" y="${H-8}" text-anchor="middle" class="glg-ax">Opponent pitching →  (100 = league average, right = better pitching)</text>
       <text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="glg-ax">Opponent hitting →  (100 = league average, up = better hitting)</text>
-      ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1)}"/>`).join('')}
+      ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1)}" data-r="${Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1)}"/>`).join('')}
     </svg>`;
     const ghChips = `<div class="chips" role="group" aria-label="Streak type">${[['both','Hot + cold'],['hot','Hot only'],['cold','Cold only']].map(([k,l])=>`<button data-glh="${k}" aria-pressed="${svpGL.gh===k}">${l}</button>`).join('')}</div>`;
     body = `<p class="smeta">Every streak is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the streak against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are hot streaks, red are cold; bigger dots are longer streaks. Hover a dot for the streak, click it to pin the details. ${pts.length} streaks shown.</p>
@@ -12167,7 +12171,12 @@ function renderSavantGains(){
       tip.style.left = Math.min(b.width-tip.offsetWidth-4, Math.max(4, cb.left-b.left+cb.width/2-tip.offsetWidth/2))+'px';
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
     gg.addEventListener('mouseout', e=>{ if(e.target.closest('.glg-d')) tip.hidden = true; });
+    const svgEl = gg.querySelector('.glgsvg');
+    const clearSel = () => { svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
+    gg.addEventListener('click', e=>{ if(!e.target.closest('.glg-d') && e.target.closest('.glgsvg')){ clearSel(); pin.hidden = true; } });
+    document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
+      clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); c.setAttribute('r', (+c.dataset.r + 3).toFixed(1)); svgEl.appendChild(c);
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
