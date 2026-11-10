@@ -12020,7 +12020,8 @@ function renderSavantGains(){
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
   if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   if(svpGL.view==='long') svpGL.view = 'streaks';
-  if(!['now','streaks','carry','seasons','graph'].includes(svpGL.view)) svpGL.view = 'now';
+  if(svpGL.view==='seasons') svpGL.view = 'totals';
+  if(!['now','streaks','carry','totals','graph'].includes(svpGL.view)) svpGL.view = 'now';
   const filt = svpGL.view==='graph' || svpGL.view==='carry';      // these views filter by the chosen player instead of switching to the single-player page
   const nowYear = svpGL.year==='all' ? years[0] : +svpGL.year;          // "now" looks at one season: the chosen one, else the latest
   const yrSet = new Set(svpGL.view==='now' ? [nowYear] : (svpGL.view==='carry' || svpGL.year==='all') ? years : [+svpGL.year]);
@@ -12037,7 +12038,7 @@ function renderSavantGains(){
     <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
   const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th class="glsph" data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
-  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['carry','Carryover'],['seasons','Player seasons'],['graph','Graph']];
+  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['carry','Carryover'],['totals','Totals'],['graph','Graph']];
   const post = svpGL.phase==='Playoffs';
   const phaseChips = `<div class="segs post glphase" role="group" aria-label="Season type">${[['Regular','Regular'],['Playoffs','Playoffs']].map(([k,l])=>`<button data-glp="${k}" aria-pressed="${svpGL.phase===k}">${l}</button>`).join('')}</div>`;
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k && !(sel && !filt)}">${l}</button>`).join('')}</div>`;
@@ -12176,13 +12177,16 @@ function renderSavantGains(){
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
     body = `<p class="smeta">The 30 biggest and the 30 longest hot and cold streaks in one list, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7);
   } else {
-    const rows = ps.map(({se,st})=>{
-      const hot = st.filter(r=>r.hot&&r.pct!=null), cold = st.filter(r=>!r.hot&&r.pct!=null), {g,l} = sums(st), end = se.vals.length-1;
-      return {se, st, nh:hot.length, nc:cold.length, g, l, net:g+l, fin:se.vals[end], lvl:se.idx[end]};
-    }).sort((a,b)=>b.net-a.net);
-    const cell = (v,cls) => `<td class="mono ${cls}">${glPct(v)}</td>`;
-    body = `<div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th>Season</th><th>G</th><th>Hot</th><th>Gains</th><th>Cold</th><th>Losses</th><th>Net</th><th>${esc(M.l)}</th><th>vs Lg</th><th class="glsph" data-nosort>Trend</th></tr></thead><tbody>${
-      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.se.n))}">${bxName(r.se.n)}</td><td>${r.se.y}</td><td>${r.se.rows.length}</td><td>${r.nh}</td>${cell(r.g,'glup')}<td>${r.nc}</td>${cell(r.l,'gldn')}${cell(r.net,r.net>=0?'glup':'gldn')}<td class="mono">${fv(r.fin)}</td><td>${glLvl(r.lvl)}</td>${sparkTd(r.se,r.st)}</tr>`).join('')}</tbody></table></div>`;
+    const by = new Map();
+    ps.forEach(({se,st})=>{ let t = by.get(se.n); if(!t) by.set(se.n, t = {n:se.n, ys:new Set(), nh:0, nc:0, lh:0, lc:0, g:0, l:0});
+      t.ys.add(se.y);
+      st.forEach(r=>{ const len = r.b-r.a+1; if(r.hot){ t.nh++; t.lh = Math.max(t.lh, len); } else { t.nc++; t.lc = Math.max(t.lc, len); }
+        if(r.pct!=null){ if(r.hot) t.g += r.pct; else t.l += r.pct; } }); });
+    const rows = [...by.values()].sort((a,b)=>(b.nh+b.nc)-(a.nh+a.nc) || b.nh-a.nh);
+    const cell = (v,cls) => `<td class="mono ${cls}" data-v="${v}">${glPct(v)}</td>`;
+    const dash = v => v ? v : '—';
+    body = `<p class="smeta">Every hot and cold streak a player has had, added up${svpGL.year==='all'?' over all years':' in '+svpGL.year}. Click any column to re-sort.</p><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th title="Seasons with a qualifying sample">Seasons</th><th>Hot</th><th>Cold</th><th title="Hot + cold streaks">Total</th><th title="Games in the longest hot streak">Longest hot</th><th title="Games in the longest cold streak">Longest cold</th><th title="Sum of the percent gained over every hot streak">Gains</th><th title="Sum of the percent lost over every cold streak">Losses</th><th title="Gains + Losses">Net</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.n))}">${bxName(r.n)}</td><td>${r.ys.size}</td><td class="glup" data-v="${r.nh}"><b>${r.nh}</b></td><td class="gldn" data-v="${r.nc}"><b>${r.nc}</b></td><td data-v="${r.nh+r.nc}">${r.nh+r.nc}</td><td data-v="${r.lh}">${dash(r.lh)}</td><td data-v="${r.lc}">${dash(r.lc)}</td>${cell(r.g,'glup')}${cell(r.l,'gldn')}${cell(r.g+r.l,r.g+r.l>=0?'glup':'gldn')}</tr>`).join('')}</tbody></table></div>`;
   }
   svpShell('gains', `
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
