@@ -12094,20 +12094,27 @@ function renderSavantGains(){
         <label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label></div>
       <div class="glgraph">${svg}<div class="glgtip" hidden></div></div><div class="glpin" hidden></div>`;
   } else if(svpGL.view==='carry'){
+    /* a trend that crosses the off-season: the season ended inside a hot/cold streak, and the stat keeps moving the same way from that end-of-season level
+       into the next season's first game(s), for as long as each step keeps going the same direction */
     const by = new Map(); ps.forEach(p=>{ if(!by.has(p.se.n)) by.set(p.se.n, []); by.get(p.se.n).push(p); });
+    const better = (x, y) => M.low ? x<y : x>y;             // is x an improvement on y
     let rows = [];
     by.forEach(list=>{ list.sort((a,b)=>a.se.y-b.se.y); for(let i=0;i+1<list.length;i++){ const A = list[i], B = list[i+1]; if(B.se.y!==A.se.y+1) continue;
-      const r1 = A.st[A.st.length-1], r2 = B.st[0];
-      if(!r1 || !r2 || r1.b!==A.se.vals.length-1 || r2.a!==1 || r1.hot!==r2.hot) continue;
-      rows.push({A, B, r1, r2, hot:r1.hot, total:(r1.b-r1.a+1)+(r2.b-r2.a+1)}); } });
+      const r1 = A.st[A.st.length-1], vEnd = A.se.vals[A.se.vals.length-1], bv = B.se.vals;
+      if(!r1 || r1.b!==A.se.vals.length-1 || !isFinite(vEnd) || !isFinite(bv[0]) || Math.abs(bv[0]-vEnd)<1e-9 || better(bv[0], vEnd)!==r1.hot) continue;
+      let e = 0; while(e+1<bv.length && isFinite(bv[e+1]) && Math.abs(bv[e+1]-bv[e])>1e-9 && better(bv[e+1], bv[e])===r1.hot) e++;
+      const from = r1.from, to = bv[e], pct = from>0 ? (M.low ? from-to : to-from)/from : null;
+      rows.push({A, B, r1, e, hot:r1.hot, n1:r1.b-r1.a+1, n2:e+1, total:(r1.b-r1.a+1)+(e+1), from, to, pct, vEnd}); } });
     if(sel) rows = rows.filter(x=>x.A.se.n===sel);
-    rows.sort((a,b)=>b.total-a.total || (Math.abs(b.r1.pct||0)+Math.abs(b.r2.pct||0))-(Math.abs(a.r1.pct||0)+Math.abs(a.r2.pct||0)));
-    const seg = r => `<td class="mono" data-v="${isFinite(r.to)?r.to:''}">${gRange(r)} <span class="glg-n">${r.b-r.a+1}</span> · ${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}" data-v="${r.pct==null?'':r.pct}">${glPct(r.pct)}</td>`;
+    rows.sort((a,b)=>b.total-a.total || Math.abs(b.pct||0)-Math.abs(a.pct||0));
     const cRow = x => `<tr><td class="lft" data-v="${esc(nameLast(x.A.se.n))}">${bxName(x.A.se.n)}<small class="glsn">${x.A.se.y} → ${x.B.se.y}</small></td>
-      <td data-v="${x.total}"><button class="glg glg2" data-gk2="${esc(x.A.se.n)}|${x.A.se.y}|${x.r1.a}|${x.r1.b}|${x.r2.a}|${x.r2.b}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n">${x.total}</span></button></td>${seg(x.r1)}${seg(x.r2)}</tr>`;
-    const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The streak that was still going when the season ended">Finished the season</th><th></th><th title="The same-direction streak that began the next season, from Game 2 (Game 1 sets the baseline)">Started the next</th><th></th>`;
+      <td data-v="${x.total}"><button class="glg glg2" data-gk2="${esc(x.A.se.n)}|${x.A.se.y}|${x.r1.a}|${x.r1.b}|0|${x.e}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n">${x.total}</span></button></td>
+      <td class="mono" data-v="${isFinite(x.to)?x.to:''}">${fv(x.from)} → ${fv(x.to)}</td><td class="mono glp ${x.hot?'glup':'gldn'}" data-v="${x.pct==null?'':x.pct}">${glPct(x.pct)}</td>
+      <td class="mono" data-v="${x.n1}">${gRange(x.r1)} <span class="glg-n">${x.n1}</span> · ${fv(x.r1.from)} → ${fv(x.vEnd)}</td>
+      <td class="mono" data-v="${x.n2}">${gRange({a:0,b:x.e})} <span class="glg-n">${x.n2}</span> · ${fv(x.vEnd)} → ${fv(x.to)}</td></tr>`;
+    const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The stat at the start of the streak to where it ended in the new season">${esc(M.l)}</th><th></th><th title="The streak that was still going when the season ended">Finished the season</th><th title="The same trend continuing from the end-of-season level into the next season">Into the next season</th>`;
     const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
-    body = `<p class="smeta">Streaks that crossed an off-season: a player finished a season in a hot (or cold) streak and opened the next season in the same direction, starting with the first move at Game 2 (Game 1 sets each season’s baseline). Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
+    body = `<p class="smeta">A trend that crosses the off-season. A player finished a season in a hot (rising) or cold (falling) streak, and their ${esc(M.l)} kept moving the same way from that end-of-season level into the next season: if a season ended at 1.000 and the next one opened below it, a cold streak continues, and it keeps going for as long as each game moves it the same way. Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
       + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,6,true);
   } else if(sel){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
