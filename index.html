@@ -155,7 +155,8 @@ tbody tr:hover{background:var(--accent-soft)}
 .glg-d{stroke:var(--card);stroke-width:1;opacity:.72;cursor:pointer}.glg-d:hover{opacity:1;stroke:var(--ink);stroke-width:1.5}
 .glg-h{fill:#1f9d55}.glg-c{fill:#d22d49}
 .glgtip{position:absolute;z-index:3;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--muted);border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.45;box-shadow:0 4px 14px rgba(0,0,0,.18);max-width:330px}
-.glpin{max-width:760px;margin:10px auto 0;padding:10px 12px;background:var(--accent-soft);border-radius:10px;font-size:.84rem;line-height:1.5;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.glpin{max-width:760px;margin:10px auto 0;padding:10px 12px;background:var(--accent-soft);border-radius:10px;font-size:.84rem;line-height:1.5;display:grid;gap:10px}
+.glpinh{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .glpin[hidden]{display:none}
 .glpinb{font:inherit;font-weight:600;border:1px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
 .glphase{margin:14px 0 4px}
@@ -12161,24 +12162,29 @@ function renderSavantGains(){
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
     gg.addEventListener('mouseout', e=>{ if(e.target.closest('.glg-d')) tip.hidden = true; });
     gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
-      pin.innerHTML = `<div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} season</button>`; pin.hidden = false;
+      pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} season</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
+  }
+  /* the games that made a streak (each linking to its box score) plus a total row, as list items */
+  function glGames(se, a, b){
+    const items = []; for(let i=a;i<=b;i++){
+      const g = se.rows[i], r = g.row, v = se.vals[i];
+      const line = r.AB!=null && r.G_bat ? `${r.H}-for-${r.AB}${r.HR?', '+r.HR+' HR':''}${r.RBI?', '+r.RBI+' RBI':''}${r.BB?', '+r.BB+' BB':''}`
+                                         : `${ipStr(r.IPouts)} IP, ${r.pH} H, ${r.ER} ER, ${r.pK} K`;
+      items.push(`<li><a href="#/g/${g.id}">${glDate(g.date)} · ${g.away?'at':'vs'} ${esc(g.opp||'')}</a><span class="glxl">${line}</span><span class="mono">${esc(M.l)} ${fv(v)}</span></li>`);
+    }
+    const T = sumRows(se.rows.slice(a, b+1).map(g=>g.row));
+    const tline = se.rows[a].row.AB!=null && se.rows[a].row.G_bat ? `${T.H}-for-${T.AB}${T.HR?', '+T.HR+' HR':''}${T.RBI?', '+T.RBI+' RBI':''}${T.BB?', '+T.BB+' BB':''}`
+                                                                    : `${ipStr(T.IPouts)} IP, ${T.pH} H, ${T.ER} ER, ${T.pK} K`;
+    items.push(`<li class="glxt"><span>Streak total · ${b-a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(se.vals[b])}</span></li>`);
+    return items;
   }
   /* a streak's games, one click away: the games that made it, each linking to its box score */
   app.querySelectorAll('.glg').forEach(btn=>btn.addEventListener('click',()=>{
     const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
     if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
     const [n, y, a, b] = btn.dataset.gk.split('|'), se = GLX.get(n+'|'+y); if(!se) return;
-    const items = []; for(let i=+a;i<=+b;i++){
-      const g = se.rows[i], r = g.row, v = se.vals[i];
-      const line = r.AB!=null && r.G_bat ? `${r.H}-for-${r.AB}${r.HR?', '+r.HR+' HR':''}${r.RBI?', '+r.RBI+' RBI':''}${r.BB?', '+r.BB+' BB':''}`
-                                         : `${ipStr(r.IPouts)} IP, ${r.pH} H, ${r.ER} ER, ${r.pK} K`;
-      items.push(`<li><a href="#/g/${g.id}">${glDate(g.date)} · ${g.away?'at':'vs'} ${esc(g.opp||'')}</a><span class="glxl">${line}</span><span class="mono">${esc(M.l)} ${fv(v)}</span></li>`);
-    }
-    const T = sumRows(se.rows.slice(+a, +b+1).map(g=>g.row));
-    const tline = se.rows[+a].row.AB!=null && se.rows[+a].row.G_bat ? `${T.H}-for-${T.AB}${T.HR?', '+T.HR+' HR':''}${T.RBI?', '+T.RBI+' RBI':''}${T.BB?', '+T.BB+' BB':''}`
-                                                                    : `${ipStr(T.IPouts)} IP, ${T.pH} H, ${T.ER} ER, ${T.pK} K`;
-    items.push(`<li class="glxt"><span>Streak total · ${+b-+a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(se.vals[+b])}</span></li>`);
+    const items = glGames(se, +a, +b);
     const row = document.createElement('tr'); row.className = 'glx';
     row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}</ul></td>`;
     tr.after(row); btn.setAttribute('aria-expanded','true');
