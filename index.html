@@ -12003,7 +12003,7 @@ function renderSavantGains(){
   const M = GL_METRICS.find(m=>m.k===svpGL.metric) || (svpGL.metric = 'OPS', GL_METRICS[0]);
   const all = glBase(M.kind).map(b=>{
     const vals = b.cum.map(d=>M.fn(d,b.y)), idx = b.cum.map((d,i)=>M.idx(vals[i],d,b.y));
-    return {n:b.n, y:b.y, rows:b.rows, vals, idx};
+    return {n:b.n, y:b.y, rows:b.rows, vals, idx, cum:b.cum};
   });
   all.forEach(se=>GLX.set(se.n+'|'+se.y, se));
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
@@ -12050,6 +12050,14 @@ function renderSavantGains(){
     <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt"><thead><tr>${head}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
   const flatStreaks = () => { const f = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) f.push({se,st,r}); })); return f; };
   let body = '';
+  /* the stat across a season break as ONE record: the whole of season A plus the first k+1 games of season B, so a bad first game after a good year nudges
+     the number instead of resetting it to .000. Plain rate stats just add the two seasons' totals; the league-adjusted ones (OPS+, wOBA, wRC+, ERA+)
+     blend each season's own value by plate appearances / outs. */
+  const combVals = (A, B) => { const ca = A.cum[A.cum.length-1], w = M.kind==='bat' ? 'PA' : 'IPouts';
+    return B.cum.map(cb=>{
+      if(M.fn.length<2) return M.fn(sumRows([ca, cb]), B.y);
+      const va = M.fn(ca, A.y), vb = M.fn(cb, B.y), wa = ca[w], wb = cb[w];
+      return isFinite(va) && isFinite(vb) && wa+wb>0 ? (va*wa+vb*wb)/(wa+wb) : NaN; }); };
   let gTeams = [];
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
   else if(svpGL.view==='graph'){
@@ -12095,9 +12103,10 @@ function renderSavantGains(){
     let rows = [];
     by.forEach(list=>{ list.sort((a,b)=>a.se.y-b.se.y); for(let i=0;i+1<list.length;i++){ const A = list[i], B = list[i+1]; if(B.se.y!==A.se.y+1) continue;
       const r1 = A.st[A.st.length-1], vEnd = A.se.vals[A.se.vals.length-1], bv = B.se.vals;
-      if(!r1 || r1.b!==A.se.vals.length-1 || !isFinite(vEnd) || !isFinite(bv[0]) || Math.abs(bv[0]-vEnd)<1e-9 || better(bv[0], vEnd)!==r1.hot) continue;
-      let e = 0; while(e+1<bv.length && isFinite(bv[e+1]) && Math.abs(bv[e+1]-bv[e])>1e-9 && better(bv[e+1], bv[e])===r1.hot) e++;
-      const from = r1.from, to = bv[e], pct = from>0 ? (M.low ? from-to : to-from)/from : null;
+      const vc = combVals(A.se, B.se);
+      if(!r1 || r1.b!==A.se.vals.length-1 || !isFinite(vEnd) || !isFinite(vc[0]) || Math.abs(vc[0]-vEnd)<1e-9 || better(vc[0], vEnd)!==r1.hot) continue;
+      let e = 0; while(e+1<vc.length && isFinite(vc[e+1]) && Math.abs(vc[e+1]-vc[e])>1e-9 && better(vc[e+1], vc[e])===r1.hot) e++;
+      const from = r1.from, to = vc[e], pct = from>0 ? (M.low ? from-to : to-from)/from : null;
       rows.push({A, B, r1, e, hot:r1.hot, n1:r1.b-r1.a+1, n2:e+1, total:(r1.b-r1.a+1)+(e+1), from, to, pct, vEnd}); } });
     if(sel) rows = rows.filter(x=>x.A.se.n===sel);
     rows.sort((a,b)=>b.total-a.total || Math.abs(b.pct||0)-Math.abs(a.pct||0));
@@ -12108,7 +12117,7 @@ function renderSavantGains(){
       <td class="mono" data-v="${x.n2}">${gRange({a:0,b:x.e})} <span class="glg-n">${x.n2}</span> · ${fv(x.vEnd)} → ${fv(x.to)}</td></tr>`;
     const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The stat at the start of the streak to where it ended in the new season">${esc(M.l)}</th><th></th><th title="The streak that was still going when the season ended">Finished the season</th><th title="The same trend continuing from the end-of-season level into the next season">Into the next season</th>`;
     const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
-    body = `<p class="smeta">A trend that crosses the off-season. A player finished a season in a hot (rising) or cold (falling) streak, and their ${esc(M.l)} kept moving the same way from that end-of-season level into the next season: if a season ended at 1.000 and the next one opened below it, a cold streak continues, and it keeps going for as long as each game moves it the same way. Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
+    body = `<p class="smeta">A trend that crosses the off-season. A player finished a season in a hot (rising) or cold (falling) streak, and their ${esc(M.l)} kept moving the same way into the next season, for as long as each game moves it the same way. Once the new season starts the stat is counted across both seasons together, as one long record, so a bad first game after a strong year nudges the number down instead of resetting it to zero, and the percent change stays fair. Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
       + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,6,true);
   } else if(sel){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
@@ -12203,9 +12212,10 @@ function renderSavantGains(){
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
   }
   /* the games that made a streak (each linking to its box score) plus a total row, as list items */
-  function glGames(se, a, b){
+  function glGames(se, a, b, vv){
+    const VV = vv || se.vals;
     const items = []; for(let i=a;i<=b;i++){
-      const g = se.rows[i], r = g.row, v = se.vals[i];
+      const g = se.rows[i], r = g.row, v = VV[i];
       const line = r.AB!=null && r.G_bat ? `${r.H}-for-${r.AB}${r.HR?', '+r.HR+' HR':''}${r.RBI?', '+r.RBI+' RBI':''}${r.BB?', '+r.BB+' BB':''}`
                                          : `${ipStr(r.IPouts)} IP, ${r.pH} H, ${r.ER} ER, ${r.pK} K`;
       items.push(`<li><a href="#/g/${g.id}">${glDate(g.date)} · ${g.away?'at':'vs'} ${esc(g.opp||'')}</a><span class="glxl">${line}</span><span class="mono">${esc(M.l)} ${fv(v)}</span></li>`);
@@ -12213,7 +12223,7 @@ function renderSavantGains(){
     const T = sumRows(se.rows.slice(a, b+1).map(g=>g.row));
     const tline = se.rows[a].row.AB!=null && se.rows[a].row.G_bat ? `${T.H}-for-${T.AB}${T.HR?', '+T.HR+' HR':''}${T.RBI?', '+T.RBI+' RBI':''}${T.BB?', '+T.BB+' BB':''}`
                                                                     : `${ipStr(T.IPouts)} IP, ${T.pH} H, ${T.ER} ER, ${T.pK} K`;
-    items.push(`<li class="glxt"><span>Streak total · ${b-a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(se.vals[b])}</span></li>`);
+    items.push(`<li class="glxt"><span>Streak total · ${b-a+1} games</span><span class="glxl">${tline}</span><span class="mono">${esc(M.l)} ${fv(VV[b])}</span></li>`);
     return items;
   }
   /* a carryover streak's games: the finish of one season, then the start of the next */
@@ -12221,7 +12231,7 @@ function renderSavantGains(){
     const tr = btn.closest('tr'), nxt = tr.nextElementSibling;
     if(nxt && nxt.classList.contains('glx')){ nxt.remove(); btn.setAttribute('aria-expanded','false'); return; }
     const [n, y, a1, b1, a2, b2] = btn.dataset.gk2.split('|'), s1 = GLX.get(n+'|'+y), s2 = GLX.get(n+'|'+(+y+1)); if(!s1 || !s2) return;
-    const items = [`<li class="glxh">${y} · how the season finished</li>`, ...glGames(s1, +a1, +b1), `<li class="glxh">${+y+1} · how the next season started</li>`, ...glGames(s2, +a2, +b2)];
+    const vc = combVals(s1, s2), items = [`<li class="glxh">${y} · how the season finished</li>`, ...glGames(s1, +a1, +b1), `<li class="glxh">${+y+1} · how the next season started (${esc(M.l)} counted with ${y} included)</li>`, ...glGames(s2, +a2, +b2, vc)];
     const row = document.createElement('tr'); row.className = 'glx';
     row.innerHTML = `<td colspan="${tr.children.length}" class="lft"><ul class="glxu">${items.join('')}</ul></td>`;
     tr.after(row); btn.setAttribute('aria-expanded','true');
