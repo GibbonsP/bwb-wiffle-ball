@@ -3024,14 +3024,17 @@ function makeSortable(tbl){
     return out;
   };
   heads.forEach((th, ci)=>{
+    if(th.hasAttribute('data-nosort')) return;
     th.classList.add('sortcol');
     th.addEventListener('click', ()=>{
+      body.querySelectorAll('tr.glx').forEach(x=>{ const b=x.previousElementSibling && x.previousElementSibling.querySelector('.glg'); if(b) b.setAttribute('aria-expanded','false'); x.remove(); });
       const dir = th.dataset.dir === 'desc' ? 'asc' : 'desc';
       heads.forEach(h=>{ h.removeAttribute('data-dir'); const a=h.querySelector('.ar'); if(a) a.remove(); });
       th.dataset.dir = dir;
       const units = unitsOf([...body.rows]);
       units.sort((u1,u2)=>{
-        const a=(u1.key.cells[ci]||{}).textContent||'', b=(u2.key.cells[ci]||{}).textContent||'';
+        const cv = c => c ? (c.dataset.v!=null ? c.dataset.v : c.textContent) : '';
+        const a=cv(u1.key.cells[ci]), b=cv(u2.key.cells[ci]);
         const na=num(a), nb=num(b), aok=!isNaN(na), bok=!isNaN(nb);
         if(aok && bok) return dir==='asc' ? na-nb : nb-na;
         if(aok !== bok) return aok ? -1 : 1;
@@ -11944,9 +11947,9 @@ function renderSavantGains(){
   const fv = v => isFinite(v) ? M.fmt(v) : '—';
   const gcell = (se, r) => `<button class="glg" data-gk="${esc(se.n)}|${se.y}|${r.a}|${r.b}" aria-expanded="false" title="Show the games in this streak">${gRange(r)}<span class="glg-n">${r.b-r.a+1}</span></button>`;
   const sparkTd = (se, st) => `<td class="glspt">${glSpark(se, st, 62, 22)}</td>`;
-  const streakRow = (se, r, st, spark) => `<tr><td class="lft">${bxName(se.n)}${spark?'':`<small class="glsn">${se.y}</small>`}</td><td>${gcell(se, r)}</td>
-    <td class="mono">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${spark?sparkTd(se, st):''}</tr>`;
-  const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th>${spark?'<th>Trend</th>':''}`;
+  const streakRow = (se, r, st, spark) => `<tr><td class="lft" data-v="${esc(nameLast(se.n))}">${bxName(se.n)}${spark?'':`<small class="glsn">${se.y}</small>`}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td>
+    <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${spark?sparkTd(se, st):''}</tr>`;
+  const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th>${spark?'<th data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
   const tabsDef = [['now','Trending now'],['streaks','Biggest streaks'],['long','Longest streaks'],['seasons','Player seasons']];
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k}">${l}</button>`).join('')}</div>`;
@@ -11960,8 +11963,8 @@ function renderSavantGains(){
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
   const twoCols = (hTitle, cTitle, hRows, cRows, head, cols) => `<div class="glcols">
-    <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail glt"><thead><tr>${head}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
-    <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail glt"><thead><tr>${head}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
+    <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt"><thead><tr>${head}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
+    <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt"><thead><tr>${head}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
   const flatStreaks = () => { const f = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) f.push({se,st,r}); })); return f; };
   let body = '';
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
@@ -11974,16 +11977,16 @@ function renderSavantGains(){
       return `<section class="stat"><h4>${se.y} · ${se.rows.length} games · season ${esc(M.l)} ${fv(se.vals[end])} · ${isFinite(se.idx[end])?Math.round(se.idx[end])+' vs league':''}</h4>
         <p class="smeta"><b class="glup">Gains ${glPct(g)}</b> · <b class="gldn">Losses ${glPct(l)}</b> · Net <b>${glPct(g+l)}</b></p>
         <div class="glhero">${glSpark(se, st, 260, 54)}${glStrip(se, st, M)}</div>
-        <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Streak</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th>vs Lg</th><th class="lft">Ended</th></tr></thead><tbody>${
-          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td>${gcell(se, r)}</td><td class="mono">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td><td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="6" class="lft">No streak of 3+ games.</td></tr>'}</tbody></table></div></section>`;
+        <div class="tscroll"><table class="detail sortable"><thead><tr><th class="lft">Streak</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th>vs Lg</th><th class="lft">Ended</th></tr></thead><tbody>${
+          st.map(r=>`<tr><td class="lft">${tag(r)}</td><td data-v="${r.b-r.a+1}">${gcell(se, r)}</td><td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td><td class="lft">${lv(r)}</td></tr>`).join('') || '<tr><td colspan="6" class="lft">No streak of 3+ games.</td></tr>'}</tbody></table></div></section>`;
     }).join('');
   } else if(svpGL.view==='now'){
     const last = se => se.vals.length-1;
     const act = []; ps.forEach(({se,st})=>{ const r = st[st.length-1]; if(r && r.b===last(se)) act.push({se,st,r}); });
     const aRows = hot => act.filter(x=>x.r.hot===hot && x.r.pct!=null).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,12).map(x=>streakRow(x.se,x.r,x.st,true)).join('');
     const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M); if(t) tr.push({se,st,t}); });
-    const l5Row = x => `<tr><td class="lft">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td>${sparkTd(x.se,x.st)}</tr>`;
-    const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th>Trend</th>`;
+    const l5Row = x => `<tr><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td>${sparkTd(x.se,x.st)}</tr>`;
+    const l5Head = `<th class="lft">Player</th><th>Season</th><th>Last 5</th><th></th><th data-nosort>Trend</th>`;
     const f5Head = l5Head.replace('Last 5','First 5');
     const m5Head = l5Head.replace('Last 5','Middle 5');
     const m5 = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, 'mid'); if(t) m5.push({se,st,t}); });
@@ -12022,8 +12025,8 @@ function renderSavantGains(){
       return {se, st, nh:hot.length, nc:cold.length, g, l, net:g+l, fin:se.vals[end], lvl:se.idx[end]};
     }).sort((a,b)=>b.net-a.net);
     const cell = (v,cls) => `<td class="mono ${cls}">${glPct(v)}</td>`;
-    body = `<div class="tscroll"><table class="detail sortable glt"><thead><tr><th class="lft">Player</th><th>Season</th><th>G</th><th>Hot</th><th>Gains</th><th>Cold</th><th>Losses</th><th>Net</th><th>${esc(M.l)}</th><th>vs Lg</th><th>Trend</th></tr></thead><tbody>${
-      rows.map(r=>`<tr><td class="lft">${bxName(r.se.n)}</td><td>${r.se.y}</td><td>${r.se.rows.length}</td><td>${r.nh}</td>${cell(r.g,'glup')}<td>${r.nc}</td>${cell(r.l,'gldn')}${cell(r.net,r.net>=0?'glup':'gldn')}<td class="mono">${fv(r.fin)}</td><td>${glLvl(r.lvl)}</td>${sparkTd(r.se,r.st)}</tr>`).join('')}</tbody></table></div>`;
+    body = `<div class="tscroll"><table class="detail sortable glt"><thead><tr><th class="lft">Player</th><th>Season</th><th>G</th><th>Hot</th><th>Gains</th><th>Cold</th><th>Losses</th><th>Net</th><th>${esc(M.l)}</th><th>vs Lg</th><th data-nosort>Trend</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.se.n))}">${bxName(r.se.n)}</td><td>${r.se.y}</td><td>${r.se.rows.length}</td><td>${r.nh}</td>${cell(r.g,'glup')}<td>${r.nc}</td>${cell(r.l,'gldn')}${cell(r.net,r.net>=0?'glup':'gldn')}<td class="mono">${fv(r.fin)}</td><td>${glLvl(r.lvl)}</td>${sparkTd(r.se,r.st)}</tr>`).join('')}</tbody></table></div>`;
   }
   svpShell('gains', `
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
