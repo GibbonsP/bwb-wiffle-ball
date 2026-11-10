@@ -12101,14 +12101,13 @@ function renderSavantGains(){
       if(!r1 || !r2 || r1.b!==A.se.vals.length-1 || r2.a!==1 || r1.hot!==r2.hot) continue;
       rows.push({A, B, r1, r2, hot:r1.hot, total:(r1.b-r1.a+1)+(r2.b-r2.a+1)}); } });
     if(sel) rows = rows.filter(x=>x.A.se.n===sel);
-    if(svpGL.year!=='all') rows = rows.filter(x=>x.A.se.y===+svpGL.year);
     rows.sort((a,b)=>b.total-a.total || (Math.abs(b.r1.pct||0)+Math.abs(b.r2.pct||0))-(Math.abs(a.r1.pct||0)+Math.abs(a.r2.pct||0)));
     const seg = r => `<td class="mono" data-v="${isFinite(r.to)?r.to:''}">${gRange(r)} <span class="glg-n">${r.b-r.a+1}</span> · ${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}" data-v="${r.pct==null?'':r.pct}">${glPct(r.pct)}</td>`;
     const cRow = x => `<tr><td class="lft" data-v="${esc(nameLast(x.A.se.n))}">${bxName(x.A.se.n)}<small class="glsn">${x.A.se.y} → ${x.B.se.y}</small></td>
       <td data-v="${x.total}"><button class="glg glg2" data-gk2="${esc(x.A.se.n)}|${x.A.se.y}|${x.r1.a}|${x.r1.b}|${x.r2.a}|${x.r2.b}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n">${x.total}</span></button></td>${seg(x.r1)}${seg(x.r2)}</tr>`;
     const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The streak that was still going when the season ended">Finished the season</th><th></th><th title="The same-direction streak that began the next season, from Game 2 (Game 1 sets the baseline)">Started the next</th><th></th>`;
     const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
-    body = `<p class="smeta">Streaks that crossed an off-season: a player finished a season in a hot (or cold) streak and opened the next season in the same direction, starting with the first move at Game 2 (Game 1 sets each season’s baseline). The season chips pick the season the streak finished in. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
+    body = `<p class="smeta">Streaks that crossed an off-season: a player finished a season in a hot (or cold) streak and opened the next season in the same direction, starting with the first move at Game 2 (Game 1 sets each season’s baseline). Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
       + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,6,true);
   } else if(sel){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
@@ -12166,7 +12165,7 @@ function renderSavantGains(){
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     <p class="smeta">Follow a player’s season ${esc(M.l)} game by game. A run of games where it keeps getting better is a hot streak, and the percent it improved is a <b>Gain</b>; a run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
       A streak needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>
-    ${phaseChips}${tabs}${yearChips}${controls}${playerBar}${body}
+    ${phaseChips}${tabs}${svpGL.view==='carry'?'':yearChips}${controls}${playerBar}${body}
     <p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
       <b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. <b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
       In the small season line, grey is the whole season and green / red mark the streaks.${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`);
