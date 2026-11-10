@@ -148,7 +148,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glc-in{border-color:var(--ink)}
 .glg{font:inherit;font-family:var(--mono,ui-monospace,monospace);font-size:.85rem;background:none;border:0;padding:2px 4px;cursor:pointer;color:var(--ink);text-decoration:underline dotted;text-underline-offset:3px;border-radius:5px}
 .glg:hover,.glg[aria-expanded="true"]{background:var(--accent-soft)}
-.glg-n{font-size:.68rem;color:var(--muted);margin-left:5px}
+.glg-n{display:inline-block;min-width:1.5em;padding:1px 6px;margin-left:7px;border-radius:999px;background:var(--ink);color:var(--card,#fff);font-family:inherit;font-size:.82rem;font-weight:800;line-height:1.35;text-align:center;text-decoration:none}
 .glx td{background:var(--accent-soft);padding:6px 12px!important}
 .glxu{list-style:none;margin:0;padding:0;display:grid;gap:3px}
 .glxu li{display:grid;grid-template-columns:minmax(120px,auto) 1fr auto;gap:10px;align-items:baseline;font-size:.82rem}
@@ -169,7 +169,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt td.lft{padding-left:8px}
 .glcols .glt td,.glcols .glt th{padding-left:4px;padding-right:4px}
 .glcols .glt .glg{font-size:.78rem;padding:2px 2px}
-.glcols .glt .glg-n{margin-left:3px}
+.glcols .glt .glg-n{margin-left:4px;padding:1px 5px;font-size:.78rem}
 .glcols .glt td.lft{padding-left:10px}
 .glhead{display:flex;align-items:center;gap:6px}
 .stat h4 small{font-weight:500;color:var(--muted);font-size:.7em;letter-spacing:.04em;text-transform:uppercase;margin-left:4px}
