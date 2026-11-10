@@ -12107,18 +12107,21 @@ function renderSavantGains(){
       if(!r1 || r1.b!==A.se.vals.length-1 || !isFinite(vEnd) || !isFinite(vc[0]) || Math.abs(vc[0]-vEnd)<1e-9 || better(vc[0], vEnd)!==r1.hot) continue;
       let e = 0; while(e+1<vc.length && isFinite(vc[e+1]) && Math.abs(vc[e+1]-vc[e])>1e-9 && better(vc[e+1], vc[e])===r1.hot) e++;
       const from = r1.from, to = vc[e], pct = from>0 ? (M.low ? from-to : to-from)/from : null;
-      rows.push({A, B, r1, e, hot:r1.hot, n1:r1.b-r1.a+1, n2:e+1, total:(r1.b-r1.a+1)+(e+1), from, to, pct, vEnd}); } });
+      let st = 0, sn = 0; for(let g=r1.a; g<=r1.b; g++){ const q = glOppPct(A.se.rows[g].opp, A.se.y); if(q!=null){ st += q; sn++; } }
+      for(let g=0; g<=e; g++){ const q = glOppPct(B.se.rows[g].opp, B.se.y); if(q!=null){ st += q; sn++; } }
+      rows.push({A, B, r1, e, hot:r1.hot, n1:r1.b-r1.a+1, n2:e+1, total:(r1.b-r1.a+1)+(e+1), from, to, pct, vEnd, sos: sn ? st/sn : null}); } });
     if(sel) rows = rows.filter(x=>x.A.se.n===sel);
     rows.sort((a,b)=>b.total-a.total || Math.abs(b.pct||0)-Math.abs(a.pct||0));
     const cRow = x => `<tr><td class="lft" data-v="${esc(nameLast(x.A.se.n))}">${bxName(x.A.se.n)}<small class="glsn">${x.A.se.y} → ${x.B.se.y}</small></td>
       <td data-v="${x.total}"><button class="glg glg2" data-gk2="${esc(x.A.se.n)}|${x.A.se.y}|${x.r1.a}|${x.r1.b}|0|${x.e}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n">${x.total}</span></button></td>
       <td class="mono" data-v="${isFinite(x.to)?x.to:''}">${fv(x.from)} → ${fv(x.to)}</td><td class="mono glp ${x.hot?'glup':'gldn'}" data-v="${x.pct==null?'':x.pct}">${glPct(x.pct)}</td>
+      <td class="mono glsos" data-v="${x.sos==null?'':x.sos}" title="Strength of schedule: the average winning percentage of the opponents in this streak, across both seasons (.500 = average, higher = tougher)">${x.sos==null?'—':x.sos.toFixed(3).replace(/^0/,'')}</td>
       <td class="mono" data-v="${x.n1}">${gRange(x.r1)} <span class="glg-n">${x.n1}</span> · ${fv(x.r1.from)} → ${fv(x.vEnd)}</td>
       <td class="mono" data-v="${x.n2}">${gRange({a:0,b:x.e})} <span class="glg-n">${x.n2}</span> · ${fv(x.vEnd)} → ${fv(x.to)}</td></tr>`;
-    const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The stat at the start of the streak to where it ended in the new season">${esc(M.l)}</th><th></th><th title="The streak that was still going when the season ended">Finished the season</th><th title="The same trend continuing from the end-of-season level into the next season">Into the next season</th>`;
+    const cHead = `<th class="lft">Player</th><th title="Games in the streak across both seasons. Click to see them">Games</th><th title="The stat at the start of the streak to where it ended in the new season">${esc(M.l)}</th><th></th><th title="Strength of schedule: average winning percentage of the opponents in the streak, across both seasons (.500 = average, higher = tougher)">SOS</th><th title="The streak that was still going when the season ended">Finished the season</th><th title="The same trend continuing from the end-of-season level into the next season">Into the next season</th>`;
     const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
     body = `<p class="smeta">A trend that crosses the off-season. A player finished a season in a hot (rising) or cold (falling) streak, and their ${esc(M.l)} kept moving the same way into the next season, for as long as each game moves it the same way. Once the new season starts the stat is counted across both seasons together, as one long record, so a bad first game after a strong year nudges the number down instead of resetting it to zero, and the percent change stays fair. Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
-      + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,6,true);
+      + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,7,true);
   } else if(sel){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
     body = mine.map(({se,st})=>{
