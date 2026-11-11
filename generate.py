@@ -168,6 +168,25 @@ tbody tr:hover{background:var(--accent-soft)}
 .glgsvg.glg-has-sel .glg-d:not(.glg-sel){opacity:.22;filter:blur(1.3px)}
 .glgsvg.glg-has-sel .glg-d:not(.glg-sel):hover{opacity:.6;filter:none}
 .glg-d.glg-sel{opacity:1;stroke:var(--ink);stroke-width:3;filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
+.gltl-s,.gltl-base,.glra-s,.glra-base{fill:none !important}
+.gltl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-top:8px}
+.gltl-svg{display:block;width:100%;min-width:780px;height:auto}
+.gltl-base{stroke:var(--muted);stroke-width:1.2;opacity:.55;stroke-linejoin:round}
+.gltl-s{stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.gltl-s.glg-h{stroke:#1f9d55}.gltl-s.glg-c{stroke:#d22d49}
+.gltl-e{stroke:var(--card);stroke-width:1}
+.gltl-n{font-size:12px;font-weight:600;fill:var(--ink)}
+.gltl-l{font-size:9.5px;fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;font-family:ui-monospace,Menlo,monospace}
+.gltl-cur{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:4 3;opacity:.7}
+.glra{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-top:8px}
+.glra-svg{display:block;width:100%;min-width:640px;height:auto}
+.glra-base{stroke-width:1.6;opacity:.5;stroke-linejoin:round}
+.glra-s{stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+.glra-m{font-size:11px}
+.glra-lb{font-size:12.5px;font-weight:700;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+.glra-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 2px}
+.glra-chip{display:inline-flex;align-items:center;gap:7px;font-size:.84rem;font-weight:600;border:1px solid var(--line-strong);border-radius:999px;padding:3px 6px 3px 10px;background:var(--card)}
+.glra-chip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.glra-chip button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:.8rem;padding:0 4px}
 .glplay{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;max-width:760px;margin:12px auto 4px}
 .glplayb{font:inherit;font-weight:700;font-size:.9rem;border:0;background:var(--ink);color:var(--card);border-radius:999px;padding:7px 18px;cursor:pointer;min-width:118px}
 .glplayb:disabled{opacity:.4;cursor:default}
@@ -11916,7 +11935,7 @@ GL_METRICS.splice(8, 0,
   glPer('ISO', d=>d.AB ? (d.TB-d.H)/d.AB : NaN, 'bat', false, rate));
 GL_METRICS.push(glPer('K/G', glP(d=>d.pK), 'pit'), glPer('BB/3', d=>bb3(d), 'pit', true), glPer('H/3', d=>h3(d), 'pit', true), glPer('K/BB', d=>kbb(d), 'pit'));
 
-let GLG_PTS = [], glPlayTimer = null;
+let GLG_PTS = [], glPlayTimer = null, glRaf = null, GLV = null;
 const GLR = [];                                       // the 'In a row' streaks on screen, so a clicked one can list its games
 const GL_CONDS = [
   {k:'hit', w:'With a hit', o:'Without a hit', l:'Hit in the game', kind:'bat', t:d=>d.H>=1}, {k:'obp', w:'Reaching base', o:'Without reaching base', l:'Reached base', kind:'bat', t:d=>d.H+d.BB+d.HBP>=1},
@@ -11947,7 +11966,7 @@ function glRuns(c, year, post, only, neg){
   return out;
 }
 
-const svpGL = {cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', back:null};
+const svpGL = {race:[], tlTop:20, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', back:null};
 /* a pitcher's regular-season appearances in one year, oldest first, as cumulative-ready rows */
 function glPitGames(name, year, post){
   const pl = P[name]; if(!pl) return [];
@@ -12097,10 +12116,12 @@ function renderSavantGains(){
   if(svpGL.view==='straight' && (svpGL.year==='early' || svpGL.year==='modern')){} else if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   if(svpGL.view==='long') svpGL.view = 'streaks';
   if(svpGL.view==='seasons') svpGL.view = 'totals';
-  if(!['now','streaks','carry','straight','totals','graph'].includes(svpGL.view)) svpGL.view = 'now';
-  const filt = svpGL.view==='graph' || svpGL.view==='carry' || svpGL.view==='straight';      // these views filter by the chosen player instead of switching to the single-player page
+  if(!['now','streaks','carry','straight','totals','graph','timeline','race'].includes(svpGL.view)) svpGL.view = 'now';
+  GLV = null;
+  const filt = svpGL.view==='graph' || svpGL.view==='carry' || svpGL.view==='straight' || svpGL.view==='timeline' || svpGL.view==='race';      // these views filter by the chosen player instead of switching to the single-player page
   const nowYear = svpGL.year==='all' ? years[0] : +svpGL.year;          // "now" looks at one season: the chosen one, else the latest
-  const yrSet = new Set(svpGL.view==='now' ? [nowYear] : (svpGL.view==='carry' || svpGL.view==='straight' || svpGL.year==='all') ? years : [+svpGL.year]);
+  const oneSeason = svpGL.view==='now' || svpGL.view==='timeline' || svpGL.view==='race';
+  const yrSet = new Set(oneSeason ? [nowYear] : (svpGL.view==='carry' || svpGL.view==='straight' || svpGL.year==='all') ? years : [+svpGL.year]);
   const start = 1;                                   // Game 1's season-to-date stat is the starting point
   const pool = all.filter(s=>yrSet.has(s.y));
   const ps = svpGL.view==='straight' ? [] : pool.map(se=>({se, st:glStreaks(se, start, M)}));
@@ -12114,12 +12135,12 @@ function renderSavantGains(){
     <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
   const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th class="glsph" data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
-  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['carry','Carryover'],['straight','In a row'],['totals','Totals'],['graph','Graph']];
+  const tabsDef = [['now','Trending now'],['streaks','Streaks'],['carry','Carryover'],['straight','In a row'],['totals','Totals'],['graph','Graph'],['timeline','Timeline'],['race','Stat race']];
   const post = svpGL.phase==='Playoffs';
   const phaseChips = `<div class="segs post glphase" role="group" aria-label="Season type">${[['Regular','Regular'],['Playoffs','Playoffs']].map(([k,l])=>`<button data-glp="${k}" aria-pressed="${svpGL.phase===k}">${l}</button>`).join('')}</div>`;
   const tabs = `<div class="chips" role="group" aria-label="View">${tabsDef.map(([k,l])=>`<button data-glv="${k}" aria-pressed="${svpGL.view===k && !(sel && !filt)}">${l}</button>`).join('')}</div>`;
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
-    <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${svpGL.view==='now'?'Latest':'All Years'}</button>
+    <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${oneSeason?'Latest':'All Years'}</button>
     ${svpGL.view==='straight' ? `<button data-gly="early" aria-pressed="${svpGL.year==='early'}">2016–2021 Era</button><button data-gly="modern" aria-pressed="${svpGL.year==='modern'}">2022–Present Era</button>` : ''}
     ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
   const inPlayer = !!sel && !filt;
@@ -12129,13 +12150,14 @@ function renderSavantGains(){
       ${inPlayer && bk ? `<button type="button" class="glbarb" data-glback="1">← Back to ${esc(bk.label)}</button>` : ''}
       <button type="button" class="glbarb" data-glclear="1">✕ All players</button></div>` : '';
   const metOpt = kind => GL_METRICS.filter(m=>m.kind===kind).map(m=>`<option value="${m.k}"${m.k===M.k?' selected':''}>${esc(m.l)}</option>`).join('');
+  const noStd = ['straight','timeline','race'].includes(svpGL.view);
   const cdef = GL_CONDS.find(c=>c.k===svpGL.cond) || (svpGL.cond = 'hit', GL_CONDS[0]);
   const condOpt = kind => GL_CONDS.filter(c=>c.kind===kind).map(c=>`<option value="${c.k}"${c.k===cdef.k?' selected':''}>${esc(c.l)}</option>`).join('');
   const statCtl = svpGL.view==='straight' ? `<label>Streak <select id="glCond"><optgroup label="Batting">${condOpt('bat')}</optgroup><optgroup label="Pitching">${condOpt('pit')}</optgroup></select></label>`
     : `<label>Stat <select id="glMetric"><optgroup label="Batting">${metOpt('bat')}</optgroup><optgroup label="Pitching">${metOpt('pit')}</optgroup></select></label>`;
   const controls = `<div class="svpform">
     ${statCtl}
-    <label>Player <input id="glPlayer" list="glNames" placeholder="All players" value="${esc(sel)}"></label>
+    <label>Player <input id="glPlayer" list="glNames" placeholder="${svpGL.view==='race'?'Add a player to the race':'All players'}" value="${esc(sel)}"></label>
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
   const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack) => `<div class="glcols${stack?' glstack':''}">
@@ -12178,6 +12200,72 @@ function renderSavantGains(){
       + `<h4 class="glsec">Longest streaks <small>● = still going</small></h4><div class="glcols">
         <section class="stat"><h4><span class="glup">▲</span> ${esc(cdef.w)} <small>${cnt(runs, top)}</small></h4>${tbl2(top)}</section>
         <section class="stat"><h4><span class="gldn">▼</span> ${esc(cdef.o)} <small>${cnt(noRuns, noTop)}</small></h4>${tbl2(noTop)}</section></div>`;
+  }
+  else if(svpGL.view==='timeline'){
+    /* the whole season on one time axis: a row per player, their season-to-date stat as a thin line, each streak drawn thick (green climbing, red falling) */
+    const dset = new Set(); pool.forEach(se=>se.rows.forEach(g=>dset.add(g.date)));
+    const dates = [...dset].sort(), di = new Map(dates.map((d,i)=>[d,i])), nD = dates.length;
+    let rows = ps.filter(p=>p.st.length).map(p=>({se:p.se, st:p.st, tot:p.st.reduce((t,r)=>t+r.b-r.a+1,0)})).sort((a,b)=>b.tot-a.tot);
+    const totalRows = rows.length;
+    rows = sel ? rows.filter(r=>r.se.n===sel) : (svpGL.tlTop>0 ? rows.slice(0, svpGL.tlTop) : rows);
+    const W = 1000, X0 = 168, X1 = W-26, pw = X1-X0, RH = sel ? 200 : 38, T = 26, H = T+Math.max(1,rows.length)*RH+8;
+    const xd = i => nD>1 ? X0 + i/(nD-1)*pw : X0;
+    const months = []; let lastM = ''; dates.forEach((d,i)=>{ const m = d.slice(0,7); if(m!==lastM){ lastM = m; months.push([i, GL_MON[+d.slice(5,7)-1]]); } });
+    const streaks = [];
+    const rowSvg = rows.map((r,ri)=>{
+      const se = r.se, top = T+ri*RH, vs = se.vals.slice(1).filter(isFinite), lo = Math.min(...vs), hi = Math.max(...vs);
+      const yv = v => top+RH-7 - Math.max(0, Math.min(1, (v-lo)/((hi-lo)||1)))*(RH-16);
+      /* several games on one date are spread across that day's slot so the climb stays a slope, not a step */
+      const dayN = {}, dayI = []; se.rows.forEach(g=>{ dayN[g.date] = (dayN[g.date]||0)+1; });
+      const seen = {}; se.rows.forEach((g,j)=>{ dayI[j] = seen[g.date] = (seen[g.date]==null ? 0 : seen[g.date]+1); });
+      const xg = j => { const g = se.rows[j], n = dayN[g.date]; return xd(di.get(g.date) + (n>1 ? dayI[j]/n*0.9 : 0)); };
+      const pt = j => `${xg(j).toFixed(1)},${yv(se.vals[j]).toFixed(1)}`;
+      const seg = (a, b) => { const o = []; for(let j=a;j<=b;j++) if(isFinite(se.vals[j])) o.push(pt(j)); return o.join(' '); };
+      const segs = r.st.map(q=>{ const cls = q.hot ? 'glg-h' : 'glg-c', x1 = xg(q.a-1), x2 = xg(q.b);
+        streaks.push({sa:di.get(se.rows[q.a-1].date), sb:di.get(se.rows[q.b].date)});
+        const lbl = (sel || x2-x1>=84) ? `<text class="gltl-l" x="${((x1+x2)/2).toFixed(1)}" y="${top+10}" text-anchor="middle">${fv(q.from)} → ${fv(q.to)}</text>` : '';
+        return `<polyline class="gltl-s ${cls}" fill="none" points="${seg(q.a-1, q.b)}"/><circle class="gltl-e ${cls}" cx="${x2.toFixed(1)}" cy="${yv(q.to).toFixed(1)}" r="3.2"/>${lbl}`; }).join('');
+      return `<line class="glg-grid" x1="${X0}" x2="${X1}" y1="${top+RH}" y2="${top+RH}"/><text class="gltl-n" x="${X0-10}" y="${top+RH/2+4}" text-anchor="end">${esc(se.n)}</text>
+        <polyline class="gltl-base" fill="none" points="${seg(0, se.vals.length-1)}"/>${segs}`;
+    }).join('');
+    GLV = {kind:'timeline', dates, nD, X0, pw, streaks};
+    const svg = `<svg class="gltl-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Every streak of the season on a timeline">
+      ${months.map(([i,m])=>`<line class="glg-grid" x1="${xd(i)}" x2="${xd(i)}" y1="${T-6}" y2="${H-8}"/><text class="glg-tk" x="${xd(i)+4}" y="${T-10}">${m}</text>`).join('')}
+      <defs><clipPath id="gltlClip"><rect id="gltlClipR" x="0" y="0" width="${W}" height="${H}"/></clipPath></defs>
+      <g clip-path="url(#gltlClip)">${rowSvg}</g><line id="gltlCur" class="gltl-cur" x1="${X1}" x2="${X1}" y1="${T-6}" y2="${H-8}"/></svg>`;
+    const topChips = sel ? '' : `<div class="chips" role="group" aria-label="Rows shown">${[[20,'Top 20'],[40,'Top 40'],[0,'All '+totalRows]].map(([k,l])=>`<button data-gltop="${k}" aria-pressed="${svpGL.tlTop===k}">${l}</button>`).join('')}</div>`;
+    body = `<p class="smeta">The whole ${nowYear} ${post?'postseason':'season'} on one timeline. Each row is a player: the thin grey line is their season-to-date ${esc(M.l)}, and every streak is drawn over it as a thick <b class="glup">green</b> climb or <b class="gldn">red</b> fall, labeled start → end. Rows are ordered by how many games the player spent in streaks${sel?'':' (the busiest first)'}. Press Play to watch the season unfold.</p>
+      ${topChips}<div class="glplay"><button type="button" class="glplayb" id="glvPlay">▶ Play</button><input type="range" id="glvScrub" min="0" max="0" step="any" value="0" aria-label="Scrub through the season"><span class="glplayd" id="glvLab">Whole season</span></div>
+      ${rows.length ? `<div class="gltl">${svg}</div>` : '<p class="empty">No streaks in this season.</p>'}`;
+  } else if(svpGL.view==='race'){
+    /* pick a few players and watch their season-to-date stat run game by game; streaks are the thick stretches */
+    const byName = new Map(ps.map(p=>[p.se.n, p]));
+    let names = svpGL.race.filter(n=>byName.has(n));
+    if(!names.length) names = ps.slice().sort((a,b)=>b.st.reduce((t,r)=>t+r.b-r.a,0)-a.st.reduce((t,r)=>t+r.b-r.a,0)).slice(0,5).map(p=>p.se.n);
+    svpGL.race = names;
+    const PAL = ['#2563eb','#ea8a00','#8b5cf6','#0d9488','#db2777','#92400e'];
+    const list = names.map((n,i)=>({...byName.get(n), col:PAL[i%PAL.length]}));
+    const G = Math.max(2, ...list.map(x=>x.se.rows.length));
+    const all = list.flatMap(x=>x.se.vals.slice(2).filter(isFinite));
+    let lo = Math.min(...all), hi = Math.max(...all); if(!isFinite(lo)){ lo = 0; hi = 1; } const padv = (hi-lo||1)*0.06; lo -= padv; hi += padv;
+    const W = 1000, H = 520, L = 64, R = 150, T = 16, B = 44, pw = W-L-R, ph = H-T-B;
+    const sx = g => L + g/(G-1)*pw, sy = v => T + (1-Math.max(0, Math.min(1, (v-lo)/(hi-lo))))*ph;
+    const rawStep = (hi-lo)/5, mag = Math.pow(10, Math.floor(Math.log10(rawStep))), stp = [1,2,2.5,5,10].map(m=>m*mag).find(v=>v>=rawStep) || rawStep, ytk = []; for(let v=Math.ceil(lo/stp)*stp; v<=hi+1e-9; v+=stp) ytk.push(v);
+    const xst = G>40 ? 10 : 5, xtk = []; for(let g=0; g<G; g+=xst) xtk.push(g);
+    const pl = (se, a, b) => { const o = []; for(let j=a;j<=b;j++) if(isFinite(se.vals[j])) o.push(`${sx(j).toFixed(1)},${sy(se.vals[j]).toFixed(1)}`); return o.join(' '); };
+    GLV = {kind:'race', G, W, L, pw, R, list:list.map(x=>({n:x.se.n, col:x.col, vals:x.se.vals, len:x.se.rows.length})), lo, hi, T, ph};
+    const svg = `<svg class="glra-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Season-to-date ${esc(M.l)} for the chosen players, game by game">
+      ${ytk.map(v=>`<line class="glg-grid" x1="${L}" x2="${L+pw}" y1="${sy(v)}" y2="${sy(v)}"/><text class="glg-tk" x="${L-8}" y="${sy(v)+4}" text-anchor="end">${fv(v)}</text>`).join('')}
+      ${xtk.map(g=>`<text class="glg-tk" x="${sx(g)}" y="${T+ph+18}" text-anchor="middle">${g+1}</text>`).join('')}
+      <text class="glg-ax" x="${L+pw/2}" y="${H-6}" text-anchor="middle">Game number in the season</text>
+      <defs><clipPath id="glraClip"><rect id="glraClipR" x="0" y="0" width="${W}" height="${H}"/></clipPath></defs>
+      <g clip-path="url(#glraClip)">${list.map(x=>`<polyline class="glra-base" stroke="${x.col}" fill="none" points="${pl(x.se, 0, x.se.vals.length-1)}"/>${x.st.map(q=>`<polyline class="glra-s" stroke="${x.col}" fill="none" points="${pl(x.se, q.a-1, q.b)}"/><text class="glra-m" fill="${x.col}" x="${sx(q.b).toFixed(1)}" y="${(sy(x.se.vals[q.b])+(q.hot?-8:15)).toFixed(1)}" text-anchor="middle">${q.hot?'▲':'▼'}</text>`).join('')}`).join('')}</g>
+      <g id="glraLayer"></g></svg>`;
+    const chips = list.map(x=>`<span class="glra-chip" style="--c:${x.col}"><i></i>${esc(x.se.n)}<button type="button" data-glrarm="${esc(x.se.n)}" aria-label="Remove ${esc(x.se.n)}">✕</button></span>`).join('');
+    body = `<p class="smeta">A race through the ${nowYear} ${post?'postseason':'season'}: each line is a player’s season-to-date ${esc(M.l)} after every game. Thick stretches are the hot (▲) and cold (▼) streaks. Add up to six players with the Player box, or start from the five busiest streak seasons. Press Play to watch them run.</p>
+      <div class="glra-chips">${chips}</div>
+      <div class="glplay"><button type="button" class="glplayb" id="glvPlay">▶ Play</button><input type="range" id="glvScrub" min="0" max="0" step="any" value="0" aria-label="Scrub through the games"><span class="glplayd" id="glvLab">Whole season</span></div>
+      <div class="glra">${svg}</div>`;
   } else if(svpGL.view==='graph'){
     let pts = []; flatStreaks().forEach(x=>{ const q = glQuad(x.se, x.r); if(q) pts.push({...x, q, team:x.se.rows[x.r.b].team||''}); });
     if(sel) pts = pts.filter(x=>x.se.n===sel);
@@ -12303,24 +12391,64 @@ function renderSavantGains(){
   svpShell('gains', `
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
-    ${svpGL.view==='straight' ? '' : `<p class="smeta">Follow a player’s season ${esc(M.l)} game by game. A run of games where it keeps getting better is a hot streak, and the percent it improved is a <b>Gain</b>; a run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
+    ${noStd ? '' : `<p class="smeta">Follow a player’s season ${esc(M.l)} game by game. A run of games where it keeps getting better is a hot streak, and the percent it improved is a <b>Gain</b>; a run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
       A streak needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it${M.low||['AVG','OBP','BABIP'].includes(M.k)?' (unless it is already perfect, like a '+(M.low?'0.00':'1.000')+' '+esc(M.l)+', which can’t get any better and stays hot)':''}. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>`}
     ${phaseChips}${tabs}${svpGL.view==='carry'?'':yearChips}${controls}${playerBar}${body}
-    ${svpGL.view==='straight' ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
+    ${noStd ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
       <b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. <b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
       In the small season line, grey is the whole season and green / red mark the streaks.${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`}`);
   const re = () => renderSavantGains();
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   const gm = document.getElementById('glMetric'); if(gm) gm.addEventListener('change', e=>{ svpGL.metric = e.target.value; re(); });
   const gcd = document.getElementById('glCond'); if(gcd) gcd.addEventListener('change', e=>{ svpGL.cond = e.target.value; re(); });
-  document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim(); svpGL.player = P[v] ? v : ''; svpGL.back = null; re(); });
-  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry' && k!=='straight') svpGL.player = ''; re(); }));
+  document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim();
+    if(svpGL.view==='race'){ if(P[v] && !svpGL.race.includes(v) && svpGL.race.length<6) svpGL.race = [...svpGL.race, v]; svpGL.player = ''; re(); return; } svpGL.player = P[v] ? v : ''; svpGL.back = null; re(); });
+  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry' && k!=='straight' && k!=='timeline') svpGL.player = ''; re(); }));
   app.querySelectorAll('[data-glclear]').forEach(b=>b.addEventListener('click',()=>{ svpGL.player = ''; svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glback]').forEach(b=>b.addEventListener('click',()=>{ const k = svpGL.back; if(k){ svpGL.view = k.view; svpGL.year = k.year; svpGL.team = k.team; svpGL.gh = k.gh; svpGL.player = k.player; } svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glp]').forEach(b=>b.addEventListener('click',()=>{ svpGL.phase = b.dataset.glp; svpGL.team = ''; re(); }));
   app.querySelectorAll('[data-glw]').forEach(b=>b.addEventListener('click',()=>{ svpGL.win = b.dataset.glw; re(); }));
   app.querySelectorAll('[data-glh]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gh = b.dataset.glh; re(); }));
   const gt = document.getElementById('glTeam'); if(gt) gt.addEventListener('change', e=>{ svpGL.team = e.target.value; re(); });
+  if(glRaf){ cancelAnimationFrame(glRaf); glRaf = null; }
+  const gvp = document.getElementById('glvPlay');
+  if(gvp && GLV){
+    const scrub = document.getElementById('glvScrub'), lab = document.getElementById('glvLab'), V = GLV;
+    const n = V.kind==='timeline' ? V.nD : V.G;
+    let p = n-1, on = false, t0 = 0, p0 = 0;
+    scrub.max = n-1; scrub.value = p;
+    const fvv = v => isFinite(v) ? M.fmt(v) : '—';
+    const draw = q => {
+      if(V.kind==='timeline'){
+        const x = V.X0 + q/Math.max(1, n-1)*V.pw, d = V.dates[Math.min(n-1, Math.round(q))];
+        document.getElementById('gltlClipR').setAttribute('width', q>=n-1 ? 1000 : x+2);
+        const cur = document.getElementById('gltlCur'); cur.setAttribute('x1', x); cur.setAttribute('x2', x);
+        const live = V.streaks.filter(s=>s.sa<=q && q<s.sb).length;
+        lab.textContent = q>=n-1 ? 'Whole season' : glDate(d)+' · '+live+' streak'+(live===1?'':'s')+' building';
+      } else {
+        const x = V.L + q/(V.G-1)*V.pw;
+        document.getElementById('glraClipR').setAttribute('width', q>=n-1 ? V.W : x+1);
+        const dots = V.list.map(pl=>{ const j = Math.min(q, pl.len-1), j0 = Math.floor(j), j1 = Math.min(pl.len-1, j0+1), f = j-j0, a = pl.vals[j0], b = pl.vals[j1];
+          const v = isFinite(a) && isFinite(b) ? a+(b-a)*f : (isFinite(a) ? a : b);
+          return {pl, v, px:V.L + j/(V.G-1)*V.pw, py:V.T + (1-Math.max(0, Math.min(1, (v-V.lo)/(V.hi-V.lo))))*V.ph}; }).filter(d=>isFinite(d.v));
+        const lab2 = dots.slice().sort((a,b)=>a.py-b.py); let prev = -99; lab2.forEach(d=>{ d.ly = Math.max(d.py, prev+15); prev = d.ly; });
+        document.getElementById('glraLayer').innerHTML = dots.map(d=>`<circle cx="${d.px.toFixed(1)}" cy="${d.py.toFixed(1)}" r="5.5" fill="${d.pl.col}" stroke="var(--card)" stroke-width="1.5"/><text class="glra-lb" x="${(d.px+10).toFixed(1)}" y="${(d.ly+4).toFixed(1)}" fill="${d.pl.col}">${esc(d.pl.n.split(' ').slice(-1)[0])} ${fvv(d.v)}</text>`).join('');
+        lab.textContent = q>=n-1 ? 'Whole season' : 'Game '+(Math.floor(q)+1);
+      }
+      scrub.value = q;
+    };
+    const label = () => { gvp.textContent = on ? '❚❚ Pause' : (p>=n-1 ? '↻ Replay' : '▶ Play'); };
+    const frame = ts => { if(!document.body.contains(gvp)){ glRaf = null; return; } if(!t0) t0 = ts;
+      p = Math.min(n-1, p0 + (ts-t0)/(V.kind==='timeline' ? 11000 : 12000)*(n-1)); draw(p);
+      if(p>=n-1){ on = false; glRaf = null; label(); return; } glRaf = requestAnimationFrame(frame); };
+    gvp.addEventListener('click', ()=>{ if(on){ cancelAnimationFrame(glRaf); glRaf = null; on = false; label(); return; }
+      if(p>=n-1) p = 0; on = true; p0 = p; t0 = 0; label(); glRaf = requestAnimationFrame(frame); });
+    scrub.addEventListener('input', ()=>{ cancelAnimationFrame(glRaf); glRaf = null; on = false; p = +scrub.value; draw(p); label(); });
+    gvp.textContent = '▶ Play';
+    if(V.kind==='race') draw(n-1);
+  }
+  app.querySelectorAll('[data-gltop]').forEach(b=>b.addEventListener('click',()=>{ svpGL.tlTop = +b.dataset.gltop; re(); }));
+  app.querySelectorAll('[data-glrarm]').forEach(b=>b.addEventListener('click',()=>{ svpGL.race = svpGL.race.filter(n=>n!==b.dataset.glrarm); re(); }));
   if(glPlayTimer){ clearInterval(glPlayTimer); glPlayTimer = null; }
   const gg = app.querySelector('.glgraph');
   const playBtn = document.getElementById('glPlay');
