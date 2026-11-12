@@ -11995,7 +11995,7 @@ function glRuns(c, year, post, only, neg){
   return out;
 }
 
-const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, gsz:'adj', back:null};
+const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, gsz:'adj', psl:'hot', back:null};
 /* a pitcher's regular-season appearances in one year, oldest first, as cumulative-ready rows */
 function glPitGames(name, year, post){
   const pl = P[name]; if(!pl) return [];
@@ -12177,7 +12177,7 @@ function renderSavantGains(){
                  first:{k:true, h:'First 5', c:'First 5', d:'a player’s first 5 games of the season', up:'Started hot', dn:'Started cold'}};
     if(!WIN[svpGL.win]) svpGL.win = 'last';
     const W5 = WIN[svpGL.win];
-    const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, W5.k); if(t) tr.push({se,st,t}); });
+    const tr = []; ps.forEach(({se,st})=>{ if(svpGL.team && ((se.rows[se.rows.length-1]||{}).team||'')!==svpGL.team) return; const t = glLast5(se, M, W5.k); if(t) tr.push({se,st,t}); });
     const l5Row = x => `<tr class="glrow" data-glpl="${esc(x.se.n)}" data-gly2="${x.se.y}" title="Click the row to open this player’s Gains &amp; Losses"><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}${multi?`<small class="glsn">${x.se.y}</small>`:''}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td><td class="mono glsos" data-v="${x.t.sos==null?'':x.t.sos}" title="Strength of schedule: the average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">${x.t.sos==null?'—':x.t.sos.toFixed(3).replace(/^0/,'')}</td>${sparkTd(x.se,x.st)}</tr>`;
     const l5Head = `<th class="lft">Player</th><th>Season</th><th>${W5.c}</th><th>Change</th><th title="Strength of schedule: average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">SOS</th><th class="glsph" data-nosort>Trend</th>`;
     return `
@@ -12186,7 +12186,7 @@ function renderSavantGains(){
       <p class="smeta">${esc(M.l)} over ${W5.d} against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
       ${twoCols(W5.up,W5.dn,
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6, true)}`;
+        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6, true, svpGL.psl)}`;
   };
   const tabsDef = [['now','Trending Now'],['streaks','Past Seasons'],['carry','Carryover'],['straight','Form'],['totals','Totals'],['graph','Graph']];
   const inGraph = ['graph','race'].includes(svpGL.view);
@@ -12215,12 +12215,12 @@ function renderSavantGains(){
     : `<label>Stat <select id="glMetric"><optgroup label="Batting">${metOpt('bat')}</optgroup><optgroup label="Pitching">${metOpt('pit')}</optgroup></select></label>`;
   const controls = `<div class="svpform">
     ${statCtl}
-    <label>Player <input id="glPlayer" list="glNames" placeholder="${svpGL.view==='race'?'Narrow to chosen players':'All players'}" value="${esc(sel)}"></label>${svpGL.view==='graph'?'@TEAMSEL@':''}
+    <label>Player <input id="glPlayer" list="glNames" placeholder="${svpGL.view==='race'?'Narrow to chosen players':'All players'}" value="${esc(sel)}"></label>${svpGL.view==='graph'||(svpGL.view==='streaks'&&!sel)?'@TEAMSEL@':''}
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
-  const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack) => `<div class="glcols${stack?' glstack':''}">
-    <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Gains Adj.').replace('@PCT@','Gain')}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
-    <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Losses Adj.').replace('@PCT@','Loss')}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
+  const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack, only) => `<div class="glcols${stack?' glstack':''}">
+    ${only==='cold'?'':`<section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Gains Adj.').replace('@PCT@','Gain')}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>`}
+    ${only==='hot'?'':`<section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Losses Adj.').replace('@PCT@','Loss')}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section>`}</div>`;
   const flatStreaks = () => { const f = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) f.push({se,st,r}); })); return f; };
   let body = '';
   /* the stat across a season break as ONE record: the whole of season A plus the first k+1 games of season B, so a bad first game after a good year nudges
@@ -12439,13 +12439,18 @@ function renderSavantGains(){
       <p class="smeta">${live?`Players snowballing as of their latest game: their ${esc(M.l)} has kept getting better game after game (an Active Gain) or kept getting worse (an Active Loss), and the run of ${glMinRun()}+ games is still going after their last game.`:`Players who were still snowballing when the ${post?'postseason':'season'} ended: a run of ${glMinRun()}+ games, getting better (Active Gains) or worse (Active Losses), that had not been broken.`} The 12 biggest of each are shown. Click a run to see its games, or anywhere else on a row to open that player’s Gains &amp; Losses.</p>
       ${twoCols('Active Gains','Active Losses',aRows(true),aRows(false),streakHead(true),7)}`;
   } else if(svpGL.view==='streaks'){
-    const f = flatStreaks();
+    let f = flatStreaks();
+    gTeams = [...new Set(f.map(x=>x.se.rows[x.r.b].team).filter(Boolean))].sort();
+    if(svpGL.team && !gTeams.includes(svpGL.team)) svpGL.team = '';
+    if(svpGL.team) f = f.filter(x=>x.se.rows[x.r.b].team===svpGL.team);
+    teamSel = `<label>Franchise <select id="glTeam"><option value="">All franchises</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+    const pslChips = `<div class="chips glpsl" role="group" aria-label="List shown">${[['hot','Gains List'],['cold','Losses List']].map(([k,l])=>`<button data-glpsl="${k}" aria-pressed="${svpGL.psl===k}">${l}</button>`).join('')}</div>`;
     const top = hot => { const all = f.filter(x=>x.r.hot===hot);
       const byPct = all.slice().sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,30);
       const byLen = all.slice().sort((a,b)=>(b.r.b-b.r.a)-(a.r.b-a.r.a) || Math.abs(b.r.pct)-Math.abs(a.r.pct)).slice(0,30);
       const keep = new Set([...byPct, ...byLen]);
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
-    body = `<p class="smeta">The biggest and the longest Gains and Losses, Gains on the left and Losses on the right: each list holds the 30 largest percent changes plus the 30 longest runs, ranked by percent. Click Games to rank by the longest, or any other column to re-sort. Click a row to open that player’s Gains &amp; Losses. Below that, compare each player’s first, middle or last 5 games with their season.</p>` + twoCols('Biggest Gains <small>Gains</small>','Biggest Losses <small>Losses</small>',top(true),top(false),streakHead(false),8,true)
+    body = `<p class="smeta">The biggest and the longest Gains and Losses, shown one list at a time: each list holds the 30 largest percent changes plus the 30 longest runs, ranked by percent. Click Games to rank by the longest, or any other column to re-sort. Click a row to open that player’s Gains &amp; Losses. Switch between the Gains List and Losses List below, and use the Franchise box to limit it to one franchise. Below that, compare each player’s first, middle or last 5 games with their season.</p>${pslChips}` + twoCols('Biggest Gains <small>Gains</small>','Biggest Losses <small>Losses</small>',top(true),top(false),streakHead(false),8,true,svpGL.psl)
       + `<hr class="glhr">` + l5Section(svpGL.year==='all');
   } else if(svpGL.view==='totals'){
     /* every player's career: all their streaks, all seasons, added up */
@@ -12486,6 +12491,7 @@ function renderSavantGains(){
   app.querySelectorAll('[data-glw]').forEach(b=>b.addEventListener('click',()=>{ svpGL.win = b.dataset.glw; re(); }));
   app.querySelectorAll('[data-glsz]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gsz = b.dataset.glsz; re(); }));
   app.querySelectorAll('[data-glh]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gh = b.dataset.glh; re(); }));
+  app.querySelectorAll('[data-glpsl]').forEach(b=>b.addEventListener('click',()=>{ svpGL.psl = b.dataset.glpsl; re(); }));
   const gt = document.getElementById('glTeam'); if(gt) gt.addEventListener('change', e=>{ svpGL.team = e.target.value; re(); });
   if(glRaf){ cancelAnimationFrame(glRaf); glRaf = null; }
   GLT.forEach((V, i)=>{
