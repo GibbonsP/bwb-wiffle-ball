@@ -137,7 +137,7 @@ tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--accent-soft)}
 .bxt{max-width:660px}
 .glcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start}
-@media (max-width:900px){.glcols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1180px){.glcols{grid-template-columns:minmax(0,1fr)}}
 .glsp{display:block;overflow:visible}
 .glspt{padding-top:2px;padding-bottom:2px}
 .glt th.glsph,.glt td.glspt{text-align:center !important}
@@ -214,6 +214,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glbarb:hover{background:var(--ink);color:var(--card)}
 .glxu li.glxh{grid-column:1/-1;margin-top:6px;font-weight:700;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .glxu li.glxh:first-child{margin-top:0}
+.glhr{border:0;border-top:1px solid var(--line);margin:28px 0 6px}
 .glcols.glstack{grid-template-columns:minmax(0,1fr)}
 .glcols.glstack .glt{font-size:.9rem}
 .glxl{color:var(--muted)}
@@ -229,13 +230,19 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt td,.glcols .glt th{padding-left:6px;padding-right:6px}
 .glcols .glt{font-size:.84rem}
 .glcols .glt .bxph{width:24px;height:24px}
-.glcols .glt .bxpl{gap:6px;min-height:24px}
+.glcols .glt .bxpl{gap:5px;min-height:24px}
+.glcols .glt td.mono{font-size:.78rem}
 .glcols .glt .glsn{margin-left:30px}
 .glcols .glt td.lft{padding-left:8px}
 .glcols .glt td,.glcols .glt th{padding-left:4px;padding-right:4px}
 .glcols .glt .glg{font-size:.78rem;padding:2px 2px}
-.glcols .glt .glg-n{margin-left:4px;padding:0 4px;font-size:.74rem}
-.glcols .glt td.lft{padding-left:10px}
+.glcols .glt .glg-n{margin-left:3px;padding:0 3px;font-size:.72rem}
+.glcols .glt .glsph{padding-left:0;padding-right:0}
+.glcols .glt .glspt svg{width:54px}
+.glcols .glt td.lft{padding-left:8px}
+.glcols .glt{font-size:.8rem}
+.glcols .glt td,.glcols .glt th{padding-left:3px;padding-right:3px}
+.glcols .glt .bxph{width:22px;height:22px}
 .glcols.glstack .glt.glfit td:not(.lft),.glcols.glstack .glt.glfit th:not(.lft){padding-left:12px;padding-right:12px}
 .glt.glfix2{table-layout:auto;width:100%}
 .glt.glfix2 td,.glt.glfix2 th{padding-left:4px;padding-right:4px}
@@ -12137,6 +12144,24 @@ function renderSavantGains(){
     <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
   const streakHead = spark => `<th class="lft">Player</th><th title="Click a run to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th class="glsph" data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
+  /* First / Middle / Last 5 games against the season number, for the seasons in view */
+  const l5Section = multi => {
+    const WIN = {last:{k:false, h:'Last 5', c:'Last 5', d:'a player’s last 5 games', up:'Trending up', dn:'Trending down'},
+                 mid:{k:'mid', h:'Middle 5', c:'Middle 5', d:'the 5 games in the middle of a player’s season (centered between the first and last game)', up:'Hot in the middle', dn:'Cold in the middle'},
+                 first:{k:true, h:'First 5', c:'First 5', d:'a player’s first 5 games of the season', up:'Started hot', dn:'Started cold'}};
+    if(!WIN[svpGL.win]) svpGL.win = 'last';
+    const W5 = WIN[svpGL.win];
+    const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, W5.k); if(t) tr.push({se,st,t}); });
+    const l5Row = x => `<tr><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}${multi?`<small class="glsn">${x.se.y}</small>`:''}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td><td class="mono glsos" data-v="${x.t.sos==null?'':x.t.sos}" title="Strength of schedule: the average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">${x.t.sos==null?'—':x.t.sos.toFixed(3).replace(/^0/,'')}</td>${sparkTd(x.se,x.st)}</tr>`;
+    const l5Head = `<th class="lft">Player</th><th>Season</th><th>${W5.c}</th><th></th><th title="Strength of schedule: average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">SOS</th><th class="glsph" data-nosort>Trend</th>`;
+    return `
+      <h3 class="hsub">First, middle and last 5 games vs season</h3>
+      <div class="chips" role="group" aria-label="Five-game window">${[['first','First 5'],['mid','Middle 5'],['last','Last 5']].map(([k,l])=>`<button data-glw="${k}" aria-pressed="${svpGL.win===k}">${l}</button>`).join('')}</div>
+      <p class="smeta">${esc(M.l)} over ${W5.d} against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
+      ${twoCols(W5.up,W5.dn,
+        tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
+        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6)}`;
+  };
   const tabsDef = [['now','Trending Now'],['streaks','Past Seasons'],['carry','Carryover'],['straight','Form'],['totals','Totals'],['graph','Graph']];
   const inGraph = ['graph','timeline','race'].includes(svpGL.view);
   if(inGraph) svpGL.lastG = svpGL.view;
@@ -12356,25 +12381,11 @@ function renderSavantGains(){
     const last = se => se.vals.length-1;
     const act = []; ps.forEach(({se,st})=>{ const r = st[st.length-1]; if(r && r.b===last(se)) act.push({se,st,r}); });
     const aRows = hot => act.filter(x=>x.r.hot===hot && x.r.pct!=null).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).slice(0,12).map(x=>streakRow(x.se,x.r,x.st,true)).join('');
-    const WIN = {last:{k:false, h:'Last 5', c:'Last 5', d:'a player’s last 5 games', up:'Trending up', dn:'Trending down'},
-                 mid:{k:'mid', h:'Middle 5', c:'Middle 5', d:'the 5 games in the middle of a player’s season (centered between the first and last game)', up:'Hot in the middle', dn:'Cold in the middle'},
-                 first:{k:true, h:'First 5', c:'First 5', d:'a player’s first 5 games of the season', up:'Started hot', dn:'Started cold'}};
-    if(!WIN[svpGL.win]) svpGL.win = 'last';
-    const W5 = WIN[svpGL.win];
-    const tr = []; ps.forEach(({se,st})=>{ const t = glLast5(se, M, W5.k); if(t) tr.push({se,st,t}); });
-    const l5Row = x => `<tr><td class="lft" data-v="${esc(nameLast(x.se.n))}">${bxName(x.se.n)}</td><td class="mono">${fv(x.t.sv)}</td><td class="mono">${fv(x.t.lv)}</td><td class="mono glp ${x.t.pct>=0?'glup':'gldn'}">${glPct(x.t.pct)}</td><td class="mono glsos" data-v="${x.t.sos==null?'':x.t.sos}" title="Strength of schedule: the average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">${x.t.sos==null?'—':x.t.sos.toFixed(3).replace(/^0/,'')}</td>${sparkTd(x.se,x.st)}</tr>`;
-    const l5Head = `<th class="lft">Player</th><th>Season</th><th>${W5.c}</th><th></th><th title="Strength of schedule: average winning percentage of the opponents in these 5 games (.500 = average, higher = tougher)">SOS</th><th class="glsph" data-nosort>Trend</th>`;
     const live = nowYear===years[0];
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
       <h3 class="hsub">${live?'Active Gains &amp; Losses':'Gains &amp; Losses still going when '+nowYear+' ended'}</h3>
       <p class="smeta">${live?`Players snowballing right now: their ${esc(M.l)} has kept getting better game after game (an Active Gain) or kept getting worse (an Active Loss), and the run of ${glMinRun()}+ games is still going after their last game.`:`Players who were still snowballing when the ${post?'postseason':'season'} ended: a run of ${glMinRun()}+ games, getting better (Active Gains) or worse (Active Losses), that had not been broken.`} Click a run to see its games.</p>
-      ${twoCols('Active Gains','Active Losses',aRows(true),aRows(false),streakHead(true),7,true)}
-      <h3 class="hsub">First, middle and last 5 games vs season</h3>
-      <div class="chips" role="group" aria-label="Five-game window">${[['first','First 5'],['mid','Middle 5'],['last','Last 5']].map(([k,l])=>`<button data-glw="${k}" aria-pressed="${svpGL.win===k}">${l}</button>`).join('')}</div>
-      <p class="smeta">${esc(M.l)} over ${W5.d} against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
-      ${twoCols(W5.up,W5.dn,
-        tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6)}`;
+      ${twoCols('Active Gains','Active Losses',aRows(true),aRows(false),streakHead(true),7)}`;
   } else if(svpGL.view==='streaks'){
     const f = flatStreaks();
     const top = hot => { const all = f.filter(x=>x.r.hot===hot);
@@ -12382,7 +12393,8 @@ function renderSavantGains(){
       const byLen = all.slice().sort((a,b)=>(b.r.b-b.r.a)-(a.r.b-a.r.a) || Math.abs(b.r.pct)-Math.abs(a.r.pct)).slice(0,30);
       const keep = new Set([...byPct, ...byLen]);
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
-    body = `<p class="smeta">The 30 biggest and the 30 longest hot and cold streaks in one list, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7);
+    body = `<p class="smeta">The 30 biggest and the 30 longest hot and cold streaks in one list, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7)
+      + `<hr class="glhr">` + l5Section(svpGL.year==='all');
   } else if(svpGL.view==='totals'){
     /* every player's career: all their streaks, all seasons, added up */
     const by = new Map();
