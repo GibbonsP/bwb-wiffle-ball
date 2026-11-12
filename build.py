@@ -1107,7 +1107,7 @@ _D = {
                       ('Purchase Dragons', '')]},
  2020: {'North': [('Brookside Panthers', '^'), ('Harris Kings', '*'),
                   ('Beaver Brook Lavahogs', '')],
-        'South': [('Glenwood Process', '^'), ('Brookside Kraken', '*'),
+        'South': [('Brookside Kraken', '^'), ('Glenwood Process', '*'),
                   ('Purchase PawSox', '')]},
  2019: {'North': [('Beaver Brook Lavahogs', '^'), ('Brookside Panthers', '*'),
                   ('Harris Kings', '')],
