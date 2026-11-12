@@ -11979,7 +11979,7 @@ function glRuns(c, year, post, only, neg){
   return out;
 }
 
-const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, gsz:'games', back:null};
+const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, gsz:'pct', back:null};
 /* a pitcher's regular-season appearances in one year, oldest first, as cumulative-ready rows */
 function glPitGames(name, year, post){
   const pl = P[name]; if(!pl) return [];
@@ -12201,8 +12201,8 @@ function renderSavantGains(){
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
   const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack) => `<div class="glcols${stack?' glstack':''}">
-    <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Gain Adj.').replace('@PCT@','Gain')}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
-    <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Loss Adj.').replace('@PCT@','Loss')}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
+    <section class="stat"><h4><span class="glup">▲</span> ${hTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Gains Adj.').replace('@PCT@','Gain')}</tr></thead><tbody>${hRows||empty(cols)}</tbody></table></div></section>
+    <section class="stat"><h4><span class="gldn">▼</span> ${cTitle}</h4><div class="tscroll"><table class="detail sortable glt glfit"><thead><tr>${head.replace('@ADJ@','Losses Adj.').replace('@PCT@','Loss')}</tr></thead><tbody>${cRows||empty(cols)}</tbody></table></div></section></div>`;
   const flatStreaks = () => { const f = []; ps.forEach(({se,st})=>st.forEach(r=>{ if(r.pct!=null) f.push({se,st,r}); })); return f; };
   let body = '';
   /* the stat across a season break as ONE record: the whole of season A plus the first k+1 games of season B, so a bad first game after a good year nudges
@@ -12328,8 +12328,7 @@ function renderSavantGains(){
     if(oneYr) pts.forEach(x=>{ x.path = []; let last = null;       // where the streak's dot sits after each game, so it can be played back
       for(let j=x.r.a; j<=x.r.b; j++){ const q = glQuad(x.se, {a:x.r.a, b:j}) || last; if(!q) continue; last = q;
         x.path.push({d:x.se.rows[j].date, g:j, v:x.se.vals[j], px:Math.max(L, Math.min(L+pw, sx(q.p))), py:Math.max(T, Math.min(T+ph, sy(q.h)))}); } });
-    const dotR = x => { if(svpGL.gsz==='games') return Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1);
-      const v = svpGL.gsz==='adj' ? glAdjV(x.r.hot, x.r.pct, glSos(x.se, x.r)) : x.r.pct; return (2.5+Math.min(7, Math.sqrt(Math.abs(v==null?0:v)*100)*0.3)).toFixed(1); };
+    const dotR = x => { const v = svpGL.gsz==='adj' ? glAdjV(x.r.hot, x.r.pct, glSos(x.se, x.r)) : x.r.pct; return (2.5+Math.min(7, Math.sqrt(Math.abs(v==null?0:v)*100)*0.3)).toFixed(1); };
     const svg = `<svg class="glgsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gains and Losses plotted by the hitting and pitching of the opponents they were played against">
       <rect x="${sx(100)}" y="${T}" width="${L+pw-sx(100)}" height="${sy(100)-T}" class="glq-bg glq-tr"/>
       <rect x="${L}" y="${sy(100)}" width="${sx(100)-L}" height="${T+ph-sy(100)}" class="glq-bg glq-bl"/>
@@ -12345,10 +12344,11 @@ function renderSavantGains(){
       ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${dotR(x)}" data-r="${dotR(x)}"/>`).join('')}
       <g class="glp-layer"></g>
     </svg>`;
-    const szChips = `<div class="chips glsz" role="group" aria-label="Dot size"><span class="glszl">Dot size</span>${[['games','Games'],['pct','Gain / Loss %'],['adj','Gain Adj. / Loss Adj.']].map(([k,l])=>`<button data-glsz="${k}" aria-pressed="${svpGL.gsz===k}">${l}</button>`).join('')}</div>`;
-    const ghChips = `<div class="chips" role="group" aria-label="Gains or Losses">${[['both','Gains + Losses'],['hot','Gains only'],['cold','Losses only']].map(([k,l])=>`<button data-glh="${k}" aria-pressed="${svpGL.gh===k}">${l}</button>`).join('')}</div>`;
-    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are longer runs, or switch Dot size to make them bigger for a larger Gain / Loss percent, or a larger Gain Adj. / Loss Adj. (the percent weighted by strength of schedule). Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
-      <div class="svpform">${ghChips}${szChips}
+    const adjM = svpGL.gsz==='adj';
+    const szChips = `<div class="chips" role="group" aria-label="Measure">${[['pct','Gains + Losses'],['adj','Gains Adj. + Losses Adj.']].map(([k,l])=>`<button data-glsz="${k}" aria-pressed="${svpGL.gsz===k}">${l}</button>`).join('')}</div>`;
+    const ghChips = `<div class="chips" role="group" aria-label="Show">${[['both','Both'],['hot',adjM?'Gains Adj. only':'Gains only'],['cold',adjM?'Losses Adj. only':'Losses only']].map(([k,l])=>`<button data-glh="${k}" aria-pressed="${svpGL.gh===k}">${l}</button>`).join('')}</div>`;
+    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are a larger percent. Choose <b>Gains + Losses</b> for the plain percent change, or <b>Gains Adj. + Losses Adj.</b> for the percent weighted by strength of schedule (the dots are sized by it), and use the second switch to show just the Gains or just the Losses. Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
+      <div class="svpform">${szChips}${ghChips}
         <label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label></div>
       <div class="glgraph">${svg}<div class="glgtip" hidden></div></div><div class="glpin" hidden></div>`;
   } else if(svpGL.view==='carry'){
@@ -12532,7 +12532,7 @@ function renderSavantGains(){
   if(gg){
     const tip = gg.querySelector('.glgtip'), pin = app.querySelector('.glpin');
     const info = x => { const r = x.r, se = x.se, f = v => isFinite(v) ? M.fmt(v) : '—';
-      return `<b>${esc(se.n)}</b> · ${se.y}${x.team?' · '+esc(x.team):''}<br>${r.hot?'<span class="glup">▲ Gain</span>':'<span class="gldn">▼ Loss</span>'} G${r.a+1}${r.a===r.b?'':'–G'+(r.b+1)} (${r.b-r.a+1} games) · ${esc(M.l)} ${f(r.from)} → ${f(r.to)} <b class="${r.hot?'glup':'gldn'}">${glPct(r.pct)}</b>${(a => a==null ? '' : ` · <b class="${r.hot?'glup':'gldn'}">${glPct(a)}</b> ${r.hot?'Gain':'Loss'} Adj.`)(glAdjV(r.hot, r.pct, glSos(se, r)))}<br>Opponents: hitting ${Math.round(x.q.h)} · pitching ${Math.round(x.q.p)}`; };
+      return `<b>${esc(se.n)}</b> · ${se.y}${x.team?' · '+esc(x.team):''}<br>${r.hot?'<span class="glup">▲ Gain</span>':'<span class="gldn">▼ Loss</span>'} G${r.a+1}${r.a===r.b?'':'–G'+(r.b+1)} (${r.b-r.a+1} games) · ${esc(M.l)} ${f(r.from)} → ${f(r.to)} <b class="${r.hot?'glup':'gldn'}">${glPct(r.pct)}</b>${(a => a==null ? '' : ` · <b class="${r.hot?'glup':'gldn'}">${glPct(a)}</b> ${r.hot?'Gains':'Losses'} Adj.`)(glAdjV(r.hot, r.pct, glSos(se, r)))}<br>Opponents: hitting ${Math.round(x.q.h)} · pitching ${Math.round(x.q.p)}`; };
     gg.addEventListener('mouseover', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
       tip.innerHTML = info(x); tip.hidden = false; const b = gg.getBoundingClientRect(), cb = c.getBoundingClientRect();
       tip.style.left = Math.min(b.width-tip.offsetWidth-4, Math.max(4, cb.left-b.left+cb.width/2-tip.offsetWidth/2))+'px';
