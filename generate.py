@@ -12384,7 +12384,7 @@ function renderSavantGains(){
     const live = nowYear===years[0];
     body = `<p class="smeta glnote">${nowYear} ${live?'(the latest season)':''} · ${esc(M.l)}</p>
       <h3 class="hsub">${live?'Active Gains &amp; Losses':'Gains &amp; Losses still going when '+nowYear+' ended'}</h3>
-      <p class="smeta">${live?`Players snowballing right now: their ${esc(M.l)} has kept getting better game after game (an Active Gain) or kept getting worse (an Active Loss), and the run of ${glMinRun()}+ games is still going after their last game.`:`Players who were still snowballing when the ${post?'postseason':'season'} ended: a run of ${glMinRun()}+ games, getting better (Active Gains) or worse (Active Losses), that had not been broken.`} Click a run to see its games.</p>
+      <p class="smeta">${live?`Players snowballing as of their latest game: their ${esc(M.l)} has kept getting better game after game (an Active Gain) or kept getting worse (an Active Loss), and the run of ${glMinRun()}+ games is still going after their last game.`:`Players who were still snowballing when the ${post?'postseason':'season'} ended: a run of ${glMinRun()}+ games, getting better (Active Gains) or worse (Active Losses), that had not been broken.`} Click a run to see its games.</p>
       ${twoCols('Active Gains','Active Losses',aRows(true),aRows(false),streakHead(true),7)}`;
   } else if(svpGL.view==='streaks'){
     const f = flatStreaks();
@@ -12393,7 +12393,7 @@ function renderSavantGains(){
       const byLen = all.slice().sort((a,b)=>(b.r.b-b.r.a)-(a.r.b-a.r.a) || Math.abs(b.r.pct)-Math.abs(a.r.pct)).slice(0,30);
       const keep = new Set([...byPct, ...byLen]);
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
-    body = `<p class="smeta">The 30 biggest and the 30 longest hot and cold streaks in one list, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7)
+    body = `<p class="smeta">The biggest and the longest streaks, hot on the left and cold on the right: each list holds the 30 largest percent changes plus the 30 longest runs, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7)
       + `<hr class="glhr">` + l5Section(svpGL.year==='all');
   } else if(svpGL.view==='totals'){
     /* every player's career: all their streaks, all seasons, added up */
@@ -12412,9 +12412,9 @@ function renderSavantGains(){
     ${noStd ? '' : `<p class="smeta">Follow a player’s season ${esc(M.l)} game by game. When it keeps getting better, game after game, that run is a <b>Gain</b> and the percent it improved is the size of the gain; when it keeps getting worse, that run is a <b>Loss</b> and the percent it fell is the size of the loss${M.low?` (for ${esc(M.l)} lower is better, so a falling number is a Gain)`:''}.
       A run needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it${M.low||['AVG','OBP','BABIP'].includes(M.k)?' (unless it is already perfect, like a '+(M.low?'0.00':'1.000')+' '+esc(M.l)+', which can’t get any better and counts as a Gain)':''}. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>`}
     ${phaseChips}${tabs}${subTabs}${svpGL.view==='carry'||svpGL.view==='totals'?'':yearChips}${controls}${playerBar}${body}
-    ${noStd ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
-      <b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. <b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
-      In the small season line, grey is the whole season and green / red mark the streaks.${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`}`);
+    ${noStd || svpGL.view==='graph' ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak${svpGL.view==='carry'?'':', added up for the season (Net = Gains + Losses)'}. Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
+      ${svpGL.view==='carry'?'':'<b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. '}<b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
+      ${svpGL.view==='carry'?'':'In the small season line, grey is the whole season and green / red mark the streaks.'}${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`}`);
   const re = () => renderSavantGains();
   app.querySelectorAll('[data-gly]').forEach(b=>b.addEventListener('click',()=>{ svpGL.year = b.dataset.gly; re(); }));
   const gm = document.getElementById('glMetric'); if(gm) gm.addEventListener('change', e=>{ svpGL.metric = e.target.value; re(); });
