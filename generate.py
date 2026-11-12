@@ -12401,10 +12401,10 @@ function renderSavantGains(){
     ps.forEach(({se,st})=>{ let t = by.get(se.n); if(!t) by.set(se.n, t = {n:se.n, nh:0, nc:0, g:0, l:0});
       st.forEach(r=>{ if(r.hot) t.nh++; else t.nc++; if(r.pct!=null){ if(r.hot) t.g += r.pct; else t.l += r.pct; } }); });
     let rows = [...by.values()].filter(r=>r.nh+r.nc>0 && (!sel || r.n===sel)).sort((a,b)=>(b.g+b.l)-(a.g+a.l));
-    const pc = (v,cls,n) => `<td class="mono ${cls}" data-v="${v}">${n===0?'—':glPct(v)}</td>`;
+    const pc = (v,cls,n,mag) => `<td class="mono ${cls}" data-v="${mag?Math.abs(v):v}">${n===0?'—':glPct(v)}</td>`;
     body = `<p class="smeta">Every player’s career ${esc(M.l)} streaks, all seasons combined: how many hot and cold streaks they have had, the total percent gained and lost across them, and the net. Click a column to re-sort.</p>
       <div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th title="Hot streaks, all seasons">Hot streaks</th><th title="Cold streaks, all seasons">Cold streaks</th><th title="Percent gained over every hot streak, added up">Gains</th><th title="Percent lost over every cold streak, added up">Losses</th><th title="Gains + Losses">Net</th></tr></thead><tbody>${
-      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.n))}">${bxName(r.n)}</td><td class="glup" data-v="${r.nh}"><b>${r.nh}</b></td><td class="gldn" data-v="${r.nc}"><b>${r.nc}</b></td>${pc(r.g,'glup',r.nh)}${pc(r.l,'gldn',r.nc)}${pc(r.g+r.l,r.g+r.l>=0?'glup':'gldn')}</tr>`).join('') || empty(6)}</tbody></table></div>`;
+      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.n))}">${bxName(r.n)}</td><td class="glup" data-v="${r.nh}"><b>${r.nh}</b></td><td class="gldn" data-v="${r.nc}"><b>${r.nc}</b></td>${pc(r.g,'glup',r.nh)}${pc(r.l,'gldn',r.nc,true)}${pc(r.g+r.l,r.g+r.l>=0?'glup':'gldn')}</tr>`).join('') || empty(6)}</tbody></table></div>`;
   }
   svpShell('gains', `
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
