@@ -261,6 +261,15 @@ tr.glrow:hover td{background:var(--hov, rgba(31,62,110,.07))}
 .glcols .glt td,.glcols .glt th{padding-left:2px;padding-right:2px}
 .glcols .glt .bxph{width:20px;height:20px}
 .glcols.glstack .glt.glfit td:not(.lft),.glcols.glstack .glt.glfit th:not(.lft){padding-left:12px;padding-right:12px}
+.glcols.glstack .glt.glfit:not(#x) {font-size:.95rem}
+.glcols.glstack .glt.glfit:not(#x) td.mono{font-size:.88rem}
+.glcols.glstack .glt.glfit:not(#x) th{font-size:.74rem;letter-spacing:.04em;padding-top:10px;padding-bottom:10px}
+.glcols.glstack .glt.glfit:not(#x) td:not(.lft),.glcols.glstack .glt.glfit:not(#x) th:not(.lft){padding-left:20px;padding-right:20px}
+.glcols.glstack .glt.glfit:not(#x) td{padding-top:11px;padding-bottom:11px}
+.glcols.glstack .glt.glfit:not(#x) td.lft{padding-left:14px}
+.glcols.glstack .glt.glfit:not(#x) .bxph{width:30px;height:30px}
+.glcols.glstack .glt.glfit:not(#x) .glsn{margin-left:38px}
+.glcols.glstack .glt.glfit:not(#x) .glspt svg{width:64px}
 .glt.glfix2{table-layout:auto;width:100%}
 .glt.glfix2 td,.glt.glfix2 th{padding-left:4px;padding-right:4px}
 .glcols .glt.glfix2{font-size:.8rem}
@@ -12183,7 +12192,7 @@ function renderSavantGains(){
       <p class="smeta">${esc(M.l)} over ${W5.d} against their full-season number; the change counts as positive when it’s better${M.low?' (a lower number is better)':''}. Needs ${M.kind==='bat'?(post?'8+':'10+')+' plate appearances':(post?'2+':'3+')+' innings'} in those games and ${post?'6+':'8+'} games in the ${post?'postseason':'season'}.</p>
       ${twoCols(W5.up,W5.dn,
         tr.slice().sort((a,b)=>b.t.pct-a.t.pct).slice(0,12).map(l5Row).join(''),
-        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6)}`;
+        tr.slice().sort((a,b)=>a.t.pct-b.t.pct).slice(0,12).map(l5Row).join(''), l5Head, 6, true)}`;
   };
   const tabsDef = [['now','Trending Now'],['streaks','Past Seasons'],['carry','Carryover'],['straight','Form'],['totals','Totals'],['graph','Graph']];
   const inGraph = ['graph','race'].includes(svpGL.view);
@@ -12442,7 +12451,7 @@ function renderSavantGains(){
       const byLen = all.slice().sort((a,b)=>(b.r.b-b.r.a)-(a.r.b-a.r.a) || Math.abs(b.r.pct)-Math.abs(a.r.pct)).slice(0,30);
       const keep = new Set([...byPct, ...byLen]);
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
-    body = `<p class="smeta">The biggest and the longest Gains and Losses, Gains on the left and Losses on the right: each list holds the 30 largest percent changes plus the 30 longest runs, ranked by percent. Click Games to rank by the longest, or any other column to re-sort. Click a row to open that player’s Gains &amp; Losses. Below that, compare each player’s first, middle or last 5 games with their season.</p>` + twoCols('Biggest Gains <small>Gains</small>','Biggest Losses <small>Losses</small>',top(true),top(false),streakHead(false),8)
+    body = `<p class="smeta">The biggest and the longest Gains and Losses, Gains on the left and Losses on the right: each list holds the 30 largest percent changes plus the 30 longest runs, ranked by percent. Click Games to rank by the longest, or any other column to re-sort. Click a row to open that player’s Gains &amp; Losses. Below that, compare each player’s first, middle or last 5 games with their season.</p>` + twoCols('Biggest Gains <small>Gains</small>','Biggest Losses <small>Losses</small>',top(true),top(false),streakHead(false),8,true)
       + `<hr class="glhr">` + l5Section(svpGL.year==='all');
   } else if(svpGL.view==='totals'){
     /* every player's career: all their streaks, all seasons, added up */
@@ -12452,7 +12461,7 @@ function renderSavantGains(){
     let rows = [...by.values()].filter(r=>r.nh+r.nc>0 && (!sel || r.n===sel)).sort((a,b)=>(b.g+b.l)-(a.g+a.l));
     const pc = (v,cls,n,mag) => `<td class="mono ${cls}" data-v="${mag?Math.abs(v):v}">${n===0?'—':glPct(v)}</td>`;
     body = `<p class="smeta">Every player’s career ${esc(M.l)} Gains and Losses, all seasons combined: how many of each they have had, the percent gained and lost added up across them (Gain total, Loss total), and the net. The three <b>Adj.</b> columns add up the same runs after weighting each one by the strength of schedule it was played against (Gain × SOS ÷ .500, Loss × .500 ÷ SOS), so a pile of Gains against weak teams shrinks and a pile against strong teams grows. Runs with no schedule data are left out of the Adj. columns. Click a column to re-sort, or a row to open that player’s Gains &amp; Losses.</p>
-      <div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th title="How many Gains, all seasons"># Gains</th><th title="How many Losses, all seasons"># Losses</th><th title="Percent gained over every Gain, added up">Gain total</th><th title="Percent lost over every Loss, added up">Loss total</th><th title="Gains + Losses">Net</th><th title="Every Gain, each weighted by strength of schedule (Gain × SOS ÷ .500), added up">Gains Adj. total</th><th title="Every Loss, each weighted by strength of schedule (Loss × .500 ÷ SOS), added up">Losses Adj. total</th><th title="Gains Adj. + Losses Adj.">Net Adj.</th></tr></thead><tbody>${
+      <div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th title="How many Gains, all seasons"># Gains</th><th title="How many Losses, all seasons"># Losses</th><th title="Percent gained over every Gain, added up">Gain total</th><th title="Percent lost over every Loss, added up">Loss total</th><th title="Gains + Losses">Net</th><th title="Every Gain, each weighted by strength of schedule (Gain × SOS ÷ .500), added up">Total Gains Adj.</th><th title="Every Loss, each weighted by strength of schedule (Loss × .500 ÷ SOS), added up">Total Losses Adj.</th><th title="Total Gains Adj. + Total Losses Adj.">Total Net Adj.</th></tr></thead><tbody>${
       rows.map(r=>`<tr class="glrow" data-glpl="${esc(r.n)}" data-gly2="all" title="Click the row to open this player’s Gains &amp; Losses"><td class="lft" data-v="${esc(nameLast(r.n))}">${bxName(r.n)}</td><td class="glup" data-v="${r.nh}"><b>${r.nh}</b></td><td class="gldn" data-v="${r.nc}"><b>${r.nc}</b></td>${pc(r.g,'glup',r.nh)}${pc(r.l,'gldn',r.nc,true)}${pc(r.g+r.l,r.g+r.l>=0?'glup':'gldn')}${pc(r.ga,'glup',r.nh)}${pc(r.la,'gldn',r.nc,true)}${pc(r.ga+r.la,r.ga+r.la>=0?'glup':'gldn')}</tr>`).join('') || empty(6)}</tbody></table></div>`;
   }
   svpShell('gains', `
