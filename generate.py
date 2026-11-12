@@ -12593,12 +12593,12 @@ function renderSavantGains(){
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
     gg.addEventListener('mouseleave', ()=>{ tip.hidden = true; });
     const svgEl = gg.querySelector('.glgsvg');
-    let fadeT = null;
-    const clearSel = () => { clearTimeout(fadeT); svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
+    let fadeT = null, selDot = null, selNext = null;
+    const clearSel = () => { clearTimeout(fadeT); if(selDot){ svgEl.insertBefore(selDot, selNext && selNext.parentNode===svgEl ? selNext : svgEl.querySelector('.glp-layer')); selDot = null; selNext = null; } svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
     gg.addEventListener('click', e=>{ if(!e.target.closest('.glg-d') && e.target.closest('.glgsvg')){ clearSel(); pin.hidden = true; } });
     document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
     const selectDot = c => { const x = GLG_PTS[+c.dataset.i]; if(!x) return;
-      clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); svgEl.appendChild(c);
+      clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); selDot = c; selNext = c.nextSibling; svgEl.appendChild(c);
       fadeT = setTimeout(()=>svgEl.classList.remove('glg-has-sel'), 5000);   // the focus fades after 5 seconds; the dot and its details stay selected
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
       pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); };
