@@ -245,6 +245,9 @@ tbody tr:hover{background:var(--accent-soft)}
 .glgwrap{max-width:760px;margin:8px auto 0}
 .glgsw{display:flex;justify-content:flex-end}
 .glgsw .chips{margin:0}
+.glpickb{font:inherit;font-size:.86rem;background:none;border:0;padding:6px 0;cursor:pointer;color:var(--ink);text-align:left}
+.glpickb:hover{text-decoration:underline}
+.glmore{color:var(--muted);font-size:.78rem}
 .glszl{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
 tr.glrow{cursor:pointer}
 tr.glrow:hover td{background:var(--hov, rgba(31,62,110,.07))}
@@ -12345,7 +12348,7 @@ function renderSavantGains(){
       ${ql(L+pw-8, T+ph-40, 'end', 'Weak hitting · good pitching', cnt(false,true))}
       <text x="${L+pw/2}" y="${H-8}" text-anchor="middle" class="glg-ax">Opponent pitching →  (100 = league average, right = better pitching)</text>
       <text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="glg-ax">Opponent hitting →  (100 = league average, up = better hitting)</text>
-      ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${dotR(x)}" data-r="${dotR(x)}"/>`).join('')}
+      ${pts.map((x,i)=>({x,i,r:+dotR(x)})).sort((a,b)=>b.r-a.r).map(({x,i})=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${dotR(x)}" data-r="${dotR(x)}"/>`).join('')}
       <g class="glp-layer"></g>
     </svg>`;
     /* Gains + Losses (not adjusted): the percent itself against how tough the schedule was, so you can see how much of a big Gain came against weak opponents */
@@ -12372,7 +12375,7 @@ function renderSavantGains(){
       ${rq(L+pw-8, T+ph-26, 'end', 'Losses vs tough schedule', qn(false,true), 'Losses')}
       <text x="${L+pw/2}" y="${H-8}" text-anchor="middle" class="glg-ax">Strength of schedule →  (opponents’ winning %, .500 = average, right = tougher)</text>
       <text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="glg-ax">Gain / Loss %  (scale compresses the biggest ones)</text>
-      ${pr.map((x,i)=>{ const rr = Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1); return `<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${rx(glSos(x.se, x.r)).toFixed(1)}" cy="${ry(x.r.pct).toFixed(1)}" r="${rr}" data-r="${rr}"/>`; }).join('')}
+      ${pr.map((x,i)=>({x,i})).sort((a,b)=>(b.x.r.b-b.x.r.a)-(a.x.r.b-a.x.r.a)).map(({x,i})=>{ const rr = Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1); return `<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${rx(glSos(x.se, x.r)).toFixed(1)}" cy="${ry(x.r.pct).toFixed(1)}" r="${rr}" data-r="${rr}"/>`; }).join('')}
       <g class="glp-layer"></g>
     </svg>`;
     }
@@ -12582,21 +12585,30 @@ function renderSavantGains(){
     const tip = gg.querySelector('.glgtip'), pin = app.querySelector('.glpin');
     const info = x => { const r = x.r, se = x.se, f = v => isFinite(v) ? M.fmt(v) : '—';
       return `<b>${esc(se.n)}</b> · ${se.y}${x.team?' · '+esc(x.team):''}<br>${r.hot?'<span class="glup">▲ Gain</span>':'<span class="gldn">▼ Loss</span>'} G${r.a+1}${r.a===r.b?'':'–G'+(r.b+1)} (${r.b-r.a+1} games) · ${esc(M.l)} ${f(r.from)} → ${f(r.to)} ${(a => a==null ? '<b>—</b>' : `<b class="${r.hot?'glup':'gldn'}">${glPct(a)}</b>${svpGL.gsz==='adj' ? ' '+(r.hot?'Gains':'Losses')+' Adj.' : ''}${glSos(se, r)==null ? '' : ' · SOS '+glSos(se, r).toFixed(3).replace(/^0/,'')}`)(svpGL.gsz==='adj' ? glAdjV(r.hot, r.pct, glSos(se, r)) : r.pct)}<br>Opponents: hitting ${Math.round(x.q.h)} · pitching ${Math.round(x.q.p)}`; };
-    gg.addEventListener('mouseover', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
-      tip.innerHTML = info(x); tip.hidden = false; const b = gg.getBoundingClientRect(), cb = c.getBoundingClientRect();
+    /* every dot under the cursor, topmost first (small dots are drawn on top of big ones, so the small ones stay reachable) */
+    const hitsAt = e => document.elementsFromPoint(e.clientX, e.clientY).filter(el=>el.classList && el.classList.contains('glg-d') && gg.contains(el));
+    gg.addEventListener('mousemove', e=>{ const hs = hitsAt(e); if(!hs.length){ tip.hidden = true; return; } const c = hs[0], x = GLG_PTS[+c.dataset.i]; if(!x) return;
+      tip.innerHTML = info(x)+(hs.length>1 ? `<br><i class="glmore">${hs.length-1} more dot${hs.length>2?'s':''} overlap here — click to choose</i>` : ''); tip.hidden = false; const b = gg.getBoundingClientRect(), cb = c.getBoundingClientRect();
       tip.style.left = Math.min(b.width-tip.offsetWidth-4, Math.max(4, cb.left-b.left+cb.width/2-tip.offsetWidth/2))+'px';
       tip.style.top = (cb.top-b.top > tip.offsetHeight+16 ? cb.top-b.top-tip.offsetHeight-10 : cb.bottom-b.top+10)+'px'; });
-    gg.addEventListener('mouseout', e=>{ if(e.target.closest('.glg-d')) tip.hidden = true; });
+    gg.addEventListener('mouseleave', ()=>{ tip.hidden = true; });
     const svgEl = gg.querySelector('.glgsvg');
     let fadeT = null;
     const clearSel = () => { clearTimeout(fadeT); svgEl.classList.remove('glg-has-sel'); svgEl.querySelectorAll('.glg-sel').forEach(d=>{ d.classList.remove('glg-sel'); d.setAttribute('r', d.dataset.r); }); };
     gg.addEventListener('click', e=>{ if(!e.target.closest('.glg-d') && e.target.closest('.glgsvg')){ clearSel(); pin.hidden = true; } });
     document.addEventListener('keydown', function esc_(ev){ if(!document.body.contains(gg)){ document.removeEventListener('keydown', esc_); return; } if(ev.key==='Escape'){ clearSel(); pin.hidden = true; } });
-    gg.addEventListener('click', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
+    const selectDot = c => { const x = GLG_PTS[+c.dataset.i]; if(!x) return;
       clearSel(); c.dataset.r = c.dataset.r || c.getAttribute('r'); svgEl.classList.add('glg-has-sel'); c.classList.add('glg-sel'); svgEl.appendChild(c);
       fadeT = setTimeout(()=>svgEl.classList.remove('glg-has-sel'), 5000);   // the focus fades after 5 seconds; the dot and its details stay selected
       pin.innerHTML = `<div class="glpinh"><div>${info(x)}</div><button class="glpinb" type="button">Open ${esc(x.se.n.split(' ')[0])}’s ${x.se.y} Gains &amp; Losses</button></div><ul class="glxu">${glGames(x.se, x.r.a, x.r.b).join('')}</ul>`; pin.hidden = false;
-      pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); });
+      pin.querySelector('.glpinb').addEventListener('click', ()=>{ svpGL.back = {view:'graph', year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:'Graph'}; svpGL.player = x.se.n; svpGL.year = String(x.se.y); svpGL.view = 'now'; re(); }); };
+    gg.addEventListener('click', e=>{ const hs = hitsAt(e); if(!hs.length) return;
+      if(hs.length===1){ selectDot(hs[0]); return; }
+      /* several dots sit on top of each other here: list them so any one can be picked */
+      clearSel();
+      pin.innerHTML = `<div class="glpinh"><div><b>${hs.length} dots overlap here</b> — pick one</div></div><ul class="glxu glpick">${hs.map(c=>{ const x = GLG_PTS[+c.dataset.i], r = x.r, v = svpGL.gsz==='adj' ? glAdjV(r.hot, r.pct, glSos(x.se, r)) : r.pct;
+        return `<li><button type="button" class="glpickb" data-i="${c.dataset.i}"><b>${esc(x.se.n)}</b> · ${x.se.y} · <span class="${r.hot?'glup':'gldn'}">${r.hot?'▲ Gain':'▼ Loss'} ${v==null?'—':glPct(v)}${svpGL.gsz==='adj'?' Adj.':''}</span> · G${r.a+1}–G${r.b+1}</button></li>`; }).join('')}</ul>`; pin.hidden = false;
+      pin.querySelectorAll('.glpickb').forEach(b=>b.addEventListener('click', ()=>{ const c = svgEl.querySelector(`.glg-d[data-i="${b.dataset.i}"]`); if(c) selectDot(c); })); });
   }
   /* the games that made a streak (each linking to its box score) plus a total row, as list items */
   function glGames(se, a, b, vv){
