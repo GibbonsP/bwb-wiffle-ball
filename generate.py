@@ -12178,6 +12178,8 @@ function renderSavantGains(){
   const playerBar = sel ? `<div class="glbar" role="status">
       <span>${inPlayer ? `Viewing <b>${esc(sel)}</b>’s ${svpGL.year==='all'?'Gains &amp; Losses':svpGL.year+' Gains &amp; Losses'}` : `Showing only <b>${esc(sel)}</b>’s Gains &amp; Losses`}</span>
       ${inPlayer && bk ? `<button type="button" class="glbarb" data-glback="1">← Back to ${esc(bk.label)}</button>` : ''}
+      ${!inPlayer && P[sel] ? `<button type="button" class="glbarb" data-glopen="1">Open ${esc(sel.split(' ')[0])}’s Gains &amp; Losses</button>` : ''}
+      ${P[sel] ? `<button type="button" class="glbarb" data-glpage="1">View ${esc(sel.split(' ')[0])}’s Player Page</button>` : ''}
       <button type="button" class="glbarb" data-glclear="1">✕ All players</button></div>` : '';
   const metOpt = kind => GL_METRICS.filter(m=>m.kind===kind).map(m=>`<option value="${m.k}"${m.k===M.k?' selected':''}>${esc(m.l)}</option>`).join('');
   const noStd = ['straight','timeline','race','totals'].includes(svpGL.view);
@@ -12422,6 +12424,9 @@ function renderSavantGains(){
     if(svpGL.view==='race'){ if(P[v] && !svpGL.race.includes(v) && svpGL.race.length<6) svpGL.race = [...svpGL.race, v]; svpGL.player = ''; re(); return; } svpGL.player = P[v] ? v : ''; svpGL.back = null; re(); });
   app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv === 'graph' ? (svpGL.lastG || 'graph') : b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry' && k!=='straight' && k!=='timeline' && k!=='totals') svpGL.player = ''; re(); }));
   app.querySelectorAll('[data-glsub]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glsub; svpGL.view = k; svpGL.lastG = k; if(k==='race') svpGL.player = ''; re(); }));
+  app.querySelectorAll('[data-glpage]').forEach(b=>b.addEventListener('click',()=>{ location.hash = '#/p/'+encodeURIComponent(svpGL.player); }));
+  app.querySelectorAll('[data-glopen]').forEach(b=>b.addEventListener('click',()=>{ const v = svpGL.view, lbl = v==='timeline' ? 'Timeline' : v==='race' ? 'Stat race' : (tabsDef.find(t=>t[0]===v)||[0,'Graph'])[1];
+    svpGL.back = {view:v, year:svpGL.year, team:svpGL.team, gh:svpGL.gh, player:svpGL.player, label:lbl}; svpGL.year = 'all'; svpGL.view = 'now'; re(); }));
   app.querySelectorAll('[data-glclear]').forEach(b=>b.addEventListener('click',()=>{ svpGL.player = ''; svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glback]').forEach(b=>b.addEventListener('click',()=>{ const k = svpGL.back; if(k){ svpGL.view = k.view; svpGL.year = k.year; svpGL.team = k.team; svpGL.gh = k.gh; svpGL.player = k.player; } svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glp]').forEach(b=>b.addEventListener('click',()=>{ svpGL.phase = b.dataset.glp; svpGL.team = ''; re(); }));
