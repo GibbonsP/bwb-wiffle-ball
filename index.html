@@ -235,7 +235,9 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt .glspt svg{width:36px}
 .glcols .glt th{letter-spacing:.01em;font-size:.68rem}
 .glcols .glt:has(.glsph){font-size:.82rem}
-.glbr{flex-basis:100%;height:0}
+.glgwrap{max-width:760px;margin:8px auto 0}
+.glgsw{display:flex;justify-content:flex-end}
+.glgsw .chips{margin:0}
 .glszl{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
 tr.glrow{cursor:pointer}
 tr.glrow:hover td{background:var(--hov, rgba(31,62,110,.07))}
@@ -12198,7 +12200,7 @@ function renderSavantGains(){
     : `<label>Stat <select id="glMetric"><optgroup label="Batting">${metOpt('bat')}</optgroup><optgroup label="Pitching">${metOpt('pit')}</optgroup></select></label>`;
   const controls = `<div class="svpform">
     ${statCtl}
-    <label>Player <input id="glPlayer" list="glNames" placeholder="${svpGL.view==='race'?'Narrow to chosen players':'All players'}" value="${esc(sel)}"></label>
+    <label>Player <input id="glPlayer" list="glNames" placeholder="${svpGL.view==='race'?'Narrow to chosen players':'All players'}" value="${esc(sel)}"></label>${svpGL.view==='graph'?'@TEAMSEL@':''}
     <datalist id="glNames">${[...new Set(pool.map(s=>s.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b))).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>`;
   const sums = st => ({g:st.filter(r=>r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0), l:st.filter(r=>!r.hot&&r.pct!=null).reduce((t,r)=>t+r.pct,0)});
   const twoCols = (hTitle, cTitle, hRows, cRows, head, cols, stack) => `<div class="glcols${stack?' glstack':''}">
@@ -12214,7 +12216,7 @@ function renderSavantGains(){
       if(M.fn.length<2) return M.fn(sumRows([ca, cb]), B.y);
       const va = M.fn(ca, A.y), vb = M.fn(cb, B.y), wa = ca[w], wb = cb[w];
       return isFinite(va) && isFinite(vb) && wa+wb>0 ? (va*wa+vb*wb)/(wa+wb) : NaN; }); };
-  let gTeams = [];
+  let gTeams = [], teamSel = '';
   if(!pool.length) body = '<p class="empty">No seasons in that selection.</p>';
   else if(svpGL.view==='straight'){
     GLR.length = 0;
@@ -12311,7 +12313,6 @@ function renderSavantGains(){
       <div class="glra">${svg}</div>`;
   } else if(svpGL.view==='graph'){
     let pts = []; flatStreaks().forEach(x=>{ const q = glQuad(x.se, x.r); if(q) pts.push({...x, q, team:x.se.rows[x.r.b].team||''}); });
-    const gPlayers = [...new Set(pts.map(x=>x.se.n))].sort((a,b)=>nameLast(a).localeCompare(nameLast(b)));
     if(sel) pts = pts.filter(x=>x.se.n===sel);
     gTeams = [...new Set(pts.map(x=>x.team).filter(Boolean))].sort();
     if(svpGL.team && !gTeams.includes(svpGL.team)) svpGL.team = '';
@@ -12349,11 +12350,11 @@ function renderSavantGains(){
     const adjM = svpGL.gsz==='adj', gN = adjM?'Gains Adj.':'Gains', lN = adjM?'Losses Adj.':'Losses';
     const szChips = `<div class="chips glsz" role="group" aria-label="Measure">${[['pct','Gains + Losses'],['adj','Gains Adj. + Losses Adj.']].map(([k,l])=>`<button data-glsz="${k}" aria-pressed="${svpGL.gsz===k}">${l}</button>`).join('')}</div>`;
     const ghChips = `<div class="chips" role="group" aria-label="Show">${[['both','Both'],['hot',gN+' only'],['cold',lN+' only']].map(([k,l])=>`<button data-glh="${k}" aria-pressed="${svpGL.gh===k}">${l}</button>`).join('')}</div>`;
-    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are bigger ${adjM?'Gains Adj. and Losses Adj. (the percent weighted by strength of schedule)':'Gains and Losses (the percent change)'}. Switch between the two measures, or show just the Gains or just the Losses. Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
-      <div class="svpform">${szChips}${ghChips}<span class="glbr"></span>
-        <label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label>
-        <label>Player <select id="glPick"><option value="">All players</option>${gPlayers.map(n=>`<option value="${esc(n)}"${n===sel?' selected':''}>${esc(n)}</option>`).join('')}</select></label></div>
-      <div class="glgraph">${svg}<div class="glgtip" hidden></div></div><div class="glpin" hidden></div>`;
+    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are bigger ${adjM?'Gains Adj. and Losses Adj. (the percent weighted by strength of schedule)':'Gains and Losses (the percent change)'}. Use the two buttons to switch measure, and the switch under the graph to show just the Gains or just the Losses. Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
+      <div class="svpform">${szChips}</div>
+      <div class="glgraph">${svg}<div class="glgtip" hidden></div></div>
+      <div class="glgwrap"><div class="glgsw">${ghChips}</div></div><div class="glpin" hidden></div>`;
+    teamSel = `<label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
   } else if(svpGL.view==='carry'){
     /* a trend that crosses the off-season: the season ended inside a hot/cold streak, and the stat keeps moving the same way from that end-of-season level
        into the next season's first game(s), for as long as each step keeps going the same direction */
@@ -12426,7 +12427,7 @@ function renderSavantGains(){
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     ${noStd ? '' : `<p class="smeta">Follow a player’s season ${esc(M.l)} game by game. When it keeps getting better, game after game, that run is a <b>Gain</b> and the percent it improved is the size of the gain; when it keeps getting worse, that run is a <b>Loss</b> and the percent it fell is the size of the loss${M.low?` (for ${esc(M.l)} lower is better, so a falling number is a Gain)`:''}.
       A run needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it${M.low||['AVG','OBP','BABIP'].includes(M.k)?' (unless it is already perfect, like a '+(M.low?'0.00':'1.000')+' '+esc(M.l)+', which can’t get any better and counts as a Gain)':''}. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>`}
-    ${phaseChips}${tabs}${subTabs}${svpGL.view==='carry'||svpGL.view==='totals'?'':yearChips}${controls}${playerBar}${body}
+    ${phaseChips}${tabs}${subTabs}${svpGL.view==='carry'||svpGL.view==='totals'?'':yearChips}${controls.replace('@TEAMSEL@', teamSel)}${playerBar}${body}
     ${noStd || svpGL.view==='graph' ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each Gain or Loss${svpGL.view==='carry'?'':', added up for the season (Net = Gains + Losses)'}. Early in a season one game moves the number a lot, so early Gains and Losses can show very large percents; a run that starts from zero has no percent and is left out.
       ${svpGL.view==='carry'?'':'<b>vs Lg</b> is the stat against that year’s league average (100 = average), so a Loss from an elite level shows as exactly that. '}<b>SOS</b> is the average winning percentage of the opponents in the run (.500 = average, higher = tougher), so a Gain at a high SOS is the more impressive one. <b>Adj.</b> weights the percent by that: a Gain against a tough schedule counts for more, a Loss against a tough schedule counts for less (Gain × SOS ÷ .500, Loss × .500 ÷ SOS).
       ${svpGL.view==='carry'?'':'In the small season line, grey is the whole season and green / red mark the Gains and Losses.'}${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`}`);
@@ -12449,7 +12450,6 @@ function renderSavantGains(){
   app.querySelectorAll('[data-glw]').forEach(b=>b.addEventListener('click',()=>{ svpGL.win = b.dataset.glw; re(); }));
   app.querySelectorAll('[data-glsz]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gsz = b.dataset.glsz; re(); }));
   app.querySelectorAll('[data-glh]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gh = b.dataset.glh; re(); }));
-  const gpk = document.getElementById('glPick'); if(gpk) gpk.addEventListener('change', e=>{ svpGL.player = e.target.value; svpGL.back = null; re(); });
   const gt = document.getElementById('glTeam'); if(gt) gt.addEventListener('change', e=>{ svpGL.team = e.target.value; re(); });
   if(glRaf){ cancelAnimationFrame(glRaf); glRaf = null; }
   const gvp = document.getElementById('glvPlay');
