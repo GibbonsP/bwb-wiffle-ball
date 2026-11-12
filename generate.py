@@ -11975,7 +11975,7 @@ function glRuns(c, year, post, only, neg){
   return out;
 }
 
-const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', back:null};
+const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, back:null};
 /* a pitcher's regular-season appearances in one year, oldest first, as cumulative-ready rows */
 function glPitGames(name, year, post){
   const pl = P[name]; if(!pl) return [];
@@ -12212,24 +12212,24 @@ function renderSavantGains(){
     const row = x => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
       const dates = a.date===b.date ? fd(a.date,1) : ya===yb ? `${fd(a.date)} – ${fd(b.date,1)}` : `${fd(a.date,1)} – ${fd(b.date,1)}`;
       const line = cdef.kind==='bat' ? `${t.H}-for-${t.AB} (${rate(avg(t))}) · ${t.HR} HR · ${t.RBI} RBI` : `${ipStr(t.IPouts)} IP · ${t.ER} ER · ${t.pK} K · ${t.pBB} BB`;
-      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button></td><td class="lft" data-v="${a.date}">${dates}</td><td data-v="${x.active?1:0}">${x.active?'<span class="gltag glup">● Active</span>':''}</td><td class="lft mono">${line}</td></tr>`; };
+      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button></td><td class="lft" data-v="${a.date}">${dates}</td><td data-v="${x.active?1:0}">${x.active?`<span class="gltag ${svpGL.actW?'glup':'gldn'}">● Active</span>`:''}</td><td class="lft mono">${line}</td></tr>`; };
     const head = `<tr><th class="lft">Player</th><th title="Games in a row">Games</th><th class="lft">Dates</th><th title="Still going after the player's latest game">Status</th><th class="lft">During the streak</th></tr>`;
     const tbl = rs => `<div class="tscroll"><table class="detail sortable glt glfix"><colgroup><col style="width:26%"><col style="width:9%"><col style="width:23%"><col style="width:11%"><col style="width:31%"></colgroup><thead>${head}</thead><tbody>${rs.map(row).join('') || empty(5)}</tbody></table></div>`;
     const byLen = (p, q) => q.len-p.len || q.rows[q.rows.length-1].date.localeCompare(p.rows[p.rows.length-1].date);
-    const act = runs.filter(x=>x.active).sort(byLen).slice(0,12);
+    const actSrc = svpGL.actW ? runs : noRuns, act = actSrc.filter(x=>x.active).sort(byLen).slice(0,12);
     const top = runs.slice().sort(byLen).slice(0,50), noTop = noRuns.slice().sort(byLen).slice(0,50);
-    const row2 = x => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
+    const row2 = (x, dn) => { const a = x.rows[0], b = x.rows[x.rows.length-1], t = sumRows(x.rows.map(g=>g.row)), ya = a.date.slice(0,4), yb = b.date.slice(0,4);
       const sd = d => glDate(d)+" ’"+d.slice(2,4), dates = a.date===b.date ? sd(a.date) : `${sd(a.date)} – ${sd(b.date)}`;
       const line = cdef.kind==='bat' ? `${t.H}-for-${t.AB}` : `${ipStr(t.IPouts)} IP · ${t.pK} K`;
-      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button>${x.active?' <span class="glup" title="Still going">●</span>':''}</td><td class="lft" data-v="${a.date}">${dates}</td><td class="lft mono">${line}</td></tr>`; };
+      return `<tr><td class="lft" data-v="${esc(nameLast(x.n))}">${bxName(x.n)}</td><td data-v="${x.len}"><button class="glg glg3" data-rk="${GLR.push(x)-1}" aria-expanded="false" title="Show the games in this streak"><span class="glg-n glrun">${x.len}</span></button>${x.active?` <span class="${dn?'gldn':'glup'}" title="Still going">●</span>`:''}</td><td class="lft" data-v="${a.date}">${dates}</td><td class="lft mono">${line}</td></tr>`; };
     const head2 = `<tr><th class="lft">Player</th><th title="Games in a row">Games</th><th class="lft">Dates</th><th class="lft">Totals</th></tr>`;
-    const tbl2 = rs => `<div class="tscroll"><table class="detail sortable glt glfix2"><thead>${head2}</thead><tbody>${rs.map(row2).join('') || empty(4)}</tbody></table></div>`;
+    const tbl2 = (rs, dn) => `<div class="tscroll"><table class="detail sortable glt glfix2"><thead>${head2}</thead><tbody>${rs.map(x=>row2(x,dn)).join('') || empty(4)}</tbody></table></div>`;
     const cnt = (all, shown) => `${all.length} found${all.length>shown.length?', top '+shown.length+' shown':''}`;
     body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season. The longest streaks are listed both ways, with it and without it${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the 2016–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
-      + (act.length && !sel ? `<h4 class="glsec"><span class="glup">●</span> Active now <small>still going</small></h4>${tbl(act)}` : '')
+      + (!sel ? `<h4 class="glsec"><span class="${svpGL.actW?'glup':'gldn'}">●</span> Active now <small>still going</small></h4><div class="chips" role="group" aria-label="Active streaks shown">${[[true,'▲ '+cdef.w],[false,'▼ '+cdef.o]].map(([k,l])=>`<button data-glact="${k}" aria-pressed="${svpGL.actW===k}">${esc(l)}</button>`).join('')}</div>${tbl(act)}` : '')
       + `<h4 class="glsec">Longest streaks <small>● = still going</small></h4><div class="glcols">
         <section class="stat"><h4><span class="glup">▲</span> ${esc(cdef.w)} <small>${cnt(runs, top)}</small></h4>${tbl2(top)}</section>
-        <section class="stat"><h4><span class="gldn">▼</span> ${esc(cdef.o)} <small>${cnt(noRuns, noTop)}</small></h4>${tbl2(noTop)}</section></div>`;
+        <section class="stat"><h4><span class="gldn">▼</span> ${esc(cdef.o)} <small>${cnt(noRuns, noTop)}</small></h4>${tbl2(noTop,true)}</section></div>`;
   }
   else if(svpGL.view==='timeline'){
     /* the whole season on one time axis: a row per player, their season-to-date stat as a thin line, each streak drawn thick (green climbing, red falling) */
@@ -12466,6 +12466,7 @@ function renderSavantGains(){
     gvp.textContent = '▶ Play';
     if(V.kind==='race') draw(n-1);
   }
+  app.querySelectorAll('[data-glact]').forEach(b=>b.addEventListener('click',()=>{ svpGL.actW = b.dataset.glact==='true'; re(); }));
   app.querySelectorAll('[data-gltop]').forEach(b=>b.addEventListener('click',()=>{ svpGL.tlTop = +b.dataset.gltop; re(); }));
   app.querySelectorAll('[data-glraall]').forEach(b=>b.addEventListener('click',()=>{ svpGL.race = []; re(); }));
   app.querySelectorAll('[data-glrarm]').forEach(b=>b.addEventListener('click',()=>{ svpGL.race = svpGL.race.filter(n=>n!==b.dataset.glrarm); re(); }));
