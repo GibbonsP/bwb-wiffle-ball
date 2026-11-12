@@ -12111,13 +12111,13 @@ function renderSavantGains(){
   const years = [...new Set(all.map(s=>s.y))].sort((a,b)=>b-a);
   if(svpGL.view==='straight' && (svpGL.year==='early' || svpGL.year==='modern')){} else if(!/^(all|\d{4})$/.test(String(svpGL.year)) || (svpGL.year!=='all' && !years.includes(+svpGL.year))) svpGL.year = 'all';
   if(svpGL.view==='long') svpGL.view = 'streaks';
-  if(svpGL.view==='seasons' || svpGL.view==='totals') svpGL.view = 'streaks';
-  if(!['now','streaks','carry','straight','graph','timeline','race'].includes(svpGL.view)) svpGL.view = 'now';
+  if(svpGL.view==='seasons') svpGL.view = 'totals';
+  if(!['now','streaks','carry','straight','totals','graph','timeline','race'].includes(svpGL.view)) svpGL.view = 'now';
   GLV = null;
-  const filt = svpGL.view==='graph' || svpGL.view==='carry' || svpGL.view==='straight' || svpGL.view==='timeline' || svpGL.view==='race';      // these views filter by the chosen player instead of switching to the single-player page
+  const filt = svpGL.view==='graph' || svpGL.view==='carry' || svpGL.view==='straight' || svpGL.view==='timeline' || svpGL.view==='race' || svpGL.view==='totals';      // these views filter by the chosen player instead of switching to the single-player page
   const nowYear = svpGL.year==='all' ? years[0] : +svpGL.year;          // "now" looks at one season: the chosen one, else the latest
   const oneSeason = svpGL.view==='now' || svpGL.view==='timeline' || svpGL.view==='race';
-  const yrSet = new Set(oneSeason ? [nowYear] : (svpGL.view==='carry' || svpGL.view==='straight' || svpGL.year==='all') ? years : [+svpGL.year]);
+  const yrSet = new Set(oneSeason ? [nowYear] : (svpGL.view==='carry' || svpGL.view==='straight' || svpGL.view==='totals' || svpGL.year==='all') ? years : [+svpGL.year]);
   const start = 1;                                   // Game 1's season-to-date stat is the starting point
   const pool = all.filter(s=>yrSet.has(s.y));
   const ps = svpGL.view==='straight' ? [] : pool.map(se=>({se, st:glStreaks(se, start, M)}));
@@ -12131,7 +12131,7 @@ function renderSavantGains(){
     <td class="mono" data-v="${isFinite(r.to)?r.to:''}">${fv(r.from)} → ${fv(r.to)}</td><td class="mono glp ${r.hot?'glup':'gldn'}">${glPct(r.pct)}</td><td>${glLvl(r.lvl)}</td>${sosTd(se, r)}${spark?sparkTd(se, st):''}</tr>`;
   const streakHead = spark => `<th class="lft">Player</th><th title="Click a streak to see its games">Games</th><th>${esc(M.l)}</th><th></th><th title="${esc(M.l)} against the league average that year, 100 = average">vs Lg</th><th title="Strength of schedule: average winning percentage of the opponents in the streak (.500 = average, higher = tougher)">SOS</th>${spark?'<th class="glsph" data-nosort>Trend</th>':''}`;
   const empty = c => `<tr><td colspan="${c}" class="lft">Nothing here for this selection.</td></tr>`;
-  const tabsDef = [['now','Trending Now'],['streaks','Past Seasons'],['carry','Carryover'],['straight','Form'],['graph','Graph']];
+  const tabsDef = [['now','Trending Now'],['streaks','Past Seasons'],['carry','Carryover'],['straight','Form'],['totals','Totals'],['graph','Graph']];
   const inGraph = ['graph','timeline','race'].includes(svpGL.view);
   if(inGraph) svpGL.lastG = svpGL.view;
   const post = svpGL.phase==='Playoffs';
@@ -12149,7 +12149,7 @@ function renderSavantGains(){
       ${inPlayer && bk ? `<button type="button" class="glbarb" data-glback="1">← Back to ${esc(bk.label)}</button>` : ''}
       <button type="button" class="glbarb" data-glclear="1">✕ All players</button></div>` : '';
   const metOpt = kind => GL_METRICS.filter(m=>m.kind===kind).map(m=>`<option value="${m.k}"${m.k===M.k?' selected':''}>${esc(m.l)}</option>`).join('');
-  const noStd = ['straight','timeline','race'].includes(svpGL.view);
+  const noStd = ['straight','timeline','race','totals'].includes(svpGL.view);
   const cdef = GL_CONDS.find(c=>c.k===svpGL.cond) || (svpGL.cond = 'hit', GL_CONDS[0]);
   const condOpt = kind => GL_CONDS.filter(c=>c.kind===kind).map(c=>`<option value="${c.k}"${c.k===cdef.k?' selected':''}>${esc(c.l)}</option>`).join('');
   const statCtl = svpGL.view==='straight' ? `<label>Streak <select id="glCond"><optgroup label="Batting">${condOpt('bat')}</optgroup><optgroup label="Pitching">${condOpt('pit')}</optgroup></select></label>`
@@ -12335,7 +12335,7 @@ function renderSavantGains(){
     const nHot = rows.filter(x=>x.hot).length, nCold = rows.length-nHot;
     body = `<p class="smeta">A trend that crosses the off-season. A player finished a season in a hot (rising) or cold (falling) streak, and their ${esc(M.l)} kept moving the same way into the next season, for as long as each game moves it the same way. Once the new season starts the stat is counted across both seasons together, as one long record, so a bad first game after a strong year nudges the number down instead of resetting it to zero, and the percent change stays fair. Covers every season. ${rows.length} found: ${nHot} hot, ${nCold} cold. Click Games to see every game.</p>`
       + twoCols('Hot into the next season','Cold into the next season',rows.filter(x=>x.hot).map(cRow).join(''),rows.filter(x=>!x.hot).map(cRow).join(''),cHead,7,true);
-  } else if(sel){
+  } else if(sel && !filt){
     const mine = ps.filter(p=>p.se.n===sel).sort((a,b)=>a.se.y-b.se.y);
     body = mine.map(({se,st})=>{
       const {g,l} = sums(st), end = se.vals.length-1;
@@ -12377,13 +12377,23 @@ function renderSavantGains(){
       const keep = new Set([...byPct, ...byLen]);
       return all.filter(x=>keep.has(x)).sort((a,b)=>hot ? b.r.pct-a.r.pct : a.r.pct-b.r.pct).map(x=>streakRow(x.se,x.r,x.st,false)).join(''); };
     body = `<p class="smeta">The 30 biggest and the 30 longest hot and cold streaks in one list, ranked by percent. Click Games to rank by the longest, or any other column to re-sort.</p>` + twoCols('Biggest Gains <small>hot streaks</small>','Biggest Losses <small>cold streaks</small>',top(true),top(false),streakHead(false),7);
+  } else if(svpGL.view==='totals'){
+    /* every player's career: all their streaks, all seasons, added up */
+    const by = new Map();
+    ps.forEach(({se,st})=>{ let t = by.get(se.n); if(!t) by.set(se.n, t = {n:se.n, nh:0, nc:0, g:0, l:0});
+      st.forEach(r=>{ if(r.hot) t.nh++; else t.nc++; if(r.pct!=null){ if(r.hot) t.g += r.pct; else t.l += r.pct; } }); });
+    let rows = [...by.values()].filter(r=>r.nh+r.nc>0 && (!sel || r.n===sel)).sort((a,b)=>(b.g+b.l)-(a.g+a.l));
+    const pc = (v,cls,n) => `<td class="mono ${cls}" data-v="${v}">${n===0?'—':glPct(v)}</td>`;
+    body = `<p class="smeta">Every player’s career ${esc(M.l)} streaks, all seasons combined: how many hot and cold streaks they have had, the total percent gained and lost across them, and the net. Click a column to re-sort.</p>
+      <div class="tscroll"><table class="detail sortable glt glfit"><thead><tr><th class="lft">Player</th><th title="Hot streaks, all seasons">Hot streaks</th><th title="Cold streaks, all seasons">Cold streaks</th><th title="Percent gained over every hot streak, added up">Gains</th><th title="Percent lost over every cold streak, added up">Losses</th><th title="Gains + Losses">Net</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td class="lft" data-v="${esc(nameLast(r.n))}">${bxName(r.n)}</td><td class="glup" data-v="${r.nh}"><b>${r.nh}</b></td><td class="gldn" data-v="${r.nc}"><b>${r.nc}</b></td>${pc(r.g,'glup',r.nh)}${pc(r.l,'gldn',r.nc)}${pc(r.g+r.l,r.g+r.l>=0?'glup':'gldn')}</tr>`).join('') || empty(6)}</tbody></table></div>`;
   }
   svpShell('gains', `
     <h3 class="hsub glhead"><svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,16 8,10 12,13 20,4" stroke="#1f9d55"/><polyline points="15,4 20,4 20,9" stroke="#1f9d55"/></svg>
       <svg viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 8,10 12,7 20,16" stroke="#d22d49"/><polyline points="15,16 20,16 20,11" stroke="#d22d49"/></svg> Gains &amp; Losses</h3>
     ${noStd ? '' : `<p class="smeta">Follow a player’s season ${esc(M.l)} game by game. A run of games where it keeps getting better is a hot streak, and the percent it improved is a <b>Gain</b>; a run where it keeps getting worse is a cold streak, and the percent it fell is a <b>Loss</b>${M.low?` (for ${esc(M.l)} lower is better, so a falling number is the hot streak)`:''}.
       A streak needs ${glMinRun()}+ games in a row, and a game that doesn’t move ${esc(M.l)} ends it${M.low||['AVG','OBP','BABIP'].includes(M.k)?' (unless it is already perfect, like a '+(M.low?'0.00':'1.000')+' '+esc(M.l)+', which can’t get any better and stays hot)':''}. ${post?'Postseason':'Regular-season'} games from 2017 with a box score; ${M.kind==='bat'?glMing('bat')+'+ games batting':glMing('pit')+'+ games pitched'} in a ${post?'postseason':'season'}.</p>`}
-    ${phaseChips}${tabs}${subTabs}${svpGL.view==='carry'?'':yearChips}${controls}${playerBar}${body}
+    ${phaseChips}${tabs}${subTabs}${svpGL.view==='carry'||svpGL.view==='totals'?'':yearChips}${controls}${playerBar}${body}
     ${noStd ? '' : `<p class="smeta">Gains and Losses are the percent change in the season-to-date ${esc(M.l)} across each streak, added up for the season (Net = Gains + Losses). Early in a season one game moves the number a lot, so early streaks can show very large percents; a streak that starts from zero has no percent and is left out.
       <b>vs Lg</b> is the stat against that year’s league average (100 = average), so a cold streak from an elite level shows as exactly that. <b>SOS</b> is the average winning percentage of the opponents in the streak (.500 = average, higher = tougher), so a hot streak at a high SOS is the more impressive one.
       In the small season line, grey is the whole season and green / red mark the streaks.${post?' Postseason comparisons use that year’s regular-season league averages and the opponents’ regular-season records.':''}</p>`}`);
@@ -12393,7 +12403,7 @@ function renderSavantGains(){
   const gcd = document.getElementById('glCond'); if(gcd) gcd.addEventListener('change', e=>{ svpGL.cond = e.target.value; re(); });
   document.getElementById('glPlayer').addEventListener('change', e=>{ const v = e.target.value.trim();
     if(svpGL.view==='race'){ if(P[v] && !svpGL.race.includes(v) && svpGL.race.length<6) svpGL.race = [...svpGL.race, v]; svpGL.player = ''; re(); return; } svpGL.player = P[v] ? v : ''; svpGL.back = null; re(); });
-  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv === 'graph' ? (svpGL.lastG || 'graph') : b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry' && k!=='straight' && k!=='timeline') svpGL.player = ''; re(); }));
+  app.querySelectorAll('[data-glv]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glv === 'graph' ? (svpGL.lastG || 'graph') : b.dataset.glv; svpGL.view = k; svpGL.back = null; if(k!=='graph' && k!=='carry' && k!=='straight' && k!=='timeline' && k!=='totals') svpGL.player = ''; re(); }));
   app.querySelectorAll('[data-glsub]').forEach(b=>b.addEventListener('click',()=>{ const k = b.dataset.glsub; svpGL.view = k; svpGL.lastG = k; if(k==='race') svpGL.player = ''; re(); }));
   app.querySelectorAll('[data-glclear]').forEach(b=>b.addEventListener('click',()=>{ svpGL.player = ''; svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glback]').forEach(b=>b.addEventListener('click',()=>{ const k = svpGL.back; if(k){ svpGL.view = k.view; svpGL.year = k.year; svpGL.team = k.team; svpGL.gh = k.gh; svpGL.player = k.player; } svpGL.back = null; re(); }));
