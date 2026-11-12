@@ -235,6 +235,7 @@ tbody tr:hover{background:var(--accent-soft)}
 .glcols .glt .glspt svg{width:36px}
 .glcols .glt th{letter-spacing:.02em;font-size:.7rem}
 .glcols .glt:has(.glsph){font-size:.82rem}
+.glszl{font-size:.74rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
 tr.glrow{cursor:pointer}
 tr.glrow:hover td{background:var(--hov, rgba(31,62,110,.07))}
 .glcols .glt:has(.glsph) td,.glcols .glt:has(.glsph) th{padding-left:4px;padding-right:4px}
@@ -11978,7 +11979,7 @@ function glRuns(c, year, post, only, neg){
   return out;
 }
 
-const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, back:null};
+const svpGL = {lastG:'graph', race:[], tlTop:0, cond:'hit', view:'now', year:'all', start:1, player:'', metric:'OPS', team:'', gh:'both', phase:'Regular', win:'last', actW:true, gsz:'games', back:null};
 /* a pitcher's regular-season appearances in one year, oldest first, as cumulative-ready rows */
 function glPitGames(name, year, post){
   const pl = P[name]; if(!pl) return [];
@@ -12327,6 +12328,8 @@ function renderSavantGains(){
     if(oneYr) pts.forEach(x=>{ x.path = []; let last = null;       // where the streak's dot sits after each game, so it can be played back
       for(let j=x.r.a; j<=x.r.b; j++){ const q = glQuad(x.se, {a:x.r.a, b:j}) || last; if(!q) continue; last = q;
         x.path.push({d:x.se.rows[j].date, g:j, v:x.se.vals[j], px:Math.max(L, Math.min(L+pw, sx(q.p))), py:Math.max(T, Math.min(T+ph, sy(q.h)))}); } });
+    const dotR = x => { if(svpGL.gsz==='games') return Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1);
+      const v = svpGL.gsz==='adj' ? glAdjV(x.r.hot, x.r.pct, glSos(x.se, x.r)) : x.r.pct; return (2.5+Math.min(7, Math.sqrt(Math.abs(v==null?0:v)*100)*0.3)).toFixed(1); };
     const svg = `<svg class="glgsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gains and Losses plotted by the hitting and pitching of the opponents they were played against">
       <rect x="${sx(100)}" y="${T}" width="${L+pw-sx(100)}" height="${sy(100)-T}" class="glq-bg glq-tr"/>
       <rect x="${L}" y="${sy(100)}" width="${sx(100)-L}" height="${T+ph-sy(100)}" class="glq-bg glq-bl"/>
@@ -12339,12 +12342,13 @@ function renderSavantGains(){
       ${ql(L+pw-8, T+ph-26, 'end', 'Weak hitting · good pitching', cnt(false,true))}
       <text x="${L+pw/2}" y="${H-8}" text-anchor="middle" class="glg-ax">Opponent pitching →  (100 = league average, right = better pitching)</text>
       <text transform="translate(14 ${T+ph/2}) rotate(-90)" text-anchor="middle" class="glg-ax">Opponent hitting →  (100 = league average, up = better hitting)</text>
-      ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1)}" data-r="${Math.min(8, 3+(x.r.b-x.r.a-2)*0.6).toFixed(1)}"/>`).join('')}
+      ${pts.map((x,i)=>`<circle class="glg-d ${x.r.hot?'glg-h':'glg-c'}" data-i="${i}" cx="${sx(x.q.p).toFixed(1)}" cy="${sy(x.q.h).toFixed(1)}" r="${dotR(x)}" data-r="${dotR(x)}"/>`).join('')}
       <g class="glp-layer"></g>
     </svg>`;
+    const szChips = `<div class="chips glsz" role="group" aria-label="Dot size"><span class="glszl">Dot size</span>${[['games','Games'],['pct','Gain / Loss %'],['adj','Gain Adj. / Loss Adj.']].map(([k,l])=>`<button data-glsz="${k}" aria-pressed="${svpGL.gsz===k}">${l}</button>`).join('')}</div>`;
     const ghChips = `<div class="chips" role="group" aria-label="Gains or Losses">${[['both','Gains + Losses'],['hot','Gains only'],['cold','Losses only']].map(([k,l])=>`<button data-glh="${k}" aria-pressed="${svpGL.gh===k}">${l}</button>`).join('')}</div>`;
-    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are longer runs. Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
-      <div class="svpform">${ghChips}
+    body = `<p class="smeta">Every Gain or Loss is one dot, placed by the opponents it was played against: <b>across</b> is how good their pitching was, <b>up</b> is how good their hitting was, both measured over each team’s season up to the end of the run against the league (runs scored and runs allowed per game; 100 = league average on both axes). Green dots are Gains, red are Losses; bigger dots are longer runs, or switch Dot size to make them bigger for a larger Gain / Loss percent, or a larger Gain Adj. / Loss Adj. (the percent weighted by strength of schedule). Hover a dot for the details, click it to pin the details. ${pts.length} Gains and Losses shown.</p>
+      <div class="svpform">${ghChips}${szChips}
         <label>Team <select id="glTeam"><option value="">All teams</option>${gTeams.map(t=>`<option value="${esc(t)}"${t===svpGL.team?' selected':''}>${esc(t)}</option>`).join('')}</select></label></div>
       <div class="glgraph">${svg}<div class="glgtip" hidden></div></div><div class="glpin" hidden></div>`;
   } else if(svpGL.view==='carry'){
@@ -12440,6 +12444,7 @@ function renderSavantGains(){
   app.querySelectorAll('[data-glback]').forEach(b=>b.addEventListener('click',()=>{ const k = svpGL.back; if(k){ svpGL.view = k.view; svpGL.year = k.year; svpGL.team = k.team; svpGL.gh = k.gh; svpGL.player = k.player; } svpGL.back = null; re(); }));
   app.querySelectorAll('[data-glp]').forEach(b=>b.addEventListener('click',()=>{ svpGL.phase = b.dataset.glp; svpGL.team = ''; re(); }));
   app.querySelectorAll('[data-glw]').forEach(b=>b.addEventListener('click',()=>{ svpGL.win = b.dataset.glw; re(); }));
+  app.querySelectorAll('[data-glsz]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gsz = b.dataset.glsz; re(); }));
   app.querySelectorAll('[data-glh]').forEach(b=>b.addEventListener('click',()=>{ svpGL.gh = b.dataset.glh; re(); }));
   const gt = document.getElementById('glTeam'); if(gt) gt.addEventListener('change', e=>{ svpGL.team = e.target.value; re(); });
   if(glRaf){ cancelAnimationFrame(glRaf); glRaf = null; }
@@ -12527,7 +12532,7 @@ function renderSavantGains(){
   if(gg){
     const tip = gg.querySelector('.glgtip'), pin = app.querySelector('.glpin');
     const info = x => { const r = x.r, se = x.se, f = v => isFinite(v) ? M.fmt(v) : '—';
-      return `<b>${esc(se.n)}</b> · ${se.y}${x.team?' · '+esc(x.team):''}<br>${r.hot?'<span class="glup">▲ Gain</span>':'<span class="gldn">▼ Loss</span>'} G${r.a+1}${r.a===r.b?'':'–G'+(r.b+1)} (${r.b-r.a+1} games) · ${esc(M.l)} ${f(r.from)} → ${f(r.to)} <b class="${r.hot?'glup':'gldn'}">${glPct(r.pct)}</b><br>Opponents: hitting ${Math.round(x.q.h)} · pitching ${Math.round(x.q.p)}`; };
+      return `<b>${esc(se.n)}</b> · ${se.y}${x.team?' · '+esc(x.team):''}<br>${r.hot?'<span class="glup">▲ Gain</span>':'<span class="gldn">▼ Loss</span>'} G${r.a+1}${r.a===r.b?'':'–G'+(r.b+1)} (${r.b-r.a+1} games) · ${esc(M.l)} ${f(r.from)} → ${f(r.to)} <b class="${r.hot?'glup':'gldn'}">${glPct(r.pct)}</b>${(a => a==null ? '' : ` · <b class="${r.hot?'glup':'gldn'}">${glPct(a)}</b> ${r.hot?'Gain':'Loss'} Adj.`)(glAdjV(r.hot, r.pct, glSos(se, r)))}<br>Opponents: hitting ${Math.round(x.q.h)} · pitching ${Math.round(x.q.p)}`; };
     gg.addEventListener('mouseover', e=>{ const c = e.target.closest('.glg-d'); if(!c) return; const x = GLG_PTS[+c.dataset.i]; if(!x) return;
       tip.innerHTML = info(x); tip.hidden = false; const b = gg.getBoundingClientRect(), cb = c.getBoundingClientRect();
       tip.style.left = Math.min(b.width-tip.offsetWidth-4, Math.max(4, cb.left-b.left+cb.width/2-tip.offsetWidth/2))+'px';
