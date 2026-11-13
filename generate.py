@@ -461,6 +461,23 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 }
 .svptable{min-width:100%}
 .regrid{max-width:680px}
+.repanel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:12px;margin:6px 0 20px}
+.repanel:empty{display:none}
+.rerow{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end}
+.rectl{display:flex;flex-direction:column;gap:5px;min-width:0}
+.rectl-l{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.rectl .chips,.reViews{margin:0}
+.reViews{margin:6px 0 12px}
+.reChips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.resep{width:1px;height:20px;background:var(--line-strong);margin:0 4px}
+.rectl select{padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+.retab{width:100%;max-width:980px}
+.retab th,.retab td{text-align:right}
+.retab th.lft,.retab td.lft{text-align:left}
+.retab th.gsx,.retab td.gsx{text-align:left;width:2.6em}
+.reTall{max-height:640px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.reTall thead th{position:sticky;top:0;z-index:2}
+@media (max-width:560px){.retab .pfx{display:none}.resep{display:none}}
 .reScope{display:flex;flex-wrap:wrap;gap:0 16px;align-items:flex-end}
 .reScope .chips{margin:6px 0 10px}
 .regrid td.rec,.svptable td.rec{font-weight:600}
@@ -13135,8 +13152,9 @@ function rePitchers(years, minOuts){
     const vOth = ok.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/oOcc, mean = mix(x=>x.mean);
     const lg = LEAGUE_BY_YEAR[y], lgRperOut = lg.IPouts ? lg.pR/lg.IPouts : NaN;
     svpEntries(y,'Regular').forEach(({name,row})=>{
-      if(!row.IPouts || row.IPouts<minOuts) return;
-      const bb = row.pBB+(row.pHB||0), bf = row.IPouts + row.pH + bb;
+      if(!(row.G_pit>0) && !row.IPouts) return;
+      if(minOuts && row.IPouts<minOuts) return;
+      const bb = row.pBB+(row.pHB||0), bf = (row.IPouts||0) + (row.pH||0) + bb;
       const raw = row.pH*vHit + bb*ev('BB') + row.pK*ev('K') + Math.max(0,row.IPouts-row.pK)*vOth;
       const saved = -(raw - bf*mean), act = row.IPouts*lgRperOut - row.pR;
       if(isFinite(saved) && isFinite(act)) list.push({name, y, row, bf, saved, act});
@@ -13144,36 +13162,47 @@ function rePitchers(years, minOuts){
   });
   return list;
 }
+/* shared controls for the Run Expectancy and Clutch pages: one row of every season, a labeled panel for the rest */
+const reSeasonChips = (cur, attr) => {
+  const first = SVP_FULL_YEARS[0], c = (val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
+  return `<div class="chips reChips">${c('all','All Years',cur==='all')}${SVP_ERAS.map((e,i)=>c('e'+i, `${Math.max(e.from,first)}–${e.to}`, cur==='e'+i)).join('')}<span class="resep" aria-hidden="true"></span>${SVP_FULL_YEARS.map(y=>c(y,y,String(cur)===String(y))).join('')}</div>`;
+};
+const reCtl = (label, html) => `<div class="rectl"><span class="rectl-l">${label}</span>${html}</div>`;
+const rePanel = (season, rest) => `<div class="repanel">${season||''}${rest&&rest.length ? `<div class="rerow">${rest.join('')}</div>` : ''}</div>`;
+const reYearOk = y => y==='all' || (/^e\d+$/.test(String(y)) && !!SVP_ERAS[+String(y).slice(1)]) || SVP_FULL_YEARS.includes(+y);
+const reTable = (head, rows, extra) => `<div class="tscroll reTall"><table class="detail svptable svgs retab ${extra||''}"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+const rePlayerCell = n => `<td class="lft"><span class="plcell">${llHead(n)}<button class="pname" data-p="${esc(n)}">${esc(n)}</button></span></td>`;
 function renderSavantRE(){
   const v = svpRE;
+  if(v.view==='totals'){ v.view = 'players'; v.pp = 'career'; }
   if(!RE_INN[v.inn]) v.inn = '12';
-  if(!['table','value','era','players','totals','pitchers'].includes(v.view)) v.view = 'table';
+  if(!['table','value','era','players','pitchers'].includes(v.view)) v.view = 'table';
   if(!RE_EVS.includes(v.ev)) v.ev = 'HR';
-  if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
+  if(v.pl!=='best' && v.pl!=='worst') v.pl = 'best';
+  if(v.pp!=='season' && v.pp!=='career') v.pp = 'season';
+  if(!reYearOk(v.year)) v.year = 'all';
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   const years = rePool(v.year), m = reModel(years), side = v.inn==='12' ? m.a : m.b;
   const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
-  const single = SVP_FULL_YEARS.includes(+v.year);
-  const yrChips = SVP_FULL_YEARS.map(y=>chip('data-ry',y,y,+v.year===y)).join('');
-  const yearSel = `<div class="reScope"><div class="chips svpmodes">${chip('data-rs','all','All years combined',!single)}${chip('data-rs','each','Individual seasons',single)}</div>
-    ${single ? `<div class="chips svpmodes reYrs">${yrChips}</div>`
-      : `<label>Group <select id="reYear"><option value="all"${v.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${v.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup></select></label>`}</div>`;
-  const innSel = `<label>Inning <select id="reInn">${Object.entries(RE_INN).map(([k,x])=>`<option value="${k}"${v.inn===k?' selected':''}>${x.name}${x.capped?' (6-run limit)':' (no limit)'}</option>`).join('')}</select></label>`;
+  const season = reCtl('Season', reSeasonChips(v.year, 'data-ry'));
+  const innCtl = reCtl('Inning', `<select id="reInn">${Object.entries(RE_INN).map(([k,x])=>`<option value="${k}"${v.inn===k?' selected':''}>${x.name}${x.capped?' (6-run limit)':' (no limit)'}</option>`).join('')}</select>`);
+  const showCtl = reCtl('Show', `<div class="chips">${chip('data-rpp','season','Single seasons',v.pp==='season')}${chip('data-rpp','career','Totals',v.pp==='career')}</div>`);
   const innNote = v.inn==='12' ? 'In innings 1 and 2 a half-inning also ends once the team has scored 6 runs, which holds the high-scoring states down.' : 'The 3rd inning has no run limit, so a big inning can keep going until the third out.';
-  let body = '';
-  let ctl = `${yearSel}${innSel}`;
+  const career = v.pp==='career', best = v.pl==='best';
+  const rankCtl = lab => reCtl('Rank', `<div class="chips">${chip('data-rpl','best',lab[0],best)}${chip('data-rpl','worst',lab[1],!best)}</div>`);
+  let body = '', panel = '';
   if(v.view==='table'){
-    const lo = 0, hi = Math.max(...RE_BASE_ORDER.map(b=>side.re(b,0)));
+    panel = rePanel(season, [innCtl]);
+    const hi = Math.max(...RE_BASE_ORDER.map(b=>side.re(b,0)));
     const act = reActualRG(years), mod = reGameRuns(m);
-    body = `<h3 class="hsub">Expected runs to the end of the half-inning, ${esc(RE_INN[v.inn].name)}</h3>
-      <div class="tscroll">${reGrid((b,o)=>side.re(b,o), x=>reHeat(x,lo,hi), reFmt)}</div>
+    body = `<h3 class="hsub">Expected runs to the end of the half-inning · ${esc(RE_INN[v.inn].name)}, ${span}</h3>
+      <div class="tscroll">${reGrid((b,o)=>side.re(b,o), x=>reHeat(x,0,hi), reFmt)}</div>
       <p class="smeta">Read it as: with ${esc(RE_BASE_NAME[3].toLowerCase())} and nobody out, a team can expect ${reFmt(side.re(3,0))} more runs before the half-inning ends. ${innNote}</p>
       <div class="redef"><div><span>Bases empty, 0 out</span><b>${reFmt(side.re(0,0))}</b><i>runs from a clean start in ${esc(RE_INN[v.inn].short.toLowerCase())}</i></div>
         <div><span>Model, full game</span><b>${reFmt(mod)}</b><i>runs a team scores in 3 innings (2 capped, 1 open)</i></div>
         <div><span>Actual, ${span}</span><b>${reFmt(act)}</b><i>runs a team scores per game in box-scored games</i></div></div>`;
   } else if(v.view==='value'){
-    const sitCtl = `<label>Outcome <select id="reEv">${RE_EVS.map(e=>`<option value="${e}"${v.ev===e?' selected':''}>${RE_EVN[e]}</option>`).join('')}</select></label>`;
-    ctl = `${yearSel}${innSel}${sitCtl}`;
+    panel = rePanel(season, [innCtl, reCtl('Outcome', `<select id="reEv">${RE_EVS.map(e=>`<option value="${e}"${v.ev===e?' selected':''}>${RE_EVN[e]}</option>`).join('')}</select>`)]);
     const ev = v.ev, g = side.sit[ev];
     const mx = Math.max(0.3, ...g.flat().filter(x=>x!=null).map(Math.abs));
     const out = side.val.OUT;
@@ -13181,18 +13210,18 @@ function renderSavantRE(){
     const rows = RE_EVS.map(e=>{ const over = side.val[e]-out;
       return `<tr><td class="lft"><b>${RE_EVN[e]}</b></td><td class="mono">${(side.occ[e]/side.pa*100).toFixed(1)}%</td><td class="mono rec" style="${reDiffHeat(side.val[e],1.4)}">${reSigned(side.val[e])}</td>
         <td class="mono">${reSigned(over)}</td><td class="mono pfx">${wo[e]!=null ? reSigned(wo[e]) : '—'}</td></tr>`; }).join('');
-    body = `<h3 class="hsub">${RE_EVN[ev]}: change in expected runs in each situation</h3>
+    body = `<h3 class="hsub">${RE_EVN[ev]}: change in expected runs in each situation · ${span}</h3>
       <div class="tscroll">${reGrid((b,o)=>g[o][b], x=>x==null?'':reDiffHeat(x,mx), x=>reSigned(x))}</div>
       <p class="smeta">Each cell is the runs scored on the play plus the change in expected runs, starting from that situation (${esc(RE_INN[v.inn].short.toLowerCase())}). A dash means the play can't happen there.</p>
-      <h3 class="hsub">Average value of every outcome</h3>
-      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Outcome</th><th>Share of PA</th><th>Run value</th><th>Over an out in play</th><th class="pfx">wOBA weight</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <h3 class="hsub">Average value of every outcome · ${span}</h3>
+      <div class="tscroll"><table class="detail svptable svgs retab"><thead><tr><th class="lft">Outcome</th><th>Share of PA</th><th>Run value</th><th>Over an out in play</th><th class="pfx">wOBA weight</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="smeta">Run value averages the cells above across how often each situation really comes up. “Over an out in play” re-bases it so an ordinary out is zero, the same footing as the wOBA weights used elsewhere on Savant (which come from a different method, a regression of team runs), so the two columns can be read against each other.</p>`;
   } else if(v.view==='era'){
-    ctl = innSel;
-    const pools = SVP_ERAS.map(e=>rePool('e'+SVP_ERAS.indexOf(e)));
+    panel = rePanel('', [innCtl]);
+    const pools = SVP_ERAS.map((e,i)=>rePool('e'+i));
     const ms = pools.map(p=>reModel(p)), sd = ms.map(x=>v.inn==='12' ? x.a : x.b);
     const hi = Math.max(...sd.map(s=>Math.max(...RE_BASE_ORDER.map(b=>s.re(b,0)))));
-    const lab = SVP_ERAS.map(e=>`${e.from}–${e.to}`);
+    const first = SVP_FULL_YEARS[0], lab = SVP_ERAS.map(e=>`${Math.max(e.from,first)}–${e.to}`);
     const diff = (b,o) => sd[1].re(b,o) - sd[0].re(b,o);
     const mx = Math.max(0.2, ...RE_BASE_ORDER.flatMap(b=>[0,1,2].map(o=>Math.abs(diff(b,o)))));
     const yr = SVP_FULL_YEARS.map(y=>{ const mm = reModel([y]), s = v.inn==='12' ? mm.a : mm.b;
@@ -13203,70 +13232,56 @@ function renderSavantRE(){
         <div><h3 class="hsub">Change, ${lab[1]} minus ${lab[0]}</h3><div class="tscroll">${reGrid(diff, x=>reDiffHeat(x,mx), x=>reSigned(x))}</div></div></div>
       <p class="smeta">${esc(RE_INN[v.inn].name)}. Green means a team could expect more runs from that situation in the later era, red means fewer. ${innNote}</p>
       <h3 class="hsub">Season by season</h3>
-      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
+      <div class="tscroll"><table class="detail svptable svgs svpf retab"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
       <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
   } else if(v.view==='pitchers'){
-    const stop = v.pl==='best', career = v.pp==='career';
-    let rows = rePitchers(years, 1);
+    panel = rePanel(season, [showCtl, rankCtl(['Best','Worst'])]);
+    let rows = rePitchers(years, 0);
     if(career){
       const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, bf:0, saved:0, act:0, rows:[]}; o.n++; o.bf += r.bf; o.saved += r.saved; o.act += r.act; o.rows.push(r.row); });
       rows = Object.values(by).map(o=>({...o, row:sumRows(o.rows)}));
     }
-    const mk = (list, stopped) => {
-      const tr = list.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
-        <td class="mono">${career ? r.n : r.y}</td><td class="mono pfx">${ipStr(r.row.IPouts)}</td><td class="mono pfx">${r.bf}</td><td class="mono pfx">${two(era(r.row))}</td>
-        <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
-      return `<h3 class="hsub">${stopped?'Stopped run expectancy':'Failed to stop run expectancy'} <span class="smeta">· ${list.length} ${career?'pitchers':'pitcher seasons'}</span></h3>
-        <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th class="pfx">IP</th><th class="pfx">BF</th><th class="pfx">ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th></tr></thead><tbody>${tr}</tbody></table></div>`;
-    };
-    const good = rows.filter(r=>r.saved>=0).sort((a,b)=>b.saved-a.saved), bad = rows.filter(r=>r.saved<0).sort((a,b)=>a.saved-b.saved);
-    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpp','season','Single seasons',!career)}${chip('data-rpp','career','Totals',career)}</div>`;
-    body = `${mk(good,true)}${mk(bad,false)}
-      <p class="smeta">Pitchers are split by whether they kept run expectancy down (positive) or let it climb (negative), so nobody is in both lists. ${span}${career?', totals':''}. Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Every pitcher who recorded an out is listed, small samples included. Click any heading to sort.</p>`;
-  } else if(v.view==='totals'){
-    ctl = yearSel;
-    const by = {};
-    reHitters(years, 0).forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, pa:0, runs:0, wr:0}; o.n++; o.pa += r.row.PA; o.runs += r.runs; o.wr += r.wr; });
-    const rows = Object.values(by).filter(o=>o.pa>0).sort((a,b)=>b.runs-a.runs);
-    const tr = rows.map((o,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(o.name)}<button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button></span></td>
-      <td class="mono">${o.n}</td><td class="mono pfx">${o.pa}</td><td class="mono rec" style="${reDiffHeat(o.runs,60)}">${reSigned(o.runs,1)}</td><td class="mono">${reSigned(o.wr,1)}</td>
-      <td class="mono pfx">${reSigned(o.runs/o.pa*100,1)}</td><td class="mono pfx">${reSigned(o.wr/o.pa*100,1)}</td></tr>`).join('');
-    body = `<h3 class="hsub">Career totals of modeled runs and wRAA, ${span}</h3>
-      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Player</th><th>Seasons</th><th class="pfx">PA</th><th>Modeled runs</th><th>wRAA</th><th class="pfx">Modeled / 100 PA</th><th class="pfx">wRAA / 100 PA</th></tr></thead><tbody>${tr}</tbody></table></div>
-      <p class="smeta">Every hitter with a plate appearance in the seasons chosen, with each season's modeled runs and wRAA added together. Use the season switch above to total a single era or season. Click any column heading to sort.</p>`;
+    const list = best ? rows.filter(r=>r.saved>=0).sort((a,b)=>b.saved-a.saved) : rows.filter(r=>r.saved<0).sort((a,b)=>a.saved-b.saved);
+    const eraTxt = r => isFinite(era(r.row)) ? two(era(r.row)) : '—';
+    const tr = list.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td>${rePlayerCell(r.name)}<td class="mono">${career ? r.n : r.y}</td><td class="mono">${ipStr(r.row.IPouts)}</td><td class="mono">${r.bf}</td><td class="mono">${eraTxt(r)}</td>
+      <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
+    body = `<h3 class="hsub">${best?'Best · stopped run expectancy':'Worst · failed to stop run expectancy'} <span class="smeta">· ${list.length} ${career?'pitchers':'pitcher seasons'} · ${span}</span></h3>
+      ${reTable(`<th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th>IP</th><th>BF</th><th>ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th>`, tr)}
+      <p class="smeta"><b>Best</b> is every pitcher who kept run expectancy down and <b>Worst</b> is every pitcher who let it climb, so nobody is in both. Every pitcher who appeared in a game is listed, small samples included. Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Click any heading to sort.</p>`;
   } else {
-    const top = v.pl==='best';
-    const list = reHitters(years, 0);
-    list.slice().sort((a,b)=>b.wr-a.wr).forEach((r,i)=>{ r.wrRank = i+1; });
-    list.sort((a,b)=>top ? b.runs-a.runs : a.runs-b.runs);
-    const shown = list;
-    const rows = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
-      <td class="mono">${r.y}</td><td class="mono pfx">${r.row.PA}</td><td class="mono pfx">${rate(r.woba)}</td><td class="mono rec" style="${reDiffHeat(r.runs,6)}">${reSigned(r.runs,1)}</td><td class="mono">${reSigned(r.wr,1)}</td><td class="mono pfx">${r.wrRank}</td></tr>`).join('');
-    const rr = list.length>2 ? (()=>{ const mx = list.reduce((a,r)=>a+r.runs,0)/list.length, my = list.reduce((a,r)=>a+r.wr,0)/list.length;
-      let sxy=0,sxx=0,syy=0; list.forEach(r=>{ sxy+=(r.runs-mx)*(r.wr-my); sxx+=(r.runs-mx)**2; syy+=(r.wr-my)**2; }); return sxy/Math.sqrt(sxx*syy); })() : NaN;
-    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Best',top)}${chip('data-rpl','worst','Worst',!top)}</div>`;
-    body = `<h3 class="hsub">${top?'Best':'Worst'} hitting seasons by modeled runs, ${span}</h3>
-      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Player</th><th>Season</th><th class="pfx">PA</th><th class="pfx">wOBA</th><th>Modeled runs</th><th>wRAA</th><th class="pfx">wRAA rank</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="smeta">Modeled runs prices each of a hitter's plate appearances at the average run value of that outcome in that season (from the outcome table), then subtracts what an average plate appearance is worth, so zero is a league-average bat. It is the same idea as the wRAA that powers wOBA and the Gains &amp; Losses wOBA lines, reached a different way. The model's totals are larger than wRAA, so read the ranks rather than the totals: the regression weights behind wRAA are smaller than what this league's runs say each outcome is worth (in the counted 2026 play-by-play an out with the bases empty cost about 1.2 runs and a walk added about 0.8), and the model's values rise further in high-scoring years, when a walk or a homer has more runners to bring home. Across the ${list.length} hitter seasons here (every hitter with a plate appearance, small samples included) the two agree at a correlation of ${isFinite(rr)?rr.toFixed(3).replace(/^0/,''):'—'}. A hitter's actual base-out situations aren't recorded before 2026, so this credits every player with the typical mix of situations. See <a href="#/savant/gains">Gains &amp; Losses</a> for how those wOBA and wRAA lines move game by game.</p>`;
+    panel = rePanel(season, [showCtl, rankCtl(['Best','Worst'])]);
+    let rows = reHitters(years, 0).map(r=>({name:r.name, y:r.y, n:1, pa:r.row.PA, runs:r.runs, wr:r.wr}));
+    if(career){
+      const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, pa:0, runs:0, wr:0}; o.n++; o.pa += r.pa; o.runs += r.runs; o.wr += r.wr; });
+      rows = Object.values(by);
+    }
+    rows = rows.filter(r=>r.pa>0);
+    const rr = rows.length>2 ? (()=>{ const mx = rows.reduce((a,r)=>a+r.runs,0)/rows.length, my = rows.reduce((a,r)=>a+r.wr,0)/rows.length;
+      let sxy=0,sxx=0,syy=0; rows.forEach(r=>{ sxy+=(r.runs-mx)*(r.wr-my); sxx+=(r.runs-mx)**2; syy+=(r.wr-my)**2; }); return sxy/Math.sqrt(sxx*syy); })() : NaN;
+    const list = best ? rows.filter(r=>r.runs>=0).sort((a,b)=>b.runs-a.runs) : rows.filter(r=>r.runs<0).sort((a,b)=>a.runs-b.runs);
+    const tr = list.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td>${rePlayerCell(r.name)}<td class="mono">${career ? r.n : r.y}</td><td class="mono">${r.pa}</td>
+      <td class="mono rec" style="${reDiffHeat(r.runs,career?60:8)}">${reSigned(r.runs,1)}</td><td class="mono">${reSigned(r.wr,1)}</td><td class="mono">${reSigned(r.runs/r.pa*100,1)}</td><td class="mono">${reSigned(r.wr/r.pa*100,1)}</td></tr>`).join('');
+    body = `<h3 class="hsub">${best?'Best · above an average hitter':'Worst · below an average hitter'} <span class="smeta">· ${list.length} ${career?'hitters':'hitter seasons'} · ${span}</span></h3>
+      ${reTable(`<th class="gsx">#</th><th class="lft">Player</th><th>${career?'Seasons':'Season'}</th><th>PA</th><th>Modeled runs</th><th>wRAA</th><th>Modeled /100 PA</th><th>wRAA /100 PA</th>`, tr)}
+      <p class="smeta"><b>Best</b> is every hitter above a league-average bat and <b>Worst</b> is every hitter below one, so nobody is in both. Every hitter with a plate appearance is listed, small samples included. Modeled runs prices each plate appearance at the average run value of that outcome in that season (from the outcome table), then subtracts what an average plate appearance is worth, so zero is a league-average bat. It is the same idea as the wRAA behind wOBA and the <a href="#/savant/gains">Gains &amp; Losses</a> wOBA lines, reached a different way. The model's totals are larger than wRAA, so compare the ranks rather than the totals: the regression weights behind wRAA are smaller than what this league's runs say each outcome is worth (in the counted 2026 play-by-play an out with the bases empty cost about 1.2 runs and a walk added about 0.8), and the model's values rise further in high-scoring years. Across these ${rows.length} ${career?'hitters':'hitter seasons'} the two agree at a correlation of ${isFinite(rr)?rr.toFixed(3).replace(/^0/,''):'—'}. A hitter's actual base-out situations aren't recorded before 2026, so every player is credited with the typical mix of situations. Click any heading to sort.</p>`;
   }
   svpShell('expectancy', `
-    <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the number of outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own and not baseball's. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts) and from how runners moved in the counted 2026 play-by-play, because pitch-by-pitch data isn't recorded for most seasons.</p>
-    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}${chip('data-rev','totals','Totals',v.view==='totals')}${chip('data-rev','pitchers','Pitchers',v.view==='pitchers')}</div>
-    <div class="svpform">${ctl}</div>
+    <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts), because pitch-by-pitch data isn't recorded for most seasons.</p>
+    <div class="chips svpmodes reViews">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Hitters',v.view==='players')}${chip('data-rev','pitchers','Pitchers',v.view==='pitchers')}</div>
+    ${panel}
     ${body}
     <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Rates are regular season. A run scored on the third out never counts. Checked against the counted 2026 play-by-play (52 games), the model lands within about a quarter of a run in most situations and runs about 0.3 high with one out.</p>`);
   app.querySelectorAll('.svptable').forEach(t=>{
     t.classList.add('sortable');
-    t.querySelectorAll('tbody td').forEach(td=>{ if(td.dataset.v==null){ const s = td.textContent.trim().replace(/\u2212/g,'-'); if(/^[+-]?\d/.test(s)) td.dataset.v = s.replace(/[+%,]/g,''); } });
+    t.querySelectorAll('tbody td').forEach(td=>{ if(td.dataset.v==null){ const s = td.textContent.trim().replace(/−/g,'-'); if(/^[+-]?\d/.test(s)) td.dataset.v = s.replace(/[+%,]/g,''); } });
     makeSortable(t);
   });
   app.querySelectorAll('[data-rev]').forEach(b=>b.addEventListener('click',()=>{ svpRE.view = b.dataset.rev; renderSavantRE(); }));
-  app.querySelectorAll('[data-rs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.rs==='all' ? 'all' : (single ? svpRE.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantRE(); }));
   app.querySelectorAll('[data-ry]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.ry; renderSavantRE(); }));
   app.querySelectorAll('[data-rpp]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pp = b.dataset.rpp; renderSavantRE(); }));
   app.querySelectorAll('[data-rpl]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pl = b.dataset.rpl; renderSavantRE(); }));
   const on = (id, key) => { const el = document.getElementById(id); if(el) el.addEventListener('change', e=>{ svpRE[key] = e.target.value; renderSavantRE(); }); };
-  on('reYear','year'); on('reInn','inn'); on('reEv','ev');
+  on('reInn','inn'); on('reEv','ev');
 }
 
 /* ---- Clutch (Savant): who plays best when the game is tight ------------------------------------------------------
@@ -13319,7 +13334,7 @@ function clBuild(){
     if(out.pa || out.bf) _clRows.push(out);
   });
 }
-let svpCL = {view:'hit', year:'all', pp:'season'};
+let svpCL = {view:'hit', year:'all', pp:'season', pl:'best'};
 function clAgg(rows, vk, nk){
   const t = {H:{v:0,n:0}, M:{v:0,n:0}, L:{v:0,n:0}};
   rows.forEach(r=>{ if(r[nk]){ t[r.tier].v += r[vk]; t[r.tier].n += r[nk]; } });
@@ -13330,16 +13345,16 @@ function renderSavantClutch(){
   clBuild();
   const v = svpCL;
   if(!['hit','pit','tiers'].includes(v.view)) v.view = 'hit';
-  if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
+  if(!reYearOk(v.year)) v.year = 'all';
+  if(v.pl!=='best' && v.pl!=='worst') v.pl = 'best';
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   const years = rePool(v.year), ys = new Set(years), single = SVP_FULL_YEARS.includes(+v.year), career = v.pp==='career';
   const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
-  const yrChips = SVP_FULL_YEARS.map(y=>chip('data-cy',y,y,+v.year===y)).join('');
-  const scope = `<div class="reScope"><div class="chips svpmodes">${chip('data-cs','all','All years combined',!single)}${chip('data-cs','each','Individual seasons',single)}</div>
-    ${single ? `<div class="chips svpmodes reYrs">${yrChips}</div>`
-      : `<label>Group <select id="clYear"><option value="all"${v.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${v.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup></select></label>`}</div>`;
-  const ppChips = `<div class="chips svpmodes">${chip('data-cpp','season','Single seasons',!career)}${chip('data-cpp','career','Totals',career)}</div>`;
-  let ctl = scope, body = '';
+  const season = reCtl('Season', reSeasonChips(v.year, 'data-cy'));
+  const showCtl = reCtl('Show', `<div class="chips">${chip('data-cpp','season','Single seasons',!career)}${chip('data-cpp','career','Totals',career)}</div>`);
+  const bestCl = v.pl==='best';
+  const rankCtl = reCtl('Rank', `<div class="chips">${chip('data-cpl','best','Best',bestCl)}${chip('data-cpl','worst','Worst',!bestCl)}</div>`);
+  let ctl = '', body = '';
   if(v.view==='tiers'){
     const rows = SVP_FULL_YEARS.map(y=>{
       const gs = Object.values(_clGames).filter(g=>g.y===y), reg = gs.filter(g=>!g.post), rgv = reActualRG([y]);
@@ -13347,7 +13362,7 @@ function renderSavantClutch(){
       return `<tr><td class="lft"><b>${y}</b></td><td class="mono">${n}</td><td class="mono pfx">${reFmt(rgv)}</td><td class="mono">${(CL_TH[y]||{}).hi ?? '—'}</td><td class="mono">${(CL_TH[y]||{}).md ?? '—'}</td><td class="mono">${pct('H')}</td><td class="mono">${pct('M')}</td><td class="mono">${pct('L')}</td></tr>`; }).join('');
     ctl = '';
     body = `<h3 class="hsub">How games are sorted into leverage tiers</h3>
-      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Season</th><th>Games</th><th class="pfx">Runs per team-game</th><th>High if margin ≤</th><th>Medium if margin ≤</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="tscroll"><table class="detail svptable svgs retab"><thead><tr><th class="lft">Season</th><th>Games</th><th class="pfx">Runs per team-game</th><th>High if margin ≤</th><th>Medium if margin ≤</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="smeta">Margin is the final run difference. In each season the closest games (about the closest 30%) are High, the next 35% or so are Medium, and the rest are Low (blowouts), so a tight game means the same thing in a 10-runs-a-game year as in a 4-runs-a-game year. Where many games share a margin the tiers can land a little off those shares. A postseason game counts one tier higher than its margin says, which is why the High share runs above 30%.</p>`;
   } else {
     const hit = v.view==='hit', vk = hit?'hv':'pv', nk = hit?'pa':'bf', unit = hit?'PA':'BF';
@@ -13356,24 +13371,23 @@ function renderSavantClutch(){
     rows.forEach(r=>{ const k = career ? r.n : r.n+'|'+r.y; (groups[k] = groups[k] || {name:r.n, y:r.y, rows:[], seasons:new Set()}); groups[k].rows.push(r); groups[k].seasons.add(r.y); });
     const list = Object.values(groups).map(gp=>({...gp, a:clAgg(gp.rows, vk, nk)})).filter(o=>o.a.n>0);
     const rate = x => x.n ? reSigned(x.v/x.n*100,1) : '—';
-    const mk = (arr, good) => {
-      const tr = arr.map((o,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(o.name)}<button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button></span></td>
-        <td class="mono">${career ? o.seasons.size : o.y}</td><td class="mono pfx">${o.a.n}</td><td class="mono pfx">${o.a.t.H.n}</td>
-        <td class="mono" data-v="${o.a.t.H.n ? (o.a.t.H.v/o.a.t.H.n*100).toFixed(2) : ''}">${rate(o.a.t.H)}</td><td class="mono pfx" data-v="${o.a.t.M.n ? (o.a.t.M.v/o.a.t.M.n*100).toFixed(2) : ''}">${rate(o.a.t.M)}</td><td class="mono pfx" data-v="${o.a.t.L.n ? (o.a.t.L.v/o.a.t.L.n*100).toFixed(2) : ''}">${rate(o.a.t.L)}</td>
-        <td class="mono rec" style="${reDiffHeat(o.a.clutch, career?12:5)}">${reSigned(o.a.clutch,1)}</td></tr>`).join('');
-      return `<h3 class="hsub">${good?'Came through when it was tight':'Fell short when it was tight'} <span class="smeta">· ${arr.length} ${career?(hit?'hitters':'pitchers'):(hit?'hitter seasons':'pitcher seasons')}</span></h3>
-        <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">${hit?'Player':'Pitcher'}</th><th>${career?'Seasons':'Season'}</th><th class="pfx">${unit}</th><th class="pfx">High ${unit}</th><th>High /100</th><th class="pfx">Medium /100</th><th class="pfx">Low /100</th><th>Clutch runs</th></tr></thead><tbody>${tr}</tbody></table></div>`;
-    };
-    const good = list.filter(o=>o.a.t.H.n>0 && o.a.clutch>=0).sort((a,b)=>b.a.clutch-a.a.clutch), bad = list.filter(o=>o.a.t.H.n>0 && o.a.clutch<0).sort((a,b)=>a.a.clutch-b.a.clutch);
+    const rank = o => o.a.clutch;
+    const arr = list.filter(o=>o.a.t.H.n>0 && (bestCl ? o.a.clutch>=0 : o.a.clutch<0)).sort((a,b)=>bestCl ? b.a.clutch-a.a.clutch : a.a.clutch-b.a.clutch);
     const none = list.filter(o=>!o.a.t.H.n).length;
-    ctl = scope + ppChips;
-    body = `${mk(good,true)}${mk(bad,false)}
-      <p class="smeta">${span}${career?', totals':''}. <b>High /100, Medium /100 and Low /100</b> are ${hit?'modeled runs above an average plate appearance':'modeled runs saved'} per 100 ${unit==='PA'?'plate appearances':'batters faced'} in games of each leverage tier. <b>Clutch runs</b> is what ${hit?'he':'he'} produced in High-leverage games above his own normal rate in his other games over the same ${unit}, with that normal rate eased toward the league average by ${CL_K} ${unit} so a few good games aren't mistaken for a trait. ${none?`${none} ${career?'players':'player seasons'} with no High-leverage game are left out of both lists. `:''}Games are sorted by how close they ended, not by the score when the player batted or pitched, so this is a game-level Clutch; the box score doesn't record the situation inside the game. Samples are small, so totals are more trustworthy than single seasons. Click any heading to sort.</p>`;
+    const hd = (k,lab) => `<th>${lab}</th>`;
+    const tr = arr.map((o,i)=>`<tr><td class="mono gsx">${i+1}</td>${rePlayerCell(o.name)}
+        <td class="mono">${career ? o.seasons.size : o.y}</td><td class="mono">${o.a.n}</td><td class="mono">${o.a.t.H.n}</td>
+        <td class="mono" data-v="${(o.a.t.H.v/o.a.t.H.n*100).toFixed(2)}">${rate(o.a.t.H)}</td><td class="mono" data-v="${o.a.t.M.n ? (o.a.t.M.v/o.a.t.M.n*100).toFixed(2) : ''}">${rate(o.a.t.M)}</td><td class="mono" data-v="${o.a.t.L.n ? (o.a.t.L.v/o.a.t.L.n*100).toFixed(2) : ''}">${rate(o.a.t.L)}</td>
+        <td class="mono rec" style="${reDiffHeat(o.a.clutch, career?12:5)}">${reSigned(o.a.clutch,1)}</td></tr>`).join('');
+    ctl = rePanel(season, [showCtl, rankCtl]);
+    body = `<h3 class="hsub">${bestCl?'Best · came through when it was tight':'Worst · fell short when it was tight'} <span class="smeta">· ${arr.length} ${career?(hit?'hitters':'pitchers'):(hit?'hitter seasons':'pitcher seasons')} · ${span}</span></h3>
+      ${reTable(`<th class="gsx">#</th><th class="lft">${hit?'Player':'Pitcher'}</th><th>${career?'Seasons':'Season'}</th><th>${unit}</th><th>High ${unit}</th><th>High /100</th><th>Medium /100</th><th>Low /100</th><th>Clutch runs</th>`, tr)}
+      <p class="smeta"><b>Best</b> is everyone who came through in High-leverage games and <b>Worst</b> is everyone who fell short, so nobody is in both. ${span}${career?', totals':''}. <b>High /100, Medium /100 and Low /100</b> are ${hit?'modeled runs above an average plate appearance':'modeled runs saved'} per 100 ${unit==='PA'?'plate appearances':'batters faced'} in games of each leverage tier. <b>Clutch runs</b> is what he produced in High-leverage games above his own normal rate in his other games over the same ${unit}, with that normal rate eased toward the league average by ${CL_K} ${unit} so a few good games aren't mistaken for a trait. ${none?`${none} ${career?'players':'player seasons'} with no High-leverage game are left out of both lists. `:''}Games are sorted by how close they ended, not by the score when the player batted or pitched, so this is a game-level Clutch; the box score doesn't record the situation inside the game. Samples are small, so totals are more trustworthy than single seasons. Click any heading to sort.</p>`;
   }
   svpShell('clutch', `
     <p class="gsdef"><b>Clutch</b> shows who plays better when the game is tight. Every game is rated High, Medium or Low leverage by how close it ended compared with the rest of that season's games (the closest are High), and a postseason game counts one tier higher. Hitters and pitchers are scored in the same modeled runs as <a href="#/savant/expectancy">Run Expectancy</a>.</p>
     <div class="chips svpmodes">${chip('data-clv','hit','Hitters',v.view==='hit')}${chip('data-clv','pit','Pitchers',v.view==='pit')}${chip('data-clv','tiers','Leverage tiers',v.view==='tiers')}</div>
-    <div class="svpform">${ctl}</div>
+    ${ctl}
     ${body}
     <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Regular season and postseason games. Games where a team's whole batting line was logged under one player (some 2017 to 2021 games) are left out of the hitter numbers.</p>`);
   app.querySelectorAll('.svptable').forEach(t=>{
@@ -13383,9 +13397,8 @@ function renderSavantClutch(){
   });
   app.querySelectorAll('[data-clv]').forEach(b=>b.addEventListener('click',()=>{ svpCL.view = b.dataset.clv; renderSavantClutch(); }));
   app.querySelectorAll('[data-cpp]').forEach(b=>b.addEventListener('click',()=>{ svpCL.pp = b.dataset.cpp; renderSavantClutch(); }));
-  app.querySelectorAll('[data-cs]').forEach(b=>b.addEventListener('click',()=>{ svpCL.year = b.dataset.cs==='all' ? 'all' : (single ? svpCL.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantClutch(); }));
+  app.querySelectorAll('[data-cpl]').forEach(b=>b.addEventListener('click',()=>{ svpCL.pl = b.dataset.cpl; renderSavantClutch(); }));
   app.querySelectorAll('[data-cy]').forEach(b=>b.addEventListener('click',()=>{ svpCL.year = b.dataset.cy; renderSavantClutch(); }));
-  const ys2 = document.getElementById('clYear'); if(ys2) ys2.addEventListener('change', e=>{ svpCL.year = e.target.value; renderSavantClutch(); });
 }
 
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
@@ -13435,6 +13448,7 @@ const SVQ = {
     ['v', ()=>svpCL.view, v=>{ if(['hit','pit','tiers'].includes(v)) svpCL.view = v; }],
     ['y', ()=>svpCL.year, v=>{ if(svqYr(v)) svpCL.year = v; }],
     ['pp', ()=>svpCL.pp, v=>{ if(v==='season'||v==='career') svpCL.pp = v; }],
+    ['pl', ()=>svpCL.pl, v=>{ if(v==='best'||v==='worst') svpCL.pl = v; }],
   ],
   '#/savant/expectancy': [
     ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players','totals','pitchers'].includes(v)) svpRE.view = v; }],
