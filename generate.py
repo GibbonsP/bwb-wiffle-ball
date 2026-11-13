@@ -13093,10 +13093,33 @@ function reGrid(cell, style, fmt){
     return `<td class="mono rec" style="${style(v)}">${v==null?'—':fmt(v)}</td>`; }).join('')}</tr>`).join('');
   return `<table class="detail svptable regrid"><thead><tr><th class="lft">Runners</th><th>0 outs</th><th>1 out</th><th>2 outs</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+function reHitters(years, minG){
+  /* each season's hitters are priced at that season's own run values (innings 1-2 count twice, inning 3 once), because a home run or a walk is worth more runs in a high-scoring year */
+    const valsFor = y => { const s = reSeason(y), o = ['OUT','FC','ROE','GIDP'];
+      const mix = f => (2*f(s.a)+f(s.b))/3;
+      const ev = k => mix(x=>x.val[k]);
+      const othOcc = o.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+      const vOth = o.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/othOcc;
+      return {BB:ev('BB'),'1B':ev('1B'),'2B':ev('2B'),'3B':ev('3B'),HR:ev('HR'),K:ev('K'),oth:vOth, mean:mix(x=>x.mean)}; };
+    const list = [];
+    years.forEach(y=>{
+      const vOf = valsFor(y);
+      svpEntries(y,'Regular').forEach(({name,row})=>{
+        if(!row.PA || row.G_bat<minG) return;
+        const h1 = row.H-row['2B']-row['3B']-row.HR, bb = row.BB+(row.HBP||0);
+        const oth = Math.max(0, row.PA - bb - h1 - row['2B'] - row['3B'] - row.HR - row.K);
+        const raw = bb*vOf.BB + h1*vOf['1B'] + row['2B']*vOf['2B'] + row['3B']*vOf['3B'] + row.HR*vOf.HR + row.K*vOf.K + oth*vOf.oth;
+        const runs = raw - row.PA*vOf.mean;
+        const wr = wrAAFor(row, y, false);
+        if(isFinite(runs) && isFinite(wr)) list.push({name, y, row, runs, wr, woba:wobaFor(row,y,false)});
+      });
+    });
+    return list;
+}
 function renderSavantRE(){
   const v = svpRE;
   if(!RE_INN[v.inn]) v.inn = '12';
-  if(!['table','value','era','players'].includes(v.view)) v.view = 'table';
+  if(!['table','value','era','players','totals'].includes(v.view)) v.view = 'table';
   if(!RE_EVS.includes(v.ev)) v.ev = 'HR';
   if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
@@ -13154,28 +13177,19 @@ function renderSavantRE(){
       <h3 class="hsub">Season by season</h3>
       <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
       <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
+  } else if(v.view==='totals'){
+    const by = {};
+    reHitters(years, 0).forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, pa:0, runs:0, wr:0}; o.n++; o.pa += r.row.PA; o.runs += r.runs; o.wr += r.wr; });
+    const rows = Object.values(by).filter(o=>o.pa>0).sort((a,b)=>b.runs-a.runs);
+    const tr = rows.map((o,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(o.name)}<button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button></span></td>
+      <td class="mono">${o.n}</td><td class="mono pfx">${o.pa}</td><td class="mono rec" style="${reDiffHeat(o.runs,60)}">${reSigned(o.runs,1)}</td><td class="mono">${reSigned(o.wr,1)}</td>
+      <td class="mono pfx">${reSigned(o.runs/o.pa*100,1)}</td><td class="mono pfx">${reSigned(o.wr/o.pa*100,1)}</td></tr>`).join('');
+    body = `<h3 class="hsub">Career totals of modeled runs and wRAA, ${span}</h3>
+      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Player</th><th>Seasons</th><th class="pfx">PA</th><th>Modeled runs</th><th>wRAA</th><th class="pfx">Modeled / 100 PA</th><th class="pfx">wRAA / 100 PA</th></tr></thead><tbody>${tr}</tbody></table></div>
+      <p class="smeta">Every hitter with a plate appearance in the seasons chosen, with each season's modeled runs and wRAA added together. Use the season switch above to total a single era or season. Click any column heading to sort.</p>`;
   } else {
     const top = v.pl==='best';
-    /* each season's hitters are priced at that season's own run values (innings 1-2 count twice, inning 3 once), because a home run or a walk is worth more runs in a high-scoring year */
-    const valsFor = y => { const s = reSeason(y), o = ['OUT','FC','ROE','GIDP'];
-      const mix = f => (2*f(s.a)+f(s.b))/3;
-      const ev = k => mix(x=>x.val[k]);
-      const othOcc = o.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
-      const vOth = o.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/othOcc;
-      return {BB:ev('BB'),'1B':ev('1B'),'2B':ev('2B'),'3B':ev('3B'),HR:ev('HR'),K:ev('K'),oth:vOth, mean:mix(x=>x.mean)}; };
-    const list = [];
-    years.forEach(y=>{
-      const vOf = valsFor(y);
-      svpEntries(y,'Regular').forEach(({name,row})=>{
-        if(!row.PA || row.G_bat<SV_MING) return;
-        const h1 = row.H-row['2B']-row['3B']-row.HR, bb = row.BB+(row.HBP||0);
-        const oth = Math.max(0, row.PA - bb - h1 - row['2B'] - row['3B'] - row.HR - row.K);
-        const raw = bb*vOf.BB + h1*vOf['1B'] + row['2B']*vOf['2B'] + row['3B']*vOf['3B'] + row.HR*vOf.HR + row.K*vOf.K + oth*vOf.oth;
-        const runs = raw - row.PA*vOf.mean;
-        const wr = wrAAFor(row, y, false);
-        if(isFinite(runs) && isFinite(wr)) list.push({name, y, row, runs, wr, woba:wobaFor(row,y,false)});
-      });
-    });
+    const list = reHitters(years, SV_MING);
     list.slice().sort((a,b)=>b.wr-a.wr).forEach((r,i)=>{ r.wrRank = i+1; });
     list.sort((a,b)=>top ? b.runs-a.runs : a.runs-b.runs);
     const shown = list.slice(0,20);
@@ -13190,10 +13204,15 @@ function renderSavantRE(){
   }
   svpShell('expectancy', `
     <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the number of outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own and not baseball's. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts) and from how runners moved in the counted 2026 play-by-play, because pitch-by-pitch data isn't recorded for most seasons.</p>
-    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}</div>
+    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}${chip('data-rev','totals','Totals',v.view==='totals')}</div>
     <div class="svpform">${ctl}</div>
     ${body}
     <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Rates are regular season. A run scored on the third out never counts. Checked against the counted 2026 play-by-play (52 games), the model lands within about a quarter of a run in most situations and runs about 0.3 high with one out.</p>`);
+  app.querySelectorAll('.svptable').forEach(t=>{
+    t.classList.add('sortable');
+    t.querySelectorAll('tbody td').forEach(td=>{ if(td.dataset.v==null){ const s = td.textContent.trim().replace(/\u2212/g,'-'); if(/^[+-]?\d/.test(s)) td.dataset.v = s.replace(/[+%,]/g,''); } });
+    makeSortable(t);
+  });
   app.querySelectorAll('[data-rev]').forEach(b=>b.addEventListener('click',()=>{ svpRE.view = b.dataset.rev; renderSavantRE(); }));
   app.querySelectorAll('[data-rs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.rs==='all' ? 'all' : (single ? svpRE.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantRE(); }));
   app.querySelectorAll('[data-ry]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.ry; renderSavantRE(); }));
@@ -13246,7 +13265,7 @@ const SVQ = {
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
   '#/savant/expectancy': [
-    ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players'].includes(v)) svpRE.view = v; }],
+    ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players','totals'].includes(v)) svpRE.view = v; }],
     ['y', ()=>svpRE.year, v=>{ if(svqYr(v)) svpRE.year = v; }],
     ['i', ()=>svpRE.inn, v=>{ if(v==='12'||v==='3') svpRE.inn = v; }],
     ['o', ()=>svpRE.ev, v=>{ if(RE_EVS.includes(v)) svpRE.ev = v; }],
