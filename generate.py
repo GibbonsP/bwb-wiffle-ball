@@ -659,6 +659,18 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .svh2h td b{display:block;font-size:.76rem;font-variant-numeric:tabular-nums}
 .svh2h td i{display:block;font-style:normal;font-size:.64rem;opacity:.85;font-variant-numeric:tabular-nums}
 .svh2h td.svh-na{color:var(--muted);background:transparent}
+.svh2h td.svh-c{cursor:pointer}
+.svh2h td.svh-c:hover{outline:2px solid var(--ink);outline-offset:-2px}
+.svh2h td.svh-sel{outline:3px solid var(--ink);outline-offset:-3px}
+.h2hgames{margin:16px 0 8px;background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:14px 16px}
+.h2hghead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.h2hghead h4{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.h2hghead h4 img{width:26px;height:26px;object-fit:contain}
+.h2hghead h4 small{font-weight:500;color:var(--muted);font-size:.8rem;margin-left:6px}
+.h2hgx{background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);cursor:pointer;padding:3px 9px}
+.h2hgrow{cursor:pointer}
+.h2hgrow:hover td{background:var(--paper)}
+.h2hgl{color:var(--accent);white-space:nowrap}
 .svh2h td.svh-self{background:var(--line)}
 .svh2h td.thin{opacity:.72}
 .svh2h td.svh-tot{background:transparent;color:var(--ink);font-weight:600;text-align:left;padding-left:10px;white-space:nowrap}
@@ -11342,7 +11354,7 @@ function renderSavantTeams(){
 }
 
 /* ------------------------- head-to-head matrix ------------------------- */
-let svpH2H = {year:'all', phase:'both'};
+let svpH2H = {year:'all', phase:'both', sel:null};
 function svpH2HData(years, phase){
   const rec = {};
   const ok = g => (g.phase==='Regular' && phase!=='post') || (g.phase==='Playoffs' && phase!=='reg');
@@ -11352,8 +11364,8 @@ function svpH2HData(years, phase){
       const se = t.seasons[y]; if(!se) return;
       (se.games||[]).forEach(g=>{
         if(!ok(g) || !TEAMS[g.opp] || (g.res!=='W' && g.res!=='L')) return;
-        const r = ((rec[a] || (rec[a]={}))[g.opp] || (rec[a][g.opp]={W:0,L:0}));
-        r[g.res]++;
+        const r = ((rec[a] || (rec[a]={}))[g.opp] || (rec[a][g.opp]={W:0,L:0,games:[]}));
+        r[g.res]++; r.games.push({gid:g.gid, date:g.date, y, ha:g.ha, rf:g.rf, ra:g.ra, res:g.res, phase:g.phase});
       });
     });
   });
@@ -11374,13 +11386,27 @@ function renderSavantH2H(){
       if(a===b) return '<td class="svh-self"></td>';
       const r = rec[a] && rec[a][b]; if(!r) return '<td class="svh-na">·</td>';
       const n = r.W+r.L, pc = r.W/n;
-      return `<td class="${n<3?'thin':''}" style="background:${svColor(pc*100)};color:${svpPillInk(pc*100)}"
-        title="${esc(short(a))} vs ${esc(short(b))}: ${r.W}–${r.L} (${rate(pc)})"><b>${rate(pc)}</b><i>${r.W}–${r.L}</i></td>`;
+      const on = svpH2H.sel && svpH2H.sel[0]===a && svpH2H.sel[1]===b;
+      return `<td class="svh-c ${n<3?'thin':''}${on?' svh-sel':''}" data-a="${esc(a)}" data-b="${esc(b)}" tabindex="0" role="button" aria-pressed="${on}" style="background:${svColor(pc*100)};color:${svpPillInk(pc*100)}"
+        title="${esc(short(a))} vs ${esc(short(b))}: ${r.W}–${r.L} (${rate(pc)}) — click to list the games"><b>${rate(pc)}</b><i>${r.W}–${r.L}</i></td>`;
     }).join('');
     const t = tot(a);
     return `<tr><th class="lft"><button class="pname" data-t="${esc(a)}">${logo(a)}${esc(short(a))}</button></th>${cells}
       <td class="svh-tot">${t.W}–${t.L} · ${rate(pct(t))}</td></tr>`;
   }).join('');
+  let panel = '';
+  if(svpH2H.sel){
+    const [a,b] = svpH2H.sel, r = rec[a] && rec[a][b];
+    if(r){
+      const gl = r.games.slice().sort((x,y)=>y.date.localeCompare(x.date) || y.gid-x.gid);
+      const rf = gl.reduce((t,g)=>t+g.rf,0), ra = gl.reduce((t,g)=>t+g.ra,0);
+      panel = `<section class="h2hgames"><div class="h2hghead"><h4>${logo(a)}${esc(short(a))} vs ${logo(b)}${esc(short(b))} <small>${r.W}–${r.L} · ${rate(r.W/(r.W+r.L))} · runs ${rf}–${ra}</small></h4><button type="button" class="h2hgx" id="h2hClose" aria-label="Close game list">✕</button></div>
+        <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Date</th><th>Type</th><th>Site</th><th>${esc(short(a))}</th><th>${esc(short(b))}</th><th>Result</th><th></th></tr></thead><tbody>${gl.map(g=>{
+          const nb = GAMES[g.gid] && GAMES[g.gid].noBox;
+          return `<tr class="h2hgrow" data-g="${g.gid}" tabindex="0" title="Open the ${nb?'final score':'box score'}"><td class="lft mono">${g.date}</td><td>${g.phase==='Playoffs'?'Postseason':esc(g.phase)}</td><td>${g.ha==='H'?'Home':'Away'}</td><td class="mono">${g.rf}</td><td class="mono">${g.ra}</td><td><b class="${g.res==='W'?'glup':'gldn'}">${g.res}</b></td><td class="h2hgl">${nb?'final score':'box score'} →</td></tr>`; }).join('')}</tbody></table></div>
+        <p class="smeta">Listed from ${esc(short(a))}’s side, newest first. Click a game to open its box score.</p></section>`;
+    } else svpH2H.sel = null;
+  }
   svpShell('teams', `
     ${svpTeamViews('h2h')}
     <div class="svpform">
@@ -11388,16 +11414,21 @@ function renderSavantH2H(){
       <label>Games <select id="h2hPhase">
         <option value="both"${svpH2H.phase==='both'?' selected':''}>Regular season + playoffs</option>
         <option value="reg"${svpH2H.phase==='reg'?' selected':''}>Regular season</option>
-        <option value="post"${svpH2H.phase==='post'?' selected':''}>Playoffs</option></select></label>
+        <option value="post"${svpH2H.phase==='post'?' selected':''}>Postseason</option></select></label>
     </div>
     ${teams.length ? `<div class="tscroll"><table class="svh2h"><thead><tr><th></th>${head}<th></th></tr></thead><tbody>${body}</tbody></table></div>`
       : '<p class="empty">No games in that selection.</p>'}
+    ${panel}
     <p class="smeta">Read across: each row is that club's record against the club in each column, colored by win percentage —
       <span style="color:${svColor(100)}">red</span> means the row team owns the matchup, <span style="color:${svColor(0)}">blue</span> means the column team does.
       Clubs are ordered by overall record in the selection. Faded cells are fewer than three games. Franchises are tracked
-      through name changes; hover a cell for the exact record, click a club to open its page.</p>`);
+      through name changes; hover a cell for the exact record, click a cell to list every game in that matchup (each opens its box score), or click a club to open its page.</p>`);
   document.getElementById('h2hYear').addEventListener('change', e=>{ svpH2H.year = e.target.value; renderSavantH2H(); });
   document.getElementById('h2hPhase').addEventListener('change', e=>{ svpH2H.phase = e.target.value; renderSavantH2H(); });
+  const openCell = td => { const k = [td.dataset.a, td.dataset.b]; svpH2H.sel = (svpH2H.sel && svpH2H.sel[0]===k[0] && svpH2H.sel[1]===k[1]) ? null : k; renderSavantH2H(); const p = document.querySelector('.h2hgames'); if(p) p.scrollIntoView({block:'nearest',behavior:'smooth'}); };
+  app.querySelectorAll('.svh-c').forEach(td=>{ td.addEventListener('click',()=>openCell(td)); td.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openCell(td); } }); });
+  const hc = document.getElementById('h2hClose'); if(hc) hc.addEventListener('click',()=>{ svpH2H.sel = null; renderSavantH2H(); });
+  app.querySelectorAll('.h2hgrow').forEach(tr=>{ const go = ()=>{ location.hash = '#/g/'+tr.dataset.g; }; tr.addEventListener('click',go); tr.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); });
   wireTeamViews();
 }
 
