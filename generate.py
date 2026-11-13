@@ -13097,7 +13097,7 @@ function reHitters(years, minG){
   /* each season's hitters are priced at that season's own run values (innings 1-2 count twice, inning 3 once), because a home run or a walk is worth more runs in a high-scoring year */
     const valsFor = y => { const s = reSeason(y), o = ['OUT','FC','ROE','GIDP'];
       const mix = f => (2*f(s.a)+f(s.b))/3;
-      const ev = k => mix(x=>x.val[k]);
+      const ev = k => { const q = mix(x=>x.val[k]); return isFinite(q) ? q : 0; };   // a play that never happened that season (no triples) has no value and no one to credit
       const othOcc = o.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
       const vOth = o.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/othOcc;
       return {BB:ev('BB'),'1B':ev('1B'),'2B':ev('2B'),'3B':ev('3B'),HR:ev('HR'),K:ev('K'),oth:vOth, mean:mix(x=>x.mean)}; };
