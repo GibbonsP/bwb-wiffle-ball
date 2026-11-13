@@ -13183,8 +13183,8 @@ const reTable = (head, rows, extra) => `<div class="tscroll reTall"><table class
 const rePlayerCell = n => `<td class="lft"><span class="plcell">${llHead(n)}<button class="pname" data-p="${esc(n)}">${esc(n)}</button></span></td>`;
 /* ---- the Graph tab: every hitter or pitcher as a dot, value on the vertical axis ---- */
 const RE_GX = {
-  hit:{K:['Strikeout rate','%'], BB:['Walk rate','%'], HR:['Home run rate','%'], OUT:['Out rate','%'], PA:['Plate appearances','']},
-  pit:{K:['Strikeout rate','%'], BB:['Walk rate','%'], H:['Hits allowed rate','%'], BF:['Batters faced','']}
+  hit:{K:['Strikeout rate','%',true], BB:['Walk rate','%'], HR:['Home run rate','%'], OUT:['Out rate','%',true], PA:['Plate appearances','']},
+  pit:{K:['Strikeout rate','%'], BB:['Walk rate','%',true], H:['Hits allowed rate','%',true], BF:['Batters faced','']}
 };
 function reNiceTicks(lo, hi, n){
   const span = hi-lo || 1, raw = span/n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/p;
@@ -13219,7 +13219,7 @@ function reGraphSVG(pts, xk, xmeta, ylab){
   if(xk==='PA'||xk==='BF'){ x0 = 0; x1 = q(xs,0.98); } else { const a = q(xs,0.02), b = q(xs,0.98); x0 = Math.min(x0,a); x1 = Math.max(a,b); }
   y0 = Math.min(y0,0); y1 = Math.max(y1,0); const py = (y1-y0)*0.06 || 1; y0 -= py; y1 += py;
   if(x1<=x0) x1 = x0+1;
-  const sx = v => L + (Math.min(Math.max(v,x0),x1)-x0)/(x1-x0)*(W-L-R), sy = v => T + (1-(Math.min(Math.max(v,y0),y1)-y0)/(y1-y0))*(H-T-B);
+  const sx = v => { const t = (Math.min(Math.max(v,x0),x1)-x0)/(x1-x0); return L + (xmeta[2] ? 1-t : t)*(W-L-R); }, sy = v => T + (1-(Math.min(Math.max(v,y0),y1)-y0)/(y1-y0))*(H-T-B);
   const maxN = Math.max(...pts.map(p=>p.n)), rad = n => 3.2 + 8*Math.sqrt(n/maxN);
   const xt = reNiceTicks(x0,x1,7), yt = reNiceTicks(y0,y1,7);
   const fmtX = v => xmeta[1]==='%' ? v.toFixed(v%1 ? 1 : 0)+'%' : String(Math.round(v));
@@ -13238,7 +13238,7 @@ function reGraphSVG(pts, xk, xmeta, ylab){
     return `<text x="${(X+(right?1:-1)*(rad(p.n)+4)).toFixed(1)}" y="${(sy(p.y)+4).toFixed(1)}" text-anchor="${right?'start':'end'}" class="gname">${esc(p.name)}</text>`; }).join('');
   const svg = `<svg viewBox="0 0 ${W} ${H}" class="regsvg" role="img" aria-label="Scatter plot of ${esc(ylab)} against ${esc(xmeta[0])}">
     ${grid}${tl}${dots}${labels}
-    <text x="${(L+W-R)/2}" y="${H-10}" text-anchor="middle" class="gax">${esc(xmeta[0])}</text>
+    <text x="${(L+W-R)/2}" y="${H-10}" text-anchor="middle" class="gax">${esc(xmeta[0])}${xmeta[2]?' (lower is better, so it runs right to left)':''}</text>
     <text transform="translate(16 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle" class="gax">${esc(ylab)}</text></svg>`;
   return {svg, slope, r, n};
 }
@@ -13327,7 +13327,7 @@ function renderSavantRE(){
         <div class="redef"><div><span>Trend</span><b>${slopeTxt}</b><i>modeled runs per 100 ${hitG?'PA':'BF'}${perTxt}</i></div>
           <div><span>Correlation</span><b>${isFinite(G.r)?(G.r<0?'−':'')+Math.abs(G.r).toFixed(2).replace(/^0/,''):'—'}</b><i>${Math.abs(G.r)>=0.6?'a strong link':Math.abs(G.r)>=0.3?'a moderate link':'a weak link'} between ${xn} and run value</i></div>
           <div><span>Dots</span><b>${G.n}</b><i>bigger dot = more ${hitG?'plate appearances':'batters faced'}; green is above average, red below</i></div></div>
-        <p class="smeta">Each dot is ${career?'one':'one'} ${hitG?'hitter':'pitcher'}${career?'':' season'}, plotted by ${xn} and by ${ylab}, the same modeled run values as the ${hitG?'Hitters':'Pitchers'} tab. Zero is ${hitG?'a league-average bat':'a league-average pitcher'}. The line is the straight-line trend. Hover a dot for the details and click it to open the player. ${gm[v.gx][1]==='%'?'':'Small samples swing far from the middle and settle toward it as the sample grows. '}Dots beyond the edge of the graph are drawn as hollow circles at the edge. Only players with enough plate appearances or batters faced are named on the graph. Choose 30+ PA or 20+ BF to hide the smallest samples.</p>`;
+        <p class="smeta">Each dot is ${career?'one':'one'} ${hitG?'hitter':'pitcher'}${career?'':' season'}, plotted by ${xn} and by ${ylab}, the same modeled run values as the ${hitG?'Hitters':'Pitchers'} tab. Zero is ${hitG?'a league-average bat':'a league-average pitcher'}. The best players are always in the top right: when a lower number is better (strikeout or out rate for hitters, walk or hits-allowed rate for pitchers) the horizontal axis runs from high to low. The line is the straight-line trend. Hover a dot for the details and click it to open the player. ${gm[v.gx][1]==='%'?'':'Small samples swing far from the middle and settle toward it as the sample grows. '}Dots beyond the edge of the graph are drawn as hollow circles at the edge. Only players with enough plate appearances or batters faced are named on the graph. Choose 30+ PA or 20+ BF to hide the smallest samples.</p>`;
     }
   } else if(v.view==='pitchers'){
     panel = rePanel(season, [showCtl, rankCtl(['Best','Worst'])]);
