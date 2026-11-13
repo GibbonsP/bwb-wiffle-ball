@@ -461,6 +461,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 }
 .svptable{min-width:100%}
 .regrid{max-width:680px}
+.reScope{display:flex;flex-wrap:wrap;gap:0 16px;align-items:flex-end}
+.reScope .chips{margin:6px 0 10px}
 .regrid td.rec,.svptable td.rec{font-weight:600}
 .regrid th.lft{white-space:nowrap}
 .redef{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
@@ -11974,11 +11976,11 @@ function renderSavantHub(){
       + card('#/savant/compare','Season Comparison','Pick any qualified season and find the three most similar ones from any year.',pv.comp)
       + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form)
       + card('#/savant/gains','Gains &amp; Losses','How far a player’s OPS, ERA, wOBA or another stat climbs in each hot streak and falls in each cold one, game after game through a season.',glIcon)
+      + card('#/savant/expectancy','Run Expectancy','The runs a team can expect to score from every base and out situation in a 3-inning, 9-out game. Modeled from box-score rates.',reIcon)
       + card('#/savant/gamescore','Game Score','One number for how good a player’s game was, hitting, pitching and fielding together. The best games ever and a game-by-game log.',pv.gs))}
     ${group('League', 'How the whole league has changed.',
       card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend)
-      + card('#/savant/parks','Park Factors','How each field changes scoring, from hitter-friendly to pitcher-friendly.',pv.pf)
-      + card('#/savant/expectancy','Run Expectancy','The runs a team can expect to score from every base and out situation in a 3-inning, 9-out game. Modeled from box-score rates.',reIcon))}
+      + card('#/savant/parks','Park Factors','How each field changes scoring, from hitter-friendly to pitcher-friendly.',pv.pf))}
     ${group('Explore', 'Dig through every player-season.',
       card('#/savant/scatter','Scatter','Plot any two stats against each other, filter by era or team, and highlight a player.',pv.scatter)
       + card('#/savant/search','Search','Filter every player season by year, team and stat thresholds.',pv.search))}
@@ -13100,7 +13102,11 @@ function renderSavantRE(){
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   const years = rePool(v.year), m = reModel(years), side = v.inn==='12' ? m.a : m.b;
   const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
-  const yearSel = `<label>Season <select id="reYear">${svpYearOptions(v.year, SVP_FULL_YEARS)}</select></label>`;
+  const single = SVP_FULL_YEARS.includes(+v.year);
+  const yrChips = SVP_FULL_YEARS.map(y=>chip('data-ry',y,y,+v.year===y)).join('');
+  const yearSel = `<div class="reScope"><div class="chips svpmodes">${chip('data-rs','all','All years combined',!single)}${chip('data-rs','each','Individual seasons',single)}</div>
+    ${single ? `<div class="chips svpmodes reYrs">${yrChips}</div>`
+      : `<label>Group <select id="reYear"><option value="all"${v.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${v.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup></select></label>`}</div>`;
   const innSel = `<label>Inning <select id="reInn">${Object.entries(RE_INN).map(([k,x])=>`<option value="${k}"${v.inn===k?' selected':''}>${x.name}${x.capped?' (6-run limit)':' (no limit)'}</option>`).join('')}</select></label>`;
   const innNote = v.inn==='12' ? 'In innings 1 and 2 a half-inning also ends once the team has scored 6 runs, which holds the high-scoring states down.' : 'The 3rd inning has no run limit, so a big inning can keep going until the third out.';
   let body = '';
@@ -13189,6 +13195,8 @@ function renderSavantRE(){
     ${body}
     <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Rates are regular season. A run scored on the third out never counts. Checked against the counted 2026 play-by-play (52 games), the model lands within about a quarter of a run in most situations and runs about 0.3 high with one out.</p>`);
   app.querySelectorAll('[data-rev]').forEach(b=>b.addEventListener('click',()=>{ svpRE.view = b.dataset.rev; renderSavantRE(); }));
+  app.querySelectorAll('[data-rs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.rs==='all' ? 'all' : (single ? svpRE.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantRE(); }));
+  app.querySelectorAll('[data-ry]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.ry; renderSavantRE(); }));
   app.querySelectorAll('[data-rpl]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pl = b.dataset.rpl; renderSavantRE(); }));
   const on = (id, key) => { const el = document.getElementById(id); if(el) el.addEventListener('change', e=>{ svpRE[key] = e.target.value; renderSavantRE(); }); };
   on('reYear','year'); on('reInn','inn'); on('reEv','ev');
