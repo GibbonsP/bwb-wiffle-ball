@@ -13163,9 +13163,10 @@ function rePitchers(years, minOuts){
   return list;
 }
 /* shared controls for the Run Expectancy and Clutch pages: one row of every season, a labeled panel for the rest */
-const reSeasonChips = (cur, attr) => {
+const reSeasonCtl = (cur, attr) => {
   const first = SVP_FULL_YEARS[0], c = (val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
-  return `<div class="chips reChips">${c('all','All Years',cur==='all')}${SVP_ERAS.map((e,i)=>c('e'+i, `${Math.max(e.from,first)}–${e.to}`, cur==='e'+i)).join('')}<span class="resep" aria-hidden="true"></span>${SVP_FULL_YEARS.map(y=>c(y,y,String(cur)===String(y))).join('')}</div>`;
+  return `<div class="rerow">${reCtl('Season', `<div class="chips reChips">${c('all','All Years',cur==='all')}${SVP_FULL_YEARS.map(y=>c(y,y,String(cur)===String(y))).join('')}</div>`)}`
+    + `${reCtl('Eras', `<div class="chips reChips">${SVP_ERAS.map((e,i)=>c('e'+i, `${Math.max(e.from,first)}–${e.to}`, cur==='e'+i)).join('')}</div>`)}</div>`;
 };
 const reCtl = (label, html) => `<div class="rectl"><span class="rectl-l">${label}</span>${html}</div>`;
 const rePanel = (season, rest) => `<div class="repanel">${season||''}${rest&&rest.length ? `<div class="rerow">${rest.join('')}</div>` : ''}</div>`;
@@ -13184,7 +13185,7 @@ function renderSavantRE(){
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   const years = rePool(v.year), m = reModel(years), side = v.inn==='12' ? m.a : m.b;
   const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
-  const season = reCtl('Season', reSeasonChips(v.year, 'data-ry'));
+  const season = reSeasonCtl(v.year, 'data-ry');
   const innCtl = reCtl('Inning', `<select id="reInn">${Object.entries(RE_INN).map(([k,x])=>`<option value="${k}"${v.inn===k?' selected':''}>${x.name}${x.capped?' (6-run limit)':' (no limit)'}</option>`).join('')}</select>`);
   const showCtl = reCtl('Show', `<div class="chips">${chip('data-rpp','season','Single seasons',v.pp==='season')}${chip('data-rpp','career','Totals',v.pp==='career')}</div>`);
   const innNote = v.inn==='12' ? 'In innings 1 and 2 a half-inning also ends once the team has scored 6 runs, which holds the high-scoring states down.' : 'The 3rd inning has no run limit, so a big inning can keep going until the third out.';
@@ -13350,7 +13351,7 @@ function renderSavantClutch(){
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
   const years = rePool(v.year), ys = new Set(years), single = SVP_FULL_YEARS.includes(+v.year), career = v.pp==='career';
   const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
-  const season = reCtl('Season', reSeasonChips(v.year, 'data-cy'));
+  const season = reSeasonCtl(v.year, 'data-cy');
   const showCtl = reCtl('Show', `<div class="chips">${chip('data-cpp','season','Single seasons',!career)}${chip('data-cpp','career','Totals',career)}</div>`);
   const bestCl = v.pl==='best';
   const rankCtl = reCtl('Rank', `<div class="chips">${chip('data-cpl','best','Best',bestCl)}${chip('data-cpl','worst','Worst',!bestCl)}</div>`);
