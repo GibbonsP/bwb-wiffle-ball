@@ -13012,7 +13012,7 @@ function reSolve(pr, capped){
   return {reG: V[0], re, sit, occ, val, mean, pa, outs: outsPer, inningRuns: V[0][0][0]};
 }
 const RE_INN = {'12':{capped:true, name:'Innings 1 and 2', short:'Innings 1–2'}, '3':{capped:false, name:'The 3rd inning', short:'Inning 3'}};
-let svpRE = {view:'table', year:'all', inn:'12', ev:'HR', pl:'best'};
+let svpRE = {view:'table', year:'all', inn:'12', ev:'HR', pl:'best', pp:'season'};
 const _reCache = new Map();
 function rePool(sel){
   const ys = svpYearsFor(sel, SVP_FULL_YEARS).filter(y=>LEAGUE_BY_YEAR[y] && LEAGUE_BY_YEAR[y].PA);
@@ -13110,10 +13110,32 @@ function reHitters(years, minG){
     });
     return list;
 }
+/* pitchers: the same run values read from the pitcher's side. Every batter faced is an out, a hit, a walk or a strikeout; the hits are
+   split the way the league's hits were that season. Positive means the pitcher kept run expectancy down (a stop), negative means he let it climb. */
+function rePitchers(years, minOuts){
+  const list = [];
+  years.forEach(y=>{
+    const s = reSeason(y), mix = f => (2*f(s.a)+f(s.b))/3;
+    const ev = k => { const q = mix(x=>x.val[k]); return isFinite(q) ? q : 0; };
+    const hk = ['1B','2B','3B','HR'], hOcc = hk.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+    const vHit = hk.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/hOcc;
+    const ok = ['OUT','FC','ROE','GIDP'], oOcc = ok.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+    const vOth = ok.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/oOcc, mean = mix(x=>x.mean);
+    const lg = LEAGUE_BY_YEAR[y], lgRperOut = lg.IPouts ? lg.pR/lg.IPouts : NaN;
+    svpEntries(y,'Regular').forEach(({name,row})=>{
+      if(!row.IPouts || row.IPouts<minOuts) return;
+      const bb = row.pBB+(row.pHB||0), bf = row.IPouts + row.pH + bb;
+      const raw = row.pH*vHit + bb*ev('BB') + row.pK*ev('K') + Math.max(0,row.IPouts-row.pK)*vOth;
+      const saved = -(raw - bf*mean), act = row.IPouts*lgRperOut - row.pR;
+      if(isFinite(saved) && isFinite(act)) list.push({name, y, row, bf, saved, act});
+    });
+  });
+  return list;
+}
 function renderSavantRE(){
   const v = svpRE;
   if(!RE_INN[v.inn]) v.inn = '12';
-  if(!['table','value','era','players','totals'].includes(v.view)) v.view = 'table';
+  if(!['table','value','era','players','totals','pitchers'].includes(v.view)) v.view = 'table';
   if(!RE_EVS.includes(v.ev)) v.ev = 'HR';
   if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
   const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
@@ -13171,6 +13193,22 @@ function renderSavantRE(){
       <h3 class="hsub">Season by season</h3>
       <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
       <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
+  } else if(v.view==='pitchers'){
+    const stop = v.pl==='best', career = v.pp==='career';
+    let rows = rePitchers(years, career ? 1 : SV_MINOUTS);
+    if(career){
+      const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, bf:0, saved:0, act:0, rows:[]}; o.n++; o.bf += r.bf; o.saved += r.saved; o.act += r.act; o.rows.push(r.row); });
+      rows = Object.values(by).map(o=>({...o, row:sumRows(o.rows)}));
+    }
+    rows.sort((a,b)=>stop ? b.saved-a.saved : a.saved-b.saved);
+    const shown = career ? rows : rows.slice(0,25);
+    const tr = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
+      <td class="mono">${career ? r.n : r.y}</td><td class="mono pfx">${ipStr(r.row.IPouts)}</td><td class="mono pfx">${r.bf}</td><td class="mono pfx">${two(era(r.row))}</td>
+      <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
+    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Stopped it',stop)}${chip('data-rpl','worst','Failed to stop it',!stop)}</div><div class="chips svpmodes">${chip('data-rpp','season','Single seasons',!career)}${chip('data-rpp','career','Totals',career)}</div>`;
+    body = `<h3 class="hsub">${stop?'Pitchers who stopped run expectancy':'Pitchers who failed to stop run expectancy'}, ${span}${career?' (totals)':''}</h3>
+      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th class="pfx">IP</th><th class="pfx">BF</th><th class="pfx">ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th></tr></thead><tbody>${tr}</tbody></table></div>
+      <p class="smeta">Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy up or down by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters, so positive means he stopped run expectancy and negative means he let it climb. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Single seasons need ${SV_MINOUTS/3} IP; totals include every pitcher. Click any heading to sort.</p>`;
   } else if(v.view==='totals'){
     ctl = yearSel;
     const by = {};
@@ -13199,7 +13237,7 @@ function renderSavantRE(){
   }
   svpShell('expectancy', `
     <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the number of outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own and not baseball's. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts) and from how runners moved in the counted 2026 play-by-play, because pitch-by-pitch data isn't recorded for most seasons.</p>
-    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}${chip('data-rev','totals','Totals',v.view==='totals')}</div>
+    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}${chip('data-rev','totals','Totals',v.view==='totals')}${chip('data-rev','pitchers','Pitchers',v.view==='pitchers')}</div>
     <div class="svpform">${ctl}</div>
     ${body}
     <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Rates are regular season. A run scored on the third out never counts. Checked against the counted 2026 play-by-play (52 games), the model lands within about a quarter of a run in most situations and runs about 0.3 high with one out.</p>`);
@@ -13211,6 +13249,7 @@ function renderSavantRE(){
   app.querySelectorAll('[data-rev]').forEach(b=>b.addEventListener('click',()=>{ svpRE.view = b.dataset.rev; renderSavantRE(); }));
   app.querySelectorAll('[data-rs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.rs==='all' ? 'all' : (single ? svpRE.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantRE(); }));
   app.querySelectorAll('[data-ry]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.ry; renderSavantRE(); }));
+  app.querySelectorAll('[data-rpp]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pp = b.dataset.rpp; renderSavantRE(); }));
   app.querySelectorAll('[data-rpl]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pl = b.dataset.rpl; renderSavantRE(); }));
   const on = (id, key) => { const el = document.getElementById(id); if(el) el.addEventListener('change', e=>{ svpRE[key] = e.target.value; renderSavantRE(); }); };
   on('reYear','year'); on('reInn','inn'); on('reEv','ev');
@@ -13260,10 +13299,11 @@ const SVQ = {
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
   '#/savant/expectancy': [
-    ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players','totals'].includes(v)) svpRE.view = v; }],
+    ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players','totals','pitchers'].includes(v)) svpRE.view = v; }],
     ['y', ()=>svpRE.year, v=>{ if(svqYr(v)) svpRE.year = v; }],
     ['i', ()=>svpRE.inn, v=>{ if(v==='12'||v==='3') svpRE.inn = v; }],
     ['o', ()=>svpRE.ev, v=>{ if(RE_EVS.includes(v)) svpRE.ev = v; }],
+    ['pp', ()=>svpRE.pp, v=>{ if(v==='season'||v==='career') svpRE.pp = v; }],
     ['pl', ()=>svpRE.pl, v=>{ if(v==='best'||v==='worst') svpRE.pl = v; }],
   ],
   '#/savant/gamescore': [
