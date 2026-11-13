@@ -13206,15 +13206,17 @@ function renderSavantRE(){
       const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, bf:0, saved:0, act:0, rows:[]}; o.n++; o.bf += r.bf; o.saved += r.saved; o.act += r.act; o.rows.push(r.row); });
       rows = Object.values(by).map(o=>({...o, row:sumRows(o.rows)}));
     }
-    rows.sort((a,b)=>stop ? b.saved-a.saved : a.saved-b.saved);
-    const shown = rows;
-    const tr = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
-      <td class="mono">${career ? r.n : r.y}</td><td class="mono pfx">${ipStr(r.row.IPouts)}</td><td class="mono pfx">${r.bf}</td><td class="mono pfx">${two(era(r.row))}</td>
-      <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
-    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Stopped it',stop)}${chip('data-rpl','worst','Failed to stop it',!stop)}</div><div class="chips svpmodes">${chip('data-rpp','season','Single seasons',!career)}${chip('data-rpp','career','Totals',career)}</div>`;
-    body = `<h3 class="hsub">${stop?'Pitchers who stopped run expectancy':'Pitchers who failed to stop run expectancy'}, ${span}${career?' (totals)':''}</h3>
-      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th class="pfx">IP</th><th class="pfx">BF</th><th class="pfx">ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th></tr></thead><tbody>${tr}</tbody></table></div>
-      <p class="smeta">Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy up or down by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters, so positive means he stopped run expectancy and negative means he let it climb. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Every pitcher who recorded an out is listed, small samples included. Click any heading to sort.</p>`;
+    const mk = (list, stopped) => {
+      const tr = list.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
+        <td class="mono">${career ? r.n : r.y}</td><td class="mono pfx">${ipStr(r.row.IPouts)}</td><td class="mono pfx">${r.bf}</td><td class="mono pfx">${two(era(r.row))}</td>
+        <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
+      return `<h3 class="hsub">${stopped?'Stopped run expectancy':'Failed to stop run expectancy'} <span class="smeta">· ${list.length} ${career?'pitchers':'pitcher seasons'}</span></h3>
+        <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th class="pfx">IP</th><th class="pfx">BF</th><th class="pfx">ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th></tr></thead><tbody>${tr}</tbody></table></div>`;
+    };
+    const good = rows.filter(r=>r.saved>=0).sort((a,b)=>b.saved-a.saved), bad = rows.filter(r=>r.saved<0).sort((a,b)=>a.saved-b.saved);
+    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpp','season','Single seasons',!career)}${chip('data-rpp','career','Totals',career)}</div>`;
+    body = `${mk(good,true)}${mk(bad,false)}
+      <p class="smeta">Pitchers are split by whether they kept run expectancy down (positive) or let it climb (negative), so nobody is in both lists. ${span}${career?', totals':''}. Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Every pitcher who recorded an out is listed, small samples included. Click any heading to sort.</p>`;
   } else if(v.view==='totals'){
     ctl = yearSel;
     const by = {};
