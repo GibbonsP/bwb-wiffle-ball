@@ -483,6 +483,8 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .regsvg .gn{fill:#d22d49;fill-opacity:.5;stroke:#d22d49}
 .regsvg .go{fill-opacity:0;stroke-width:2}
 .regsvg .gd:hover{fill-opacity:.95}
+.regsvg .gfade{fill:var(--muted);stroke:var(--muted);fill-opacity:.16;stroke-opacity:.3}
+.regsvg .gsel{fill-opacity:.9;stroke:var(--ink);stroke-width:1.6}
 .regsvg .gname{fill:var(--ink);font-size:12.5px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px}
 .retip{position:absolute;z-index:5;pointer-events:none;background:var(--ink);color:var(--card);border-radius:7px;padding:7px 10px;font-size:.78rem;line-height:1.45;box-shadow:var(--shadow);white-space:nowrap}
 .retab{width:100%;max-width:980px}
@@ -13055,7 +13057,7 @@ function reSolve(pr, capped){
   return {reG: V[0], re, sit, occ, val, mean, pa, outs: outsPer, inningRuns: V[0][0][0]};
 }
 const RE_INN = {'12':{capped:true, name:'Innings 1 and 2', short:'Innings 1–2'}, '3':{capped:false, name:'The 3rd inning', short:'Inning 3'}};
-let svpRE = {view:'table', year:'all', inn:'12', ev:'HR', pl:'best', pp:'season', gm:'hit', gx:'K', gs:'all'};
+let svpRE = {view:'table', year:'all', inn:'12', ev:'HR', pl:'best', pp:'season', gm:'hit', gx:'K', gs:'all', gf:'', gq:''};
 const _reCache = new Map();
 function rePool(sel){
   const ys = svpYearsFor(sel, SVP_FULL_YEARS).filter(y=>LEAGUE_BY_YEAR[y] && LEAGUE_BY_YEAR[y].PA);
@@ -13205,18 +13207,29 @@ function reGraphPoints(side, years, career, small){
     if(career){ const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, y:0, rows:[], runs:0}; o.rows.push(...r.rows); o.runs += r.runs; o.y = o.rows.length; }); rows = Object.values(by); }
     rows.forEach(r=>{ const t = sumRows(r.rows), pa = t.PA; if(!pa || (small && pa<30)) return;
       const bb = t.BB+(t.HBP||0);
-      pts.push({name:r.name, lab: career ? r.rows.length+' seasons' : String(r.y), n:pa, unit:'PA', y: r.runs/pa*100,
+      pts.push({name:r.name, py:career?0:r.y, link:'#/p/'+encodeURIComponent(r.name), lab: career ? r.rows.length+' seasons' : String(r.y), n:pa, unit:'PA', y: r.runs/pa*100,
         x:{K:t.K/pa*100, BB:bb/pa*100, HR:t.HR/pa*100, OUT:(pa-t.H-bb)/pa*100, PA:pa}}); });
   } else {
     let rows = rePitchers(years, 0).map(r=>({name:r.name, y:r.y, rows:[r.row], saved:r.saved, bf:r.bf}));
     if(career){ const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, y:0, rows:[], saved:0, bf:0}; o.rows.push(...r.rows); o.saved += r.saved; o.bf += r.bf; }); rows = Object.values(by); }
     rows.forEach(r=>{ const t = sumRows(r.rows), bf = r.bf; if(!bf || (small && bf<20)) return;
       const bb = t.pBB+(t.pHB||0);
-      pts.push({name:r.name, lab: career ? r.rows.length+' seasons' : String(r.y), n:bf, unit:'BF', y: r.saved/bf*100,
+      pts.push({name:r.name, py:career?0:r.y, link:'#/p/'+encodeURIComponent(r.name), lab: career ? r.rows.length+' seasons' : String(r.y), n:bf, unit:'BF', y: r.saved/bf*100,
         x:{K:t.pK/bf*100, BB:bb/bf*100, H:t.pH/bf*100, BF:bf}}); });
   }
   return pts;
 }
+/* which player-seasons were played for a franchise (split-club seasons count for each club) */
+function reFranchiseRows(side, years){
+  const out = {};
+  NAMES.forEach(n=>P[n].seasons.forEach(s=>{
+    if(s.type!=='Regular' || s.tot || !s.team || !years.includes(s.year)) return;
+    if(side==='hit' ? !(s.PA>0) : !(s.IPouts>0 || s.G_pit>0)) return;
+    (out[s.team] = out[s.team] || new Set()).add(n+'|'+s.year);
+  }));
+  return out;
+}
+const base0 = a => { const b = a.filter(p=>!p.extra); return b.length ? b : a; };
 function reGraphSVG(pts, xk, xmeta, ylab){
   const W = 900, H = 520, L = 64, R = 20, T = 18, B = 56;
   const q = (a, p) => { const s = a.slice().sort((x,y)=>x-y); return s[Math.max(0,Math.min(s.length-1,Math.round(p*(s.length-1))))]; };
@@ -13226,27 +13239,42 @@ function reGraphSVG(pts, xk, xmeta, ylab){
   y0 = Math.min(y0,0); y1 = Math.max(y1,0); const py = (y1-y0)*0.06 || 1; y0 -= py; y1 += py;
   if(x1<=x0) x1 = x0+1;
   const sx = v => { const t = (Math.min(Math.max(v,x0),x1)-x0)/(x1-x0); return L + (xmeta[2] ? 1-t : t)*(W-L-R); }, sy = v => T + (1-(Math.min(Math.max(v,y0),y1)-y0)/(y1-y0))*(H-T-B);
-  const maxN = Math.max(...pts.map(p=>p.n)), rad = n => 3.2 + 8*Math.sqrt(n/maxN);
+  const maxN = Math.max(...base0(pts).map(p=>p.n)), rad = n => 3.2 + 8*Math.sqrt(n/maxN), rad2 = p => p.sel ? Math.max(5.5, rad(p.n)) : rad(p.n);
   const xt = reNiceTicks(x0,x1,7), yt = reNiceTicks(y0,y1,7);
   const fmtX = v => xmeta[1]==='%' ? v.toFixed(v%1 ? 1 : 0)+'%' : String(Math.round(v));
   const grid = xt.map(t=>`<line x1="${sx(t)}" y1="${T}" x2="${sx(t)}" y2="${H-B}" class="gl"/><text x="${sx(t)}" y="${H-B+18}" text-anchor="middle" class="gt">${fmtX(t)}</text>`).join('')
     + yt.map(t=>`<line x1="${L}" y1="${sy(t)}" x2="${W-R}" y2="${sy(t)}" class="${Math.abs(t)<1e-9?'gz':'gl'}"/><text x="${L-8}" y="${sy(t)+4}" text-anchor="end" class="gt">${t>0?'+':t<0?'−':''}${Math.abs(t)}</text>`).join('');
   /* least-squares trend */
-  const n = pts.length, mx = xs.reduce((a,c)=>a+c,0)/n, my = ys.reduce((a,c)=>a+c,0)/n;
-  let sxy=0, sxx=0, syy=0; pts.forEach(p=>{ const dx = p.x[xk]-mx, dy = p.y-my; sxy += dx*dy; sxx += dx*dx; syy += dy*dy; });
+  const base = pts.filter(p=>!p.extra), n = base.length, mx = base.reduce((a,p)=>a+p.x[xk],0)/n, my = base.reduce((a,p)=>a+p.y,0)/n;
+  let sxy=0, sxx=0, syy=0; base.forEach(p=>{ const dx = p.x[xk]-mx, dy = p.y-my; sxy += dx*dy; sxx += dx*dx; syy += dy*dy; });
   const slope = sxx ? sxy/sxx : 0, r = (sxx&&syy) ? sxy/Math.sqrt(sxx*syy) : NaN, ic = my - slope*mx;
   const tl = `<line x1="${sx(x0)}" y1="${sy(ic+slope*x0)}" x2="${sx(x1)}" y2="${sy(ic+slope*x1)}" class="gtrend"/>`;
-  const order = pts.map((p,i)=>i).sort((a,b)=>pts[b].n-pts[a].n);
+  const hasSel = pts.some(p=>p.sel), order = pts.map((p,i)=>i).sort((a,b)=>(pts[a].sel?1:0)-(pts[b].sel?1:0) || pts[b].n-pts[a].n);
   const dots = order.map(i=>{ const p = pts[i], X = p.x[xk], out = X<x0||X>x1||p.y<y0||p.y>y1, pos = p.y>=0;
-    return `<circle cx="${sx(X).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="${rad(p.n).toFixed(1)}" class="gd ${pos?'gp':'gn'}${out?' go':''}" data-i="${i}"/>`; }).join('');
-  const big = pts.map((p,i)=>i).filter(i=>pts[i].n >= (pts[i].unit==='PA'?60:40)); const lab = (big.length>=6 ? big : pts.map((p,i)=>i)).sort((a,b)=>pts[b].y-pts[a].y); const pick = [...lab.slice(0,3), ...lab.slice(-3)];
-  const labels = [...new Set(pick)].map(i=>{ const p = pts[i], X = sx(p.x[xk]), right = X < W*0.72;
-    return `<text x="${(X+(right?1:-1)*(rad(p.n)+4)).toFixed(1)}" y="${(sy(p.y)+4).toFixed(1)}" text-anchor="${right?'start':'end'}" class="gname">${esc(p.name)}</text>`; }).join('');
+    return `<circle cx="${sx(X).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="${rad2(p).toFixed(1)}" class="gd ${pos?'gp':'gn'}${out?' go':''}${hasSel?(p.sel?' gsel':' gfade'):''}" data-i="${i}"/>`; }).join('');
   const svg = `<svg viewBox="0 0 ${W} ${H}" class="regsvg" role="img" aria-label="Scatter plot of ${esc(ylab)} against ${esc(xmeta[0])}">
-    ${grid}${tl}${dots}${labels}
+    ${grid}${tl}${dots}
     <text x="${(L+W-R)/2}" y="${H-10}" text-anchor="middle" class="gax">${esc(xmeta[0])}${xmeta[2]?' (lower is better, so it runs right to left)':''}</text>
     <text transform="translate(16 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle" class="gax">${esc(ylab)}</text></svg>`;
-  return {svg, slope, r, n};
+  return {svg, slope, r, n, sel: pts.filter(p=>p.sel).length};
+}
+function reGraphSet(v, years, career){
+  const hitG = v.gm==='hit', all = reGraphPoints(v.gm, years, career, v.gs==='min');
+  const fr = reFranchiseRows(v.gm, years), teams = TEAMNAMES.filter(t=>fr[t]);
+  if(v.gf && !fr[v.gf]) v.gf = '';
+  const keys = v.gf ? fr[v.gf] : null;
+  const names = new Set(); if(keys) keys.forEach(k=>names.add(k.slice(0,k.lastIndexOf('|'))));
+  const inFr = (p, seasonLevel) => !keys || (seasonLevel ? keys.has(p.name+'|'+p.py) : names.has(p.name));
+  const pool = reGraphPoints(v.gm, years, false, false);
+  const pnames = [...new Set((keys ? pool.filter(p=>inFr(p,true)) : pool).map(p=>p.name))].sort((a,b)=>a.localeCompare(b));
+  if(v.gq && !pnames.includes(v.gq)) v.gq = '';
+  let pts = all;
+  if(v.gq){
+    const mine = pool.filter(p=>p.name===v.gq && inFr(p,true));
+    if(career){ pts = all.filter(p=>p.name!==v.gq).concat(mine.map(p=>({...p, sel:true, extra:true}))); }
+    else pts = all.map(p=> (p.name===v.gq && inFr(p,true)) ? {...p, sel:true} : p);
+  } else if(keys){ pts = all.map(p=> inFr(p, !career) ? {...p, sel:true} : p); }
+  return {pts, teams, pnames, hitG};
 }
 function renderSavantRE(){
   const v = svpRE;
@@ -13255,6 +13283,7 @@ function renderSavantRE(){
   if(!['table','value','era','players','pitchers','graph'].includes(v.view)) v.view = 'table';
   if(v.gm!=='hit' && v.gm!=='pit') v.gm = 'hit';
   if(v.gs!=='all' && v.gs!=='min') v.gs = 'all';
+  if(typeof v.gf!=='string') v.gf = ''; if(typeof v.gq!=='string') v.gq = '';
   if(!RE_GX[v.gm][v.gx]) v.gx = v.gm==='hit' ? 'K' : 'K';
   if(!RE_EVS.includes(v.ev)) v.ev = 'HR';
   if(v.pl!=='best' && v.pl!=='worst') v.pl = 'best';
@@ -13314,13 +13343,15 @@ function renderSavantRE(){
       <div class="tscroll"><table class="detail svptable svgs svpf retab"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
       <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
   } else if(v.view==='graph'){
-    const hitG = v.gm==='hit', gm = RE_GX[v.gm];
+    const hitG = v.gm==='hit', gm = RE_GX[v.gm], GS = reGraphSet(v, years, v.pp==='career');
     panel = rePanel(season, [
       reCtl('Graph', `<div class="chips">${chip('data-rgm','hit','Hitters',hitG)}${chip('data-rgm','pit','Pitchers',!hitG)}</div>`),
       showCtl,
+      reCtl('Franchise', `<select id="reGf"><option value="">All franchises</option>${GS.teams.map(t=>`<option value="${esc(t)}"${v.gf===t?' selected':''}>${esc(t)}</option>`).join('')}</select>`),
+      reCtl('Player', `<select id="reGq"><option value="">${v.gf?'All '+esc(v.gf)+' players':'All players'}</option>${GS.pnames.map(t=>`<option value="${esc(t)}"${v.gq===t?' selected':''}>${esc(t)}</option>`).join('')}</select>`),
       reCtl('Horizontal axis', `<select id="reGx">${Object.entries(gm).map(([k,x])=>`<option value="${k}"${v.gx===k?' selected':''}>${x[0]}</option>`).join('')}</select>`),
       reCtl('Sample', `<div class="chips">${chip('data-rgs','all','Everyone',v.gs==='all')}${chip('data-rgs','min',hitG?'30+ PA':'20+ BF',v.gs==='min')}</div>`)]);
-    const pts = reGraphPoints(v.gm, years, career, v.gs==='min');
+    const pts = GS.pts, teamG = false;
     const ylab = hitG ? 'Modeled runs per 100 PA' : 'Modeled runs saved per 100 BF';
     if(pts.length<3){ body = '<p class="empty">Not enough players in this selection to graph.</p>'; }
     else {
@@ -13328,12 +13359,13 @@ function renderSavantRE(){
       const per = gm[v.gx][1]==='%' ? ` for every extra percentage point of ${xn}` : ` for every extra ${hitG?'plate appearance':'batter faced'}`;
       const slopeTxt = gm[v.gx][1]==='%' ? reSigned(G.slope,2) : reSigned(G.slope*100,2);
       const perTxt = gm[v.gx][1]==='%' ? per : ` for every extra 100 ${hitG?'PA':'BF'}`;
-      body = `<h3 class="hsub">${hitG?'Hitters':'Pitchers'}: ${ylab} against ${xn} <span class="smeta">· ${G.n} ${career?(hitG?'hitters':'pitchers'):(hitG?'hitter seasons':'pitcher seasons')} · ${span}</span></h3>
+      const noun = teamG ? (career ? 'teams' : 'team seasons') : career ? (hitG?'hitters':'pitchers') : (hitG?'hitter seasons':'pitcher seasons');
+      body = `<h3 class="hsub">${teamG?(hitG?'Team hitting':'Team pitching'):(hitG?'Hitters':'Pitchers')}: ${ylab} against ${xn} <span class="smeta">· ${G.n} ${noun} · ${span}</span></h3>
         <div class="regraph" id="reGraph">${G.svg}<div class="retip" id="reTip" hidden></div></div>
         <div class="redef"><div><span>Trend</span><b>${slopeTxt}</b><i>modeled runs per 100 ${hitG?'PA':'BF'}${perTxt}</i></div>
           <div><span>Correlation</span><b>${isFinite(G.r)?(G.r<0?'−':'')+Math.abs(G.r).toFixed(2).replace(/^0/,''):'—'}</b><i>${Math.abs(G.r)>=0.6?'a strong link':Math.abs(G.r)>=0.3?'a moderate link':'a weak link'} between ${xn} and run value</i></div>
-          <div><span>Dots</span><b>${G.n}</b><i>bigger dot = more ${hitG?'plate appearances':'batters faced'}; green is above average, red below</i></div></div>
-        <p class="smeta">Each dot is ${career?'one':'one'} ${hitG?'hitter':'pitcher'}${career?'':' season'}, plotted by ${xn} and by ${ylab}, the same modeled run values as the ${hitG?'Hitters':'Pitchers'} tab. Zero is ${hitG?'a league-average bat':'a league-average pitcher'}. The best players are always in the top right: when a lower number is better (strikeout or out rate for hitters, walk or hits-allowed rate for pitchers) the horizontal axis runs from high to low. The line is the straight-line trend. Hover a dot for the details and click it to open the player. ${gm[v.gx][1]==='%'?'':'Small samples swing far from the middle and settle toward it as the sample grows. '}Dots beyond the edge of the graph are drawn as hollow circles at the edge. Only players with enough plate appearances or batters faced are named on the graph. Choose 30+ PA or 20+ BF to hide the smallest samples.</p>`;
+          <div><span>${G.sel?'Highlighted':'Dots'}</span><b>${G.sel||G.n}</b><i>${G.sel?(v.gq?esc(v.gq)+(v.pp==='career'?' by season':'')+(v.gf?' with '+esc(v.gf):'')+'; the grey dots are everyone else, and the trend uses them. ':'players who played for '+esc(v.gf)+'; the grey dots are everyone else. '):''}Bigger dot = more ${hitG?'plate appearances':'batters faced'}; green is above average, red below. Hover a dot for the name</i></div></div>
+        <p class="smeta">Each dot is one ${teamG?'team':(hitG?'hitter':'pitcher')}${career?'':' season'}, plotted by ${xn} and by ${ylab}, the same modeled run values as the ${hitG?'Hitters':'Pitchers'} tab${teamG?', added up for every player who played for the club (a player who changed clubs counts for each)':''}. Zero is ${teamG?(hitG?'a league-average offense':'a league-average pitching staff'):(hitG?'a league-average bat':'a league-average pitcher')}. The best results are always in the top right: when a lower number is better (strikeout or out rate for hitters, walk or hits-allowed rate for pitchers) the horizontal axis runs from high to low. The line is the straight-line trend. Pick a franchise to light up every player who played for it, and a player to light up that player's dot for each season. Names are not printed on the graph: hover a dot to see who it is, and click it to open the ${teamG?'team':'player'} page. ${gm[v.gx][1]==='%'?'':'Small samples swing far from the middle and settle toward it as the sample grows. '}Dots beyond the edge of the graph are drawn as hollow circles at the edge. Choose 30+ PA or 20+ BF to hide the smallest samples.</p>`;
     }
   } else if(v.view==='pitchers'){
     panel = rePanel(season, [showCtl, rankCtl(['Best','Worst'])]);
@@ -13384,17 +13416,20 @@ function renderSavantRE(){
   const on = (id, key) => { const el = document.getElementById(id); if(el) el.addEventListener('change', e=>{ svpRE[key] = e.target.value; renderSavantRE(); }); };
   on('reInn','inn'); on('reEv','ev'); on('reGx','gx');
   app.querySelectorAll('[data-rgm]').forEach(b=>b.addEventListener('click',()=>{ svpRE.gm = b.dataset.rgm; svpRE.gx = 'K'; renderSavantRE(); }));
+  const gfE = document.getElementById('reGf'), gqE = document.getElementById('reGq');
+  if(gfE) gfE.addEventListener('change',()=>{ svpRE.gf = gfE.value; svpRE.gq = ''; renderSavantRE(); });
+  if(gqE) gqE.addEventListener('change',()=>{ svpRE.gq = gqE.value; renderSavantRE(); });
   app.querySelectorAll('[data-rgs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.gs = b.dataset.rgs; renderSavantRE(); }));
   const gbox = document.getElementById('reGraph');
   if(gbox && v.view==='graph'){
-    const gm2 = RE_GX[v.gm], pts2 = reGraphPoints(v.gm, years, career, v.gs==='min'), tip = document.getElementById('reTip');
+    const gm2 = RE_GX[v.gm], pts2 = reGraphSet(v, years, career).pts, tip = document.getElementById('reTip');
     gbox.addEventListener('mousemove', e=>{ const c = e.target.closest && e.target.closest('.gd'); if(!c){ tip.hidden = true; return; }
       const p = pts2[+c.dataset.i], bx = gbox.getBoundingClientRect(), xv = p.x[v.gx], xt = gm2[v.gx][1]==='%' ? xv.toFixed(1)+'%' : Math.round(xv);
       tip.innerHTML = `<b>${esc(p.name)}</b> · ${esc(p.lab)}<br>${p.n} ${p.unit}<br>${esc(gm2[v.gx][0])}: ${xt}<br>${v.gm==='hit'?'Runs':'Runs saved'} per 100: ${reSigned(p.y,1)}`;
       tip.hidden = false; const tx = e.clientX-bx.left+14, ty = e.clientY-bx.top+14;
       tip.style.left = Math.min(tx, bx.width-tip.offsetWidth-6)+'px'; tip.style.top = Math.min(ty, bx.height-tip.offsetHeight-6)+'px'; });
     gbox.addEventListener('mouseleave', ()=>{ tip.hidden = true; });
-    gbox.addEventListener('click', e=>{ const c = e.target.closest && e.target.closest('.gd'); if(c) location.hash = '#/p/'+encodeURIComponent(pts2[+c.dataset.i].name); });
+    gbox.addEventListener('click', e=>{ const c = e.target.closest && e.target.closest('.gd'); if(c && window.matchMedia('(hover:hover)').matches) location.hash = pts2[+c.dataset.i].link; });
   }
 }
 
@@ -13571,6 +13606,8 @@ const SVQ = {
     ['o', ()=>svpRE.ev, v=>{ if(RE_EVS.includes(v)) svpRE.ev = v; }],
     ['gm', ()=>svpRE.gm, v=>{ if(v==='hit'||v==='pit') svpRE.gm = v; }],
     ['gx', ()=>svpRE.gx, v=>{ svpRE.gx = v; }],
+    ['gf', ()=>svpRE.gf, v=>{ svpRE.gf = v; }],
+    ['gq', ()=>svpRE.gq, v=>{ svpRE.gq = v; }],
     ['gs', ()=>svpRE.gs, v=>{ if(v==='all'||v==='min') svpRE.gs = v; }],
     ['pp', ()=>svpRE.pp, v=>{ if(v==='season'||v==='career') svpRE.pp = v; }],
     ['pl', ()=>svpRE.pl, v=>{ if(v==='best'||v==='worst') svpRE.pl = v; }],
