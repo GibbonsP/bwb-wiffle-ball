@@ -1646,6 +1646,8 @@ svg.spark{display:block;width:100%;height:38px;margin-top:3px;overflow:visible}
 <script id="data" type="application/json">__DATA__</script>
 <script>
 const DB = JSON.parse(document.getElementById('data').textContent);
+/* the league calls its playoffs the Postseason: relabel the source's event names for display */
+Object.values(DB.games||{}).forEach(g=>{ if(g.div) g.div = g.div.replace('BWB Playoffs','BWB Postseason'); });
 /* transparent padding around each team logo's artwork (px in the source file): path -> [w,h,left,top,right,bottom] */
 const LOGO_PAD = __LOGOPAD__;
 if(DB.anniversaryLogo || DB.leagueLogo){
@@ -1744,7 +1746,7 @@ function gsDestinations(){
   add('Career Leaders','Leaders','all-time career leaderboard','#/leaders',()=>{ leadYear = 'career'; leadPhase = 'reg'; renderLeaders(); });
   ALL_YEARS.slice().reverse().forEach(y=>{
     add(y+' Leaders','Leaders · regular season','leaderboard stats season '+y,'#/leaders',()=>{ leadYear = y; leadPhase = 'reg'; renderLeaders(); });
-    if(poYears.has(y)) add(y+' Playoff Leaders','Leaders · playoffs','postseason leaderboard '+y,'#/leaders',()=>{ leadYear = y; leadPhase = 'post'; renderLeaders(); });
+    if(poYears.has(y)) add(y+' Postseason Leaders','Leaders · postseason','postseason leaderboard '+y,'#/leaders',()=>{ leadYear = y; leadPhase = 'post'; renderLeaders(); });
     if(TEAMNAMES.some(n=>standRow(n,y))){
       add(y+' Standings','Standings','table division '+y,'#/standings',()=>{ standYear = y; standPhase = 'reg'; renderStandings(); });
     }
@@ -1816,7 +1818,7 @@ function gsMatches(qRaw){
   return pg.lead ? [...pg.items, ...base] : [...base, ...pg.items.slice(0,4)];
 }
 /* what the header search offers before anything is typed: the players and teams that have been hottest in the
-   league's most recent three weeks of games (regular season and playoffs). Players are ranked by their total
+   league's most recent three weeks of games (regular season and postseason). Players are ranked by their total
    Game Score over that stretch (two or more games), teams by record then run differential. */
 let _gsTrend = null;
 function gsTrending(){
@@ -2095,7 +2097,7 @@ const fld = d => (d.PO+d.A+d.E) ? (d.PO+d.A)/(d.PO+d.A+d.E) : NaN;
 const fldG = d => (d.G_fld || !d.INN) ? d.G_fld : '—';
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TROPHY = '<svg class="trophy" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M6 3h12v2h2a1 1 0 0 1 1 1c0 3.3-2.2 5.6-5 5.95A5.5 5.5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5.5 5.5 0 0 1 8 11.95C5.2 11.6 3 9.3 3 6a1 1 0 0 1 1-1h2V3Zm0 4H4.6c.3 1.7 1.6 3 3.2 3.4A7.4 7.4 0 0 1 6 7Zm12 0a7.4 7.4 0 0 1-1.8 3.4c1.6-.4 2.9-1.7 3.2-3.4H18Z"/></svg>';
-const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p;
+const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p==='Playoffs' ? 'Postseason' : p;
 
 /* display rows for one player, one phase — one per year, split by club with a
    season total row (Baseball-Reference style) when they changed clubs mid-year */
@@ -2569,7 +2571,7 @@ function renderHome(){
       <div class="herocap">
         <span class="herotag">${rc.y} World Series</span>
         <h2>The ${esc(rc.tm)} are ${rc.y} BWB Champions!</h2>
-        <p>${rc.score?`${esc(rc.score)} overall on the year, regular season and playoffs combined. `:''}<button class="pname" data-t="${esc(rc.full)}">See the ${esc(rc.tm)} franchise page →</button></p>
+        <p>${rc.score?`${esc(rc.score)} overall on the year, regular season and postseason combined. `:''}<button class="pname" data-t="${esc(rc.full)}">See the ${esc(rc.tm)} franchise page →</button></p>
       </div>
     </div>`;
   } else {
@@ -2605,7 +2607,7 @@ function renderHome(){
   // ---- playoff bracket: most recent year with a recorded postseason ----
   const poYears = ALL_YEARS.filter(y=>PLAYOFFS[String(y)]);
   const poY = poYears[poYears.length-1];
-  const bracketSnap = poY ? `<h3 class="hsub">${poY} Playoffs</h3>${playoffBracket(poY)}` : '';
+  const bracketSnap = poY ? `<h3 class="hsub">${poY} Postseason</h3>${playoffBracket(poY)}` : '';
 
   const trailerHTML = `<h3 class="hsub">15th Anniversary Season Trailer</h3>
     <div class="videowrap"><iframe src="https://www.youtube.com/embed/7zS2dLZCkzI"
@@ -2815,7 +2817,7 @@ const LEAGUE_BY_YEAR_POST = buildLeagueByYear('Playoffs');
 /* wOBA / wRC+ — weighted on-base average and runs created, built from this
    league's OWN results rather than MLB's published constants. Each event's
    value is the OLS coefficient of team runs on that event across 988
-   team-game batting lines (regular season + playoffs, 2017–2026, R²=0.89,
+   team-game batting lines (regular season + postseason, 2017–2026, R²=0.89,
    fit on 1B/2B/3B/HR/BB/HBP and outs), re-based so an average out is worth
    0 — i.e. how many runs the event is worth over making an out. Same method
    as the Game Score weights, and for the same reason: they come from the
@@ -4985,9 +4987,9 @@ function renderTeams(){
   const summaryTable = `<div class="tscroll"><table class="dir sortable"><thead><tr>
     <th class="lft">Team</th><th>W</th><th>L</th><th class="mono">PCT</th><th class="lft">Years</th>
     <th title="World Series titles">WS</th><th title="World Series appearances">WS App</th>
-    <th title="Division titles">Div</th><th title="Playoff appearances">PO</th>
+    <th title="Division titles">Div</th><th title="Postseason appearances">PO</th>
     <th title="Winning seasons">Win Sz</th><th title="All-Star selections">AS</th>
-    <th class="mono" title="All-time playoff record">PO Rec</th>
+    <th class="mono" title="All-time postseason record">PO Rec</th>
   </tr></thead><tbody>${sumRows}</tbody></table></div>`;
 
   const statRows = TEAMNAMES.map(teamRowVals).sort((a,b)=>b.W-a.W);
@@ -4999,8 +5001,8 @@ function renderTeams(){
     ${summaryTable}
     <p class="note">Full franchise history from the league's records (2012–present), including seasons
     before the stat database. WS = World Series titles; WS App = finals appearances; Div = division titles;
-    PO = playoff appearances; Win Sz = winning seasons; AS = All-Star selections; PO Rec = all-time
-    playoff game record. Click a header to sort; names link to the current franchise page.</p>
+    PO = postseason appearances; Win Sz = winning seasons; AS = All-Star selections; PO Rec = all-time
+    postseason game record. Click a header to sort; names link to the current franchise page.</p>
     <h3 class="hsub">All-Time Team Batting</h3>
     ${teamStatTable(T_BAT_COLS, statRows)}
     <h3 class="hsub">All-Time Team Pitching</h3>
@@ -5058,7 +5060,7 @@ const PLAYOFFS = DB.playoffs || {};
    that year's bracket rather than trusting any stored round field */
 function playoffRound(year, teamA, teamB){
   const p = PLAYOFFS[String(year)];
-  if(!p || !teamA || !teamB) return 'Playoffs';
+  if(!p || !teamA || !teamB) return 'Postseason';
   const pair = new Set([teamA, teamB]);
   const isDivRound = side => {
     const seeds = (p[side]||{}).seeds || [];
@@ -5071,7 +5073,7 @@ function playoffRound(year, teamA, teamB){
 function gameTag(g){
   if(g.phase!=='Playoffs') return phLabel(g.phase);
   const raw = g.away ? g : (g.gid && GAMES[g.gid]);
-  return raw ? playoffRound(+raw.date.slice(0,4), raw.away.team, raw.home.team) : 'Playoffs';
+  return raw ? playoffRound(+raw.date.slice(0,4), raw.away.team, raw.home.team) : 'Postseason';
 }
 function pbTeam(seedNo, t, isWin, year){
   const full = t.full && TEAMS[t.full] ? t.full : null;
@@ -5347,7 +5349,7 @@ function renderStandings(){
     return v<=0 ? '—' : (Number.isInteger(v)? v : v.toFixed(1));
   };
   const seedMark = { '^':'<sup class="seed z" title="division winner">z</sup>',
-                     '*':'<sup class="seed x" title="clinched playoff berth">x</sup>' };
+                     '*':'<sup class="seed x" title="clinched postseason berth">x</sup>' };
   const DIVS = (DB.divisions||{})[standYear];
   const divNames = DIVS ? Object.keys(DIVS) : [];
   const divSet = Object.fromEntries(divNames.map(dn=>[dn, new Set(DIVS[dn].map(([t])=>t))]));
@@ -5416,7 +5418,7 @@ function renderStandings(){
   const phaseLabel = standPhase==='post' ? 'Postseason' : 'Regular Season';
   const teamPhaseToggle = `<div class="segs post" role="group" aria-label="Team stats phase">
     <button data-sp="reg" aria-pressed="${standPhase==='reg'}">Regular</button>
-    <button data-sp="post" aria-pressed="${standPhase==='post'}">Playoffs</button></div>`;
+    <button data-sp="post" aria-pressed="${standPhase==='post'}">Postseason</button></div>`;
   const batT = statTable('Team Batting · '+standYear+' · '+phaseLabel, [
     {l:'Team',lft:1,f:d=>nk(d.name)},
     {l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
@@ -5442,8 +5444,8 @@ function renderStandings(){
     <div class="phead"><h2>Standings</h2></div>
     ${chips}
     ${standHTML}
-    ${DIVS?'<p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched playoff berth</p>':''}
-    ${PLAYOFFS[String(standYear)]?`<h3 class="divh">${standYear} Playoffs</h3>${playoffBracket(standYear)}`:''}
+    ${DIVS?'<p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched postseason berth</p>':''}
+    ${PLAYOFFS[String(standYear)]?`<h3 class="divh">${standYear} Postseason</h3>${playoffBracket(standYear)}`:''}
     <h3 class="hsub">Team Stats</h3>
     ${teamPhaseToggle}
     ${batT}${pitT}${fldT}
@@ -5452,7 +5454,7 @@ function renderStandings(){
     the trailing columns are the club's record against each division. Division ties are broken by head-to-head.
     Team Batting, Team Pitching and Team Fielding are the sum of that season's roster lines for the selected phase
     above (fielding only where per-game data has been recorded — 2020 on);
-    the Playoffs view only lists teams that made the postseason that year.
+    the Postseason view only lists teams that made the postseason that year.
     Clubs are shown by the name they used that season; the link opens the current franchise page.</p>`;
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ standYear=+b.dataset.sy; renderStandings(); }));
   app.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{ standPhase=b.dataset.sp; renderStandings(); }));
@@ -5485,7 +5487,7 @@ function renderDivision(canonical){
   const order = ((DB.divisions[divYear]||{})[eraName]) || [];
   const mk = Object.fromEntries(order.map(([tm,m])=>[tm,m]));
   const seedMark = { '^':'<sup class="seed z" title="division winner">z</sup>',
-                     '*':'<sup class="seed x" title="clinched playoff berth">x</sup>' };
+                     '*':'<sup class="seed x" title="clinched postseason berth">x</sup>' };
   const h2h = (a,b) => { const v=a.vs[b.name]||{W:0,L:0}; return v.W-v.L; };
   const divSort = (a,b) => (b.PCT-a.PCT) || (-h2h(a,b)) || (b.DIFF-a.DIFF);
   const rows = order.map(([tm])=>standRow(tm, divYear)).filter(Boolean).sort(divSort);
@@ -5684,7 +5686,7 @@ function renderDivision(canonical){
     ${divHistHTML}
     ${chips}
     ${standTable}
-    <p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched playoff berth</p>
+    <p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched postseason berth</p>
     ${champsHTML}
     ${asgHistoryHTML}
     ${asgCaptainsHTML}
@@ -5761,7 +5763,7 @@ function renderLeaders(){
     ${yrs.map(y=>`<button data-ly="${y}" aria-pressed="${leadYear===y}">${y}</button>`).join('')}</div>`;
   const phaseToggle = `<div class="segs post" role="group" aria-label="Leaders phase">
     <button data-lp="reg" aria-pressed="${!isPost}">Regular</button>
-    <button data-lp="post" aria-pressed="${isPost}">Playoffs</button></div>`;
+    <button data-lp="post" aria-pressed="${isPost}">Postseason</button></div>`;
 
   const seasonType = isPost ? 'Playoffs' : 'Regular';
   const pool = NAMES.map(n=>{
@@ -5962,7 +5964,7 @@ function renderLeaders(){
 
 const phaseToggleHTML = () => `<div class="segs post" role="group" aria-label="Phase">
   <button data-tp="reg" aria-pressed="${teamPhase==='reg'}">Regular</button>
-  <button data-tp="post" aria-pressed="${teamPhase==='post'}">Playoffs</button></div>`;
+  <button data-tp="post" aria-pressed="${teamPhase==='post'}">Postseason</button></div>`;
 
 /* `weights` is the opsPlusFor() weight array for whatever this roster represents
    — a single team-year (one {year,pa} entry) from the team page, or omitted
@@ -6026,7 +6028,7 @@ function teamOneYear(t, y){
   const recCards = ['Regular','Playoffs'].map(ph=>{
     const r=(s.record||{})[ph]; if(!r) return '';
     const diff=r.RF-r.RA;
-    return `<div class="rec ${ph==='Playoffs'?'po':''}"><h4>${ph} Record</h4>
+    return `<div class="rec ${ph==='Playoffs'?'po':''}"><h4>${ph==='Playoffs'?'Postseason':ph} Record</h4>
       <div class="big">${recWL(r)}</div>
       <div class="sub">${r.RF} RF · ${r.RA} RA · ${diff>0?'+':''}${diff}</div></div>`;
   }).join('');
@@ -6034,7 +6036,7 @@ function teamOneYear(t, y){
     ? rosterBatting(roster, phKey, undefined, [{year:y, pa:1, post:phKey==='playoffs'}], true)
       + rosterPitching(roster, phKey, undefined, [{year:y, outs:1, post:phKey==='playoffs'}], true)
       + (rosterFielding(roster, phKey, undefined, true) || `<p class="smeta">Fielding wasn't recorded for ${y}.</p>`)
-    : `<p class="lead">No ${teamPhase==='post'?'playoff':'regular-season'} roster stats recorded for ${y}.</p>`;
+    : `<p class="lead">No ${teamPhase==='post'?'postseason':'regular-season'} roster stats recorded for ${y}.</p>`;
   return `<div class="recgrid">${recCards || '<div class="rec"><h4>Record</h4><div class="big">—</div></div>'}</div>
     ${phaseToggleHTML()}
     ${rosterHTML}
@@ -6170,7 +6172,7 @@ function teamRecordTable(t){
     <td class="mono">${fmtSplit(cVs.Brookside.w,cVs.Brookside.l)}</td><td class="mono">${fmtSplit(cVs.Brentwood.w,cVs.Brentwood.l)}</td></tr>`;
   return `<section class="stat"><h4>Season by Season</h4><div class="tscroll"><table class="detail">
     <thead><tr><th class="lft">Year</th><th class="lft">Name</th><th class="lft">Division</th>
-    <th>W</th><th>L</th><th class="mono">PCT</th><th class="lft">Playoffs</th><th class="lft">Finish</th>
+    <th>W</th><th>L</th><th class="mono">PCT</th><th class="lft">Postseason</th><th class="lft">Finish</th>
     <th>RF</th><th>RA</th><th>Diff</th>
     <th class="mono">Home</th><th class="mono">Away</th>
     <th class="mono">vs Brookside</th><th class="mono">vs Brentwood</th></tr></thead>
@@ -6215,12 +6217,12 @@ function teamStatsBySeason(t, ph){
           : eraPlusFor(d, byYear.map(r=>({year:r.year, outs:r.IPouts, post})));
         return isFinite(v)?String(v):'—';
       }}];
-    table = statTable('Team Pitching by Season'+(post?' · Playoffs':''), tpCols, byYear, grand, 'All', '');
+    table = statTable('Team Pitching by Season'+(post?' · Postseason':''), tpCols, byYear, grand, 'All', '');
   } else if(teamStatMode==='fld'){
     const tfCols=[yr0,
       {l:'INN',m:1,f:d=>d.INN},{l:'TC',f:d=>d.TC},{l:'PO',f:d=>d.PO},{l:'A',f:d=>d.A},
       {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
-    table = statTable('Team Fielding by Season'+(post?' · Playoffs':''), tfCols, fldYears, grand, 'All', '');
+    table = statTable('Team Fielding by Season'+(post?' · Postseason':''), tfCols, fldYears, grand, 'All', '');
   } else {
     const tbCols=[yr0,
       {l:'PA',f:d=>d.PA},{l:'AB',f:d=>d.AB},{l:'R',f:d=>d.R},{l:'H',f:d=>d.H},
@@ -6234,7 +6236,7 @@ function teamStatsBySeason(t, ph){
           : opsPlusFor(d, byYear.map(r=>({year:r.year, pa:r.PA, post})));
         return isFinite(v)?String(v):'—';
       }}];
-    table = statTable('Team Hitting by Season'+(post?' · Playoffs':''), tbCols, byYear, grand, 'All', '');
+    table = statTable('Team Hitting by Season'+(post?' · Postseason':''), tbCols, byYear, grand, 'All', '');
   }
   return `<h3 class="hsub">Team Stats</h3>${toggle}${table}`;
 }
@@ -6266,7 +6268,7 @@ function teamAllYears(t, name){
   const batTotal = sumRows(batRows);
   batTotal._weights = post ? batRows.flatMap(d=>d._weights) : TAGG_WEIGHTS[name];
   const battingHTML = batRows.length
-    ? statTable('Franchise Roster · Hitting'+(post?' · Playoffs':''), batCols, batRows, batTotal, 'Total', '', true) : '';
+    ? statTable('Franchise Roster · Hitting'+(post?' · Postseason':''), batCols, batRows, batTotal, 'Total', '', true) : '';
 
   const pitCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${true?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
@@ -6277,7 +6279,7 @@ function teamAllYears(t, name){
   const pitTotal = sumRows(pitRows);
   pitTotal._pitWeights = post ? pitRows.flatMap(d=>d._pitWeights) : TAGG_PIT_WEIGHTS[name];
   const pitchingHTML = pitRows.length
-    ? statTable('Franchise Roster · Pitching'+(post?' · Playoffs':''), pitCols, pitRows, pitTotal, 'Total', '', true) : '';
+    ? statTable('Franchise Roster · Pitching'+(post?' · Postseason':''), pitCols, pitRows, pitTotal, 'Total', '', true) : '';
 
   const fldCols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${llHead(d.name)}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
@@ -6285,12 +6287,12 @@ function teamAllYears(t, name){
     {l:'E',f:d=>d.E},{l:'DP',f:d=>d.DP},{l:'FLD%',m:1,f:d=>rate(fld(d))}];
   const fldRows = arows.filter(d=>d.TC>0 || d.INN>0).sort((x,y)=>y.INN-x.INN || y.TC-x.TC);
   const fieldingHTML = fldRows.length
-    ? statTable('Franchise Roster · Fielding'+(post?' · Playoffs':''), fldCols, fldRows, sumRows(fldRows), 'Total', '', true)
+    ? statTable('Franchise Roster · Fielding'+(post?' · Postseason':''), fldCols, fldRows, sumRows(fldRows), 'Total', '', true)
       + '<p class="smeta">Fielding has only been recorded since 2022, so these totals cover those seasons.</p>' : '';
-  return phaseToggleHTML() + ((battingHTML + pitchingHTML + fieldingHTML) || `<p class="lead">No ${post?'playoff':'regular-season'} roster stats recorded for this franchise.</p>`);
+  return phaseToggleHTML() + ((battingHTML + pitchingHTML + fieldingHTML) || `<p class="lead">No ${post?'postseason':'regular-season'} roster stats recorded for this franchise.</p>`);
 }
 
-/* all-time series record vs every other franchise (regular season + playoffs) */
+/* all-time series record vs every other franchise (regular season + postseason) */
 function teamH2H(t){
   const acc = {};
   t.years.forEach(y=>{
@@ -6347,7 +6349,7 @@ function teamH2H(t){
       <td class="mono">${gGp?rate(grand.W/gGp):'—'}</td><td>${grand.RF}</td><td>${grand.RA}</td>
       <td class="mono">${diffStr(gDf)}</td><td></td></tr></tfoot>
   </table></div>
-  <p class="note">Regular season and playoff meetings combined; All-Star, Spring and Fall exhibition games excluded.
+  <p class="note">Regular season and postseason meetings combined; All-Star, Spring and Fall exhibition games excluded.
   Click ▸ next to a team to see the year-by-year breakdown.</p></section>`;
 }
 
@@ -6843,7 +6845,7 @@ function renderRecords(){
     catS('Innings Fielded', s=>s.INN, v=>v),
   ].join('');
 
-  // ---- single-game records (regular season + playoffs, from recorded box scores) ----
+  // ---- single-game records (regular season + postseason, from recorded box scores) ----
   const batPool = [], pitPool = [], fldPool = [];
   GIDS.forEach(gid=>{
     const g = GAMES[gid];
@@ -7178,16 +7180,16 @@ function renderRecords(){
       <h4 class="hsub">Fielding</h4><div class="llgrid">${seasonFld}</div>
     </div>`],
     ['game', 'Single-Game', 'Single-Game Records', `<div class="phase">
-      <p class="pmeta">Best individual game lines from recorded box scores, ${eraLabel}, regular season and playoffs.</p>
+      <p class="pmeta">Best individual game lines from recorded box scores, ${eraLabel}, regular season and postseason.</p>
       <h4 class="hsub">Batting</h4><div class="llgrid">${gameBat}</div>
       <h4 class="hsub">Pitching</h4><div class="llgrid">${gamePit}</div>
       <h4 class="hsub">Fielding</h4><div class="llgrid">${gameFld}</div>
     </div>`],
     ['postseason', 'Postseason', 'Postseason Records', `<div class="phase">
       <p class="pmeta">Best individual postseason performances, ${eraLabel}. Single Postseason combines every
-      round a player appeared in during one year's playoff run (Wild Card/Divisional Series plus World Series);
+      round a player appeared in during one year's postseason run (Wild Card/Divisional Series plus World Series);
       rate stats need ${poMinG}+ games batting or ${poMinO/3}+ IP pitching, well below the regular-season bar
-      since a full postseason run rarely offers more than that. Single Game is drawn from playoff box scores only.</p>
+      since a full postseason run rarely offers more than that. Single Game is drawn from postseason box scores only.</p>
       <h4 class="hsub">Single Postseason · Batting</h4><div class="llgrid">${poBat}</div>
       <h4 class="hsub">Single Postseason · Pitching</h4><div class="llgrid">${poPit}</div>
       <h4 class="hsub">Single Postseason · Fielding</h4><div class="llgrid">${poFld}</div>
@@ -10870,7 +10872,7 @@ function svpTeamSVG(pts){
    team-season on its own rather than averaging a franchise across years. */
 let svpTmGroup = '', svpBW = null;
 const SVP_GROUPS = [['','All teams'],['champ','World Series champions'],['runner','World Series runners-up'],['finalist','Both World Series finalists'],
-  ['div','Division winners'],['po','Made the playoffs'],['dnq','Missed the playoffs'],['best','Best record each season'],['worst','Worst record each season']];
+  ['div','Division winners'],['po','Made the postseason'],['dnq','Missed the postseason'],['best','Best record each season'],['worst','Worst record each season']];
 function svpBestWorst(){
   if(svpBW) return svpBW;
   const by = {}; svpTeamSeasons().forEach(r=>(by[r.year] = by[r.year] || []).push(r));
@@ -11412,7 +11414,7 @@ function renderSavantH2H(){
     <div class="svpform">
       <label>Season / era <select id="h2hYear">${svpYearOptions(svpH2H.year, SVP_YEARS)}</select></label>
       <label>Games <select id="h2hPhase">
-        <option value="both"${svpH2H.phase==='both'?' selected':''}>Regular season + playoffs</option>
+        <option value="both"${svpH2H.phase==='both'?' selected':''}>Regular season + postseason</option>
         <option value="reg"${svpH2H.phase==='reg'?' selected':''}>Regular season</option>
         <option value="post"${svpH2H.phase==='post'?' selected':''}>Postseason</option></select></label>
     </div>
@@ -11501,7 +11503,7 @@ function renderSavantForm(){
     if(full.length>1){
       const hot = full.reduce((a,b)=>b.v>a.v?b:a), cold = full.reduce((a,b)=>b.v<a.v?b:a);
       const span = p => `games ${p.from+1}–${p.i+1} (${rows[p.from].date.slice(5).replace('-','/')}–${rows[p.i].date.slice(5).replace('-','/')})`;
-      read = `<p class="svpread"><b>${esc(svpForm.name)}</b> played ${n} ${post?'playoff':'regular-season'} game${n===1?'':'s'} in ${y}, ${M.fmt(snV)} ${svpForm.metric} for the year against a league ${M.fmt(lgV)}.
+      read = `<p class="svpread"><b>${esc(svpForm.name)}</b> played ${n} ${post?'postseason':'regular-season'} game${n===1?'':'s'} in ${y}, ${M.fmt(snV)} ${svpForm.metric} for the year against a league ${M.fmt(lgV)}.
         Hottest ${win}-game stretch: ${span(hot)} at <b>${M.fmt(hot.v)}</b>. Coldest: ${span(cold)} at <b>${M.fmt(cold.v)}</b>.</p>`;
     }
   }
@@ -11511,7 +11513,7 @@ function renderSavantForm(){
       <label>Season <select id="frYear">${yrs.slice().reverse().map(y=>`<option value="${y}"${y===svpForm.year?' selected':''}>${y}</option>`).join('')||'<option>—</option>'}</select></label>
       <label>Stat <select id="frMetric">${Object.keys(SVP_FORM_METRICS).map(k=>`<option${k===svpForm.metric?' selected':''}>${k}</option>`).join('')}</select></label>
       <label>Window <select id="frWin">${[5,10,15].map(w=>`<option value="${w}"${w===svpForm.win?' selected':''}>Last ${w} games</option>`).join('')}</select></label>
-      <label>Games <select id="frPost"><option value="0"${!svpForm.post?' selected':''}>Regular season</option><option value="1"${svpForm.post?' selected':''}>Playoffs</option></select></label>
+      <label>Games <select id="frPost"><option value="0"${!svpForm.post?' selected':''}>Regular season</option><option value="1"${svpForm.post?' selected':''}>Postseason</option></select></label>
     </div>
     ${read}${chart}
     <p class="smeta">Each point is a player's ${svpForm.metric} over his last ${svpForm.win} games, game by game through the season. The dashed line is the league
