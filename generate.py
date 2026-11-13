@@ -1736,7 +1736,7 @@ function gsDestinations(){
   add('Compare Players','Page','head to head versus','#/compare');
   [['compare','Savant Compare','Savant · compare players'],['trends','Savant Trends','Savant · trends over time'],
    ['pizza','Pizza Charts','Savant · percentile pizza'],['form','Savant Form','Savant · hot cold recent form'],['gains','Gains & Losses','Savant · hot cold streaks gains losses net OPS'],
-   ['gamescore','Game Score','Savant · game score'],['parks','Park Factors','Savant · parks hitter pitcher friendly'],['expectancy','Run Expectancy','Savant · run expectancy base out states modeled runs'],
+   ['gamescore','Game Score','Savant · game score'],['parks','Park Factors','Savant · parks hitter pitcher friendly'],['expectancy','Run Expectancy','Savant · run expectancy base out states modeled runs'],['clutch','Clutch','Savant · clutch leverage close games hitters pitchers'],
    ['scatter','Scatter Plot','Savant · scatter chart'],['search','Stat Search','Savant · find players by stat filters'],
    ['rankings','Percentile Rankings','Savant · player rankings percentiles'],['teams','Team Savant','Savant · team ratings'],
    ['teams/h2h','Team Head-to-Head','Savant · team h2h matchups'],['teams/offense','Team Offense','Savant · team offense'],
@@ -10174,7 +10174,7 @@ function svpShell(tab, inner){
     <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
-    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gains','Gains &amp; Losses')}${t('gamescore','Game Score')}${t('search','Search')}${t('parks','Park Factors')}${t('expectancy','Run Expectancy')}${t('teams','Teams')}</div>
+    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gains','Gains &amp; Losses')}${t('gamescore','Game Score')}${t('search','Search')}${t('parks','Park Factors')}${t('expectancy','Run Expectancy')}${t('clutch','Clutch')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='home' ? '#/savant' : b.dataset.svpt==='pct' ? '#/savant/rankings' : '#/savant/'+b.dataset.svpt;
@@ -11959,6 +11959,11 @@ const reIcon = `<svg viewBox="0 0 130 64" width="130" height="64" aria-hidden="t
     <polygon points="22,19 33,30 22,41 11,30" style="fill:var(--card);stroke:var(--accent)" stroke-width="3"/>
     <path d="M106,10 L106,30 M96,20 L116,20" fill="none" stroke="#1f9d55" stroke-width="7"/>
     <path d="M96,46 L116,46" fill="none" stroke="#d22d49" stroke-width="7"/></svg>`;
+const clIcon = `<svg viewBox="0 0 130 64" width="130" height="64" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="14" y="40" width="26" height="14" rx="3" style="fill:var(--line-strong)"/>
+    <rect x="44" y="26" width="26" height="28" rx="3" style="fill:var(--muted)"/>
+    <rect x="74" y="8" width="26" height="46" rx="3" style="fill:var(--accent)"/>
+    <path d="M110,12 l3,7 7,1 -5,5 1,7 -6,-4 -6,4 1,-7 -5,-5 7,-1 z" fill="#d4a017" stroke="#d4a017" stroke-width="1.5"/></svg>`;
 function renderSavantHub(){
   const pv = svpHubPreviews();
   const card = (href, title, desc, prev) => `<a class="svhcard" href="${href}">${prev?`<div class="svhprev">${prev}</div>`:''}<h4>${title}</h4><p>${desc}</p></a>`;
@@ -11977,6 +11982,7 @@ function renderSavantHub(){
       + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form)
       + card('#/savant/gains','Gains &amp; Losses','How far a player’s OPS, ERA, wOBA or another stat climbs in each hot streak and falls in each cold one, game after game through a season.',glIcon)
       + card('#/savant/expectancy','Run Expectancy','The runs a team can expect to score from every base and out situation in a 3-inning, 9-out game. Modeled from box-score rates.',reIcon)
+      + card('#/savant/clutch','Clutch','Who plays better when the game is tight. Every game is rated low, medium or high leverage, for hitters and pitchers.',clIcon)
       + card('#/savant/gamescore','Game Score','One number for how good a player’s game was, hitting, pitching and fielding together. The best games ever and a game-by-game log.',pv.gs))}
     ${group('League', 'How the whole league has changed.',
       card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend)
@@ -13263,6 +13269,125 @@ function renderSavantRE(){
   on('reYear','year'); on('reInn','inn'); on('reEv','ev');
 }
 
+/* ---- Clutch (Savant): who plays best when the game is tight ------------------------------------------------------
+   A box score doesn't say when inside a game something happened, so this works at the level of the whole game. Each game is
+   High, Medium or Low leverage by how close it ended compared with the rest of that season's games (the closest ~30% are High,
+   the next ~35% Medium), and a postseason game
+   counts one tier higher. Every hitter's game is priced in modeled runs (the Run Expectancy outcome values for that season,
+   minus what an average plate appearance is worth) and every pitcher's game in modeled runs saved. Clutch is the runs a player
+   produced in High-leverage games above what his own normal rate in his other games would have given over the same plate
+   appearances or batters faced; that normal rate is eased toward the league average by CL_K so a few lucky games don't count as a trait. */
+const CL_K = 40;
+const CL_TIER = {H:'High', M:'Medium', L:'Low'};
+function reHitVals(y){
+  const s = reSeason(y), mix = f => (2*f(s.a)+f(s.b))/3;
+  const ev = k => { const q = mix(x=>x.val[k]); return isFinite(q) ? q : 0; };
+  const ok = ['OUT','FC','ROE','GIDP'], oOcc = ok.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+  const hk = ['1B','2B','3B','HR'], hOcc = hk.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+  return {BB:ev('BB'),'1B':ev('1B'),'2B':ev('2B'),'3B':ev('3B'),HR:ev('HR'),K:ev('K'),
+    oth: ok.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/oOcc, hit: hk.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/hOcc, mean:mix(x=>x.mean)};
+}
+let _clRows = null, _clGames = null, CL_TH = {};
+function clBuild(){
+  if(_clRows) return;
+  _clRows = []; _clGames = {};
+  /* the closest ~30% of a season's games are High and the next ~35% Medium, so a tight game means the same thing in a high-scoring year and a low-scoring one */
+  CL_TH = {}; const mg = {};
+  svpGSRows().forEach(r=>{ if(!r.post && r.rf!=null && r.ra!=null && r.sk!==1){ (mg[r.y] = mg[r.y] || {})[r.gid] = Math.abs(r.rf-r.ra); } });
+  SVP_FULL_YEARS.forEach(y=>{ const a = Object.values(mg[y]||{}).sort((p,q)=>p-q); if(!a.length) return;
+    const hi = a[Math.floor(0.30*(a.length-1))], md = Math.max(hi, a[Math.floor(0.65*(a.length-1))]); CL_TH[y] = {hi, md}; });
+  const rg = {}; SVP_FULL_YEARS.forEach(y=>{ rg[y] = CL_TH[y] ? 1 : NaN; });
+  const vals = {}; SVP_FULL_YEARS.forEach(y=>{ vals[y] = reHitVals(y); });
+  svpGSRows().forEach(r=>{
+    if(!SVP_FULL_YEARS.includes(r.y) || !isFinite(rg[r.y])) return;
+    const margin = Math.abs(r.rf - r.ra), hi = CL_TH[r.y].hi, md = CL_TH[r.y].md;
+    let tier = margin<=hi ? 'H' : margin<=md ? 'M' : 'L';
+    if(r.post) tier = tier==='L' ? 'M' : 'H';
+    if(!_clGames[r.gid]) _clGames[r.gid] = {y:r.y, post:r.post, tier, margin};
+    const v = vals[r.y], out = {n:r.n, y:r.y, tier, hv:0, pa:0, pv:0, bf:0};
+    const b = r.bl;
+    if(b && !r.tl){
+      const pa = (b.ab||0)+(b.bb||0)+(b.hbp||0), h1 = (b.h||0)-(b['2b']||0)-(b['3b']||0)-(b.hr||0), bb = (b.bb||0)+(b.hbp||0);
+      const oth = Math.max(0, pa - bb - (b.h||0) - (b.k||0));
+      if(pa>0){ out.pa = pa; out.hv = bb*v.BB + h1*v['1B'] + (b['2b']||0)*v['2B'] + (b['3b']||0)*v['3B'] + (b.hr||0)*v.HR + (b.k||0)*v.K + oth*v.oth - pa*v.mean; }
+    }
+    const p = r.pl;
+    if(p && (p.ip||0)>0){
+      const bb = p.bb||0, bf = p.ip + (p.h||0) + bb;
+      out.bf = bf; out.pv = -((p.h||0)*v.hit + bb*v.BB + (p.k||0)*v.K + Math.max(0,p.ip-(p.k||0))*v.oth - bf*v.mean);
+    }
+    if(out.pa || out.bf) _clRows.push(out);
+  });
+}
+let svpCL = {view:'hit', year:'all', pp:'season'};
+function clAgg(rows, vk, nk){
+  const t = {H:{v:0,n:0}, M:{v:0,n:0}, L:{v:0,n:0}};
+  rows.forEach(r=>{ if(r[nk]){ t[r.tier].v += r[vk]; t[r.tier].n += r[nk]; } });
+  const oN = t.M.n+t.L.n, oV = t.M.v+t.L.v, base = oV/(oN+CL_K);
+  return {t, n:t.H.n+t.M.n+t.L.n, clutch: t.H.v - t.H.n*base};
+}
+function renderSavantClutch(){
+  clBuild();
+  const v = svpCL;
+  if(!['hit','pit','tiers'].includes(v.view)) v.view = 'hit';
+  if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
+  const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
+  const years = rePool(v.year), ys = new Set(years), single = SVP_FULL_YEARS.includes(+v.year), career = v.pp==='career';
+  const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
+  const yrChips = SVP_FULL_YEARS.map(y=>chip('data-cy',y,y,+v.year===y)).join('');
+  const scope = `<div class="reScope"><div class="chips svpmodes">${chip('data-cs','all','All years combined',!single)}${chip('data-cs','each','Individual seasons',single)}</div>
+    ${single ? `<div class="chips svpmodes reYrs">${yrChips}</div>`
+      : `<label>Group <select id="clYear"><option value="all"${v.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${v.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup></select></label>`}</div>`;
+  const ppChips = `<div class="chips svpmodes">${chip('data-cpp','season','Single seasons',!career)}${chip('data-cpp','career','Totals',career)}</div>`;
+  let ctl = scope, body = '';
+  if(v.view==='tiers'){
+    const rows = SVP_FULL_YEARS.map(y=>{
+      const gs = Object.values(_clGames).filter(g=>g.y===y), reg = gs.filter(g=>!g.post), rgv = reActualRG([y]);
+      const n = gs.length, pct = t => n ? Math.round(100*gs.filter(g=>g.tier===t).length/n)+'%' : '—';
+      return `<tr><td class="lft"><b>${y}</b></td><td class="mono">${n}</td><td class="mono pfx">${reFmt(rgv)}</td><td class="mono">${(CL_TH[y]||{}).hi ?? '—'}</td><td class="mono">${(CL_TH[y]||{}).md ?? '—'}</td><td class="mono">${pct('H')}</td><td class="mono">${pct('M')}</td><td class="mono">${pct('L')}</td></tr>`; }).join('');
+    ctl = '';
+    body = `<h3 class="hsub">How games are sorted into leverage tiers</h3>
+      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Season</th><th>Games</th><th class="pfx">Runs per team-game</th><th>High if margin ≤</th><th>Medium if margin ≤</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="smeta">Margin is the final run difference. In each season the closest games (about the closest 30%) are High, the next 35% or so are Medium, and the rest are Low (blowouts), so a tight game means the same thing in a 10-runs-a-game year as in a 4-runs-a-game year. Where many games share a margin the tiers can land a little off those shares. A postseason game counts one tier higher than its margin says, which is why the High share runs above 30%.</p>`;
+  } else {
+    const hit = v.view==='hit', vk = hit?'hv':'pv', nk = hit?'pa':'bf', unit = hit?'PA':'BF';
+    const rows = _clRows.filter(r=>ys.has(r.y) && r[nk]);
+    const groups = {};
+    rows.forEach(r=>{ const k = career ? r.n : r.n+'|'+r.y; (groups[k] = groups[k] || {name:r.n, y:r.y, rows:[], seasons:new Set()}); groups[k].rows.push(r); groups[k].seasons.add(r.y); });
+    const list = Object.values(groups).map(gp=>({...gp, a:clAgg(gp.rows, vk, nk)})).filter(o=>o.a.n>0);
+    const rate = x => x.n ? reSigned(x.v/x.n*100,1) : '—';
+    const mk = (arr, good) => {
+      const tr = arr.map((o,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(o.name)}<button class="pname" data-p="${esc(o.name)}">${esc(o.name)}</button></span></td>
+        <td class="mono">${career ? o.seasons.size : o.y}</td><td class="mono pfx">${o.a.n}</td><td class="mono pfx">${o.a.t.H.n}</td>
+        <td class="mono" data-v="${o.a.t.H.n ? (o.a.t.H.v/o.a.t.H.n*100).toFixed(2) : ''}">${rate(o.a.t.H)}</td><td class="mono pfx" data-v="${o.a.t.M.n ? (o.a.t.M.v/o.a.t.M.n*100).toFixed(2) : ''}">${rate(o.a.t.M)}</td><td class="mono pfx" data-v="${o.a.t.L.n ? (o.a.t.L.v/o.a.t.L.n*100).toFixed(2) : ''}">${rate(o.a.t.L)}</td>
+        <td class="mono rec" style="${reDiffHeat(o.a.clutch, career?12:5)}">${reSigned(o.a.clutch,1)}</td></tr>`).join('');
+      return `<h3 class="hsub">${good?'Came through when it was tight':'Fell short when it was tight'} <span class="smeta">· ${arr.length} ${career?(hit?'hitters':'pitchers'):(hit?'hitter seasons':'pitcher seasons')}</span></h3>
+        <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">${hit?'Player':'Pitcher'}</th><th>${career?'Seasons':'Season'}</th><th class="pfx">${unit}</th><th class="pfx">High ${unit}</th><th>High /100</th><th class="pfx">Medium /100</th><th class="pfx">Low /100</th><th>Clutch runs</th></tr></thead><tbody>${tr}</tbody></table></div>`;
+    };
+    const good = list.filter(o=>o.a.t.H.n>0 && o.a.clutch>=0).sort((a,b)=>b.a.clutch-a.a.clutch), bad = list.filter(o=>o.a.t.H.n>0 && o.a.clutch<0).sort((a,b)=>a.a.clutch-b.a.clutch);
+    const none = list.filter(o=>!o.a.t.H.n).length;
+    ctl = scope + ppChips;
+    body = `${mk(good,true)}${mk(bad,false)}
+      <p class="smeta">${span}${career?', totals':''}. <b>High /100, Medium /100 and Low /100</b> are ${hit?'modeled runs above an average plate appearance':'modeled runs saved'} per 100 ${unit==='PA'?'plate appearances':'batters faced'} in games of each leverage tier. <b>Clutch runs</b> is what ${hit?'he':'he'} produced in High-leverage games above his own normal rate in his other games over the same ${unit}, with that normal rate eased toward the league average by ${CL_K} ${unit} so a few good games aren't mistaken for a trait. ${none?`${none} ${career?'players':'player seasons'} with no High-leverage game are left out of both lists. `:''}Games are sorted by how close they ended, not by the score when the player batted or pitched, so this is a game-level Clutch; the box score doesn't record the situation inside the game. Samples are small, so totals are more trustworthy than single seasons. Click any heading to sort.</p>`;
+  }
+  svpShell('clutch', `
+    <p class="gsdef"><b>Clutch</b> shows who plays better when the game is tight. Every game is rated High, Medium or Low leverage by how close it ended compared with the rest of that season's games (the closest are High), and a postseason game counts one tier higher. Hitters and pitchers are scored in the same modeled runs as <a href="#/savant/expectancy">Run Expectancy</a>.</p>
+    <div class="chips svpmodes">${chip('data-clv','hit','Hitters',v.view==='hit')}${chip('data-clv','pit','Pitchers',v.view==='pit')}${chip('data-clv','tiers','Leverage tiers',v.view==='tiers')}</div>
+    <div class="svpform">${ctl}</div>
+    ${body}
+    <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Regular season and postseason games. Games where a team's whole batting line was logged under one player (some 2017 to 2021 games) are left out of the hitter numbers.</p>`);
+  app.querySelectorAll('.svptable').forEach(t=>{
+    t.classList.add('sortable');
+    t.querySelectorAll('tbody td').forEach(td=>{ if(td.dataset.v==null){ const s = td.textContent.trim().replace(/−/g,'-'); if(/^[+-]?\d/.test(s)) td.dataset.v = s.replace(/[+%,]/g,''); } });
+    makeSortable(t);
+  });
+  app.querySelectorAll('[data-clv]').forEach(b=>b.addEventListener('click',()=>{ svpCL.view = b.dataset.clv; renderSavantClutch(); }));
+  app.querySelectorAll('[data-cpp]').forEach(b=>b.addEventListener('click',()=>{ svpCL.pp = b.dataset.cpp; renderSavantClutch(); }));
+  app.querySelectorAll('[data-cs]').forEach(b=>b.addEventListener('click',()=>{ svpCL.year = b.dataset.cs==='all' ? 'all' : (single ? svpCL.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantClutch(); }));
+  app.querySelectorAll('[data-cy]').forEach(b=>b.addEventListener('click',()=>{ svpCL.year = b.dataset.cy; renderSavantClutch(); }));
+  const ys2 = document.getElementById('clYear'); if(ys2) ys2.addEventListener('change', e=>{ svpCL.year = e.target.value; renderSavantClutch(); });
+}
+
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
 const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
 const svqTeamView = st => [
@@ -13306,6 +13431,11 @@ const SVQ = {
     ['w', ()=>svpForm.win, v=>{ if([5,10,15].includes(+v)) svpForm.win = +v; }],
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
+  '#/savant/clutch': [
+    ['v', ()=>svpCL.view, v=>{ if(['hit','pit','tiers'].includes(v)) svpCL.view = v; }],
+    ['y', ()=>svpCL.year, v=>{ if(svqYr(v)) svpCL.year = v; }],
+    ['pp', ()=>svpCL.pp, v=>{ if(v==='season'||v==='career') svpCL.pp = v; }],
+  ],
   '#/savant/expectancy': [
     ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players','totals','pitchers'].includes(v)) svpRE.view = v; }],
     ['y', ()=>svpRE.year, v=>{ if(svqYr(v)) svpRE.year = v; }],
@@ -13339,13 +13469,14 @@ const SVQ = {
 /* a view's untouched state is left out of the link, so a plain link stays plain */
 Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
 /* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
-const SVQ0 = {RE:{...svpRE}, GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+const SVQ0 = {CL:{...svpCL}, RE:{...svpRE}, GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
   post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
 const SVQ_RESET = {
   '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
   '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
   '#/savant/gamescore': ()=>Object.assign(svpGS, SVQ0.GS),
   '#/savant/expectancy': ()=>Object.assign(svpRE, SVQ0.RE),
+  '#/savant/clutch': ()=>Object.assign(svpCL, SVQ0.CL),
   '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
   '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
   '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
@@ -13387,6 +13518,7 @@ function renderSavant(h0){
   if(h === '#/savant/gamescore') return renderSavantGS();
   if(h === '#/savant/parks') return renderSavantParks();
   if(h === '#/savant/expectancy') return renderSavantRE();
+  if(h === '#/savant/clutch') return renderSavantClutch();
   if(h === '#/savant/teams/h2h') return renderSavantH2H();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
