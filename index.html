@@ -454,6 +454,18 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
   .chips.svptabs button,.chips.svptv button{flex:none;white-space:nowrap}
 }
 .svptable{min-width:100%}
+.regrid{max-width:680px}
+.reScope{display:flex;flex-wrap:wrap;gap:0 16px;align-items:flex-end}
+.reScope .chips{margin:6px 0 10px}
+.regrid td.rec,.svptable td.rec{font-weight:600}
+.regrid th.lft{white-space:nowrap}
+.redef{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
+.redef>div{flex:1 1 170px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.redef span{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.redef b{font-size:1.5rem;font-variant-numeric:tabular-nums}
+.redef i{font-style:normal;font-size:.76rem;color:var(--muted)}
+.regrids{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 18px}
+.regrids>div{min-width:0}
 .svpform{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin:4px 0 14px}
 .svpform label{display:flex;flex-direction:column;gap:3px;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .svpform select,.svpform input:not([type=checkbox]),.svpfrow select,.svpfrow input{padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;
@@ -1718,7 +1730,7 @@ function gsDestinations(){
   add('Compare Players','Page','head to head versus','#/compare');
   [['compare','Savant Compare','Savant · compare players'],['trends','Savant Trends','Savant · trends over time'],
    ['pizza','Pizza Charts','Savant · percentile pizza'],['form','Savant Form','Savant · hot cold recent form'],['gains','Gains & Losses','Savant · hot cold streaks gains losses net OPS'],
-   ['gamescore','Game Score','Savant · game score'],['parks','Park Factors','Savant · parks hitter pitcher friendly'],
+   ['gamescore','Game Score','Savant · game score'],['parks','Park Factors','Savant · parks hitter pitcher friendly'],['expectancy','Run Expectancy','Savant · run expectancy base out states modeled runs'],
    ['scatter','Scatter Plot','Savant · scatter chart'],['search','Stat Search','Savant · find players by stat filters'],
    ['rankings','Percentile Rankings','Savant · player rankings percentiles'],['teams','Team Savant','Savant · team ratings'],
    ['teams/h2h','Team Head-to-Head','Savant · team h2h matchups'],['teams/offense','Team Offense','Savant · team offense'],
@@ -10156,7 +10168,7 @@ function svpShell(tab, inner){
     <div class="phead"><div class="hero-row">${savantLogoSVG(64)}<h2>Savant</h2></div></div>
     <p class="pmeta">The league's advanced statistics. Percentile rankings, wOBA and wRC+, how scoring has changed over the years,
       matched seasons, a scatter plot and search across every player season, and team graphs of playstyle, luck and the season race.</p>
-    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gains','Gains &amp; Losses')}${t('gamescore','Game Score')}${t('search','Search')}${t('parks','Park Factors')}${t('teams','Teams')}</div>
+    <div class="chips svptabs">${t('home','Home')}${t('pct','Percentile Rankings')}${t('pizza','Pizza Chart')}${t('trends','League Trends')}${t('compare','Season Comparison')}${t('scatter','Scatter')}${t('form','Rolling Form')}${t('gains','Gains &amp; Losses')}${t('gamescore','Game Score')}${t('search','Search')}${t('parks','Park Factors')}${t('expectancy','Run Expectancy')}${t('teams','Teams')}</div>
     ${inner}`;
   app.querySelectorAll('.svptabs button').forEach(b=>b.addEventListener('click',()=>{
     location.hash = b.dataset.svpt==='home' ? '#/savant' : b.dataset.svpt==='pct' ? '#/savant/rankings' : '#/savant/'+b.dataset.svpt;
@@ -11933,6 +11945,14 @@ function svpRankPanelWire(){
 const glIcon = `<svg viewBox="0 0 130 64" width="130" height="64" aria-hidden="true" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="6,46 24,30 38,40 58,14" stroke="#1f9d55"/><polyline points="45,13 58,14 57,27" stroke="#1f9d55"/>
     <polyline points="72,16 90,30 104,22 124,48" stroke="#d22d49"/><polyline points="124,35 124,48 111,48" stroke="#d22d49"/></svg>`;
+const reIcon = `<svg viewBox="0 0 130 64" width="130" height="64" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46,50 L70,30 L46,8 L22,30 Z" fill="none" style="stroke:var(--line-strong)" stroke-width="3"/>
+    <polygon points="46,60 38,53 38,48 54,48 54,53" style="fill:var(--card);stroke:var(--accent)" stroke-width="3"/>
+    <polygon points="70,19 81,30 70,41 59,30" style="fill:var(--accent);stroke:var(--accent)" stroke-width="2"/>
+    <polygon points="46,0 57,8 46,19 35,8" style="fill:var(--accent);stroke:var(--accent)" stroke-width="2" transform="translate(0,3)"/>
+    <polygon points="22,19 33,30 22,41 11,30" style="fill:var(--card);stroke:var(--accent)" stroke-width="3"/>
+    <path d="M106,10 L106,30 M96,20 L116,20" fill="none" stroke="#1f9d55" stroke-width="7"/>
+    <path d="M96,46 L116,46" fill="none" stroke="#d22d49" stroke-width="7"/></svg>`;
 function renderSavantHub(){
   const pv = svpHubPreviews();
   const card = (href, title, desc, prev) => `<a class="svhcard" href="${href}">${prev?`<div class="svhprev">${prev}</div>`:''}<h4>${title}</h4><p>${desc}</p></a>`;
@@ -11950,6 +11970,7 @@ function renderSavantHub(){
       + card('#/savant/compare','Season Comparison','Pick any qualified season and find the three most similar ones from any year.',pv.comp)
       + card('#/savant/form','Rolling Form','Game-by-game hot and cold stretches against the league average.',pv.form)
       + card('#/savant/gains','Gains &amp; Losses','How far a player’s OPS, ERA, wOBA or another stat climbs in each hot streak and falls in each cold one, game after game through a season.',glIcon)
+      + card('#/savant/expectancy','Run Expectancy','The runs a team can expect to score from every base and out situation in a 3-inning, 9-out game. Modeled from box-score rates.',reIcon)
       + card('#/savant/gamescore','Game Score','One number for how good a player’s game was, hitting, pitching and fielding together. The best games ever and a game-by-game log.',pv.gs))}
     ${group('League', 'How the whole league has changed.',
       card('#/savant/trends','League Trends','Scoring, strikeouts and home runs by season, plus a heatmap of every stat.',pv.trend)
@@ -12854,6 +12875,327 @@ function renderSavantParks(){
       : '<p class="empty">Not enough games at any one field yet.</p>'}
     <p class="smeta">A field needs ${PARK_MIN_G}+ games to appear, and fields with fewer games are less certain. Runs come from every game's final score. The other columns come from games with a recorded batting line, 2017 onward, and need ${PARK_MIN_G}+ such games. Forfeits are left out.</p>`);
 }
+/* ---- Run Expectancy (Savant): the average runs a team still scores in a half-inning from each base-out state ----
+   MODELED, not counted. There is no pitch-by-pitch record for most seasons, so the table is built from what every season
+   does have: how often hitters walk, single, double, triple, homer, strike out or make some other out (box-score totals).
+   Those rates are pushed through a 24-state chain (3 outs x 8 base sets). How runners move on each play comes from the
+   counted 2026 play-by-play (the only season that has it): on a single the runner on 3rd always scores, the runner on 2nd
+   scores 27.5% of the time, a lone runner on 1st reaches 3rd 13.9%; on an out in play a runner on 3rd scores 20% and a runner
+   on 1st reaches 2nd 13.6%; and "other outs" split into outs in play, fielder's choices, errors and double plays by the
+   situation. Rules of this league: 3 innings, 9 outs a side; in innings 1 and 2 a half-inning also ends once a team has
+   scored 6 runs, and the 3rd inning has no run limit. A run on the third out never counts. */
+const RE_CAL = {s2:0.275, s1to3:0.139, out3:0.20, out12:0.136, cap:6,
+  shE:{OUT:0.879, ROE:0.121}, shR1:{OUT:0.430, FC:0.413, ROE:0.107, GIDP:0.050}, shRest:{OUT:0.595, FC:0.284, ROE:0.122}};
+const RE_EVS = ['BB','1B','2B','3B','HR','K','OUT','FC','ROE','GIDP'];
+const RE_EVN = {BB:'Walk / hit by pitch','1B':'Single','2B':'Double','3B':'Triple',HR:'Home run',K:'Strikeout',OUT:'Out in play',FC:'Fielder’s choice',ROE:'Reached on error',GIDP:'Double play'};
+const RE_BASE_ORDER = [0,1,2,4,3,5,6,7];
+const RE_BASE_NAME = ['Bases empty','Runner on 1st','Runner on 2nd','1st & 2nd','Runner on 3rd','1st & 3rd','2nd & 3rd','Bases loaded'];
+const reBits = b => (b&1)+((b>>1)&1)+((b>>2)&1);
+/* where the runners and the batter end up: a list of {w: chance, nb: bases, no: outs, runs} or null if the play can't happen there */
+function reMove(ev, b, o){
+  const C = RE_CAL, f1 = b&1, f2 = (b>>1)&1, f3 = (b>>2)&1, n = f1+f2+f3;
+  const one = (nb, no, runs) => [{w:1, nb, no, runs: no>=3 ? 0 : runs}];
+  const force = () => !f1 ? one(b|1,o,0) : !f2 ? one(b|3,o,0) : !f3 ? one(7,o,0) : one(7,o,1);
+  if(ev==='BB' || ev==='ROE') return force();
+  if(ev==='HR') return one(0,o,n+1);
+  if(ev==='3B') return one(4,o,n);
+  if(ev==='2B') return one(2|(f1?4:0), o, f2+f3);
+  if(ev==='K') return one(b,o+1,0);
+  if(ev==='1B'){
+    const res = [], r2 = f2 ? [[C.s2,true],[1-C.s2,false]] : [[1,null]];
+    for(const [w2,sc2] of r2){
+      const runs = f3 + (sc2?1:0), occ3 = (f2 && !sc2) ? 1 : 0;
+      const r1 = f1 ? (occ3 ? [[1,2]] : [[C.s1to3,3],[1-C.s1to3,2]]) : [[1,0]];
+      for(const [w1,to] of r1) res.push({w:w2*w1, nb: 1 | (occ3?4:0) | (to===3?4:0) | (to===2?2:0), no:o, runs});
+    }
+    return res;
+  }
+  if(ev==='OUT'){
+    if(o>=2) return one(b,3,0);
+    const res = [];
+    const r3 = f3 ? [[C.out3,'s'],[1-C.out3,'h']] : [[1,'n']];
+    for(const [w3,a3] of r3){
+      const free3 = !f3 || a3==='s';
+      const r2 = f2 ? (free3 ? [[C.out12,'a'],[1-C.out12,'h']] : [[1,'h']]) : [[1,'n']];
+      for(const [w2,a2] of r2){
+        const free2 = !f2 || a2==='a';
+        const r1 = f1 ? (free2 ? [[C.out12,'a'],[1-C.out12,'h']] : [[1,'h']]) : [[1,'n']];
+        for(const [w1,a1] of r1){
+          const nb = (f3&&a3==='h' ? 4:0) | (f2 ? (a2==='a'?4:2) : 0) | (f1 ? (a1==='a'?2:1) : 0);
+          res.push({w:w3*w2*w1, nb, no:o+1, runs:a3==='s'?1:0});
+        }
+      }
+    }
+    return res;
+  }
+  if(ev==='FC'){
+    if(!b) return null;
+    if(o>=2) return one(b,3,0);
+    if(f1) return one(1 | ((f2||f3)?4:0), o+1, (f2&&f3)?1:0);
+    return one(f3 ? (1|(f2?2:0)) : 1, o+1, 0);
+  }
+  if(ev==='GIDP'){
+    if(!f1 || o>=2) return null;
+    return one(b & ~1, o+2, 0);
+  }
+  return null;
+}
+function reRates(t, x){
+  if(!t.PA) return null;
+  const PA = t.PA*(1+(x||0));   // x tops up the plate appearances with the outs made on the bases
+  const h1 = t.H - t['2B'] - t['3B'] - t.HR;
+  const p = {BB:(t.BB+(t.HBP||0))/PA, '1B':h1/PA, '2B':t['2B']/PA, '3B':t['3B']/PA, HR:t.HR/PA, K:t.K/PA};
+  p.oth = Math.max(0, 1 - Object.values(p).reduce((a,c)=>a+c,0));
+  return p;
+}
+function reEvProbs(pr, b, o){
+  const sh = !b ? RE_CAL.shE : ((b&1) && o<2) ? RE_CAL.shR1 : RE_CAL.shRest;
+  const out = {BB:pr.BB,'1B':pr['1B'],'2B':pr['2B'],'3B':pr['3B'],HR:pr.HR,K:pr.K};
+  ['OUT','FC','ROE','GIDP'].forEach(k=>{ out[k] = pr.oth*(sh[k]||0); });
+  return out;
+}
+/* solve the chain for one inning type (capped: innings 1-2 with the 6-run limit; otherwise inning 3) */
+function reSolve(pr, capped){
+  const RR = capped ? RE_CAL.cap : 1;
+  const moves = {};
+  for(let o=0;o<3;o++) for(let b=0;b<8;b++){
+    const ep = reEvProbs(pr,b,o), list = [];
+    RE_EVS.forEach(ev=>{ const pe = ep[ev]; if(!pe) return; const ms = reMove(ev,b,o); if(!ms) return;
+      ms.forEach(m=>list.push({ev, p:pe*m.w, nb:m.nb, no:m.no, runs:m.runs})); });
+    moves[o*8+b] = list;
+  }
+  const V = Array.from({length:RR},()=>Array.from({length:3},()=>new Array(8).fill(0)));
+  const step = (r,m) => { const nr = capped ? r+m.runs : 0; return {nr, cont: m.no<3 && !(capped && nr>=RE_CAL.cap)}; };
+  for(let it=0; it<600; it++){
+    let d = 0;
+    for(let r=RR-1;r>=0;r--) for(let o=2;o>=0;o--) for(let b=0;b<8;b++){
+      let s = 0;
+      for(const m of moves[o*8+b]){ const st = step(r,m); s += m.p*(m.runs + (st.cont ? V[st.nr][m.no][m.nb] : 0)); }
+      d = Math.max(d, Math.abs(s - V[r][o][b])); V[r][o][b] = s;
+    }
+    if(d<1e-11) break;
+  }
+  /* how often each state is visited in an inning (expected plate appearances), for averaging the value of each play */
+  let N = Array.from({length:RR},()=>Array.from({length:3},()=>new Array(8).fill(0)));
+  const base = Array.from({length:RR},()=>Array.from({length:3},()=>new Array(8).fill(0))); base[0][0][0] = 1;
+  for(let it=0; it<600; it++){
+    const nx = base.map(a=>a.map(x=>x.slice()));
+    for(let r=0;r<RR;r++) for(let o=0;o<3;o++) for(let b=0;b<8;b++){
+      const v = N[r][o][b]; if(!v) continue;
+      for(const m of moves[o*8+b]){ const st = step(r,m); if(st.cont) nx[st.nr][m.no][m.nb] += v*m.p; }
+    }
+    let d = 0; for(let r=0;r<RR;r++) for(let o=0;o<3;o++) for(let b=0;b<8;b++) d = Math.max(d, Math.abs(nx[r][o][b]-N[r][o][b]));
+    N = nx; if(d<1e-12) break;
+  }
+  const re = (b,o) => V[0][o][b];
+  /* value of a play = runs on it + change in expected runs */
+  const delta = (m,r,o,b) => { const st = step(r,m); return m.runs + (st.cont ? V[st.nr][m.no][m.nb] : 0) - V[r][o][b]; };
+  const sit = {}, occ = {}, val = {};
+  RE_EVS.forEach(ev=>{
+    sit[ev] = Array.from({length:3},()=>new Array(8).fill(null));
+    let num = 0, den = 0;
+    for(let o=0;o<3;o++) for(let b=0;b<8;b++){
+      const ms = moves[o*8+b].filter(m=>m.ev===ev); if(!ms.length) continue;
+      const pw = ms.reduce((a,m)=>a+m.p,0);
+      sit[ev][o][b] = ms.reduce((a,m)=>a+m.p*delta(m,0,o,b),0)/pw;
+      for(let r=0;r<RR;r++){ const v = N[r][o][b]; if(!v) continue;
+        ms.forEach(m=>{ num += v*m.p*delta(m,r,o,b); den += v*m.p; }); }
+    }
+    occ[ev] = den; val[ev] = den ? num/den : NaN;
+  });
+  const totOcc = RE_EVS.reduce((a,e)=>a+occ[e],0);
+  const mean = RE_EVS.reduce((a,e)=>a+(occ[e]*(isFinite(val[e])?val[e]:0)),0)/totOcc;
+  let outsPer = 0;
+  for(let r=0;r<RR;r++) for(let o=0;o<3;o++) for(let b=0;b<8;b++){ const v = N[r][o][b]; if(!v) continue;
+    for(const m of moves[o*8+b]) outsPer += v*m.p*(Math.min(3,m.no)-o); }
+  const pa = N.reduce((a,x)=>a+x.reduce((c,y)=>c+y.reduce((s,z)=>s+z,0),0),0);
+  return {reG: V[0], re, sit, occ, val, mean, pa, outs: outsPer, inningRuns: V[0][0][0]};
+}
+const RE_INN = {'12':{capped:true, name:'Innings 1 and 2', short:'Innings 1–2'}, '3':{capped:false, name:'The 3rd inning', short:'Inning 3'}};
+let svpRE = {view:'table', year:'all', inn:'12', ev:'HR', pl:'best'};
+const _reCache = new Map();
+function rePool(sel){
+  const ys = svpYearsFor(sel, SVP_FULL_YEARS).filter(y=>LEAGUE_BY_YEAR[y] && LEAGUE_BY_YEAR[y].PA);
+  return ys.length ? ys : SVP_FULL_YEARS.filter(y=>LEAGUE_BY_YEAR[y]);
+}
+/* the 6-run limit in innings 1-2 is read from the line scores: since 2021 no team has scored more than 9 in either inning
+   (a 5-run lead plus a grand slam), while 2017-2020 had innings of 11 to 14 runs, so those seasons are solved with no limit */
+const RE_CAP_FROM = 2021;
+function reSeason(y){
+  const key = 's'+y;
+  if(!_reCache.has(key)){
+    const t = LEAGUE_BY_YEAR[y];
+    /* a box score's plate appearances miss some of the outs a team really makes (a runner thrown out on the bases, for one), so
+       top up the out rate until the model makes as many plate appearances per out as the season's pitchers recorded */
+    let lo = 0, hi = 0.6, x = 0;
+    const need = xx => 3*t.PA*(1+xx)/t.IPouts;
+    if(t.IPouts && reSolve(reRates(t,0),false).pa > need(0)){
+      for(let i=0;i<14;i++){ x = (lo+hi)/2; if(reSolve(reRates(t,x),false).pa > need(x)) lo = x; else hi = x; }
+    }
+    const pr = reRates(t,x);
+    _reCache.set(key, {t, pr, x, w:t.PA, a:reSolve(pr, y>=RE_CAP_FROM), b:reSolve(pr,false)});
+  }
+  return _reCache.get(key);
+}
+/* several seasons are the plate-appearance-weighted blend of each season's own solution */
+function reBlend(list, pick){
+  const ws = list.map(x=>x.w), W = ws.reduce((a,c)=>a+c,0), S = list.map(pick);
+  const grid = f => Array.from({length:3},(_,o)=>Array.from({length:8},(_,b)=>{ let s=0, wt=0;
+    S.forEach((x,i)=>{ const v = f(x)[o][b]; if(v!=null && isFinite(v)){ s += ws[i]*v; wt += ws[i]; } }); return wt ? s/wt : null; }));
+  const g0 = grid(x=>x.reG), sc = f => S.reduce((a,x,i)=>a+ws[i]*f(x),0)/W;
+  const out = {reG:g0, re:(b,o)=>g0[o][b], sit:{}, occ:{}, val:{}};
+  RE_EVS.forEach(e=>{ out.sit[e] = grid(x=>x.sit[e]); out.occ[e] = sc(x=>x.occ[e]);
+    const den = S.reduce((a,x,i)=>a+ws[i]*x.occ[e],0);
+    out.val[e] = den ? S.reduce((a,x,i)=>a+(isFinite(x.val[e]) ? ws[i]*x.occ[e]*x.val[e] : 0),0)/den : NaN; });
+  out.mean = sc(x=>x.mean); out.pa = sc(x=>x.pa); out.outs = sc(x=>x.outs); out.inningRuns = sc(x=>x.inningRuns);
+  return out;
+}
+function reModel(years){
+  const key = years.join(',');
+  if(!_reCache.has(key)){
+    const L = years.map(reSeason);
+    _reCache.set(key, {t:sumRows(years.map(y=>LEAGUE_BY_YEAR[y])), years, a:reBlend(L,x=>x.a), b:reBlend(L,x=>x.b)});
+  }
+  return _reCache.get(key);
+}
+/* a game is three innings: two capped ones and one with no limit, so the expected runs from a clean start add up */
+const reGameRuns = m => 2*m.a.inningRuns + m.b.inningRuns;
+function reActualRG(years){
+  let r = 0, g = 0; const ys = new Set(years);
+  Object.values(GAMES).forEach(x=>{
+    if(x.phase!=='Regular' || x.noBox || !x.home || !x.away || !ys.has(+x.date.slice(0,4))) return;
+    if(!(x.home.bat||[]).length && !(x.away.bat||[]).length) return;
+    r += (x.home.R||0)+(x.away.R||0); g += 2;
+  });
+  return g ? r/g : NaN;
+}
+const reFmt = v => isFinite(v) ? v.toFixed(2) : '—';
+const reSigned = (v, d) => !isFinite(v) ? '—' : (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(d==null?2:d);
+function reHeat(v, lo, hi){
+  if(!isFinite(v)) return '';
+  const k = Math.max(0, Math.min(1, (v-lo)/(hi-lo)));
+  return `background:color-mix(in srgb, var(--accent) ${Math.round(8+k*62)}%, var(--card));color:${k>.62?'var(--accent-ink)':'var(--ink)'}`;
+}
+function reDiffHeat(v, mx){
+  if(!isFinite(v)) return '';
+  const k = Math.min(1, Math.abs(v)/mx), c = v>=0 ? '#1f9d55' : '#d22d49';
+  return `background:color-mix(in srgb, ${c} ${Math.round(6+k*58)}%, var(--card));color:${k>.62?'#fff':'var(--ink)'}`;
+}
+/* an 8 x 3 grid: base states down the side, outs across the top */
+function reGrid(cell, style, fmt){
+  const rows = RE_BASE_ORDER.map(b=>`<tr><th class="lft">${RE_BASE_NAME[b]}</th>${[0,1,2].map(o=>{ const v = cell(b,o);
+    return `<td class="mono rec" style="${style(v)}">${v==null?'—':fmt(v)}</td>`; }).join('')}</tr>`).join('');
+  return `<table class="detail svptable regrid"><thead><tr><th class="lft">Runners</th><th>0 outs</th><th>1 out</th><th>2 outs</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderSavantRE(){
+  const v = svpRE;
+  if(!RE_INN[v.inn]) v.inn = '12';
+  if(!['table','value','era','players'].includes(v.view)) v.view = 'table';
+  if(!RE_EVS.includes(v.ev)) v.ev = 'HR';
+  if(!(v.year==='all' || /^e\d+$/.test(String(v.year)) && SVP_ERAS[+String(v.year).slice(1)] || SVP_FULL_YEARS.includes(+v.year))) v.year = 'all';
+  const chip = (attr, val, lab, on) => `<button ${attr}="${val}" aria-pressed="${on}">${lab}</button>`;
+  const years = rePool(v.year), m = reModel(years), side = v.inn==='12' ? m.a : m.b;
+  const span = years.length===1 ? String(years[0]) : `${years[0]}–${years[years.length-1]}`;
+  const single = SVP_FULL_YEARS.includes(+v.year);
+  const yrChips = SVP_FULL_YEARS.map(y=>chip('data-ry',y,y,+v.year===y)).join('');
+  const yearSel = `<div class="reScope"><div class="chips svpmodes">${chip('data-rs','all','All years combined',!single)}${chip('data-rs','each','Individual seasons',single)}</div>
+    ${single ? `<div class="chips svpmodes reYrs">${yrChips}</div>`
+      : `<label>Group <select id="reYear"><option value="all"${v.year==='all'?' selected':''}>All seasons</option><optgroup label="Eras">${SVP_ERAS.map((e,i)=>`<option value="e${i}"${v.year==='e'+i?' selected':''}>${e.from}–${e.to} Era</option>`).join('')}</optgroup></select></label>`}</div>`;
+  const innSel = `<label>Inning <select id="reInn">${Object.entries(RE_INN).map(([k,x])=>`<option value="${k}"${v.inn===k?' selected':''}>${x.name}${x.capped?' (6-run limit)':' (no limit)'}</option>`).join('')}</select></label>`;
+  const innNote = v.inn==='12' ? 'In innings 1 and 2 a half-inning also ends once the team has scored 6 runs, which holds the high-scoring states down.' : 'The 3rd inning has no run limit, so a big inning can keep going until the third out.';
+  let body = '';
+  let ctl = `${yearSel}${innSel}`;
+  if(v.view==='table'){
+    const lo = 0, hi = Math.max(...RE_BASE_ORDER.map(b=>side.re(b,0)));
+    const act = reActualRG(years), mod = reGameRuns(m);
+    body = `<h3 class="hsub">Expected runs to the end of the half-inning, ${esc(RE_INN[v.inn].name)}</h3>
+      <div class="tscroll">${reGrid((b,o)=>side.re(b,o), x=>reHeat(x,lo,hi), reFmt)}</div>
+      <p class="smeta">Read it as: with ${esc(RE_BASE_NAME[3].toLowerCase())} and nobody out, a team can expect ${reFmt(side.re(3,0))} more runs before the half-inning ends. ${innNote}</p>
+      <div class="redef"><div><span>Bases empty, 0 out</span><b>${reFmt(side.re(0,0))}</b><i>runs from a clean start in ${esc(RE_INN[v.inn].short.toLowerCase())}</i></div>
+        <div><span>Model, full game</span><b>${reFmt(mod)}</b><i>runs a team scores in 3 innings (2 capped, 1 open)</i></div>
+        <div><span>Actual, ${span}</span><b>${reFmt(act)}</b><i>runs a team scores per game in box-scored games</i></div></div>`;
+  } else if(v.view==='value'){
+    const sitCtl = `<label>Outcome <select id="reEv">${RE_EVS.map(e=>`<option value="${e}"${v.ev===e?' selected':''}>${RE_EVN[e]}</option>`).join('')}</select></label>`;
+    ctl = `${yearSel}${innSel}${sitCtl}`;
+    const ev = v.ev, g = side.sit[ev];
+    const mx = Math.max(0.3, ...g.flat().filter(x=>x!=null).map(Math.abs));
+    const out = side.val.OUT;
+    const wo = {BB:WOBA_RV.BB,'1B':WOBA_RV['1B'],'2B':WOBA_RV['2B'],'3B':WOBA_RV['3B'],HR:WOBA_RV.HR};
+    const rows = RE_EVS.map(e=>{ const over = side.val[e]-out;
+      return `<tr><td class="lft"><b>${RE_EVN[e]}</b></td><td class="mono">${(side.occ[e]/side.pa*100).toFixed(1)}%</td><td class="mono rec" style="${reDiffHeat(side.val[e],1.4)}">${reSigned(side.val[e])}</td>
+        <td class="mono">${reSigned(over)}</td><td class="mono pfx">${wo[e]!=null ? reSigned(wo[e]) : '—'}</td></tr>`; }).join('');
+    body = `<h3 class="hsub">${RE_EVN[ev]}: change in expected runs in each situation</h3>
+      <div class="tscroll">${reGrid((b,o)=>g[o][b], x=>x==null?'':reDiffHeat(x,mx), x=>reSigned(x))}</div>
+      <p class="smeta">Each cell is the runs scored on the play plus the change in expected runs, starting from that situation (${esc(RE_INN[v.inn].short.toLowerCase())}). A dash means the play can't happen there.</p>
+      <h3 class="hsub">Average value of every outcome</h3>
+      <div class="tscroll"><table class="detail svptable svgs"><thead><tr><th class="lft">Outcome</th><th>Share of PA</th><th>Run value</th><th>Over an out in play</th><th class="pfx">wOBA weight</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="smeta">Run value averages the cells above across how often each situation really comes up. “Over an out in play” re-bases it so an ordinary out is zero, the same footing as the wOBA weights used elsewhere on Savant (which come from a different method, a regression of team runs), so the two columns can be read against each other.</p>`;
+  } else if(v.view==='era'){
+    ctl = innSel;
+    const pools = SVP_ERAS.map(e=>rePool('e'+SVP_ERAS.indexOf(e)));
+    const ms = pools.map(p=>reModel(p)), sd = ms.map(x=>v.inn==='12' ? x.a : x.b);
+    const hi = Math.max(...sd.map(s=>Math.max(...RE_BASE_ORDER.map(b=>s.re(b,0)))));
+    const lab = SVP_ERAS.map(e=>`${e.from}–${e.to}`);
+    const diff = (b,o) => sd[1].re(b,o) - sd[0].re(b,o);
+    const mx = Math.max(0.2, ...RE_BASE_ORDER.flatMap(b=>[0,1,2].map(o=>Math.abs(diff(b,o)))));
+    const yr = SVP_FULL_YEARS.map(y=>{ const mm = reModel([y]), s = v.inn==='12' ? mm.a : mm.b;
+      return `<tr><td class="lft"><b>${y}</b></td><td class="mono">${reFmt(s.re(0,0))}</td><td class="mono">${reFmt(s.re(1,0))}</td><td class="mono">${reFmt(s.re(7,0))}</td><td class="mono pfx">${reFmt(s.re(0,2))}</td><td class="mono">${reFmt(reGameRuns(mm))}</td><td class="mono pfx">${reFmt(reActualRG([y]))}</td></tr>`; }).join('');
+    body = `<div class="regrids">
+        <div><h3 class="hsub">${lab[0]}</h3><div class="tscroll">${reGrid((b,o)=>sd[0].re(b,o), x=>reHeat(x,0,hi), reFmt)}</div></div>
+        <div><h3 class="hsub">${lab[1]}</h3><div class="tscroll">${reGrid((b,o)=>sd[1].re(b,o), x=>reHeat(x,0,hi), reFmt)}</div></div>
+        <div><h3 class="hsub">Change, ${lab[1]} minus ${lab[0]}</h3><div class="tscroll">${reGrid(diff, x=>reDiffHeat(x,mx), x=>reSigned(x))}</div></div></div>
+      <p class="smeta">${esc(RE_INN[v.inn].name)}. Green means a team could expect more runs from that situation in the later era, red means fewer. ${innNote}</p>
+      <h3 class="hsub">Season by season</h3>
+      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="lft">Season</th><th>Empty, 0 out</th><th>1st, 0 out</th><th>Loaded, 0 out</th><th class="pfx">Empty, 2 out</th><th>Model R/G</th><th class="pfx">Actual R/G</th></tr></thead><tbody>${yr}</tbody></table></div>
+      <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
+  } else {
+    const top = v.pl==='best';
+    /* each season's hitters are priced at that season's own run values (innings 1-2 count twice, inning 3 once), because a home run or a walk is worth more runs in a high-scoring year */
+    const valsFor = y => { const s = reSeason(y), o = ['OUT','FC','ROE','GIDP'];
+      const mix = f => (2*f(s.a)+f(s.b))/3;
+      const ev = k => mix(x=>x.val[k]);
+      const othOcc = o.reduce((q,k)=>q+mix(x=>x.occ[k]),0);
+      const vOth = o.reduce((q,k)=>q+mix(x=>x.occ[k])*ev(k),0)/othOcc;
+      return {BB:ev('BB'),'1B':ev('1B'),'2B':ev('2B'),'3B':ev('3B'),HR:ev('HR'),K:ev('K'),oth:vOth, mean:mix(x=>x.mean)}; };
+    const list = [];
+    years.forEach(y=>{
+      const vOf = valsFor(y);
+      svpEntries(y,'Regular').forEach(({name,row})=>{
+        if(!row.PA || row.G_bat<SV_MING) return;
+        const h1 = row.H-row['2B']-row['3B']-row.HR, bb = row.BB+(row.HBP||0);
+        const oth = Math.max(0, row.PA - bb - h1 - row['2B'] - row['3B'] - row.HR - row.K);
+        const raw = bb*vOf.BB + h1*vOf['1B'] + row['2B']*vOf['2B'] + row['3B']*vOf['3B'] + row.HR*vOf.HR + row.K*vOf.K + oth*vOf.oth;
+        const runs = raw - row.PA*vOf.mean;
+        const wr = wrAAFor(row, y, false);
+        if(isFinite(runs) && isFinite(wr)) list.push({name, y, row, runs, wr, woba:wobaFor(row,y,false)});
+      });
+    });
+    list.slice().sort((a,b)=>b.wr-a.wr).forEach((r,i)=>{ r.wrRank = i+1; });
+    list.sort((a,b)=>top ? b.runs-a.runs : a.runs-b.runs);
+    const shown = list.slice(0,20);
+    const rows = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
+      <td class="mono">${r.y}</td><td class="mono pfx">${r.row.PA}</td><td class="mono pfx">${rate(r.woba)}</td><td class="mono rec" style="${reDiffHeat(r.runs,6)}">${reSigned(r.runs,1)}</td><td class="mono">${reSigned(r.wr,1)}</td><td class="mono pfx">${r.wrRank}</td></tr>`).join('');
+    const rr = list.length>2 ? (()=>{ const mx = list.reduce((a,r)=>a+r.runs,0)/list.length, my = list.reduce((a,r)=>a+r.wr,0)/list.length;
+      let sxy=0,sxx=0,syy=0; list.forEach(r=>{ sxy+=(r.runs-mx)*(r.wr-my); sxx+=(r.runs-mx)**2; syy+=(r.wr-my)**2; }); return sxy/Math.sqrt(sxx*syy); })() : NaN;
+    ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Best',top)}${chip('data-rpl','worst','Worst',!top)}</div>`;
+    body = `<h3 class="hsub">${top?'Best':'Worst'} hitting seasons by modeled runs, ${span}</h3>
+      <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Player</th><th>Season</th><th class="pfx">PA</th><th class="pfx">wOBA</th><th>Modeled runs</th><th>wRAA</th><th class="pfx">wRAA rank</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="smeta">Modeled runs prices each of a hitter's plate appearances at the average run value of that outcome in that season (from the outcome table), then subtracts what an average plate appearance is worth, so zero is a league-average bat. It is the same idea as the wRAA that powers wOBA and the Gains &amp; Losses wOBA lines, reached a different way. The model's totals are larger than wRAA, so read the ranks rather than the totals: the regression weights behind wRAA are smaller than what this league's runs say each outcome is worth (in the counted 2026 play-by-play an out with the bases empty cost about 1.2 runs and a walk added about 0.8), and the model's values rise further in high-scoring years, when a walk or a homer has more runners to bring home. Across the ${list.length} qualified hitter seasons here the two agree at a correlation of ${isFinite(rr)?rr.toFixed(3).replace(/^0/,''):'—'}. A hitter's actual base-out situations aren't recorded before 2026, so this credits every player with the typical mix of situations. See <a href="#/savant/gains">Gains &amp; Losses</a> for how those wOBA and wRAA lines move game by game.</p>`;
+  }
+  svpShell('expectancy', `
+    <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the number of outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own and not baseball's. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts) and from how runners moved in the counted 2026 play-by-play, because pitch-by-pitch data isn't recorded for most seasons.</p>
+    <div class="chips svpmodes">${chip('data-rev','table','Run expectancy table',v.view==='table')}${chip('data-rev','value','Value of each outcome',v.view==='value')}${chip('data-rev','era','Eras compared',v.view==='era')}${chip('data-rev','players','Tie to wOBA &amp; wRAA',v.view==='players')}</div>
+    <div class="svpform">${ctl}</div>
+    ${body}
+    <p class="smeta">Seasons without full box-score data (${[...SVP_EST_YEARS].sort().join(', ')||'none'}) are left out. Rates are regular season. A run scored on the third out never counts. Checked against the counted 2026 play-by-play (52 games), the model lands within about a quarter of a run in most situations and runs about 0.3 high with one out.</p>`);
+  app.querySelectorAll('[data-rev]').forEach(b=>b.addEventListener('click',()=>{ svpRE.view = b.dataset.rev; renderSavantRE(); }));
+  app.querySelectorAll('[data-rs]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.rs==='all' ? 'all' : (single ? svpRE.year : SVP_FULL_YEARS[SVP_FULL_YEARS.length-1]); renderSavantRE(); }));
+  app.querySelectorAll('[data-ry]').forEach(b=>b.addEventListener('click',()=>{ svpRE.year = b.dataset.ry; renderSavantRE(); }));
+  app.querySelectorAll('[data-rpl]').forEach(b=>b.addEventListener('click',()=>{ svpRE.pl = b.dataset.rpl; renderSavantRE(); }));
+  const on = (id, key) => { const el = document.getElementById(id); if(el) el.addEventListener('change', e=>{ svpRE[key] = e.target.value; renderSavantRE(); }); };
+  on('reYear','year'); on('reInn','inn'); on('reEv','ev');
+}
+
 /* ---- shareable Savant links: every view's selections live in the URL, e.g. #/savant/teams/luck?y=2022&hl=Brookside%20Panthers ---- */
 const svqYr = v => /^(all|e\d+|\d{4})$/.test(v);
 const svqTeamView = st => [
@@ -12897,6 +13239,13 @@ const SVQ = {
     ['w', ()=>svpForm.win, v=>{ if([5,10,15].includes(+v)) svpForm.win = +v; }],
     ['p', ()=>svpForm.post?'1':'', v=>{ svpForm.post = v==='1'; }],
   ],
+  '#/savant/expectancy': [
+    ['v', ()=>svpRE.view, v=>{ if(['table','value','era','players'].includes(v)) svpRE.view = v; }],
+    ['y', ()=>svpRE.year, v=>{ if(svqYr(v)) svpRE.year = v; }],
+    ['i', ()=>svpRE.inn, v=>{ if(v==='12'||v==='3') svpRE.inn = v; }],
+    ['o', ()=>svpRE.ev, v=>{ if(RE_EVS.includes(v)) svpRE.ev = v; }],
+    ['pl', ()=>svpRE.pl, v=>{ if(v==='best'||v==='worst') svpRE.pl = v; }],
+  ],
   '#/savant/gamescore': [
     ['v', ()=>svpGS.view, v=>{ if(v==='best'||v==='log'||v==='avg'||v==='tot') svpGS.view = v; }],
     ['ph', ()=>svpGS.phase, v=>{ if(v==='Regular'||v==='Playoffs') svpGS.phase = v; }],
@@ -12922,12 +13271,13 @@ const SVQ = {
 /* a view's untouched state is left out of the link, so a plain link stays plain */
 Object.values(SVQ).forEach(list=>list.forEach(d=>{ d.def = String(d[1]() ?? ''); }));
 /* a link with a query defines the whole view: anything it doesn't mention goes back to the default, not to whatever was open before */
-const SVQ0 = {GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
+const SVQ0 = {RE:{...svpRE}, GS:{...svpGS}, Tm:{...svpTm}, TO:{...svpTO}, TL:{...svpTL}, TOS:{...svpTOS}, TPS:{...svpTPS}, TR:{...svpTR}, H2H:{...svpH2H}, Sc:{...svpSc}, Pz:{...svpPz}, Form:{...svpForm},
   post:svpPost, mode:svpMode, year:svpYear, sort:{...svpSort}};
 const SVQ_RESET = {
   '#/savant/rankings': ()=>{ svpMode = SVQ0.mode; svpYear = SVQ0.year; Object.assign(svpSort, SVQ0.sort); },
   '#/savant/pizza': ()=>Object.assign(svpPz, SVQ0.Pz),
   '#/savant/gamescore': ()=>Object.assign(svpGS, SVQ0.GS),
+  '#/savant/expectancy': ()=>Object.assign(svpRE, SVQ0.RE),
   '#/savant/compare': ()=>{ svpYear = SVQ0.year; },
   '#/savant/trends': ()=>{ svpPost = SVQ0.post; svpYear = SVQ0.year; },
   '#/savant/scatter': ()=>Object.assign(svpSc, SVQ0.Sc),
@@ -12968,6 +13318,7 @@ function renderSavant(h0){
   if(h === '#/savant/gains') return renderSavantGains();
   if(h === '#/savant/gamescore') return renderSavantGS();
   if(h === '#/savant/parks') return renderSavantParks();
+  if(h === '#/savant/expectancy') return renderSavantRE();
   if(h === '#/savant/teams/h2h') return renderSavantH2H();
   if(h === '#/savant/scatter') return renderSavantScatter();
   if(h === '#/savant/search') return renderSavantSearch();
