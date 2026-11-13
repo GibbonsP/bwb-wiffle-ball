@@ -13201,20 +13201,20 @@ function renderSavantRE(){
       <p class="smeta">R/G is runs per team per game over the full three innings; the model column uses the season's walk, hit and strikeout rates and the actual column is the box-scored games.</p>`;
   } else if(v.view==='pitchers'){
     const stop = v.pl==='best', career = v.pp==='career';
-    let rows = rePitchers(years, career ? 1 : SV_MINOUTS);
+    let rows = rePitchers(years, 1);
     if(career){
       const by = {}; rows.forEach(r=>{ const o = by[r.name] = by[r.name] || {name:r.name, n:0, bf:0, saved:0, act:0, rows:[]}; o.n++; o.bf += r.bf; o.saved += r.saved; o.act += r.act; o.rows.push(r.row); });
       rows = Object.values(by).map(o=>({...o, row:sumRows(o.rows)}));
     }
     rows.sort((a,b)=>stop ? b.saved-a.saved : a.saved-b.saved);
-    const shown = career ? rows : rows.slice(0,25);
+    const shown = rows;
     const tr = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
       <td class="mono">${career ? r.n : r.y}</td><td class="mono pfx">${ipStr(r.row.IPouts)}</td><td class="mono pfx">${r.bf}</td><td class="mono pfx">${two(era(r.row))}</td>
       <td class="mono rec" style="${reDiffHeat(r.saved,career?40:15)}">${reSigned(r.saved,1)}</td><td class="mono">${reSigned(r.act,1)}</td></tr>`).join('');
     ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Stopped it',stop)}${chip('data-rpl','worst','Failed to stop it',!stop)}</div><div class="chips svpmodes">${chip('data-rpp','season','Single seasons',!career)}${chip('data-rpp','career','Totals',career)}</div>`;
     body = `<h3 class="hsub">${stop?'Pitchers who stopped run expectancy':'Pitchers who failed to stop run expectancy'}, ${span}${career?' (totals)':''}</h3>
       <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Pitcher</th><th>${career?'Seasons':'Season'}</th><th class="pfx">IP</th><th class="pfx">BF</th><th class="pfx">ERA</th><th>Modeled runs saved</th><th>Runs saved vs league</th></tr></thead><tbody>${tr}</tbody></table></div>
-      <p class="smeta">Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy up or down by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters, so positive means he stopped run expectancy and negative means he let it climb. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Single seasons need ${SV_MINOUTS/3} IP; totals include every pitcher. Click any heading to sort.</p>`;
+      <p class="smeta">Every batter a pitcher faced ended in an out, a hit, a walk or a strikeout, and each of those moves a team's run expectancy up or down by the amounts in the outcome table. <b>Modeled runs saved</b> adds that up and subtracts what an average pitcher would have given up over the same batters, so positive means he stopped run expectancy and negative means he let it climb. <b>Runs saved vs league</b> is the plain count: the runs the league would have allowed over his outs, minus the runs he did allow. Hits are split into singles, doubles, triples and homers the way the league's hits were that season, since pitcher home runs allowed aren't recorded. Every pitcher who recorded an out is listed, small samples included. Click any heading to sort.</p>`;
   } else if(v.view==='totals'){
     ctl = yearSel;
     const by = {};
@@ -13228,10 +13228,10 @@ function renderSavantRE(){
       <p class="smeta">Every hitter with a plate appearance in the seasons chosen, with each season's modeled runs and wRAA added together. Use the season switch above to total a single era or season. Click any column heading to sort.</p>`;
   } else {
     const top = v.pl==='best';
-    const list = reHitters(years, SV_MING);
+    const list = reHitters(years, 0);
     list.slice().sort((a,b)=>b.wr-a.wr).forEach((r,i)=>{ r.wrRank = i+1; });
     list.sort((a,b)=>top ? b.runs-a.runs : a.runs-b.runs);
-    const shown = list.slice(0,20);
+    const shown = list;
     const rows = shown.map((r,i)=>`<tr><td class="mono gsx">${i+1}</td><td class="lft"><span class="plcell">${llHead(r.name)}<button class="pname" data-p="${esc(r.name)}">${esc(r.name)}</button></span></td>
       <td class="mono">${r.y}</td><td class="mono pfx">${r.row.PA}</td><td class="mono pfx">${rate(r.woba)}</td><td class="mono rec" style="${reDiffHeat(r.runs,6)}">${reSigned(r.runs,1)}</td><td class="mono">${reSigned(r.wr,1)}</td><td class="mono pfx">${r.wrRank}</td></tr>`).join('');
     const rr = list.length>2 ? (()=>{ const mx = list.reduce((a,r)=>a+r.runs,0)/list.length, my = list.reduce((a,r)=>a+r.wr,0)/list.length;
@@ -13239,7 +13239,7 @@ function renderSavantRE(){
     ctl = `${yearSel}<div class="chips svpmodes">${chip('data-rpl','best','Best',top)}${chip('data-rpl','worst','Worst',!top)}</div>`;
     body = `<h3 class="hsub">${top?'Best':'Worst'} hitting seasons by modeled runs, ${span}</h3>
       <div class="tscroll"><table class="detail svptable svgs svpf"><thead><tr><th class="gsx">#</th><th class="lft">Player</th><th>Season</th><th class="pfx">PA</th><th class="pfx">wOBA</th><th>Modeled runs</th><th>wRAA</th><th class="pfx">wRAA rank</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="smeta">Modeled runs prices each of a hitter's plate appearances at the average run value of that outcome in that season (from the outcome table), then subtracts what an average plate appearance is worth, so zero is a league-average bat. It is the same idea as the wRAA that powers wOBA and the Gains &amp; Losses wOBA lines, reached a different way. The model's totals are larger than wRAA, so read the ranks rather than the totals: the regression weights behind wRAA are smaller than what this league's runs say each outcome is worth (in the counted 2026 play-by-play an out with the bases empty cost about 1.2 runs and a walk added about 0.8), and the model's values rise further in high-scoring years, when a walk or a homer has more runners to bring home. Across the ${list.length} qualified hitter seasons here the two agree at a correlation of ${isFinite(rr)?rr.toFixed(3).replace(/^0/,''):'—'}. A hitter's actual base-out situations aren't recorded before 2026, so this credits every player with the typical mix of situations. See <a href="#/savant/gains">Gains &amp; Losses</a> for how those wOBA and wRAA lines move game by game.</p>`;
+      <p class="smeta">Modeled runs prices each of a hitter's plate appearances at the average run value of that outcome in that season (from the outcome table), then subtracts what an average plate appearance is worth, so zero is a league-average bat. It is the same idea as the wRAA that powers wOBA and the Gains &amp; Losses wOBA lines, reached a different way. The model's totals are larger than wRAA, so read the ranks rather than the totals: the regression weights behind wRAA are smaller than what this league's runs say each outcome is worth (in the counted 2026 play-by-play an out with the bases empty cost about 1.2 runs and a walk added about 0.8), and the model's values rise further in high-scoring years, when a walk or a homer has more runners to bring home. Across the ${list.length} hitter seasons here (every hitter with a plate appearance, small samples included) the two agree at a correlation of ${isFinite(rr)?rr.toFixed(3).replace(/^0/,''):'—'}. A hitter's actual base-out situations aren't recorded before 2026, so this credits every player with the typical mix of situations. See <a href="#/savant/gains">Gains &amp; Losses</a> for how those wOBA and wRAA lines move game by game.</p>`;
   }
   svpShell('expectancy', `
     <p class="gsdef"><b>Run Expectancy</b> is the average number of runs a team can expect to score from now until the end of a half-inning, given the number of outs and which bases are occupied. This league plays 3 innings, 9 outs a game, so the table is its own and not baseball's. <b>Modeled, not counted:</b> it is built from each season's box-score rates (walks, hits, strikeouts) and from how runners moved in the counted 2026 play-by-play, because pitch-by-pitch data isn't recorded for most seasons.</p>
