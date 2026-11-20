@@ -934,6 +934,32 @@ sup.seed.x{color:var(--clay)}
 .gresult p{margin:0}
 .gwin{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .glose{background:var(--clay-soft)}
+.ctboard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 8px}
+.ctscore{font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
+.ctscore b{font-size:2rem;line-height:1}
+.ctscore span{color:var(--muted);font-size:.9rem}
+.ctbar{flex:1 1 160px;height:12px;border-radius:999px;background:var(--line);overflow:hidden;min-width:120px}
+.ctbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#7a3cff));border-radius:999px;transition:width .4s ease}
+.cttier{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.ctchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.ctchip{min-width:2.4rem;text-align:center;padding:3px 9px;border-radius:999px;border:1px solid var(--line-strong);font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-variant-numeric:tabular-nums}
+.ctchip.cthi{background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:var(--accent)}
+.ctchip.ct0{color:var(--clay);border-color:var(--clay);background:var(--clay-soft)}
+.ctintro{padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:8px 0}
+.ctq{margin:14px 0 8px}
+.ctq .ctn{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ctq h3{margin:4px 0 0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:clamp(1.3rem,4.6vw,1.8rem);line-height:1.2;text-wrap:balance}
+.cttimer{position:relative;height:30px;border-radius:8px;background:var(--line);overflow:hidden;margin:10px 0}
+.cttimer i{position:absolute;inset:0 auto 0 0;width:100%;background:var(--accent);transition:none}
+.cttimer.ctlow i{background:var(--clay)}
+.cttimer span{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;font-family:"IBM Plex Mono",monospace;font-size:.85rem;font-weight:700;color:#fff;mix-blend-mode:normal}
+.ctresult{margin:12px 0;padding:14px 18px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+.ctresult.ctgood{border-color:var(--accent)}
+.ctresult.ctbad{border-color:var(--clay)}
+.ctrq{font-size:.78rem;color:var(--muted);margin-bottom:4px}
+.ctrm{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.25rem}
+.ctrnote{font-size:.84rem;color:var(--muted);margin-top:6px}
+.ctdone h3{margin:12px 0 2px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.5rem}
 .gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
   margin:14px 0;text-align:center;color:var(--ink)}
 .gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
@@ -1780,6 +1806,7 @@ function gsDestinations(){
   add('Stat Pad','Arcade','statpad puzzle','#/statpad');
   add('15-0','Arcade','perfect game','#/15-0');
   add('Guess the Player','Arcade','guess mystery player daily','#/guess');
+  add('Deep Cuts','Arcade','daily rare answers timed obscure player trivia','#/deepcuts');
   [['season','Single-Season Records'],['game','Single-Game Records'],['postseason','Postseason Records'],['streaks','Streaks'],
    ['nohit','No-Hitters & Perfect Games'],['milestones','Milestone Tracker']].forEach(([k,l])=>
     add(l,'Records',(k==='nohit'?'no-hitter nohitter perfect game ':k==='milestones'?'milestones horizon recent achieved ':'')+'records tab',
@@ -2439,12 +2466,13 @@ function arcadePromoCard(){
   const G='#2e9b5f', R='#d22d49', N='var(--line-strong)';
   const board = [[G,G,N],[R,G,G],[N,R,G]].map((row,r)=>row.map((c,i)=>cell(4+i*34,4+r*34,c)).join('')).join('');
   const games = [['Grid','Name a player who fits both categories'],['Stat Pad','Find the biggest single seasons'],
-    ['15-0','Draft a team and play a 15-game season'],['Guess the Player','A mystery player, with more hints after each miss']];
+    ['15-0','Draft a team and play a 15-game season'],['Guess the Player','A mystery player, with more hints after each miss'],
+    ['Deep Cuts','7 prompts, 25 seconds each — the rarer the answer, the more you score']];
   return `<a class="svpromo arpromo" href="#/arcade">
     <div class="svpromo-logo"><svg class="arico" viewBox="0 0 108 108" role="img" aria-label="Arcade">${board}</svg></div>
     <div class="svpromo-main">
       <h2>BWB Arcade</h2>
-      <p>Four games built from the league’s own history, with new puzzles every day</p>
+      <p>Five games built from the league’s own history, with new puzzles every day</p>
       <span class="svpromo-cta">Play today’s games →</span>
     </div>
     <div class="arlist"><span class="svpphead">Today’s games</span>${games.map(g=>`<div><b>${g[0]}</b><span>${g[1]}</span></div>`).join('')}</div>
@@ -9123,6 +9151,11 @@ function arcadeDaySummary(prefix, key){
     if(prefix==='bwb-b0v7-'){
       return o.picks&&o.picks.length ? (o.locked ? {text:'Season played', done:true} : {text:`${o.picks.length} picked`, done:false}) : null;
     }
+    if(prefix==='bwb-cuts-'){
+      const a = (o&&o.a)||[]; if(!a.length) return null;
+      const tot = a.reduce((x,r)=>x+(r.p||0),0);
+      return {text:`${tot}/700`, done: a.length>=7};
+    }
     if(prefix==='bwb-guess-'){
       const g = Array.isArray(o)?o:[]; if(!g.length) return null;
       const pz = newGuessPuzzle(mulberry32(gridSeedFromString('bwb-guess-'+key)), key);
@@ -9236,9 +9269,10 @@ function arcadeTabBar(active){
     <button data-ag="statpad" aria-pressed="${active==='statpad'}">Stat Pad</button>
     <button data-ag="b0" aria-pressed="${active==='b0'}">15-0</button>
     <button data-ag="guess" aria-pressed="${active==='guess'}">Guess the Player</button>
+    <button data-ag="cuts" aria-pressed="${active==='cuts'}">Deep Cuts</button>
   </div>`;
 }
-const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0', guess:'#/guess'};
+const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0', guess:'#/guess', cuts:'#/deepcuts'};
 function wireArcadeTabBar(){
   app.querySelectorAll('[data-ag]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = ARCADE_ROUTES[b.dataset.ag];
@@ -13858,6 +13892,199 @@ function renderGuess(){
   if(done && guessMode==='daily') wireShareButton('guessShare', ()=>guessShareText(pz));
 }
 
+/* ============================ ARCADE: DEEP CUTS ============================
+   Seven prompts a day (the same for everyone), 25 seconds to name one player for each. Every answer in
+   a prompt's pool is correct, but the points depend on how obscure it is: the pick that feels clever is
+   usually the star everyone thought of. Obscurity comes from the league's own record (games played,
+   honors) ranked against the rest of that prompt's valid answers, so there's no crowd to survey — the
+   most famous valid answer is worth 10 points, the deepest cut 100, a wrong or missing answer 0
+   (700 is perfect). Progress is saved per day like the other Arcade games, including the clock: a prompt
+   that was running when the page closed keeps running. */
+const CUTS_N = 7, CUTS_MS = 25000;
+let cutsMode = 'daily', cutsDaily = null, cutsPractice = null, cutsTick = null, cutsError = null;
+let _cutsFame = null, _cutsPool = null, _cutsLower = null;
+function cutsFame(n){
+  if(!_cutsFame) _cutsFame = {};
+  if(_cutsFame[n]==null){
+    const pl = P[n], c = pl.careerReg || {}, h = pl.honors || {rings:[],awards:[],asg:[]};
+    const aw = (h.awards||[]).filter(a=>!HIDDEN_AWARD_YEARS.has(a.year)).length;
+    _cutsFame[n] = (c.G_bat||0) + (c.G_pit||0) + 25*aw + 40*(h.rings||[]).length + 15*(h.asg||[]).length
+      + 20*((NOHIT_BY_PITCHER[n]||[]).length);
+  }
+  return _cutsFame[n];
+}
+function cutsPool(){
+  if(_cutsPool) return _cutsPool;
+  const cats = gridCats().slice();
+  ALL_YEARS.forEach(y=>{
+    const set = new Set(NAMES.filter(n=>P[n].seasons.some(s=>s.year===y && s.type==='Regular' && ((s.G_bat||0)>0 || (s.G_pit||0)>0))));
+    cats.push({key:'year:'+y, label:String(y), set});
+  });
+  const max = NAMES.length*0.65;
+  return _cutsPool = cats.filter(c=>c.set.size>=6 && c.set.size<=max);
+}
+function cutsPromptText(c){
+  const k = c.key, l = c.label;
+  if(k.startsWith('team:')) return `Name a player who played for the ${l}`;
+  if(k.startsWith('div:')) return `Name a player who played in the ${l}`;
+  if(k.startsWith('year:')) return `Name a player who played in ${l}`;
+  if(k.startsWith('stat:')) return `Name a player with ${l}`;
+  const special = {'World Series Champion':'Name a World Series champion','All-Star':'Name an All-Star',
+    'Threw a No-Hitter':'Name a pitcher who threw a no-hitter','Home Run Derby Champion':'Name a Home Run Derby champion',
+    'All-Star Game MVP':'Name an All-Star Game MVP'};
+  return special[l] || `Name ${/^(mvp|[aeiou])/i.test(l)?'an':'a'} ${l} winner`;
+}
+function newCutsRound(rng, key){
+  const pool = cutsPool().slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const kind = c => c.key.split(':')[0];
+  const cap = {team:2, div:1, award:2, stat:2, year:2};
+  const picked = [], used = {};
+  for(const c of pool){ const k = kind(c); if((used[k]||0) >= (cap[k]||2)) continue; picked.push(c); used[k] = (used[k]||0)+1; if(picked.length===CUTS_N) break; }
+  for(const c of pool){ if(picked.length>=CUTS_N) break; if(!picked.includes(c)) picked.push(c); }
+  return {key, prompts: picked.map(c=>({text:cutsPromptText(c), set:c.set})), a:[], t:null};
+}
+function getDailyCuts(){
+  const key = gridDailyKey();
+  if(!cutsDaily || cutsDaily.key!==key){
+    cutsDaily = newCutsRound(mulberry32(gridSeedFromString('bwb-cuts-'+key)), key);
+    try{ const raw = localStorage.getItem('bwb-cuts-'+key); if(raw){ const o = JSON.parse(raw); cutsDaily.a = o.a||[]; cutsDaily.t = o.t||null; } }catch(e){}
+  }
+  return cutsDaily;
+}
+function saveDailyCuts(){ try{ localStorage.setItem('bwb-cuts-'+cutsDaily.key, JSON.stringify({a:cutsDaily.a, t:cutsDaily.t})); }catch(e){} }
+/* points for naming `name` on prompt `pr`: 0 if they aren't in the pool, otherwise 10–100 by how many of the pool are MORE famous */
+function cutsScore(pr, name){
+  if(!name || !pr.set.has(name)) return 0;
+  const f = cutsFame(name); let more = 0;
+  pr.set.forEach(n=>{ if(cutsFame(n) > f) more++; });
+  return Math.round(10 + 90*more/Math.max(1, pr.set.size-1));
+}
+const cutsDeepest = pr => [...pr.set].sort((a,b)=>cutsFame(a)-cutsFame(b)||a.localeCompare(b))[0];
+const CUTS_TIERS = [[0,'Greatest Hits'],[200,'Fan Favorite'],[300,'B-Side'],[400,'Deep Cut'],[500,'Crate Digger'],[600,'Vault Legend']];
+const cutsTier = tot => CUTS_TIERS.filter(t=>tot>=t[0]).pop()[1];
+function cutsFind(typed){
+  if(!_cutsLower){ _cutsLower = {}; NAMES.forEach(n=>{ _cutsLower[n.toLowerCase()] = n; }); }
+  return P[typed] ? typed : (_cutsLower[typed.trim().toLowerCase()] || null);
+}
+function cutsShareText(pz){
+  const tot = pz.a.reduce((x,r)=>x+r.p,0);
+  const sq = pz.a.map(r=> r.p===0 ? '🟥' : r.p<30 ? '⬜' : r.p<60 ? '🟨' : r.p<90 ? '🟩' : '🟪').join('');
+  return `BWB Deep Cuts ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
+}
+function renderDeepCuts(){
+  setNav('arcade');
+  if(cutsTick){ clearInterval(cutsTick); cutsTick = null; }
+  if(cutsMode==='practice' && !cutsPractice) cutsPractice = newCutsRound(Math.random, 'practice');
+  const pz = cutsMode==='daily' ? getDailyCuts() : cutsPractice;
+  const save = () => { if(cutsMode==='daily') saveDailyCuts(); };
+  /* a prompt whose clock ran out while the page was closed counts as a miss, and the next one has been running since */
+  if(pz.t){
+    let guard = 0;
+    while(pz.t && pz.a.length<CUTS_N && Date.now()-pz.t >= CUTS_MS && guard++<CUTS_N){
+      pz.a.push({n:null, p:0}); pz.t = pz.a.length<CUTS_N ? pz.t+CUTS_MS : null;
+    }
+    save();
+  }
+  const idx = pz.a.length, done = idx>=CUTS_N;
+  const total = pz.a.reduce((x,r)=>x+r.p,0);
+  const running = !done && !!pz.t, between = !done && !pz.t && idx>0, fresh = !done && !pz.t && idx===0;
+  const chips = pz.a.map((r,i)=>`<span class="ctchip ${r.p===0?'ct0':r.p>=60?'cthi':''}" title="${esc(pz.prompts[i].text)}">${r.p}</span>`).join('');
+  const tierPct = Math.min(100, total/7);
+  const board = `<div class="ctboard"><div class="ctscore"><b>${total}</b><span>/ 700</span></div>
+      <div class="ctbar" role="img" aria-label="Depth ${total} of 700"><i style="width:${tierPct}%"></i></div>
+      <div class="cttier">${done || idx>0 ? cutsTier(total) : running ? 'Digging…' : 'Ready to dig'}</div></div>`;
+  let body = '';
+  const last = pz.a[idx-1];
+  const lastBlock = between && last ? (()=>{
+    const pr = pz.prompts[idx-1], best = cutsDeepest(pr);
+    const who = last.n ? `<button class="pname" data-p="${esc(last.n)}">${esc(last.n)}</button>` : '';
+    const msg = !last.n ? `Time's up — no answer.` : last.p===0 ? `${who} isn't a match for that prompt.` : `${who} · <b>+${last.p}</b>`;
+    return `<div class="ctresult ${last.p===0?'ctbad':'ctgood'}"><div class="ctrq">${esc(pr.text)}</div><div class="ctrm">${msg}</div>
+      <div class="ctrnote">${pr.set.size} players qualified. The deepest cut was <button class="pname" data-p="${esc(best)}">${esc(best)}</button> (+100).</div></div>`;
+  })() : '';
+  if(fresh){
+    body = `<div class="ctintro"><p><b>${CUTS_N} prompts, ${CUTS_MS/1000} seconds each.</b> Name any player who fits. Every match counts, but the obvious star
+      is worth the least — the deeper the cut, the more you score (10 to 100 points; 700 is perfect).</p>
+      <button type="button" class="cardbtn" id="ctStart">Start digging</button>
+      ${cutsMode==='daily'?'<p class="note">One dive per day. Once you start, the clock keeps running even if you close the page.</p>':''}</div>`;
+  } else if(running){
+    const pr = pz.prompts[idx];
+    body = `<div class="ctq"><span class="ctn">Prompt ${idx+1} of ${CUTS_N}</span><h3>${esc(pr.text)}</h3></div>
+      <div class="cttimer" id="ctTimer" role="timer" aria-live="off"><i id="ctTimerBar"></i><span id="ctTimerTxt">${CUTS_MS/1000}s</span></div>
+      <form class="gpform" id="ctForm" autocomplete="off">
+        <input id="ctInput" list="ctNames" placeholder="Type a player's name…" aria-label="Your answer" autofocus>
+        <button type="submit" class="cardbtn">Lock in</button>
+      </form>
+      ${cutsError?`<p class="gerr">${esc(cutsError)}</p>`:''}`;
+  } else if(between){
+    body = `${lastBlock}<p><button type="button" class="cardbtn" id="ctNext">Next prompt →</button></p>`;
+  } else {
+    const rows = pz.prompts.map((pr,i)=>{ const r = pz.a[i], best = cutsDeepest(pr);
+      return `<tr><td class="lft">${esc(pr.text)}</td>
+        <td class="lft">${r.n?`<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button>`:'—'}</td><td class="mono">${r.p}</td>
+        <td class="lft"><button class="pname" data-p="${esc(best)}">${esc(best)}</button></td></tr>`; }).join('');
+    body = `<div class="ctdone"><h3>${esc(cutsTier(total))} · ${total} / 700</h3>
+      <p class="note">Every answer was worth 10 to 100. Here is how each prompt went, and the deepest cut that was available.</p></div>
+      <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Prompt</th><th class="lft">You said</th><th class="mono">Pts</th><th class="lft">Deepest cut</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${cutsMode==='daily' ? shareResultButton('ctShare') : '<p class="note"><button class="pname" id="ctAgain">Dig again →</button></p>'}`;
+  }
+  app.innerHTML = `
+    <div class="phead"><h2>Arcade</h2></div>
+    ${arcadeTabBar('cuts')}
+    <p class="lead"><b>Deep Cuts.</b> Seven prompts a day, 25 seconds each. Any correct player counts — but the more obscure the pick, the more it scores.
+      The pick that feels clever? The league thought of it too.</p>
+    <div class="segs" role="group" aria-label="Deep Cuts mode">
+      <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Dig</button>
+      <button data-cm="practice" aria-pressed="${cutsMode==='practice'}">Practice</button>
+    </div>${arcadeDayPicker('bwb-cuts-')}
+    ${board}${chips?`<div class="ctchips">${chips}</div>`:''}
+    <div class="ctbody">${body}</div>
+    <datalist id="ctNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <p class="note">Points compare each answer with every other valid answer to the same prompt, using games played and honors from the league
+      record: the most famous valid player earns 10 and the least famous 100. A wrong answer or a timeout earns nothing, and a name can only be used once per dig.</p>`;
+  wireArcadeTabBar(); wirePlayerLinks();
+  wireArcadeDayPicker(()=>{ cutsMode='daily'; cutsError=null; renderDeepCuts(); });
+  app.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{
+    cutsMode = b.dataset.cm; cutsError = null;
+    if(cutsMode==='daily') arcadeDay = null;
+    if(cutsMode==='practice' && !cutsPractice) cutsPractice = newCutsRound(Math.random, 'practice');
+    renderDeepCuts();
+  }));
+  const start = document.getElementById('ctStart');
+  if(start) start.addEventListener('click',()=>{ pz.t = Date.now(); save(); cutsError = null; renderDeepCuts(); });
+  const next = document.getElementById('ctNext');
+  if(next) next.addEventListener('click',()=>{ pz.t = Date.now(); save(); cutsError = null; renderDeepCuts(); });
+  const again = document.getElementById('ctAgain');
+  if(again) again.addEventListener('click',()=>{ cutsPractice = newCutsRound(Math.random, 'practice'); cutsError = null; renderDeepCuts(); });
+  if(done && cutsMode==='daily') wireShareButton('ctShare', ()=>cutsShareText(pz));
+  if(running){
+    const pr = pz.prompts[idx];
+    const commit = name => {
+      const p = cutsScore(pr, name);
+      pz.a.push({n:name||null, p}); pz.t = null; cutsError = null; save(); renderDeepCuts();
+    };
+    const bar = document.getElementById('ctTimerBar'), txt = document.getElementById('ctTimerTxt'), box = document.getElementById('ctTimer');
+    const tick = () => {
+      if(!document.getElementById('ctTimer')){ clearInterval(cutsTick); cutsTick = null; return; }
+      const left = Math.max(0, CUTS_MS-(Date.now()-pz.t));
+      bar.style.width = (100*left/CUTS_MS)+'%'; txt.textContent = Math.ceil(left/1000)+'s';
+      box.classList.toggle('ctlow', left<=7000);
+      if(left<=0){ clearInterval(cutsTick); cutsTick = null; commit(null); }
+    };
+    tick(); cutsTick = setInterval(tick, 100);
+    const inp = document.getElementById('ctInput'); if(inp) inp.focus();
+    document.getElementById('ctForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const typed = inp.value.trim();
+      const name = cutsFind(typed);
+      if(!name){ cutsError = typed ? `"${typed}" isn't a player in the league record — pick a name from the list.` : 'Type a name first.'; renderDeepCuts(); return; }
+      if(pz.a.some(r=>r.n===name)){ cutsError = `You already used ${name} — pick someone else.`; renderDeepCuts(); return; }
+      clearInterval(cutsTick); cutsTick = null; commit(name);
+    });
+  }
+}
+
 function dispatch(h){
   let m;
   if(h === '#/standings') return renderStandings();
@@ -13887,6 +14114,7 @@ function dispatch(h){
     return renderCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
   if(h === '#/arcade') return renderGrid();
   if(h === '#/guess') return renderGuess();
+  if(h === '#/deepcuts') return renderDeepCuts();
   if(h === '#/grid') return renderGrid();
   if(h === '#/statpad') return renderStatpad();
   if(h === '#/15-0') return renderB0();
