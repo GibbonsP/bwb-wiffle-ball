@@ -928,65 +928,78 @@ sup.seed.x{color:var(--clay)}
 .gresult p{margin:0}
 .gwin{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .glose{background:var(--clay-soft)}
-/* Deep Cuts */
-.ctarena{--r-common:#8b95a8;--r-uncommon:#38b26e;--r-rare:#4f8dff;--r-legend:#f5b73b;--r-miss:var(--clay);
-  position:relative;margin:14px 0 10px;padding:20px 20px 18px;border:1px solid var(--line-strong);border-radius:18px;overflow:hidden;
-  background:radial-gradient(130% 120% at 0% 0%,color-mix(in srgb,var(--accent) 22%,var(--card)),var(--card) 62%);box-shadow:var(--shadow)}
-.ctarena::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.9;
-  background:repeating-radial-gradient(circle at 108% -8%,transparent 0 16px,rgba(255,255,255,.04) 17px 18px)}
+/* Deep Cuts: a beaver swimming down Beaver Brook */
+.ctarena{--accent:#52d3c4;--ink:#eef9f8;--muted:#a9ccd0;--card:rgba(6,36,48,.72);--line:rgba(255,255,255,.17);--line-strong:rgba(255,255,255,.32);
+  --r-common:#b7a58a;--r-uncommon:#d49a4e;--r-rare:#79c2ff;--r-legend:#ffd35c;--r-miss:#ff8a7a;--clay:#ff8a7a;--clay-soft:rgba(255,138,122,.16);
+  position:relative;margin:14px 0 10px;padding:20px 20px 18px;border:1px solid rgba(120,220,210,.35);border-radius:18px;overflow:hidden;color:var(--ink);
+  background:linear-gradient(175deg,#0f5566 0%,#0a3b4e 48%,#072534 100%);box-shadow:var(--shadow)}
+.ctarena::before{content:"";position:absolute;inset:-40px 0;pointer-events:none;opacity:.9;
+  background:radial-gradient(ellipse 36px 5px at 30px 14px,rgba(255,255,255,.13) 0,transparent 100%),
+             radial-gradient(ellipse 26px 4px at 96px 42px,rgba(255,255,255,.10) 0,transparent 100%);
+  background-size:150px 60px;animation:ctflow 7s linear infinite}
 .ctarena>*{position:relative}
-.ctboard{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"score tier" "bar bar";align-items:end;gap:6px 16px}
-.ctscore{grid-area:score;font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
-.ctscore b{font-size:3rem;line-height:.95;font-variant-numeric:tabular-nums;text-shadow:0 0 22px color-mix(in srgb,var(--accent) 55%,transparent)}
+.ctarena .pname{color:#8fe8dd}
+.ctboard{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:6px 16px}
+.ctscore{font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
+.ctscore b{font-size:3rem;line-height:.95;font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(82,211,196,.5)}
 .ctscore span{color:var(--muted);font-size:1rem}
-.cttier{grid-area:tier;justify-self:end;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;letter-spacing:.12em;text-transform:uppercase;
-  background:linear-gradient(90deg,var(--accent),#b58cff);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:right}
-.ctbar{grid-area:bar;height:10px;border-radius:999px;background:rgba(127,138,160,.22);overflow:hidden}
-.ctbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#b58cff);border-radius:999px;box-shadow:0 0 14px var(--accent);transition:width .6s cubic-bezier(.2,.8,.2,1)}
-.ctpips{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:14px 0 4px}
-.ctpip{display:flex;align-items:center;justify-content:center;height:38px;border-radius:9px;border:1px dashed rgba(127,138,160,.45);color:var(--muted);
-  font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-variant-numeric:tabular-nums;background:rgba(127,138,160,.08)}
-.ctpip.now{border-style:solid;border-color:var(--accent);color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
-.ctpip[class*=" r-"]{border:1px solid var(--rc);color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--rc) 22%,transparent)}
+.cttier{justify-self:end;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,#8ff0e4,#ffd35c);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:right}
+.ctgrid{display:grid;grid-template-columns:112px minmax(0,1fr);gap:20px;align-items:stretch}
+.ctmain{min-width:0}
+.ctriver{position:relative;display:flex;flex-direction:column;min-height:380px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ctr-top,.ctr-bot{display:block;text-align:left;line-height:1.2;padding-left:2px}
+.ctr-bot{margin-top:auto;color:#ffd35c}
+.ctr-track{position:relative;flex:1;margin:12px 0 12px 10px;width:12px;min-height:290px;border-radius:999px;background:rgba(0,0,0,.34);box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+.ctr-fill{position:absolute;inset:0 0 auto 0;border-radius:999px;background:linear-gradient(180deg,#8ff0e4,#2aa8a0);box-shadow:0 0 12px rgba(143,240,228,.6);transition:height .9s cubic-bezier(.2,.8,.2,1)}
+.ctr-mark{position:absolute;left:22px;transform:translateY(-50%);width:76px;white-space:normal;line-height:1.15;color:var(--muted);opacity:.75}
+.ctr-mark::before{content:"";position:absolute;left:-20px;top:50%;width:14px;height:2px;margin-top:-1px;background:rgba(255,255,255,.35);border-radius:2px}
+.ctr-mark.on{color:#8ff0e4;opacity:1}.ctr-mark.on::before{background:#8ff0e4}
+.ctr-bvr{position:absolute;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);transition:top .9s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));z-index:2}
+.ctr-bvr .ctbvr{width:100%;height:100%;animation:ctbob 2.4s ease-in-out infinite}
+.ctpips{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:16px 0 4px}
+.ctpip{display:flex;align-items:center;justify-content:center;height:38px;border-radius:50% / 60%;border:1px dashed rgba(190,240,230,.4);color:var(--muted);
+  font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-variant-numeric:tabular-nums;background:rgba(60,160,120,.14)}
+.ctpip.now{border-style:solid;border-color:var(--accent);color:var(--ink);box-shadow:0 0 0 3px rgba(82,211,196,.3)}
+.ctpip[class*=" r-"]{border:1px solid var(--rc);color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--rc) 24%,rgba(6,36,48,.6))}
 .r-common{--rc:var(--r-common)}.r-uncommon{--rc:var(--r-uncommon)}.r-rare{--rc:var(--r-rare)}.r-legend{--rc:var(--r-legend)}.r-miss{--rc:var(--r-miss)}
-.ctpip.r-legend{box-shadow:0 0 12px color-mix(in srgb,var(--rc) 60%,transparent)}
+.ctpip.r-legend{box-shadow:0 0 14px color-mix(in srgb,var(--rc) 65%,transparent)}
 .ctbody{margin-top:14px}
+.ctpool{position:absolute;inset:11px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 70%,#1d8c96 0%,#0d5367 62%,#08394a 100%);box-shadow:inset 0 -6px 14px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.4)}
+.ctpool::before,.ctpool::after{content:"";position:absolute;left:50%;top:66%;border:2px solid rgba(255,255,255,.35);border-radius:50%;transform:translate(-50%,-50%);animation:ctripple 2.6s ease-out infinite}
+.ctpool::after{animation-delay:1.3s}
+.ctpool .ctbvr{position:absolute;left:12%;top:2%;width:76%;height:76%;animation:ctbob 2.2s ease-in-out infinite}
+.ctpool::selection{background:none}
+.ctpool-big{position:relative;inset:auto;width:150px;height:150px;flex:none}
 .ctintro{display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:6px 0 2px}
-.ctintro .ctdisc{width:150px;height:150px;flex:none}
-.ctintro .ctvinyl{animation:ctspin 6s linear infinite}
 .ctintro-txt{flex:1 1 260px;min-width:0}
 .ctintro-txt p{margin:0 0 12px}
-.ctgo{padding:11px 22px;font-size:1rem;letter-spacing:.03em;box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent);animation:ctpulse 2.2s ease-out infinite}
-.ctdisc{position:relative;border-radius:50%;box-shadow:0 10px 26px rgba(0,0,0,.45)}
-.ctvinyl{display:block;width:100%;height:100%;border-radius:50%}
-.ctgloss{position:absolute;inset:0;border-radius:50%;pointer-events:none;
-  background:conic-gradient(from 25deg,transparent 0 18%,rgba(255,255,255,.2) 24%,transparent 31% 68%,rgba(255,255,255,.13) 74%,transparent 81%)}
+.ctgo{padding:11px 22px;font-size:1rem;letter-spacing:.03em;color:#06242f;background:linear-gradient(90deg,#8ff0e4,#52d3c4);border:0;animation:ctpulse 2.2s ease-out infinite}
 .ctrun{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
 .ctdial{position:relative;width:138px;height:138px}
-.ctdial .ctdisc{position:absolute;inset:11px}
-.ctdial .ctvinyl{animation:ctspin 2.6s linear infinite}
-.ctdial.ctlow .ctvinyl{animation-duration:.9s}
+.ctdial.ctlow .ctpool .ctbvr{animation-duration:.55s}
 .ctring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.ctring-bg{fill:none;stroke:rgba(127,138,160,.25);stroke-width:5}
+.ctring-bg{fill:none;stroke:rgba(255,255,255,.18);stroke-width:5}
 .ctring-fg{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 5px var(--accent))}
-.ctdial.ctlow .ctring-fg{stroke:var(--clay);filter:drop-shadow(0 0 7px var(--clay))}
-.ctnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:2rem;color:#fff;
-  text-shadow:0 1px 6px rgba(0,0,0,.7);font-variant-numeric:tabular-nums;pointer-events:none}
-.ctdial.ctlow .ctnum{animation:ctthrob .5s ease-in-out infinite alternate}
+.ctdial.ctlow .ctring-fg{stroke:#ff8a7a;filter:drop-shadow(0 0 7px #ff8a7a)}
+.ctnum{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);min-width:44px;text-align:center;padding:1px 10px;border-radius:999px;background:rgba(4,24,32,.88);border:1px solid rgba(143,240,228,.5);
+  font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:1.25rem;color:#fff;font-variant-numeric:tabular-nums;pointer-events:none}
+.ctdial.ctlow .ctnum{border-color:#ff8a7a;animation:ctthrob .5s ease-in-out infinite alternate}
 .ctq .ctn{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .ctq h3{margin:6px 0 0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:clamp(1.35rem,4.8vw,2rem);line-height:1.15;text-wrap:balance}
-.ctform{margin-top:16px}
-.ctform input{font-size:1.05rem;padding:12px 14px;border-radius:10px;border-color:color-mix(in srgb,var(--accent) 55%,var(--line-strong))}
-.ctresult{padding:16px 18px;border-radius:14px;border:1px solid var(--rc,var(--line));background:color-mix(in srgb,var(--rc,transparent) 10%,var(--card));
-  box-shadow:0 0 28px color-mix(in srgb,var(--rc,transparent) 28%,transparent);animation:ctrise .35s cubic-bezier(.2,.9,.3,1.2)}
+.ctform{margin-top:18px}
+.ctform input{font-size:1.05rem;padding:12px 14px;border-radius:10px;background:rgba(4,26,36,.75);color:var(--ink);border-color:rgba(143,240,228,.45)}
+.ctform input::placeholder{color:var(--muted)}
+.ctresult{padding:16px 18px;border-radius:14px;border:1px solid var(--rc,var(--line));background:color-mix(in srgb,var(--rc,transparent) 12%,rgba(4,26,36,.72));
+  box-shadow:0 0 28px color-mix(in srgb,var(--rc,transparent) 26%,transparent);animation:ctrise .35s cubic-bezier(.2,.9,.3,1.2)}
 .ctrq{font-size:.78rem;color:var(--muted);margin-bottom:8px}
 .ctrow{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.ctpts{display:flex;flex-direction:column;align-items:center;min-width:104px}
+.ctpts{display:flex;flex-direction:column;align-items:center;min-width:112px}
 .ctpts span{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:3.4rem;line-height:1;color:var(--rc);text-shadow:0 0 24px color-mix(in srgb,var(--rc) 65%,transparent);animation:ctpop .5s cubic-bezier(.2,1.4,.4,1)}
-.ctpts em{font-style:normal;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rc);font-weight:700;margin-top:4px}
+.ctpts em{font-style:normal;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rc);font-weight:700;margin-top:4px;text-align:center}
 .ctrwho{flex:1 1 200px;min-width:0}
 .ctrm{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.3rem}
-.ctobs{height:8px;border-radius:999px;background:rgba(127,138,160,.25);overflow:hidden;margin:10px 0 6px}
+.ctobs{height:8px;border-radius:999px;background:rgba(0,0,0,.35);overflow:hidden;margin:10px 0 6px}
 .ctobs i{display:block;height:100%;background:var(--rc);border-radius:999px;box-shadow:0 0 10px var(--rc)}
 .ctobsl{font-size:.8rem;color:var(--muted)}
 .ctrnote{font-size:.84rem;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
@@ -994,24 +1007,29 @@ sup.seed.x{color:var(--clay)}
 .ctfinal{text-align:center;padding:10px 0 18px}
 .ctfl{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .ctft{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2.2rem,9vw,3.6rem);line-height:1.05;margin:4px 0;
-  background:linear-gradient(90deg,var(--accent),#b58cff 55%,#f5b73b);-webkit-background-clip:text;background-clip:text;color:transparent;text-transform:uppercase;letter-spacing:.04em}
+  background:linear-gradient(90deg,#8ff0e4,#ffd35c);-webkit-background-clip:text;background-clip:text;color:transparent;text-transform:uppercase;letter-spacing:.04em}
 .ctfs{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.15rem;color:var(--muted)}
 .ctfs b{font-size:2.2rem;color:var(--ink);font-variant-numeric:tabular-nums}
-.ctbadge{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 18%,transparent);font-size:.76rem;white-space:nowrap}
-@keyframes ctspin{to{transform:rotate(360deg)}}
-@keyframes ctpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}70%,100%{box-shadow:0 0 0 14px transparent}}
-@keyframes ctthrob{to{transform:scale(1.15)}}
+.ctbadge{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 20%,transparent);font-size:.76rem;white-space:nowrap}
+.ctarena .detail th{background:rgba(6,36,48,.9);color:var(--ink)}
+.ctarena .detail td{border-color:var(--line)}
+@keyframes ctflow{to{background-position:150px 0}}
+@keyframes ctbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5%)}}
+@keyframes ctripple{0%{width:30%;height:14%;opacity:.8}100%{width:96%;height:44%;opacity:0}}
+@keyframes ctpulse{0%{box-shadow:0 0 0 0 rgba(82,211,196,.55)}70%,100%{box-shadow:0 0 0 14px transparent}}
+@keyframes ctthrob{to{transform:translateX(-50%) scale(1.18)}}
 @keyframes ctpop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 @keyframes ctrise{0%{transform:translateY(10px);opacity:0}100%{transform:none;opacity:1}}
 @media (max-width:560px){
   .ctarena{padding:16px 14px}
   .ctscore b{font-size:2.5rem}
   .ctpips{gap:5px}.ctpip{height:34px;font-size:.72rem}
-  .ctrun{grid-template-columns:auto 1fr;gap:14px}.ctdial{width:112px;height:112px}.ctdial .ctdisc{inset:9px}.ctnum{font-size:1.6rem}
-  .ctintro .ctdisc{width:110px;height:110px}
-  .ctpts{min-width:84px}.ctpts span{font-size:2.7rem}
+  .ctrun{grid-template-columns:auto 1fr;gap:12px}.ctdial{width:92px;height:92px}.ctdial .ctpool{inset:9px}.ctnum{font-size:.95rem;min-width:38px}
+  .ctpool-big{width:112px;height:112px}
+  .ctpts{min-width:88px}.ctpts span{font-size:2.7rem}
+  .ctgrid{grid-template-columns:82px minmax(0,1fr);gap:12px}.ctriver{font-size:.54rem;min-height:360px}.ctr-bvr{width:38px;height:38px}.ctr-mark{width:50px;left:20px}.ctr-mark::before{left:-18px;width:12px}
 }
-@media (prefers-reduced-motion:reduce){.ctvinyl,.ctgo,.ctdial.ctlow .ctnum,.ctpts span,.ctresult{animation:none!important}.ctbar i{transition:none}}
+@media (prefers-reduced-motion:reduce){.ctarena::before,.ctgo,.ctpool::before,.ctpool::after,.ctbvr,.ctr-bvr .ctbvr,.ctdial.ctlow .ctnum,.ctpts span,.ctresult{animation:none!important}.ctr-fill,.ctr-bvr{transition:none}}
 .gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
   margin:14px 0;text-align:center;color:var(--ink)}
 .gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
@@ -1858,7 +1876,7 @@ function gsDestinations(){
   add('Stat Pad','Arcade','statpad puzzle','#/statpad');
   add('15-0','Arcade','perfect game','#/15-0');
   add('Guess the Player','Arcade','guess mystery player daily','#/guess');
-  add('Deep Cuts','Arcade','daily rare answers timed obscure player trivia','#/deepcuts');
+  add('Deep Cuts','Arcade','daily rare answers timed obscure player trivia beaver brook swim','#/deepcuts');
   [['season','Single-Season Records'],['game','Single-Game Records'],['postseason','Postseason Records'],['streaks','Streaks'],
    ['nohit','No-Hitters & Perfect Games'],['milestones','Milestone Tracker']].forEach(([k,l])=>
     add(l,'Records',(k==='nohit'?'no-hitter nohitter perfect game ':k==='milestones'?'milestones horizon recent achieved ':'')+'records tab',
@@ -2519,7 +2537,7 @@ function arcadePromoCard(){
   const board = [[G,G,N],[R,G,G],[N,R,G]].map((row,r)=>row.map((c,i)=>cell(4+i*34,4+r*34,c)).join('')).join('');
   const games = [['Grid','Name a player who fits both categories'],['Stat Pad','Find the biggest single seasons'],
     ['15-0','Draft a team and play a 15-game season'],['Guess the Player','A mystery player, with more hints after each miss'],
-    ['Deep Cuts','7 prompts, 25 seconds each — the rarer the answer, the more you score']];
+    ['Deep Cuts','Swim Beaver Brook: 7 prompts, 25 seconds each — the rarer the answer, the farther you go']];
   return `<a class="svpromo arpromo" href="#/arcade">
     <div class="svpromo-logo"><svg class="arico" viewBox="0 0 108 108" role="img" aria-label="Arcade">${board}</svg></div>
     <div class="svpromo-main">
@@ -14063,7 +14081,7 @@ function cutsScore(pr, name){
   return Math.round(10 + 90*more/Math.max(1, pr.set.size-1));
 }
 const cutsDeepest = pr => [...pr.set].sort((a,b)=>cutsFame(a)-cutsFame(b)||a.localeCompare(b))[0];
-const CUTS_TIERS = [[0,'Greatest Hits'],[200,'Fan Favorite'],[300,'B-Side'],[400,'Deep Cut'],[500,'Crate Digger'],[600,'Vault Legend']];
+const CUTS_TIERS = [[0,'Kit'],[200,'Paddler'],[300,'Stick Gatherer'],[400,'Dam Builder'],[500,'Lodge Master'],[600,'Brook Legend']];
 const cutsTier = tot => CUTS_TIERS.filter(t=>tot>=t[0]).pop()[1];
 function cutsFind(typed){
   if(!_cutsLower){ _cutsLower = {}; NAMES.forEach(n=>{ _cutsLower[n.toLowerCase()] = n; }); }
@@ -14072,24 +14090,25 @@ function cutsFind(typed){
 function cutsShareText(pz){
   const tot = pz.a.reduce((x,r)=>x+r.p,0);
   const sq = pz.a.map(r=> r.p===0 ? '🟥' : r.p<30 ? '⬜' : r.p<60 ? '🟨' : r.p<90 ? '🟩' : '🟪').join('');
-  return `BWB Deep Cuts ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
+  return `🦫 BWB Deep Cuts ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
 }
-/* loot-style rarity bands for a pick's points */
-const cutsRarity = p => p===0 ? {k:'miss', l:'Miss'} : p<30 ? {k:'common', l:'Common'} : p<60 ? {k:'uncommon', l:'Uncommon'} : p<90 ? {k:'rare', l:'Rare'} : {k:'legend', l:'Legendary'};
-/* the record: grooves, a coloured label and a static gloss laid over it (the disc spins, the shine doesn't) */
-function cutsVinyl(withText){
-  const grooves = [45,41,37,33,29,25,21].map(r=>`<circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,${r%8===1?.11:.05})" stroke-width=".6"/>`).join('');
-  return `<div class="ctdisc"><svg class="ctvinyl" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="48.5" fill="#0b0e15" stroke="#000" stroke-width="1"/>
-      <circle cx="50" cy="50" r="48" fill="url(#ctvg)"/>
-      <defs><radialGradient id="ctvg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#262b3a"/><stop offset="1" stop-color="#0b0e15"/></radialGradient></defs>
-      ${grooves}
-      <circle cx="50" cy="50" r="17" style="fill:var(--accent)"/>
-      <circle cx="50" cy="50" r="17" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".8"/>
-      ${withText?`<text x="50" y="48.5" text-anchor="middle" font-family="Oswald,Arial,sans-serif" font-weight="700" font-size="8" fill="#fff">BWB</text>
-      <text x="50" y="57" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-weight="600" font-size="4" fill="#fff" opacity=".85">DEEP CUTS</text>
-      <circle cx="50" cy="50" r="1.8" fill="#0b0e15"/>`:''}
-    </svg><div class="ctgloss"></div></div>`;
+/* what the beaver hauls home: rarity bands for a pick's points */
+const cutsRarity = p => p===0 ? {k:'miss', l:'Miss'} : p<30 ? {k:'common', l:'Twig'} : p<60 ? {k:'uncommon', l:'Branch'} : p<90 ? {k:'rare', l:'Log'} : {k:'legend', l:'Golden Log'};
+/* the swimmer: a beaver's head above the waterline (front view) */
+function cutsBeaver(){
+  return `<svg class="ctbvr" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="26" cy="27" r="10" fill="#6a4122"/><circle cx="26" cy="27" r="5.2" fill="#c58f67"/>
+      <circle cx="74" cy="27" r="10" fill="#6a4122"/><circle cx="74" cy="27" r="5.2" fill="#c58f67"/>
+      <ellipse cx="50" cy="55" rx="35" ry="31" fill="#8c5a2d"/>
+      <ellipse cx="50" cy="40" rx="26" ry="14" fill="#a06b38" opacity=".55"/>
+      <ellipse cx="50" cy="66" rx="21" ry="16" fill="#dcae7c"/>
+      <circle cx="37" cy="49" r="4.6" fill="#180f08"/><circle cx="63" cy="49" r="4.6" fill="#180f08"/>
+      <circle cx="38.6" cy="47.4" r="1.5" fill="#fff"/><circle cx="64.6" cy="47.4" r="1.5" fill="#fff"/>
+      <ellipse cx="50" cy="58" rx="7" ry="4.4" fill="#2a190d"/>
+      <rect x="43.5" y="63" width="13" height="14" rx="2.6" fill="#fff8e8" stroke="#cdbf9d" stroke-width="1"/>
+      <line x1="50" y1="63.5" x2="50" y2="77" stroke="#cdbf9d" stroke-width="1"/>
+      <path d="M30 60 L14 56 M30 64 L13 66 M70 60 L86 56 M70 64 L87 66" stroke="#f4e6cf" stroke-width="1.1" stroke-linecap="round" opacity=".8"/>
+    </svg>`;
 }
 function renderDeepCuts(){
   setNav('arcade');
@@ -14115,9 +14134,14 @@ function renderDeepCuts(){
   }).join('');
   const tierPct = Math.min(100, total/7);
   const board = `<div class="ctboard"><div class="ctscore"><b id="ctScoreNum">${total}</b><span>/ 700</span></div>
-      <div class="cttier">${done || idx>0 ? esc(cutsTier(total)) : running ? 'Digging…' : 'Ready to dig'}</div>
-      <div class="ctbar" role="img" aria-label="${total} of 700"><i style="width:${tierPct}%"></i></div></div>
+      <div class="cttier">${done || idx>0 ? esc(cutsTier(total)) : running ? 'Swimming…' : 'Ready to swim'}</div></div>
       <div class="ctpips">${pips}</div>`;
+  /* the brook runs down the left edge: the beaver swims from the top (Beaver Brook) toward Brookside Field at the bottom, one landmark per tier */
+  const river = `<div class="ctriver" role="img" aria-label="${total} of 700 points downstream"><span class="ctr-top">Beaver Brook</span>
+      <div class="ctr-track"><i class="ctr-fill" style="height:${tierPct}%"></i>
+        ${CUTS_TIERS.slice(1).map(([t,nm])=>`<span class="ctr-mark${total>=t?' on':''}" style="top:${t/7}%">${esc(nm)}</span>`).join('')}
+        <span class="ctr-bvr" style="top:${tierPct}%">${cutsBeaver()}</span></div>
+      <span class="ctr-bot">Brookside Field</span></div>`;
   let body = '';
   const last = pz.a[idx-1];
   const lastBlock = between && last ? (()=>{
@@ -14133,15 +14157,15 @@ function renderDeepCuts(){
       <div class="ctrnote">${pr.set.size} players qualified. The deepest cut was <button class="pname" data-p="${esc(best)}">${esc(best)}</button> (+100).</div></div>`;
   })() : '';
   if(fresh){
-    body = `<div class="ctintro">${cutsVinyl(true)}<div class="ctintro-txt"><p><b>${CUTS_N} prompts, ${CUTS_MS/1000} seconds each.</b> Name any player who fits.
-      Every match counts, but the obvious star is worth the least. The deeper the cut, the more you score — 10 to 100 a prompt, 700 for a perfect dig.</p>
-      <button type="button" class="cardbtn ctgo" id="ctStart">Drop the needle</button>
-      ${cutsMode==='daily'?'<p class="note">One dig per day. Once you start, the clock keeps running even if you close the page.</p>':''}</div></div>`;
+    body = `<div class="ctintro"><div class="ctpool ctpool-big">${cutsBeaver()}</div><div class="ctintro-txt"><p><b>${CUTS_N} bends in the brook, ${CUTS_MS/1000} seconds each.</b> Name any player who fits.
+      Every match keeps you afloat, but the obvious star is worth the least. The deeper the cut, the farther you swim — 10 to 100 a bend, 700 to reach Brookside Field.</p>
+      <button type="button" class="cardbtn ctgo" id="ctStart">Dive in</button>
+      ${cutsMode==='daily'?'<p class="note">One swim per day. Once you start, the current keeps moving even if you close the page.</p>':''}</div></div>`;
   } else if(running){
     const pr = pz.prompts[idx];
     body = `<div class="ctrun"><div class="ctdial" id="ctTimer" role="timer" aria-live="off">
         <svg class="ctring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ctring-bg" cx="60" cy="60" r="56"/><circle class="ctring-fg" id="ctRing" cx="60" cy="60" r="56"/></svg>
-        ${cutsVinyl(false)}<span class="ctnum" id="ctTimerTxt">${CUTS_MS/1000}</span></div>
+        <div class="ctpool">${cutsBeaver()}</div><span class="ctnum" id="ctTimerTxt">${CUTS_MS/1000}</span></div>
       <div class="ctq"><span class="ctn">Prompt ${idx+1} of ${CUTS_N}</span><h3>${esc(pr.text)}</h3></div></div>
       <form class="gpform ctform" id="ctForm" autocomplete="off">
         <input id="ctInput" list="ctNames" placeholder="Type a player's name…" aria-label="Your answer" autofocus>
@@ -14156,24 +14180,24 @@ function renderDeepCuts(){
         <td class="lft">${r.n?`<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button>`:'—'}</td>
         <td class="mono"><span class="ctbadge r-${rar.k}">${r.p} · ${rar.l}</span></td>
         <td class="lft"><button class="pname" data-p="${esc(best)}">${esc(best)}</button></td></tr>`; }).join('');
-    body = `<div class="ctfinal"><div class="ctfl">Your dig</div><div class="ctft">${esc(cutsTier(total))}</div>
+    body = `<div class="ctfinal"><div class="ctfl">Your swim</div><div class="ctft">${esc(cutsTier(total))}</div>
         <div class="ctfs"><b id="ctFinalNum">${total}</b> / 700</div></div>
       <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Prompt</th><th class="lft">You said</th><th class="mono">Pts</th><th class="lft">Deepest cut</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${cutsMode==='daily' ? shareResultButton('ctShare') : '<p class="note"><button class="pname" id="ctAgain">Dig again →</button></p>'}`;
+      ${cutsMode==='daily' ? shareResultButton('ctShare') : '<p class="note"><button class="pname" id="ctAgain">Swim again →</button></p>'}`;
   }
   app.innerHTML = `
     <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('cuts')}
-    <p class="lead"><b>Deep Cuts.</b> Seven prompts a day, 25 seconds each. Any correct player counts — but the more obscure the pick, the more it scores.
-      The pick that feels clever? The league thought of it too.</p>
+    <p class="lead"><b>Deep Cuts.</b> Swim down Beaver Brook, where the league began. Seven prompts a day, 25 seconds each. Any correct player counts —
+      but the more obscure the pick, the farther you swim. The pick that feels clever? The league thought of it too.</p>
     <div class="segs" role="group" aria-label="Deep Cuts mode">
-      <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Dig</button>
+      <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Swim</button>
       <button data-cm="practice" aria-pressed="${cutsMode==='practice'}">Practice</button>
     </div>${arcadeDayPicker('bwb-cuts-')}
-    <div class="ctarena${running?' ctrunning':''}" id="ctArena">${board}<div class="ctbody">${body}</div></div>
+    <div class="ctarena${running?' ctrunning':''}" id="ctArena"><div class="ctgrid">${river}<div class="ctmain">${board}<div class="ctbody">${body}</div></div></div></div>
     <datalist id="ctNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     <p class="note">Points compare each answer with every other valid answer to the same prompt, using games played and honors from the league
-      record: the most famous valid player earns 10 and the least famous 100. A wrong answer or a timeout earns nothing, and a name can only be used once per dig.</p>`;
+      record: the most famous valid player earns 10 and the least famous 100. A wrong answer or a timeout earns nothing, and a name can only be used once per swim.</p>`;
   wireArcadeTabBar(); wirePlayerLinks();
   wireArcadeDayPicker(()=>{ cutsMode='daily'; cutsError=null; renderDeepCuts(); });
   app.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{
