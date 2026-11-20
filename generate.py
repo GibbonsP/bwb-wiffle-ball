@@ -934,7 +934,7 @@ sup.seed.x{color:var(--clay)}
 .gresult p{margin:0}
 .gwin{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .glose{background:var(--clay-soft)}
-/* Deep Cuts: a beaver swimming down Beaver Brook */
+/* Brookrillion: a beaver swimming down Beaver Brook */
 .ctarena{--accent:#52d3c4;--ink:#eef9f8;--muted:#a9ccd0;--card:rgba(6,36,48,.72);--line:rgba(255,255,255,.17);--line-strong:rgba(255,255,255,.32);
   --r-common:#b7a58a;--r-uncommon:#d49a4e;--r-rare:#79c2ff;--r-legend:#ffd35c;--r-miss:#ff8a7a;--clay:#ff8a7a;--clay-soft:rgba(255,138,122,.16);
   position:relative;margin:14px 0 10px;padding:20px 20px 18px;border:1px solid rgba(120,220,210,.35);border-radius:18px;overflow:hidden;color:var(--ink);
@@ -1882,7 +1882,7 @@ function gsDestinations(){
   add('Stat Pad','Arcade','statpad puzzle','#/statpad');
   add('15-0','Arcade','perfect game','#/15-0');
   add('Guess the Player','Arcade','guess mystery player daily','#/guess');
-  add('Deep Cuts','Arcade','daily rare answers timed obscure player trivia beaver brook swim','#/deepcuts');
+  add('Brookrillion','Arcade','daily rare answers timed obscure player trivia beaver brook swim deep cuts','#/brookrillion');
   [['season','Single-Season Records'],['game','Single-Game Records'],['postseason','Postseason Records'],['streaks','Streaks'],
    ['nohit','No-Hitters & Perfect Games'],['milestones','Milestone Tracker']].forEach(([k,l])=>
     add(l,'Records',(k==='nohit'?'no-hitter nohitter perfect game ':k==='milestones'?'milestones horizon recent achieved ':'')+'records tab',
@@ -2543,7 +2543,7 @@ function arcadePromoCard(){
   const board = [[G,G,N],[R,G,G],[N,R,G]].map((row,r)=>row.map((c,i)=>cell(4+i*34,4+r*34,c)).join('')).join('');
   const games = [['Grid','Name a player who fits both categories'],['Stat Pad','Find the biggest single seasons'],
     ['15-0','Draft a team and play a 15-game season'],['Guess the Player','A mystery player, with more hints after each miss'],
-    ['Deep Cuts','Swim Beaver Brook: 7 prompts, 25 seconds each — the rarer the answer, the farther you go']];
+    ['Brookrillion','Swim Beaver Brook: 7 prompts, 25 seconds each — the rarer the answer, the farther you go']];
   return `<a class="svpromo arpromo" href="#/arcade">
     <div class="svpromo-logo"><svg class="arico" viewBox="0 0 108 108" role="img" aria-label="Arcade">${board}</svg></div>
     <div class="svpromo-main">
@@ -9345,10 +9345,10 @@ function arcadeTabBar(active){
     <button data-ag="statpad" aria-pressed="${active==='statpad'}">Stat Pad</button>
     <button data-ag="b0" aria-pressed="${active==='b0'}">15-0</button>
     <button data-ag="guess" aria-pressed="${active==='guess'}">Guess the Player</button>
-    <button data-ag="cuts" aria-pressed="${active==='cuts'}">Deep Cuts</button>
+    <button data-ag="cuts" aria-pressed="${active==='cuts'}">Brookrillion</button>
   </div>`;
 }
-const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0', guess:'#/guess', cuts:'#/deepcuts'};
+const ARCADE_ROUTES = {grid:'#/grid', statpad:'#/statpad', b0:'#/15-0', guess:'#/guess', cuts:'#/brookrillion'};
 function wireArcadeTabBar(){
   app.querySelectorAll('[data-ag]').forEach(b=>b.addEventListener('click',()=>{
     location.hash = ARCADE_ROUTES[b.dataset.ag];
@@ -13968,7 +13968,7 @@ function renderGuess(){
   if(done && guessMode==='daily') wireShareButton('guessShare', ()=>guessShareText(pz));
 }
 
-/* ============================ ARCADE: DEEP CUTS ============================
+/* ============================ ARCADE: BROOKRILLION ============================
    Seven prompts a day (the same for everyone), 25 seconds to name one player for each. Every answer in
    a prompt's pool is correct, but the points depend on how obscure it is: the pick that feels clever is
    usually the star everyone thought of. Obscurity comes from the league's own record (games played,
@@ -14096,7 +14096,7 @@ function cutsFind(typed){
 function cutsShareText(pz){
   const tot = pz.a.reduce((x,r)=>x+r.p,0);
   const sq = pz.a.map(r=> r.p===0 ? '🟥' : r.p<30 ? '⬜' : r.p<60 ? '🟨' : r.p<90 ? '🟩' : '🟪').join('');
-  return `🦫 BWB Deep Cuts ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
+  return `🦫 BWB Brookrillion ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
 }
 /* what the beaver hauls home: rarity bands for a pick's points */
 const cutsRarity = p => p===0 ? {k:'miss', l:'Miss'} : p<30 ? {k:'common', l:'Twig'} : p<60 ? {k:'uncommon', l:'Branch'} : p<90 ? {k:'rare', l:'Log'} : {k:'legend', l:'Golden Log'};
@@ -14194,9 +14194,9 @@ function renderDeepCuts(){
   app.innerHTML = `
     <div class="phead"><h2>Arcade</h2></div>
     ${arcadeTabBar('cuts')}
-    <p class="lead"><b>Deep Cuts.</b> Swim down Beaver Brook, where the league began. Seven prompts a day, 25 seconds each. Any correct player counts —
+    <p class="lead"><b>Brookrillion.</b> Swim down Beaver Brook, where the league began. Seven prompts a day, 25 seconds each. Any correct player counts —
       but the more obscure the pick, the farther you swim. The pick that feels clever? The league thought of it too.</p>
-    <div class="segs" role="group" aria-label="Deep Cuts mode">
+    <div class="segs" role="group" aria-label="Brookrillion mode">
       <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Swim</button>
       <button data-cm="practice" aria-pressed="${cutsMode==='practice'}">Practice</button>
     </div>${arcadeDayPicker('bwb-cuts-')}
@@ -14282,7 +14282,7 @@ function dispatch(h){
     return renderCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2]));
   if(h === '#/arcade') return renderGrid();
   if(h === '#/guess') return renderGuess();
-  if(h === '#/deepcuts') return renderDeepCuts();
+  if(h === '#/brookrillion' || h === '#/deepcuts') return renderDeepCuts();   // #/deepcuts is the old address
   if(h === '#/grid') return renderGrid();
   if(h === '#/statpad') return renderStatpad();
   if(h === '#/15-0') return renderB0();
