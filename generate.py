@@ -943,7 +943,7 @@ sup.seed.x{color:var(--clay)}
   background:radial-gradient(ellipse 36px 5px at 30px 14px,rgba(255,255,255,.13) 0,transparent 100%),
              radial-gradient(ellipse 26px 4px at 96px 42px,rgba(255,255,255,.10) 0,transparent 100%);
   background-size:150px 60px;animation:ctflow 7s linear infinite}
-.ctarena>*{position:relative}
+.ctarena>.ctgrid{position:relative;z-index:1}
 .ctarena .pname{color:#8fe8dd}
 .ctboard{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:6px 16px}
 .ctscore{font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
@@ -951,18 +951,80 @@ sup.seed.x{color:var(--clay)}
 .ctscore span{color:var(--muted);font-size:1rem}
 .cttier{justify-self:end;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;letter-spacing:.12em;text-transform:uppercase;
   background:linear-gradient(90deg,#8ff0e4,#ffd35c);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:right}
-.ctgrid{display:grid;grid-template-columns:112px minmax(0,1fr);gap:20px;align-items:stretch}
+.ctgrid{display:grid;grid-template-columns:128px minmax(0,1fr);gap:18px;align-items:stretch}
 .ctmain{min-width:0}
-.ctriver{position:relative;display:flex;flex-direction:column;min-height:380px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.ctr-top,.ctr-bot{display:block;text-align:left;line-height:1.2;padding-left:2px}
-.ctr-bot{margin-top:auto;color:#ffd35c}
-.ctr-track{position:relative;flex:1;margin:12px 0 12px 10px;width:12px;min-height:290px;border-radius:999px;background:rgba(0,0,0,.34);box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
-.ctr-fill{position:absolute;inset:0 0 auto 0;border-radius:999px;background:linear-gradient(180deg,#8ff0e4,#2aa8a0);box-shadow:0 0 12px rgba(143,240,228,.6);transition:height .9s cubic-bezier(.2,.8,.2,1)}
-.ctr-mark{position:absolute;left:22px;transform:translateY(-50%);width:76px;white-space:normal;line-height:1.15;color:var(--muted);opacity:.75}
-.ctr-mark::before{content:"";position:absolute;left:-20px;top:50%;width:14px;height:2px;margin-top:-1px;background:rgba(255,255,255,.35);border-radius:2px}
-.ctr-mark.on{color:#8ff0e4;opacity:1}.ctr-mark.on::before{background:#8ff0e4}
-.ctr-bvr{position:absolute;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);transition:top .9s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));z-index:2}
+.ctriver{--ch-l:18px;--cw:42px;position:relative;display:flex;flex-direction:column;min-height:400px;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ctr-top{display:block;line-height:1.2;padding-left:2px}
+.ctr-scene{position:relative;flex:1;margin:10px 0;min-height:320px}
+.ctr-chan{position:absolute;left:var(--ch-l);width:var(--cw);top:0;bottom:0;border-radius:22px;overflow:visible;
+  background:linear-gradient(180deg,#127184,#0b4f63 60%,#083e50);box-shadow:0 0 0 5px #2d6a3a,0 0 0 7px rgba(10,40,24,.55),inset 0 2px 8px rgba(0,0,0,.45)}
+.ctr-chan::before{content:"";position:absolute;inset:0;border-radius:22px;pointer-events:none;
+  background:radial-gradient(ellipse 14px 3px at 12px 10px,rgba(255,255,255,.2),transparent 100%),radial-gradient(ellipse 12px 3px at 28px 26px,rgba(255,255,255,.16),transparent 100%);
+  background-size:42px 38px;animation:ctflowv 2.6s linear infinite}
+.ctr-fill{position:absolute;inset:0 0 auto 0;border-radius:22px 22px 0 0;background:linear-gradient(180deg,rgba(143,240,228,.55),rgba(60,190,180,.28));transition:height .9s cubic-bezier(.2,.8,.2,1)}
+.ctr-lily{position:absolute;width:20px;height:13px;animation:ctbob 3.4s ease-in-out infinite}
+.ctr-lily svg,.ctr-reeds svg,.ctr-mark i svg,.ctr-bot i svg,.ctr-dam svg{display:block;width:100%;height:100%;overflow:visible}
+.ctr-dam{position:absolute;left:-9px;right:-9px;height:20px;transform:translateY(-50%);opacity:.5;filter:saturate(.55);transition:opacity .6s,filter .6s}
+.ctr-dam.on{opacity:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.ctr-reeds{position:absolute;left:-2px;width:17px;height:30px;transform:translateY(-50%);opacity:.95}
+.ctr-mark{position:absolute;left:calc(var(--ch-l) + var(--cw) + 14px);transform:translateY(-50%);display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:52px;color:var(--muted);opacity:.7}
+.ctr-mark i{display:block;flex:none;width:26px;height:22px;filter:saturate(.5) opacity(.75)}
+.ctr-mark .lbl{font-weight:600;line-height:1.1;white-space:normal}
+.ctr-mark.on{color:#8ff0e4;opacity:1}.ctr-mark.on i{filter:none}
+.ctr-bot{display:flex;align-items:center;gap:6px;margin-top:auto;color:#ffd35c;line-height:1.15}
+.ctr-bot i{display:block;flex:none;width:42px;height:28px}
+.ctr-bot b{font-weight:600}
+.ctr-bvr{position:absolute;left:calc(var(--ch-l) + var(--cw)/2);width:46px;height:46px;transform:translate(-50%,-50%);transition:top .9s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));z-index:3}
 .ctr-bvr .ctbvr{width:100%;height:100%;animation:ctbob 2.4s ease-in-out infinite}
+.ctr-item{position:absolute;right:-12px;bottom:-6px;width:28px;height:28px;filter:drop-shadow(0 0 6px var(--rc,#fff));animation:ctitem .55s cubic-bezier(.2,1.5,.4,1) .5s both}
+.ctr-item svg{display:block;width:100%;height:100%}
+.ctr-splash{position:absolute;left:50%;top:78%;width:26px;height:10px;border:2px solid rgba(255,255,255,.75);border-radius:50%;transform:translate(-50%,-50%);opacity:0;pointer-events:none}
+.ctr-react .ctr-splash{animation:ctsplash .9s ease-out .35s 1 both}
+.ctr-react .ctr-bvr .ctbvr{animation:ctnod .7s ease 1}
+.ctr-react.r-legend .ctr-bvr .ctbvr{animation:ctslap .9s ease 1}
+.ctr-react.r-miss .ctr-bvr .ctbvr{animation:ctsink 1s ease 1;filter:saturate(.45) brightness(.85)}
+.ctr-bub{position:absolute;right:-30px;top:-22px;display:flex;gap:3px;padding:6px 8px;border-radius:12px;background:#f3fbff;box-shadow:0 2px 6px rgba(0,0,0,.4);animation:ctrise .4s ease .35s both}
+.ctr-bub::after{content:"";position:absolute;left:4px;bottom:-5px;border:5px solid transparent;border-top-color:#f3fbff;border-bottom:0}
+.ctr-bub i{width:5px;height:5px;border-radius:50%;background:#37556a;animation:ctdots 1.1s ease-in-out infinite}
+.ctr-bub i:nth-child(2){animation-delay:.15s}.ctr-bub i:nth-child(3){animation-delay:.3s}
+.ctburst{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none}
+.ctburst span{position:absolute;left:0;top:0;width:9px;height:13px;border-radius:70% 0 70% 0;background:var(--c);animation:ctleaf 1.25s ease-out .3s both}
+.ctr-crit{position:absolute;left:calc(var(--ch-l) + var(--cw)/2);width:32px;height:24px;transform:translate(-50%,-50%);pointer-events:none;z-index:4;opacity:0}
+.ctr-crit svg{display:block;width:100%;height:100%;overflow:visible}
+.ctr-crit[data-say]::after{content:attr(data-say);position:absolute;left:50%;bottom:100%;transform:translateX(-30%);margin-bottom:2px;padding:2px 7px;border-radius:9px;background:#f3fbff;color:#27465a;font:600 .62rem/1.2 "IBM Plex Sans",sans-serif;letter-spacing:0;text-transform:none;white-space:nowrap;box-shadow:0 2px 5px rgba(0,0,0,.35)}
+.ctarena[data-tod=dawn]{background:linear-gradient(175deg,#b86a80 0%,#2f7388 44%,#072534 100%)}
+.ctarena[data-tod=dusk]{background:linear-gradient(175deg,#e08a45 0%,#585089 40%,#0a2a3a 100%)}
+.ctarena[data-tod=night]{background:linear-gradient(175deg,#0b1d3b 0%,#07202f 52%,#040f18 100%)}
+.ctamb{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.ctamb span{position:absolute;left:var(--x)}
+.ctamb-leaves span,.ctamb-petals span{top:-6%;width:calc(10px*var(--sz));height:calc(14px*var(--sz));border-radius:70% 0 70% 0;background:#e0782b;opacity:.8;animation:ctfall var(--d) linear var(--delay) infinite}
+.ctamb-leaves span:nth-child(3n){background:#c8452b}.ctamb-leaves span:nth-child(3n+1){background:#e6b02e}
+.ctamb-petals span{background:#ffc2d6;border-radius:60% 40% 60% 40%}.ctamb-petals span:nth-child(2n){background:#fff0f5}
+.ctamb-snow span{top:-4%;width:calc(7px*var(--sz));height:calc(7px*var(--sz));border-radius:50%;background:#fff;opacity:.85;animation:ctfall var(--d) linear var(--delay) infinite}
+.ctamb-sparkles span{top:var(--y);width:calc(6px*var(--sz));height:calc(6px*var(--sz));background:#fff;border-radius:50%;box-shadow:0 0 8px 2px rgba(255,255,255,.7);opacity:0;animation:cttwinkle var(--d) ease-in-out var(--delay) infinite}
+.ctamb-fireflies span{top:var(--y);width:5px;height:5px;border-radius:50%;background:#eaff9c;box-shadow:0 0 9px 3px rgba(234,255,156,.75);animation:ctfirefly var(--d) ease-in-out var(--delay) infinite}
+.ctcal{--r-common:#b7a58a;--r-uncommon:#d49a4e;--r-rare:#79c2ff;--r-legend:#e6a919;--r-miss:#e0705f;margin:12px 0 4px}
+.ctcal-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px;font-size:.78rem;color:var(--muted)}
+.ctcal-h span{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.ctcal-h em{font-style:normal}
+.ctcal-grid{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ctday-mo{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 4px 0 8px}
+.ctday-mo:first-child{padding-left:0}
+.ctday{width:40px;height:30px;border-radius:50% / 62%;border:1px dashed var(--line-strong);background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:.78rem;padding:0;font-variant-numeric:tabular-nums}
+.ctday b{font-weight:600}
+.ctday:hover{border-color:var(--accent);color:var(--ink)}
+.ctday.part{border-style:solid;border-color:#3f9d57;background:rgba(63,157,87,.16);color:var(--ink)}
+.ctday.done{border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 30%,transparent);color:var(--ink)}
+.ctday.cur{outline:2px solid var(--accent);outline-offset:2px}
+.ctcal-more{display:inline-block;margin-top:8px;font-size:.8rem}
+.ctcardrow{margin:14px 0 0}
+.ctr-react .ctc-fish{animation:ctc-fish 1.3s ease-out .4s both}
+.ctr-react .ctc-frog{animation:ctc-frog 1.8s ease-out .4s both}
+.ctr-react .ctc-duck{animation:ctc-duck 2.4s ease-in-out .3s both}
+.ctr-react .ctc-turtle{animation:ctc-turtle 1.8s ease-out .4s both}
+.ctr-react .ctc-dragonfly{animation:ctc-fly 1.8s ease-in-out .3s both}
+.ctitem{display:block;width:46px;height:46px;margin-bottom:2px;filter:drop-shadow(0 0 10px var(--rc));animation:ctpop .5s cubic-bezier(.2,1.4,.4,1)}
+.ctitem svg{display:block;width:100%;height:100%}
 .ctpips{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:16px 0 4px}
 .ctpip{display:flex;align-items:center;justify-content:center;height:38px;border-radius:50% / 60%;border:1px dashed rgba(190,240,230,.4);color:var(--muted);
   font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-variant-numeric:tabular-nums;background:rgba(60,160,120,.14)}
@@ -1020,6 +1082,22 @@ sup.seed.x{color:var(--clay)}
 .ctarena .detail th{background:rgba(6,36,48,.9);color:var(--ink)}
 .ctarena .detail td{border-color:var(--line)}
 @keyframes ctflow{to{background-position:150px 0}}
+@keyframes ctflowv{to{background-position:0 38px}}
+@keyframes ctfall{0%{top:-6%;transform:translateX(0) rotate(0)}100%{top:106%;transform:translateX(var(--sw)) rotate(340deg)}}
+@keyframes cttwinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:.9;transform:scale(1)}}
+@keyframes ctfirefly{0%,100%{opacity:.15;transform:translate(0,0)}25%{opacity:1;transform:translate(12px,-10px)}60%{opacity:.35;transform:translate(-8px,-18px)}80%{opacity:1;transform:translate(6px,-6px)}}
+@keyframes ctc-fish{0%{transform:translate(calc(-50% + 34px),calc(-50% + 16px)) rotate(-70deg);opacity:0}25%{opacity:1}50%{transform:translate(calc(-50% + 18px),calc(-50% - 38px)) rotate(-10deg)}100%{transform:translate(calc(-50% - 6px),calc(-50% + 18px)) rotate(75deg);opacity:0}}
+@keyframes ctc-frog{0%{transform:translate(calc(-50% + 36px),calc(-50% + 6px)) scale(.2);opacity:0}25%{transform:translate(calc(-50% + 36px),calc(-50% - 10px)) scale(1.05);opacity:1}40%,80%{transform:translate(calc(-50% + 36px),calc(-50% - 2px)) scale(1);opacity:1}100%{transform:translate(calc(-50% + 36px),calc(-50% + 6px)) scale(.6);opacity:0}}
+@keyframes ctc-duck{0%{transform:translate(calc(-50% + 90px),calc(-50% + 22px));opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translate(calc(-50% - 10px),calc(-50% + 22px));opacity:0}}
+@keyframes ctc-turtle{0%{transform:translate(calc(-50% + 36px),calc(-50% + 18px)) scale(.4);opacity:0}30%,75%{transform:translate(calc(-50% + 36px),calc(-50% + 6px)) scale(1);opacity:1}100%{transform:translate(calc(-50% + 36px),calc(-50% + 16px)) scale(.5);opacity:0}}
+@keyframes ctc-fly{0%{transform:translate(calc(-50% + 60px),calc(-50% - 30px));opacity:0}15%{opacity:1}35%{transform:translate(calc(-50% + 30px),calc(-50% - 14px))}55%{transform:translate(calc(-50% + 44px),calc(-50% - 36px))}85%{opacity:1}100%{transform:translate(calc(-50% - 20px),calc(-50% - 22px));opacity:0}}
+@keyframes ctitem{0%{transform:translateY(14px) scale(.2);opacity:0}100%{transform:none;opacity:1}}
+@keyframes ctsplash{0%{width:18px;height:7px;opacity:.9}100%{width:70px;height:26px;opacity:0}}
+@keyframes ctnod{0%,100%{transform:translateY(0)}30%{transform:translateY(9%) rotate(-4deg)}60%{transform:translateY(-6%) rotate(3deg)}}
+@keyframes ctslap{0%{transform:none}20%{transform:translateY(12%) scale(.92,1.08)}45%{transform:translateY(-18%) rotate(-10deg) scale(1.12)}70%{transform:translateY(-6%) rotate(8deg)}100%{transform:none}}
+@keyframes ctsink{0%{transform:none}35%{transform:translateY(28%) scale(.94)}100%{transform:translateY(6%)}}
+@keyframes ctdots{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+@keyframes ctleaf{0%{transform:translate(-50%,-50%) rotate(0) scale(.4);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--rot)) scale(1);opacity:0}}
 @keyframes ctbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5%)}}
 @keyframes ctripple{0%{width:30%;height:14%;opacity:.8}100%{width:96%;height:44%;opacity:0}}
 @keyframes ctpulse{0%{box-shadow:0 0 0 0 rgba(82,211,196,.55)}70%,100%{box-shadow:0 0 0 14px transparent}}
@@ -1033,9 +1111,9 @@ sup.seed.x{color:var(--clay)}
   .ctrun{grid-template-columns:auto 1fr;gap:12px}.ctdial{width:92px;height:92px}.ctdial .ctpool{inset:9px}.ctnum{font-size:.95rem;min-width:38px}
   .ctpool-big{width:112px;height:112px}
   .ctpts{min-width:88px}.ctpts span{font-size:2.7rem}
-  .ctgrid{grid-template-columns:82px minmax(0,1fr);gap:12px}.ctriver{font-size:.54rem;min-height:360px}.ctr-bvr{width:38px;height:38px}.ctr-mark{width:50px;left:20px}.ctr-mark::before{left:-18px;width:12px}
+  .ctgrid{grid-template-columns:70px minmax(0,1fr);gap:10px}.ctriver{--ch-l:10px;--cw:30px;font-size:.5rem;min-height:380px}.ctr-bvr{width:36px;height:36px}.ctr-mark{width:26px;left:calc(var(--ch-l) + var(--cw) + 10px)}.ctr-mark .lbl{display:none}.ctr-mark i{width:24px;height:20px}.ctr-bot i{width:34px;height:23px}.ctr-bot b{display:none}.ctr-dam{left:-7px;right:-7px;height:16px}.ctr-reeds{width:13px;height:24px}.ctr-item{width:22px;height:22px}
 }
-@media (prefers-reduced-motion:reduce){.ctarena::before,.ctgo,.ctpool::before,.ctpool::after,.ctbvr,.ctr-bvr .ctbvr,.ctdial.ctlow .ctnum,.ctpts span,.ctresult{animation:none!important}.ctr-fill,.ctr-bvr{transition:none}}
+@media (prefers-reduced-motion:reduce){.ctarena::before,.ctgo,.ctpool::before,.ctpool::after,.ctbvr,.ctr-bvr .ctbvr,.ctr-chan::before,.ctamb span,.ctr-lily,.ctr-item,.ctr-crit,.ctburst span,.ctr-splash,.ctr-bub,.ctr-bub i,.ctitem,.ctdial.ctlow .ctnum,.ctpts span,.ctresult{animation:none!important}.ctr-fill,.ctr-bvr{transition:none}}
 .gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
   margin:14px 0;text-align:center;color:var(--ink)}
 .gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
@@ -14116,6 +14194,141 @@ function cutsBeaver(){
       <path d="M30 60 L14 56 M30 64 L13 66 M70 60 L86 56 M70 64 L87 66" stroke="#f4e6cf" stroke-width="1.1" stroke-linecap="round" opacity=".8"/>
     </svg>`;
 }
+/* small inline icons for the brook: what the beaver carries (twig, branch, log, golden log) and the landmarks along the way */
+function cutsIcon(k){
+  const W = (vb,inner)=>`<svg viewBox="${vb}" aria-hidden="true">${inner}</svg>`;
+  const st = (c,w)=>`stroke="${c}" stroke-width="${w}" stroke-linecap="round" fill="none"`;
+  switch(k){
+    case 'twig': return W('0 0 32 32',`<path d="M4 27 L27 6" ${st('#a8794a',3)}/><path d="M15 17 L22 20 M20 11 L26 13 M10 22 L8 15" ${st('#a8794a',2)}/><circle cx="26" cy="13" r="2.4" fill="#6fbf6a"/>`);
+    case 'branch': return W('0 0 32 32',`<path d="M3 26 L26 8" ${st('#8b5a2b',4)}/><path d="M12 18 L12 7 M18 13 L27 14 M8 22 L4 14" ${st('#8b5a2b',3)}/><ellipse cx="12" cy="6" rx="3.4" ry="2.4" fill="#58b05a"/><ellipse cx="27" cy="14" rx="3.2" ry="2.2" fill="#6fbf6a"/>`);
+    case 'log': return W('0 0 32 32',`<rect x="3" y="10" width="23" height="13" rx="3.5" fill="#8b5a2b"/><path d="M8 13 L22 13 M7 18 L21 18" stroke="#6b4423" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="26" cy="16.5" rx="4.2" ry="6.5" fill="#d8ab74" stroke="#6b4423" stroke-width="1.2"/><ellipse cx="26" cy="16.5" rx="1.8" ry="3" fill="none" stroke="#a8743f" stroke-width="1"/>`);
+    case 'golden': return W('0 0 32 32',`<rect x="3" y="10" width="23" height="13" rx="3.5" fill="#e3a521"/><path d="M8 13 L22 13 M7 18 L21 18" stroke="#b9780f" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="26" cy="16.5" rx="4.2" ry="6.5" fill="#ffe08a" stroke="#b9780f" stroke-width="1.2"/><path d="M8 2 L9.3 5.2 L12.5 6.5 L9.3 7.8 L8 11 L6.7 7.8 L3.5 6.5 L6.7 5.2 Z" fill="#fff6c4"/><path d="M26 25 L26.9 27.3 L29.2 28.2 L26.9 29.1 L26 31.4 L25.1 29.1 L22.8 28.2 L25.1 27.3Z" fill="#fff6c4"/>`);
+    case 'fallenlog': return W('0 0 36 24',`<rect x="2" y="7" width="29" height="11" rx="3" fill="#7a5230"/><path d="M7 10 L26 10 M6 15 L24 15" stroke="#5b3b20" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="31" cy="12.5" rx="3.6" ry="5.5" fill="#cfa06a" stroke="#5b3b20" stroke-width="1"/><path d="M11 7 L9 2 M20 7 L23 3" ${st('#58b05a',2)}/>`);
+    case 'stickpile': return W('0 0 32 28',`<path d="M3 22 L25 8" ${st('#9a6b3b',3)}/><path d="M6 12 L28 22" ${st('#8b5a2b',3)}/><path d="M4 18 L29 17" ${st('#a8794a',3)}/><path d="M10 25 L24 6" ${st('#7a5230',2.4)}/>`);
+    case 'dam': return W('0 0 64 24',`<rect x="1" y="2" width="62" height="6" rx="3" fill="#7a5230"/><rect x="1" y="9" width="62" height="6" rx="3" fill="#8b5a2b"/><rect x="1" y="16" width="62" height="6" rx="3" fill="#6b4423"/><path d="M8 5 L56 5 M6 12 L58 12 M10 19 L54 19" stroke="#4f321b" stroke-width="1" stroke-linecap="round" opacity=".7"/><path d="M12 2 L14 22 M30 2 L28 22 M46 2 L48 22" stroke="#caa06a" stroke-width="1" opacity=".5"/>`);
+    case 'lodge': return W('0 0 40 30',`<path d="M3 27 C3 11 14 3 20 3 C26 3 37 11 37 27 Z" fill="#7a5230"/><path d="M6 22 L34 14 M5 17 L30 9 M8 26 L36 20 M12 8 L33 24 M24 5 L9 20" stroke="#a8794a" stroke-width="1.6" stroke-linecap="round"/><path d="M15 27 C15 20 25 20 25 27 Z" fill="#1d1208"/>`);
+    case 'field': return W('0 0 44 30',`<path d="M1 28 C6 16 38 16 43 28 Z" fill="#3e9a4f"/><path d="M6 27 C12 20 32 20 38 27" stroke="#2f7d3d" stroke-width="1.4" fill="none"/><circle cx="30" cy="19" r="5.6" fill="#fff" stroke="#c9d3dc" stroke-width="1"/><ellipse cx="28" cy="18" rx="1.1" ry="1.6" fill="#9aa8b6"/><ellipse cx="32" cy="17" rx="1.1" ry="1.6" fill="#9aa8b6"/><ellipse cx="30" cy="21.5" rx="1.1" ry="1.5" fill="#9aa8b6"/><rect x="8" y="5" width="3.4" height="19" rx="1.6" fill="#ffcf3f" transform="rotate(-18 9 14)"/><rect x="7" y="3.5" width="5.4" height="5" rx="2" fill="#e6a919" transform="rotate(-18 9 6)"/>`);
+    case 'fish': return W('0 0 36 24',`<path d="M26 12 L35 4 L35 20 Z" fill="#f08a2a"/><ellipse cx="14" cy="12" rx="13" ry="8" fill="#ff9d3a"/><path d="M6 12 C10 8 18 8 22 12" stroke="#ffc178" stroke-width="2" fill="none"/><circle cx="7" cy="10" r="1.8" fill="#1b1209"/><path d="M13 5 L17 1 L19 6" fill="#f08a2a"/>`);
+    case 'frog': return W('0 0 32 26',`<ellipse cx="16" cy="17" rx="13" ry="8" fill="#4aa84f"/><circle cx="8" cy="9" r="5" fill="#5bc062"/><circle cx="24" cy="9" r="5" fill="#5bc062"/><circle cx="8" cy="8.5" r="2.4" fill="#fff"/><circle cx="24" cy="8.5" r="2.4" fill="#fff"/><circle cx="8.4" cy="8.6" r="1.2" fill="#10240f"/><circle cx="23.6" cy="8.6" r="1.2" fill="#10240f"/><path d="M9 19 Q16 24 23 19" stroke="#2c6a30" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
+    case 'duck': return W('0 0 36 28',`<ellipse cx="15" cy="19" rx="13" ry="7.5" fill="#f3d23a"/><circle cx="25" cy="10" r="6.5" fill="#f6dc57"/><path d="M30 10 L36 12 L30 14 Z" fill="#f08a2a"/><circle cx="26" cy="8.5" r="1.3" fill="#1b1209"/><path d="M8 18 Q14 14 20 19" stroke="#d6b21f" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
+    case 'turtle': return W('0 0 36 24',`<path d="M4 20 C4 6 24 4 28 20 Z" fill="#4a8f4d"/><path d="M10 18 C10 10 20 9 22 18 M16 8 L16 18" stroke="#2f6a33" stroke-width="1.3" fill="none"/><ellipse cx="31" cy="15" rx="5" ry="4" fill="#79b86c"/><circle cx="33" cy="14" r="1.1" fill="#10240f"/>`);
+    case 'dragonfly': return W('0 0 36 20',`<path d="M6 10 L30 10" stroke="#2fb7c9" stroke-width="3" stroke-linecap="round"/><ellipse cx="15" cy="5" rx="7" ry="2.4" fill="rgba(210,240,255,.7)"/><ellipse cx="22" cy="5" rx="7" ry="2.4" fill="rgba(210,240,255,.7)"/><ellipse cx="15" cy="15" rx="7" ry="2.4" fill="rgba(210,240,255,.7)"/><ellipse cx="22" cy="15" rx="7" ry="2.4" fill="rgba(210,240,255,.7)"/><circle cx="30" cy="10" r="2.4" fill="#1f8fa0"/>`);
+    case 'reeds': return W('0 0 24 40',`<path d="M8 40 L8 12 M15 40 L15 6" ${st('#4f8a4a',2)}/><rect x="6" y="6" width="4" height="12" rx="2" fill="#7a4a26"/><rect x="13" y="1" width="4" height="12" rx="2" fill="#8b5a2b"/><path d="M3 40 L1 18 M20 40 L23 20" ${st('#5ea057',1.6)}/>`);
+    case 'lily': return W('0 0 28 18',`<ellipse cx="14" cy="10" rx="12" ry="6.5" fill="#3f9d57"/><path d="M14 10 L24 6" stroke="#2c7b41" stroke-width="1.2"/><ellipse cx="17" cy="7" rx="3" ry="2" fill="#ffb8d0"/>`);
+    default: return '';
+  }
+}
+const cutsItemIcon = p => p>=90 ? cutsIcon('golden') : p>=60 ? cutsIcon('log') : p>=30 ? cutsIcon('branch') : p>0 ? cutsIcon('twig') : '';
+/* a one-off burst of golden leaves around the beaver for a Golden Log */
+const cutsBurst = () => '<span class="ctburst" aria-hidden="true">'+Array.from({length:18},(_,i)=>{
+  const a = i*(Math.PI*2/18)+(i%2?.15:0), d = 46+((i*37)%46);
+  return `<span style="--dx:${Math.round(Math.cos(a)*d)}px;--dy:${Math.round(Math.sin(a)*d)}px;--rot:${(i*67)%360}deg;--c:${['#ffd35c','#f5a524','#c7e36a','#ffe9a3'][i%4]}"></span>`;
+}).join('')+'</span>';
+/* the calendar of past days: one lily pad per day, filled in the colour of that day's score, today first */
+let cutsCalAll = false;
+function cutsDayInfo(key){
+  let raw=null; try{ raw = localStorage.getItem('bwb-cuts-'+key); }catch(e){}
+  if(!raw) return null;
+  try{ const o = JSON.parse(raw), a = o.a||[]; if(!a.length && !o.t) return null;
+    return {total:a.reduce((x,r)=>x+(r.p||0),0), n:a.length, done:a.length>=CUTS_N}; }catch(e){ return null; }
+}
+function cutsCalendar(){
+  const today = arcadeTodayKey(), days = [today, ...arcadePastDays()], cur = arcadeDay || today;
+  const infos = days.map(cutsDayInfo), played = infos.filter(Boolean).length, finished = infos.filter(x=>x&&x.done).length;
+  const LIM = 28, shown = cutsCalAll ? days : days.slice(0,LIM);
+  let lastMonth = null;
+  const pads = shown.map((k,i)=>{
+    const inf = infos[i], mo = new Date(k+'T12:00:00').toLocaleDateString(undefined,{month:'short'});
+    const label = mo!==lastMonth ? `<span class="ctday-mo">${mo}</span>` : ''; lastMonth = mo;
+    const cls = inf ? (inf.done ? ' done r-'+cutsRarity(Math.round(inf.total/CUTS_N)).k : ' part') : '';
+    return `${label}<button type="button" class="ctday${k===cur?' cur':''}${cls}" data-cday="${k}" aria-label="${esc(arcadeDayLabel(k))}${inf?', '+inf.total+' of 700'+(inf.done?'':', in progress'):''}"
+      title="${esc(arcadeDayLabel(k))}${inf?' — '+inf.total+'/700'+(inf.done?'':' (in progress)'):''}${k===today?' · today':''}"><b>${+k.slice(8)}</b></button>`;
+  }).join('');
+  return `<div class="ctcal"><div class="ctcal-h"><span>Past swims</span><em>Your record: ${played} of ${days.length} days played · ${finished} finished</em></div>
+    <div class="ctcal-grid">${pads}</div>
+    ${days.length>LIM?`<button type="button" class="pname ctcal-more" id="ctCalMore">${cutsCalAll?'Show fewer days':`Show all ${days.length} days`}</button>`:''}</div>`;
+}
+/* the scene follows the clock and the calendar: dawn, dusk and night skies, and leaves, snow, petals, sparkles or fireflies drifting through */
+function cutsScene(){
+  const d = new Date(), h = d.getHours(), m = d.getMonth();
+  const tod = h>=5&&h<8 ? 'dawn' : h>=8&&h<17 ? 'day' : h>=17&&h<20 ? 'dusk' : 'night';
+  const season = m>=8&&m<=10 ? 'fall' : (m===11||m<=1) ? 'winter' : m<=4 ? 'spring' : 'summer';
+  const kind = (tod==='night' && season!=='winter') || (tod==='dusk' && season==='summer') ? 'fireflies' : season==='fall' ? 'leaves' : season==='winter' ? 'snow' : season==='spring' ? 'petals' : 'sparkles';
+  const n = kind==='fireflies' ? 12 : 16;
+  const spans = Array.from({length:n},(_,i)=>`<span style="--x:${(i*37+11)%96}%;--y:${(i*53+7)%88}%;--d:${(kind==='snow'?9:7)+(i%5)*1.6}s;--delay:-${((i*1.7)%9).toFixed(1)}s;--sw:${(i%2?1:-1)*(20+(i%4)*14)}px;--sz:${(.7+(i%4)*.18).toFixed(2)}"></span>`).join('');
+  return {tod, season, html:`<div class="ctamb ctamb-${kind}" aria-hidden="true">${spans}</div>`};
+}
+/* the result as a 4:5 image, in the style of the player cards: safe to post (points and rarity only, no answers) */
+async function buildBrookCard(pz){
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  const W = 1080, H = 1350, PAD = 70, total = pz.a.reduce((x,r)=>x+r.p,0), tier = cutsTier(total);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
+  const svgImg = svg => loadImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ')));
+  const col = {common:'#b7a58a', uncommon:'#d49a4e', rare:'#79c2ff', legend:'#ffd35c', miss:'#ff8a7a'};
+  const bg = ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#127184'); bg.addColorStop(.5,'#0a3b4e'); bg.addColorStop(1,'#061c29');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  const sheen = ctx.createRadialGradient(W*.2,-80,40,W*.2,-80,900); sheen.addColorStop(0,'rgba(255,255,255,.2)'); sheen.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle = sheen; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 3;
+  for(let r=0;r<22;r++){ const y = 120+r*58, x = (r*173)%W; ctx.beginPath(); ctx.ellipse(x, y, 90+((r*29)%70), 12, 0, 0, Math.PI*2); ctx.stroke(); }
+  ctx.textAlign = 'left'; ctx.fillStyle = '#bfe8e4'; ctx.font = '600 26px "IBM Plex Mono", monospace';
+  try{ ctx.letterSpacing = '5px'; }catch(e){}
+  ctx.fillText('BWB WIFFLEBALL', PAD, 90);
+  ctx.textAlign = 'right'; ctx.fillText(pz.key==='practice' ? 'PRACTICE' : pz.key, W-PAD, 90);
+  try{ ctx.letterSpacing = '0px'; }catch(e){}
+  ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = '700 104px Oswald, Arial, sans-serif'; ctx.fillText('BROOKRILLION', W/2, 215);
+  /* the pool and the swimmer */
+  const cx = W/2, cy = 470, R = 200;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+  const pool = ctx.createRadialGradient(cx,cy+60,10,cx,cy,R); pool.addColorStop(0,'#1d8c96'); pool.addColorStop(.7,'#0d5367'); pool.addColorStop(1,'#08394a');
+  ctx.fillStyle = pool; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = 'rgba(143,240,228,.85)'; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(cx,cy,R+12,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,total/700)); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 4;
+  [[cx,cy+105,150,40],[cx,cy+105,115,30]].forEach(([x,y,rx,ry])=>{ ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.stroke(); });
+  const bImg = await svgImg(cutsBeaver()); if(bImg) ctx.drawImage(bImg, cx-150, cy-175, 300, 300);
+  /* tier + score */
+  const tg = ctx.createLinearGradient(W*.2,0,W*.8,0); tg.addColorStop(0,'#8ff0e4'); tg.addColorStop(1,'#ffd35c');
+  ctx.fillStyle = '#9ccfd1'; ctx.font = '600 28px "IBM Plex Mono", monospace'; try{ ctx.letterSpacing = '6px'; }catch(e){} ctx.fillText('MY SWIM', cx, 760); try{ ctx.letterSpacing = '0px'; }catch(e){}
+  ctx.fillStyle = tg; ctx.font = '700 118px Oswald, Arial, sans-serif'; ctx.fillText(tier.toUpperCase(), cx, 875);
+  ctx.fillStyle = '#fff'; ctx.font = '700 84px Oswald, Arial, sans-serif'; ctx.fillText(String(total), cx-52, 975);
+  ctx.fillStyle = '#9ccfd1'; ctx.font = '500 44px Oswald, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('/ 700', cx+(String(total).length*20)-30, 975);
+  /* the seven bends */
+  ctx.textAlign = 'center';
+  const gap = 14, pw = (W-PAD*2-gap*6)/7;
+  pz.a.forEach((r,i)=>{
+    const x = PAD+i*(pw+gap), rar = cutsRarity(r.p), c = col[rar.k];
+    ctx.fillStyle = 'rgba(4,26,36,.7)'; roundRect(ctx,x,1010,pw,84,42); ctx.fill();
+    ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '700 36px "IBM Plex Mono", monospace'; ctx.fillText(String(r.p), x+pw/2, 1064);
+  });
+  /* haul: how many of each */
+  const kinds = [['golden',90,101,'Golden Log'],['log',60,90,'Log'],['branch',30,60,'Branch'],['twig',1,30,'Twig']];
+  const counts = kinds.map(k=>pz.a.filter(r=>r.p>=k[1] && r.p<k[2]).length);
+  const imgs = await Promise.all(kinds.map(k=>svgImg(cutsIcon(k[0]))));
+  const cw = (W-PAD*2)/4;
+  kinds.forEach((k,i)=>{
+    const x = PAD+cw*i+cw/2;
+    if(imgs[i]){ ctx.globalAlpha = counts[i]?1:.35; ctx.drawImage(imgs[i], x-62, 1128, 52, 52); ctx.globalAlpha = 1; }
+    ctx.textAlign = 'left'; ctx.fillStyle = counts[i]?'#fff':'#6f9aa0'; ctx.font = '700 44px Oswald, Arial, sans-serif'; ctx.fillText('×'+counts[i], x-4, 1170);
+    ctx.fillStyle = '#9ccfd1'; ctx.font = '500 21px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(k[3], x-62, 1212);
+  });
+  ctx.textAlign = 'center'; ctx.fillStyle = '#7fb3b8'; ctx.font = '500 26px "IBM Plex Sans", Arial, sans-serif';
+  ctx.fillText('Swim Beaver Brook at bwbwiffleball.com', W/2, H-58);
+  return cv;
+}
+async function downloadBrookCard(pz){
+  const btn = document.getElementById('ctCard');
+  if(btn){ btn.disabled = true; btn.textContent = 'Building…'; }
+  try{
+    const cv = await buildBrookCard(pz);
+    cv.toBlob(blob=>{
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = `brookrillion_${pz.key}.png`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      if(btn){ btn.disabled = false; btn.textContent = 'Save result image'; }
+    }, 'image/png');
+  }catch(e){ if(btn){ btn.disabled = false; btn.textContent = 'Save result image'; } }
+}
 function renderDeepCuts(){
   setNav('arcade');
   if(cutsTick){ clearInterval(cutsTick); cutsTick = null; }
@@ -14130,6 +14343,7 @@ function renderDeepCuts(){
     }
     save();
   }
+  const scene = cutsScene();
   const idx = pz.a.length, done = idx>=CUTS_N;
   const total = pz.a.reduce((x,r)=>x+r.p,0);
   const running = !done && !!pz.t, between = !done && !pz.t && idx>0, fresh = !done && !pz.t && idx===0;
@@ -14142,12 +14356,26 @@ function renderDeepCuts(){
   const board = `<div class="ctboard"><div class="ctscore"><b id="ctScoreNum">${total}</b><span>/ 700</span></div>
       <div class="cttier">${done || idx>0 ? esc(cutsTier(total)) : running ? 'Swimming…' : 'Ready to swim'}</div></div>
       <div class="ctpips">${pips}</div>`;
-  /* the brook runs down the left edge: the beaver swims from the top (Beaver Brook) toward Brookside Field at the bottom, one landmark per tier */
-  const river = `<div class="ctriver" role="img" aria-label="${total} of 700 points downstream"><span class="ctr-top">Beaver Brook</span>
-      <div class="ctr-track"><i class="ctr-fill" style="height:${tierPct}%"></i>
-        ${CUTS_TIERS.slice(1).map(([t,nm])=>`<span class="ctr-mark${total>=t?' on':''}" style="top:${t/7}%">${esc(nm)}</span>`).join('')}
-        <span class="ctr-bvr" style="top:${tierPct}%">${cutsBeaver()}</span></div>
-      <span class="ctr-bot">Brookside Field</span></div>`;
+  /* the brook runs down the left edge: the beaver swims from the top (Beaver Brook) toward Brookside Field at the bottom, passing a landmark per tier */
+  const lastP = between && pz.a[idx-1] ? pz.a[idx-1].p : null;
+  const lastRar = lastP==null ? null : cutsRarity(lastP);
+  const landmarks = {200:'fallenlog', 300:'stickpile', 400:'', 500:'lodge', 600:'golden'};
+  const lilies = [[9,18],[33,58],[52,24],[76,54],[91,30]].map(([t,x])=>`<span class="ctr-lily" style="top:${t}%;left:${x}%">${cutsIcon('lily')}</span>`).join('');
+  const reeds = [12,39,63,86].map((t,i)=>`<span class="ctr-reeds" style="top:${t}%;${i%2?'transform:translateY(-50%) scaleX(-1)':''}">${cutsIcon('reeds')}</span>`).join('');
+  const river = `<div class="ctriver${lastRar?' ctr-react r-'+lastRar.k:''}" role="img" aria-label="${total} of 700 points downstream"><span class="ctr-top">Beaver Brook</span>
+      <div class="ctr-scene">
+        <div class="ctr-chan"><i class="ctr-fill" style="height:${tierPct}%"></i>${lilies}
+          <span class="ctr-dam${total>=400?' on':''}" style="top:${400/7}%">${cutsIcon('dam')}</span></div>
+        ${reeds}
+        ${CUTS_TIERS.slice(1).map(([t,nm])=>`<span class="ctr-mark${total>=t?' on':''}" style="top:${t/7}%">${landmarks[t]?`<i>${cutsIcon(landmarks[t])}</i>`:''}<b class="lbl">${esc(nm)}</b></span>`).join('')}
+        <span class="ctr-bvr" style="top:${tierPct}%">${cutsBeaver()}<span class="ctr-splash"></span>
+          ${lastP>0?`<span class="ctr-item">${cutsItemIcon(lastP)}</span>`:''}
+          ${lastP===0?'<span class="ctr-bub"><i></i><i></i><i></i></span>':''}
+          ${lastP>=90?cutsBurst():''}</span>
+        ${lastP==null?'':(()=>{ const c = lastP===0?'duck':lastP<30?'dragonfly':lastP<60?'turtle':lastP<90?'frog':'fish', say = {duck:'quack?',frog:'ribbit!'}[c]||'';
+          return `<span class="ctr-crit ctc-${c}" style="top:${tierPct}%"${say?` data-say="${say}"`:''}>${cutsIcon(c)}</span>`; })()}
+      </div>
+      <span class="ctr-bot"><i>${cutsIcon('field')}</i><b>Brookside Field</b></span></div>`;
   let body = '';
   const last = pz.a[idx-1];
   const lastBlock = between && last ? (()=>{
@@ -14156,7 +14384,7 @@ function renderDeepCuts(){
     const msg = !last.n ? `Time's up — no answer.` : last.p===0 ? `${who} isn't a match for that prompt.` : `${who}`;
     const obs = last.p ? Math.round((last.p-10)/90*100) : 0;
     return `<div class="ctresult r-${rar.k}"><div class="ctrq">${esc(pr.text)}</div>
-      <div class="ctrow"><div class="ctpts"><span>${last.p?'+':''}${last.p}</span><em>${rar.l}</em></div>
+      <div class="ctrow"><div class="ctpts">${last.p?`<i class="ctitem">${cutsItemIcon(last.p)}</i>`:''}<span>${last.p?'+':''}${last.p}</span><em>${rar.l}</em></div>
         <div class="ctrwho"><div class="ctrm">${msg}</div>
         ${last.p?`<div class="ctobs" title="How obscure this pick was among the valid answers"><i style="width:${obs}%"></i></div>
           <div class="ctobsl">${obs===0?'The most famous answer there was':`More obscure than ${obs}% of the ${pr.set.size} players who qualify`}</div>`:''}</div></div>
@@ -14189,6 +14417,7 @@ function renderDeepCuts(){
     body = `<div class="ctfinal"><div class="ctfl">Your swim</div><div class="ctft">${esc(cutsTier(total))}</div>
         <div class="ctfs"><b id="ctFinalNum">${total}</b> / 700</div></div>
       <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Prompt</th><th class="lft">You said</th><th class="mono">Pts</th><th class="lft">Deepest cut</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="ctcardrow"><button type="button" class="cardbtn" id="ctCard">Save result image</button></p>
       ${cutsMode==='daily' ? shareResultButton('ctShare') : '<p class="note"><button class="pname" id="ctAgain">Swim again →</button></p>'}`;
   }
   app.innerHTML = `
@@ -14199,13 +14428,16 @@ function renderDeepCuts(){
     <div class="segs" role="group" aria-label="Brookrillion mode">
       <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Swim</button>
       <button data-cm="practice" aria-pressed="${cutsMode==='practice'}">Practice</button>
-    </div>${arcadeDayPicker('bwb-cuts-')}
-    <div class="ctarena${running?' ctrunning':''}" id="ctArena"><div class="ctgrid">${river}<div class="ctmain">${board}<div class="ctbody">${body}</div></div></div></div>
+    </div>${cutsCalendar()}
+    <div class="ctarena${running?' ctrunning':''}" id="ctArena" data-tod="${scene.tod}" data-season="${scene.season}">${scene.html}<div class="ctgrid">${river}<div class="ctmain">${board}<div class="ctbody">${body}</div></div></div></div>
     <datalist id="ctNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     <p class="note">Points compare each answer with every other valid answer to the same prompt, using games played and honors from the league
       record: the most famous valid player earns 10 and the least famous 100. A wrong answer or a timeout earns nothing, and a name can only be used once per swim.</p>`;
   wireArcadeTabBar(); wirePlayerLinks();
-  wireArcadeDayPicker(()=>{ cutsMode='daily'; cutsError=null; renderDeepCuts(); });
+  app.querySelectorAll('[data-cday]').forEach(b=>b.addEventListener('click',()=>{
+    arcadeDay = b.dataset.cday===arcadeTodayKey() ? null : b.dataset.cday; cutsMode = 'daily'; cutsError = null; renderDeepCuts(); }));
+  const calMore = document.getElementById('ctCalMore');
+  if(calMore) calMore.addEventListener('click',()=>{ cutsCalAll = !cutsCalAll; renderDeepCuts(); });
   app.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{
     cutsMode = b.dataset.cm; cutsError = null;
     if(cutsMode==='daily') arcadeDay = null;
@@ -14219,6 +14451,7 @@ function renderDeepCuts(){
   const again = document.getElementById('ctAgain');
   if(again) again.addEventListener('click',()=>{ cutsPractice = newCutsRound(Math.random, 'practice'); cutsError = null; renderDeepCuts(); });
   if(done && cutsMode==='daily') wireShareButton('ctShare', ()=>cutsShareText(pz));
+  const cardBtn = document.getElementById('ctCard'); if(cardBtn) cardBtn.addEventListener('click',()=>downloadBrookCard(pz));
   /* the final score counts up from zero */
   if(done && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
     const nums = ['ctFinalNum','ctScoreNum'].map(id=>document.getElementById(id)).filter(Boolean), t0 = performance.now(), D = 900;
