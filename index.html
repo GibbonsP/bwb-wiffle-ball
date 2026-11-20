@@ -928,32 +928,90 @@ sup.seed.x{color:var(--clay)}
 .gresult p{margin:0}
 .gwin{background:color-mix(in srgb, var(--accent) 10%, transparent)}
 .glose{background:var(--clay-soft)}
-.ctboard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 8px}
-.ctscore{font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
-.ctscore b{font-size:2rem;line-height:1}
-.ctscore span{color:var(--muted);font-size:.9rem}
-.ctbar{flex:1 1 160px;height:12px;border-radius:999px;background:var(--line);overflow:hidden;min-width:120px}
-.ctbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#7a3cff));border-radius:999px;transition:width .4s ease}
-.cttier{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
-.ctchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
-.ctchip{min-width:2.4rem;text-align:center;padding:3px 9px;border-radius:999px;border:1px solid var(--line-strong);font-family:"IBM Plex Mono",monospace;font-size:.78rem;font-variant-numeric:tabular-nums}
-.ctchip.cthi{background:color-mix(in srgb,var(--accent) 22%,transparent);border-color:var(--accent)}
-.ctchip.ct0{color:var(--clay);border-color:var(--clay);background:var(--clay-soft)}
-.ctintro{padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:8px 0}
-.ctq{margin:14px 0 8px}
-.ctq .ctn{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.ctq h3{margin:4px 0 0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:clamp(1.3rem,4.6vw,1.8rem);line-height:1.2;text-wrap:balance}
-.cttimer{position:relative;height:30px;border-radius:8px;background:var(--line);overflow:hidden;margin:10px 0}
-.cttimer i{position:absolute;inset:0 auto 0 0;width:100%;background:var(--accent);transition:none}
-.cttimer.ctlow i{background:var(--clay)}
-.cttimer span{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;font-family:"IBM Plex Mono",monospace;font-size:.85rem;font-weight:700;color:#fff;mix-blend-mode:normal}
-.ctresult{margin:12px 0;padding:14px 18px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
-.ctresult.ctgood{border-color:var(--accent)}
-.ctresult.ctbad{border-color:var(--clay)}
-.ctrq{font-size:.78rem;color:var(--muted);margin-bottom:4px}
-.ctrm{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.25rem}
-.ctrnote{font-size:.84rem;color:var(--muted);margin-top:6px}
-.ctdone h3{margin:12px 0 2px;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.5rem}
+/* Deep Cuts */
+.ctarena{--r-common:#8b95a8;--r-uncommon:#38b26e;--r-rare:#4f8dff;--r-legend:#f5b73b;--r-miss:var(--clay);
+  position:relative;margin:14px 0 10px;padding:20px 20px 18px;border:1px solid var(--line-strong);border-radius:18px;overflow:hidden;
+  background:radial-gradient(130% 120% at 0% 0%,color-mix(in srgb,var(--accent) 22%,var(--card)),var(--card) 62%);box-shadow:var(--shadow)}
+.ctarena::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.9;
+  background:repeating-radial-gradient(circle at 108% -8%,transparent 0 16px,rgba(255,255,255,.04) 17px 18px)}
+.ctarena>*{position:relative}
+.ctboard{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"score tier" "bar bar";align-items:end;gap:6px 16px}
+.ctscore{grid-area:score;font-family:"Oswald","Arial Narrow",sans-serif;display:flex;align-items:baseline;gap:6px}
+.ctscore b{font-size:3rem;line-height:.95;font-variant-numeric:tabular-nums;text-shadow:0 0 22px color-mix(in srgb,var(--accent) 55%,transparent)}
+.ctscore span{color:var(--muted);font-size:1rem}
+.cttier{grid-area:tier;justify-self:end;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.05rem;letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--accent),#b58cff);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:right}
+.ctbar{grid-area:bar;height:10px;border-radius:999px;background:rgba(127,138,160,.22);overflow:hidden}
+.ctbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#b58cff);border-radius:999px;box-shadow:0 0 14px var(--accent);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.ctpips{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:14px 0 4px}
+.ctpip{display:flex;align-items:center;justify-content:center;height:38px;border-radius:9px;border:1px dashed rgba(127,138,160,.45);color:var(--muted);
+  font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-variant-numeric:tabular-nums;background:rgba(127,138,160,.08)}
+.ctpip.now{border-style:solid;border-color:var(--accent);color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.ctpip[class*=" r-"]{border:1px solid var(--rc);color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--rc) 22%,transparent)}
+.r-common{--rc:var(--r-common)}.r-uncommon{--rc:var(--r-uncommon)}.r-rare{--rc:var(--r-rare)}.r-legend{--rc:var(--r-legend)}.r-miss{--rc:var(--r-miss)}
+.ctpip.r-legend{box-shadow:0 0 12px color-mix(in srgb,var(--rc) 60%,transparent)}
+.ctbody{margin-top:14px}
+.ctintro{display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:6px 0 2px}
+.ctintro .ctdisc{width:150px;height:150px;flex:none}
+.ctintro .ctvinyl{animation:ctspin 6s linear infinite}
+.ctintro-txt{flex:1 1 260px;min-width:0}
+.ctintro-txt p{margin:0 0 12px}
+.ctgo{padding:11px 22px;font-size:1rem;letter-spacing:.03em;box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent);animation:ctpulse 2.2s ease-out infinite}
+.ctdisc{position:relative;border-radius:50%;box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.ctvinyl{display:block;width:100%;height:100%;border-radius:50%}
+.ctgloss{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 25deg,transparent 0 18%,rgba(255,255,255,.2) 24%,transparent 31% 68%,rgba(255,255,255,.13) 74%,transparent 81%)}
+.ctrun{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.ctdial{position:relative;width:138px;height:138px}
+.ctdial .ctdisc{position:absolute;inset:11px}
+.ctdial .ctvinyl{animation:ctspin 2.6s linear infinite}
+.ctdial.ctlow .ctvinyl{animation-duration:.9s}
+.ctring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ctring-bg{fill:none;stroke:rgba(127,138,160,.25);stroke-width:5}
+.ctring-fg{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 5px var(--accent))}
+.ctdial.ctlow .ctring-fg{stroke:var(--clay);filter:drop-shadow(0 0 7px var(--clay))}
+.ctnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:2rem;color:#fff;
+  text-shadow:0 1px 6px rgba(0,0,0,.7);font-variant-numeric:tabular-nums;pointer-events:none}
+.ctdial.ctlow .ctnum{animation:ctthrob .5s ease-in-out infinite alternate}
+.ctq .ctn{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ctq h3{margin:6px 0 0;font-family:"Oswald","Arial Narrow",sans-serif;font-size:clamp(1.35rem,4.8vw,2rem);line-height:1.15;text-wrap:balance}
+.ctform{margin-top:16px}
+.ctform input{font-size:1.05rem;padding:12px 14px;border-radius:10px;border-color:color-mix(in srgb,var(--accent) 55%,var(--line-strong))}
+.ctresult{padding:16px 18px;border-radius:14px;border:1px solid var(--rc,var(--line));background:color-mix(in srgb,var(--rc,transparent) 10%,var(--card));
+  box-shadow:0 0 28px color-mix(in srgb,var(--rc,transparent) 28%,transparent);animation:ctrise .35s cubic-bezier(.2,.9,.3,1.2)}
+.ctrq{font-size:.78rem;color:var(--muted);margin-bottom:8px}
+.ctrow{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.ctpts{display:flex;flex-direction:column;align-items:center;min-width:104px}
+.ctpts span{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:3.4rem;line-height:1;color:var(--rc);text-shadow:0 0 24px color-mix(in srgb,var(--rc) 65%,transparent);animation:ctpop .5s cubic-bezier(.2,1.4,.4,1)}
+.ctpts em{font-style:normal;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rc);font-weight:700;margin-top:4px}
+.ctrwho{flex:1 1 200px;min-width:0}
+.ctrm{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.3rem}
+.ctobs{height:8px;border-radius:999px;background:rgba(127,138,160,.25);overflow:hidden;margin:10px 0 6px}
+.ctobs i{display:block;height:100%;background:var(--rc);border-radius:999px;box-shadow:0 0 10px var(--rc)}
+.ctobsl{font-size:.8rem;color:var(--muted)}
+.ctrnote{font-size:.84rem;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.ctresult+p{margin:14px 0 0}
+.ctfinal{text-align:center;padding:10px 0 18px}
+.ctfl{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.ctft{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(2.2rem,9vw,3.6rem);line-height:1.05;margin:4px 0;
+  background:linear-gradient(90deg,var(--accent),#b58cff 55%,#f5b73b);-webkit-background-clip:text;background-clip:text;color:transparent;text-transform:uppercase;letter-spacing:.04em}
+.ctfs{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.15rem;color:var(--muted)}
+.ctfs b{font-size:2.2rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.ctbadge{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 18%,transparent);font-size:.76rem;white-space:nowrap}
+@keyframes ctspin{to{transform:rotate(360deg)}}
+@keyframes ctpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}70%,100%{box-shadow:0 0 0 14px transparent}}
+@keyframes ctthrob{to{transform:scale(1.15)}}
+@keyframes ctpop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes ctrise{0%{transform:translateY(10px);opacity:0}100%{transform:none;opacity:1}}
+@media (max-width:560px){
+  .ctarena{padding:16px 14px}
+  .ctscore b{font-size:2.5rem}
+  .ctpips{gap:5px}.ctpip{height:34px;font-size:.72rem}
+  .ctrun{grid-template-columns:auto 1fr;gap:14px}.ctdial{width:112px;height:112px}.ctdial .ctdisc{inset:9px}.ctnum{font-size:1.6rem}
+  .ctintro .ctdisc{width:110px;height:110px}
+  .ctpts{min-width:84px}.ctpts span{font-size:2.7rem}
+}
+@media (prefers-reduced-motion:reduce){.ctvinyl,.ctgo,.ctdial.ctlow .ctnum,.ctpts span,.ctresult{animation:none!important}.ctbar i{transition:none}}
 .gscoreboard{font-family:"Oswald","Arial Narrow",sans-serif;font-size:.95rem;letter-spacing:.03em;
   margin:14px 0;text-align:center;color:var(--ink)}
 .gtable{border-collapse:collapse;width:100%;max-width:640px;margin:0 auto;table-layout:fixed}
@@ -13907,9 +13965,58 @@ function cutsFame(n){
   }
   return _cutsFame[n];
 }
+/* more prompt families, all read straight from the league record: a franchise in one season, debut years, big single seasons,
+   a season's awards and home run / win leaders, name letters, career shape, World Series rings and the national tournament.
+   Anything with fewer than 6 or more than 65% of the league's players is dropped by cutsPool(). */
+function cutsExtraCats(){
+  const out = [];
+  const reg = n => P[n].seasons.filter(s=>s.type==='Regular');
+  const add = (key, text, test) => out.push({key, text, set:new Set(NAMES.filter(test))});
+  /* a franchise in one season */
+  TEAMNAMES.forEach(full=>{
+    (TEAMS[full].years||[]).forEach(y=>{
+      const set = new Set(NAMES.filter(n=>reg(n).some(s=>s.year===y && s.team===full)));
+      out.push({key:`ty:${full}|${y}`, text:`Name a player who played for the ${histNick(full,y)} in ${y}`, set});
+    });
+  });
+  /* debut years and per-year feats */
+  ALL_YEARS.forEach(y=>{
+    add('debut:'+y, `Name a player who debuted in ${y}`, n=>{ const ys = reg(n).map(s=>s.year); return ys.length && Math.min(...ys)===y; });
+    add('hryr:'+y, `Name a player who hit a home run in ${y}`, n=>reg(n).some(s=>s.year===y && !s.split && (s.HR||0)>0));
+    add('wyr:'+y, `Name a pitcher who won a game in ${y}`, n=>reg(n).some(s=>s.year===y && !s.split && (s.W||0)>0));
+    add('awyr:'+y, `Name a player who won a league award in ${y}`, n=>((P[n].honors||{}).awards||[]).some(a=>a.year===y && !HIDDEN_AWARD_YEARS.has(y)));
+  });
+  /* big single seasons */
+  [['hr10','hit 10 or more home runs in a season',s=>(s.HR||0)>=10],['hr15','hit 15 or more home runs in a season',s=>(s.HR||0)>=15],
+   ['hr20','hit 20 or more home runs in a season',s=>(s.HR||0)>=20],['rbi25','drove in 25 or more runs in a season',s=>(s.RBI||0)>=25],
+   ['rbi40','drove in 40 or more runs in a season',s=>(s.RBI||0)>=40],['h25','collected 25 or more hits in a season',s=>(s.H||0)>=25],
+   ['bb20','drew 20 or more walks in a season',s=>(s.BB||0)>=20],['avg45','hit .450 or better in a season (9+ games)',s=>(s.G_bat||0)>=9 && avg(s)>=.450],
+   ['w5','won 5 or more games in a season',s=>(s.W||0)>=5],['w8','won 8 or more games in a season',s=>(s.W||0)>=8],
+   ['k30','struck out 30 or more batters in a season',s=>(s.pK||0)>=30],['k50','struck out 50 or more batters in a season',s=>(s.pK||0)>=50],
+   ['sv3','saved 3 or more games in a season',s=>(s.SV||0)>=3],['era','posted an ERA under 2.00 in a season (12+ IP)',s=>(s.IPouts||0)>=36 && era(s)<2.0]]
+   .forEach(([k,t,f])=> add('season:'+k, `Name a player who ${t}`, n=>reg(n).some(s=>!s.split && f(s))));
+  /* name letters */
+  const lastL = n => nameLast(n)[0].toUpperCase();
+  [...new Set(NAMES.map(n=>n[0]))].sort().forEach(L=> add('first:'+L, `Name a player whose first name starts with ${L}`, n=>n[0]===L));
+  [...new Set(NAMES.map(lastL))].sort().forEach(L=> add('last:'+L, `Name a player whose last name starts with ${L}`, n=>lastL(n)===L));
+  /* career shape */
+  add('career:s5', 'Name a player who played 5 or more regular seasons', n=>new Set(reg(n).map(s=>s.year)).size>=5);
+  add('career:s8', 'Name a player who played 8 or more regular seasons', n=>new Set(reg(n).map(s=>s.year)).size>=8);
+  add('career:one', 'Name a player who played only one regular season', n=>new Set(reg(n).map(s=>s.year)).size===1);
+  add('career:f3', 'Name a player who played for 3 or more franchises', n=>new Set(reg(n).filter(s=>s.team).map(s=>s.team)).size>=3);
+  add('career:po', 'Name a player who appeared in the postseason', n=>((P[n].careerPO||{}).G_bat||0)+((P[n].careerPO||{}).G_pit||0)>0);
+  add('career:two', 'Name a player who both pitched and hit regularly', n=>{ const c=P[n].careerReg||{}; return (c.G_pit||0)>=15 && (c.G_bat||0)>=40; });
+  /* World Series rings by franchise, and the national tournament roster */
+  const rings = {};
+  NAMES.forEach(n=>(((P[n].honors||{}).rings)||[]).forEach(r=>{ (rings[r.team] = rings[r.team] || new Set()).add(n); }));
+  Object.keys(rings).forEach(full=> out.push({key:'ws:'+full, text:`Name a player who won a World Series with the ${(TEAMS[full]&&TEAMS[full].nick)||full}`, set:rings[full]}));
+  const bv = new Set(); (typeof BV_LIST!=='undefined'?BV_LIST:[]).forEach(t=>{ [...(t.batting||[]),...(t.pitching||[])].forEach(r=>{ if(P[r.name]) bv.add(r.name); }); });
+  out.push({key:'nwla:bv', text:'Name a player who suited up for the Brookside Beavers at NWLA Nationals', set:bv});
+  return out;
+}
 function cutsPool(){
   if(_cutsPool) return _cutsPool;
-  const cats = gridCats().slice();
+  const cats = [...gridCats(), ...cutsExtraCats()];
   ALL_YEARS.forEach(y=>{
     const set = new Set(NAMES.filter(n=>P[n].seasons.some(s=>s.year===y && s.type==='Regular' && ((s.G_bat||0)>0 || (s.G_pit||0)>0))));
     cats.push({key:'year:'+y, label:String(y), set});
@@ -13918,6 +14025,7 @@ function cutsPool(){
   return _cutsPool = cats.filter(c=>c.set.size>=6 && c.set.size<=max);
 }
 function cutsPromptText(c){
+  if(c.text) return c.text;
   const k = c.key, l = c.label;
   if(k.startsWith('team:')) return `Name a player who played for the ${l}`;
   if(k.startsWith('div:')) return `Name a player who played in the ${l}`;
@@ -13932,7 +14040,7 @@ function newCutsRound(rng, key){
   const pool = cutsPool().slice();
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   const kind = c => c.key.split(':')[0];
-  const cap = {team:2, div:1, award:2, stat:2, year:2};
+  const cap = {team:2, div:1, award:2, stat:2, year:2, first:1, last:1, ty:2, hryr:1, wyr:1, awyr:1, debut:1, career:1, season:2, ws:1, nwla:1};
   const picked = [], used = {};
   for(const c of pool){ const k = kind(c); if((used[k]||0) >= (cap[k]||2)) continue; picked.push(c); used[k] = (used[k]||0)+1; if(picked.length===CUTS_N) break; }
   for(const c of pool){ if(picked.length>=CUTS_N) break; if(!picked.includes(c)) picked.push(c); }
@@ -13966,6 +14074,23 @@ function cutsShareText(pz){
   const sq = pz.a.map(r=> r.p===0 ? '🟥' : r.p<30 ? '⬜' : r.p<60 ? '🟨' : r.p<90 ? '🟩' : '🟪').join('');
   return `BWB Deep Cuts ${pz.key}\n${sq}\n${tot}/700 · ${cutsTier(tot)}`;
 }
+/* loot-style rarity bands for a pick's points */
+const cutsRarity = p => p===0 ? {k:'miss', l:'Miss'} : p<30 ? {k:'common', l:'Common'} : p<60 ? {k:'uncommon', l:'Uncommon'} : p<90 ? {k:'rare', l:'Rare'} : {k:'legend', l:'Legendary'};
+/* the record: grooves, a coloured label and a static gloss laid over it (the disc spins, the shine doesn't) */
+function cutsVinyl(withText){
+  const grooves = [45,41,37,33,29,25,21].map(r=>`<circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,${r%8===1?.11:.05})" stroke-width=".6"/>`).join('');
+  return `<div class="ctdisc"><svg class="ctvinyl" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="48.5" fill="#0b0e15" stroke="#000" stroke-width="1"/>
+      <circle cx="50" cy="50" r="48" fill="url(#ctvg)"/>
+      <defs><radialGradient id="ctvg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#262b3a"/><stop offset="1" stop-color="#0b0e15"/></radialGradient></defs>
+      ${grooves}
+      <circle cx="50" cy="50" r="17" style="fill:var(--accent)"/>
+      <circle cx="50" cy="50" r="17" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".8"/>
+      ${withText?`<text x="50" y="48.5" text-anchor="middle" font-family="Oswald,Arial,sans-serif" font-weight="700" font-size="8" fill="#fff">BWB</text>
+      <text x="50" y="57" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-weight="600" font-size="4" fill="#fff" opacity=".85">DEEP CUTS</text>
+      <circle cx="50" cy="50" r="1.8" fill="#0b0e15"/>`:''}
+    </svg><div class="ctgloss"></div></div>`;
+}
 function renderDeepCuts(){
   setNav('arcade');
   if(cutsTick){ clearInterval(cutsTick); cutsTick = null; }
@@ -13983,43 +14108,56 @@ function renderDeepCuts(){
   const idx = pz.a.length, done = idx>=CUTS_N;
   const total = pz.a.reduce((x,r)=>x+r.p,0);
   const running = !done && !!pz.t, between = !done && !pz.t && idx>0, fresh = !done && !pz.t && idx===0;
-  const chips = pz.a.map((r,i)=>`<span class="ctchip ${r.p===0?'ct0':r.p>=60?'cthi':''}" title="${esc(pz.prompts[i].text)}">${r.p}</span>`).join('');
+  const pips = Array.from({length:CUTS_N}, (_,i)=>{
+    const r = pz.a[i];
+    if(r) return `<span class="ctpip r-${cutsRarity(r.p).k}" title="${esc(pz.prompts[i].text)}"><b>${r.p}</b></span>`;
+    return `<span class="ctpip${i===idx && running?' now':''}"><b>${i+1}</b></span>`;
+  }).join('');
   const tierPct = Math.min(100, total/7);
-  const board = `<div class="ctboard"><div class="ctscore"><b>${total}</b><span>/ 700</span></div>
-      <div class="ctbar" role="img" aria-label="Depth ${total} of 700"><i style="width:${tierPct}%"></i></div>
-      <div class="cttier">${done || idx>0 ? cutsTier(total) : running ? 'Digging…' : 'Ready to dig'}</div></div>`;
+  const board = `<div class="ctboard"><div class="ctscore"><b id="ctScoreNum">${total}</b><span>/ 700</span></div>
+      <div class="cttier">${done || idx>0 ? esc(cutsTier(total)) : running ? 'Digging…' : 'Ready to dig'}</div>
+      <div class="ctbar" role="img" aria-label="${total} of 700"><i style="width:${tierPct}%"></i></div></div>
+      <div class="ctpips">${pips}</div>`;
   let body = '';
   const last = pz.a[idx-1];
   const lastBlock = between && last ? (()=>{
-    const pr = pz.prompts[idx-1], best = cutsDeepest(pr);
+    const pr = pz.prompts[idx-1], best = cutsDeepest(pr), rar = cutsRarity(last.p);
     const who = last.n ? `<button class="pname" data-p="${esc(last.n)}">${esc(last.n)}</button>` : '';
-    const msg = !last.n ? `Time's up — no answer.` : last.p===0 ? `${who} isn't a match for that prompt.` : `${who} · <b>+${last.p}</b>`;
-    return `<div class="ctresult ${last.p===0?'ctbad':'ctgood'}"><div class="ctrq">${esc(pr.text)}</div><div class="ctrm">${msg}</div>
+    const msg = !last.n ? `Time's up — no answer.` : last.p===0 ? `${who} isn't a match for that prompt.` : `${who}`;
+    const obs = last.p ? Math.round((last.p-10)/90*100) : 0;
+    return `<div class="ctresult r-${rar.k}"><div class="ctrq">${esc(pr.text)}</div>
+      <div class="ctrow"><div class="ctpts"><span>${last.p?'+':''}${last.p}</span><em>${rar.l}</em></div>
+        <div class="ctrwho"><div class="ctrm">${msg}</div>
+        ${last.p?`<div class="ctobs" title="How obscure this pick was among the valid answers"><i style="width:${obs}%"></i></div>
+          <div class="ctobsl">${obs===0?'The most famous answer there was':`More obscure than ${obs}% of the ${pr.set.size} players who qualify`}</div>`:''}</div></div>
       <div class="ctrnote">${pr.set.size} players qualified. The deepest cut was <button class="pname" data-p="${esc(best)}">${esc(best)}</button> (+100).</div></div>`;
   })() : '';
   if(fresh){
-    body = `<div class="ctintro"><p><b>${CUTS_N} prompts, ${CUTS_MS/1000} seconds each.</b> Name any player who fits. Every match counts, but the obvious star
-      is worth the least — the deeper the cut, the more you score (10 to 100 points; 700 is perfect).</p>
-      <button type="button" class="cardbtn" id="ctStart">Start digging</button>
-      ${cutsMode==='daily'?'<p class="note">One dive per day. Once you start, the clock keeps running even if you close the page.</p>':''}</div>`;
+    body = `<div class="ctintro">${cutsVinyl(true)}<div class="ctintro-txt"><p><b>${CUTS_N} prompts, ${CUTS_MS/1000} seconds each.</b> Name any player who fits.
+      Every match counts, but the obvious star is worth the least. The deeper the cut, the more you score — 10 to 100 a prompt, 700 for a perfect dig.</p>
+      <button type="button" class="cardbtn ctgo" id="ctStart">Drop the needle</button>
+      ${cutsMode==='daily'?'<p class="note">One dig per day. Once you start, the clock keeps running even if you close the page.</p>':''}</div></div>`;
   } else if(running){
     const pr = pz.prompts[idx];
-    body = `<div class="ctq"><span class="ctn">Prompt ${idx+1} of ${CUTS_N}</span><h3>${esc(pr.text)}</h3></div>
-      <div class="cttimer" id="ctTimer" role="timer" aria-live="off"><i id="ctTimerBar"></i><span id="ctTimerTxt">${CUTS_MS/1000}s</span></div>
-      <form class="gpform" id="ctForm" autocomplete="off">
+    body = `<div class="ctrun"><div class="ctdial" id="ctTimer" role="timer" aria-live="off">
+        <svg class="ctring" viewBox="0 0 120 120" aria-hidden="true"><circle class="ctring-bg" cx="60" cy="60" r="56"/><circle class="ctring-fg" id="ctRing" cx="60" cy="60" r="56"/></svg>
+        ${cutsVinyl(false)}<span class="ctnum" id="ctTimerTxt">${CUTS_MS/1000}</span></div>
+      <div class="ctq"><span class="ctn">Prompt ${idx+1} of ${CUTS_N}</span><h3>${esc(pr.text)}</h3></div></div>
+      <form class="gpform ctform" id="ctForm" autocomplete="off">
         <input id="ctInput" list="ctNames" placeholder="Type a player's name…" aria-label="Your answer" autofocus>
         <button type="submit" class="cardbtn">Lock in</button>
       </form>
       ${cutsError?`<p class="gerr">${esc(cutsError)}</p>`:''}`;
   } else if(between){
-    body = `${lastBlock}<p><button type="button" class="cardbtn" id="ctNext">Next prompt →</button></p>`;
+    body = `${lastBlock}<p><button type="button" class="cardbtn ctgo" id="ctNext">Next prompt →</button></p>`;
   } else {
-    const rows = pz.prompts.map((pr,i)=>{ const r = pz.a[i], best = cutsDeepest(pr);
+    const rows = pz.prompts.map((pr,i)=>{ const r = pz.a[i], best = cutsDeepest(pr), rar = cutsRarity(r.p);
       return `<tr><td class="lft">${esc(pr.text)}</td>
-        <td class="lft">${r.n?`<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button>`:'—'}</td><td class="mono">${r.p}</td>
+        <td class="lft">${r.n?`<button class="pname" data-p="${esc(r.n)}">${esc(r.n)}</button>`:'—'}</td>
+        <td class="mono"><span class="ctbadge r-${rar.k}">${r.p} · ${rar.l}</span></td>
         <td class="lft"><button class="pname" data-p="${esc(best)}">${esc(best)}</button></td></tr>`; }).join('');
-    body = `<div class="ctdone"><h3>${esc(cutsTier(total))} · ${total} / 700</h3>
-      <p class="note">Every answer was worth 10 to 100. Here is how each prompt went, and the deepest cut that was available.</p></div>
+    body = `<div class="ctfinal"><div class="ctfl">Your dig</div><div class="ctft">${esc(cutsTier(total))}</div>
+        <div class="ctfs"><b id="ctFinalNum">${total}</b> / 700</div></div>
       <div class="tscroll"><table class="detail"><thead><tr><th class="lft">Prompt</th><th class="lft">You said</th><th class="mono">Pts</th><th class="lft">Deepest cut</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${cutsMode==='daily' ? shareResultButton('ctShare') : '<p class="note"><button class="pname" id="ctAgain">Dig again →</button></p>'}`;
   }
@@ -14032,8 +14170,7 @@ function renderDeepCuts(){
       <button data-cm="daily" aria-pressed="${cutsMode==='daily' && !arcadeDay}">Today's Dig</button>
       <button data-cm="practice" aria-pressed="${cutsMode==='practice'}">Practice</button>
     </div>${arcadeDayPicker('bwb-cuts-')}
-    ${board}${chips?`<div class="ctchips">${chips}</div>`:''}
-    <div class="ctbody">${body}</div>
+    <div class="ctarena${running?' ctrunning':''}" id="ctArena">${board}<div class="ctbody">${body}</div></div>
     <datalist id="ctNames">${NAMES.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     <p class="note">Points compare each answer with every other valid answer to the same prompt, using games played and honors from the league
       record: the most famous valid player earns 10 and the least famous 100. A wrong answer or a timeout earns nothing, and a name can only be used once per dig.</p>`;
@@ -14052,17 +14189,24 @@ function renderDeepCuts(){
   const again = document.getElementById('ctAgain');
   if(again) again.addEventListener('click',()=>{ cutsPractice = newCutsRound(Math.random, 'practice'); cutsError = null; renderDeepCuts(); });
   if(done && cutsMode==='daily') wireShareButton('ctShare', ()=>cutsShareText(pz));
+  /* the final score counts up from zero */
+  if(done && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
+    const nums = ['ctFinalNum','ctScoreNum'].map(id=>document.getElementById(id)).filter(Boolean), t0 = performance.now(), D = 900;
+    const step = t => { const k = Math.min(1,(t-t0)/D), v = Math.round(total*(1-Math.pow(1-k,3))); nums.forEach(n=>{ n.textContent = v; }); if(k<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
   if(running){
     const pr = pz.prompts[idx];
     const commit = name => {
       const p = cutsScore(pr, name);
       pz.a.push({n:name||null, p}); pz.t = null; cutsError = null; save(); renderDeepCuts();
     };
-    const bar = document.getElementById('ctTimerBar'), txt = document.getElementById('ctTimerTxt'), box = document.getElementById('ctTimer');
+    const ring = document.getElementById('ctRing'), txt = document.getElementById('ctTimerTxt'), box = document.getElementById('ctTimer');
+    const C = 2*Math.PI*56; ring.style.strokeDasharray = C;
     const tick = () => {
       if(!document.getElementById('ctTimer')){ clearInterval(cutsTick); cutsTick = null; return; }
       const left = Math.max(0, CUTS_MS-(Date.now()-pz.t));
-      bar.style.width = (100*left/CUTS_MS)+'%'; txt.textContent = Math.ceil(left/1000)+'s';
+      ring.style.strokeDashoffset = C*(1-left/CUTS_MS); txt.textContent = Math.ceil(left/1000);
       box.classList.toggle('ctlow', left<=7000);
       if(left<=0){ clearInterval(cutsTick); cutsTick = null; commit(null); }
     };
