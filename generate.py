@@ -6404,7 +6404,8 @@ function vsCanonicalRecord(r, y, canonical){
   return {w, l};
 }
 function teamRecordTable(t){
-  const yrs = t.years.slice().sort((a,b)=>a-b);
+  /* a year with no regular season (e.g. a fall-only 2020) has nothing to show in this table */
+  const yrs = t.years.filter(y=>((t.seasons[y]||{}).record||{}).Regular).sort((a,b)=>a-b);
   const cHA = {hw:0,hl:0,aw:0,al:0};
   const cVs = {Brookside:{w:0,l:0}, Brentwood:{w:0,l:0}};
   const srows = yrs.map(y=>{
