@@ -5887,6 +5887,57 @@ function renderDivision(canonical){
       <th class="lft">Team</th><th>Seasons</th><th class="lft">Years</th></tr></thead>
     <tbody>${memberRows}</tbody></table></div>`;
 
+  // ---- all-time division records: every team's regular-season record while in this division,
+  //      titles, and the division's record against the other division ----
+  const otherCanon = canonical==='Brookside' ? 'Brentwood' : 'Brookside';
+  const atm = {}, intr = [];
+  let iW=0, iL=0, iT=0, bestPct=null, bestRF=null, bestDiff=null;
+  years.forEach(y=>{
+    const ours = ((DB.divisions[y]||{})[divisionEraName(canonical,y)]||[]);
+    const theirs = new Set(((DB.divisions[y]||{})[divisionEraName(otherCanon,y)]||[]).map(([t])=>t));
+    let yW=0, yL=0, yT=0;
+    ours.forEach(([tm,mark])=>{
+      if(!TEAMS[tm]) return;
+      const r = standRow(tm, y); if(!r) return;
+      const a = atm[tm] || (atm[tm]={tm, W:0, L:0, RF:0, RA:0, yrs:0, titles:0, berths:0});
+      a.W+=r.W; a.L+=r.L; a.RF+=r.RF; a.RA+=r.RA; a.yrs++;
+      if(mark==='^'){ a.titles++; a.berths++; } else if(mark==='*') a.berths++;
+      Object.keys(r.vs).forEach(o=>{ if(theirs.has(o)){ yW+=r.vs[o].W; yL+=r.vs[o].L; yT+=r.vs[o].T||0; } });
+      if(r.W+r.L>=6){
+        if(!bestPct || r.PCT>bestPct.v) bestPct={v:r.PCT, r, y};
+      }
+      if(!bestRF || r.RF>bestRF.v) bestRF={v:r.RF, r, y};
+      if(!bestDiff || r.DIFF>bestDiff.v) bestDiff={v:r.DIFF, r, y};
+    });
+    if(yW+yL+yT) intr.push({y, W:yW, L:yL}); iW+=yW; iL+=yL; iT+=yT;
+  });
+  const atRows = Object.values(atm).sort((a,b)=>(b.titles-a.titles)||((b.W/(b.W+b.L||1))-(a.W/(a.W+a.L||1))));
+  const atTbl = atRows.length ? `<div class="tscroll"><table class="dir"><thead><tr>
+      <th class="lft">Team</th><th>Seasons</th><th>W</th><th>L</th><th class="mono">PCT</th><th>RF</th><th>RA</th>
+      <th title="division titles">Titles</th><th title="postseason berths from this division">Berths</th></tr></thead><tbody>
+      ${atRows.map(a=>`<tr><td class="lft">${TEAMS[a.tm].logo?`<img class="stlogo" src="${TEAMS[a.tm].logo}" alt="">`:''}
+        <button class="pname" data-t="${esc(a.tm)}">${esc(a.tm)}</button></td>
+        <td>${a.yrs}</td><td>${a.W}</td><td>${a.L}</td><td class="mono">${rate(a.W/((a.W+a.L)||1))}</td>
+        <td>${a.RF}</td><td>${a.RA}</td><td>${a.titles}</td><td>${a.berths}</td></tr>`).join('')}
+      </tbody></table></div>` : '';
+  const recLine = (lbl, o, val) => o ? `<li><span class="dy">${esc(lbl)}</span>
+      <button class="pname" data-t="${esc(o.r.name)}">${esc(histName(o.r.name, o.y))}</button>
+      <span class="dy">${o.y}</span><b>${val}</b></li>` : '';
+  const recsHTML = `<ol class="divchamps">
+      ${recLine('Best record', bestPct, `${bestPct?bestPct.r.W+'–'+bestPct.r.L:''}`)}
+      ${recLine('Most runs scored', bestRF, bestRF?bestRF.v:'')}
+      ${recLine('Best run differential', bestDiff, bestDiff?'+'+bestDiff.v:'')}</ol>`;
+  const intrHTML = (iW+iL) ? `<p class="pmeta"><b>${iW}–${iL}${iT?`–${iT}`:''}</b> (${rate(iW/(iW+iL))}) all-time against the
+      ${esc(otherCanon)} Division in regular-season games (${intr[0].y}–${intr[intr.length-1].y}).</p>
+      <div class="tscroll"><table class="dir"><thead><tr><th class="lft">Season</th><th>W</th><th>L</th><th class="mono">PCT</th></tr></thead><tbody>
+      ${intr.slice().reverse().map(r=>`<tr><td class="lft">${r.y}</td><td>${r.W}</td><td>${r.L}</td><td class="mono">${rate(r.W/((r.W+r.L)||1))}</td></tr>`).join('')}
+      </tbody></table></div>` : '';
+  const allTimeHTML = atRows.length ? `<h3 class="hsub">All-Time Division Records</h3>
+    <p class="pmeta">Regular-season records of every club <i>while in this division</i>, ${years[0]}–${years[years.length-1]}.
+    Single-season marks are for teams that played at least 6 games.</p>
+    ${atTbl}${recsHTML}
+    <h3 class="hsub">Against the ${esc(otherCanon)} Division</h3>${intrHTML}` : '';
+
   const dlogoKey = divisionEraName(canonical, divYear);
   const dlogo = (DB.divisionLogos||{})[dlogoKey] || (DB.divisionLogos||{})[canonical];
   const dwide = /^(North|South)$/.test(dlogoKey) && (DB.divisionLogos||{})[dlogoKey];
@@ -5915,6 +5966,7 @@ function renderDivision(canonical){
     ${standTable}
     <p class="lead"><sup class="seed z">z</sup> division winner &nbsp; <sup class="seed x">x</sup> clinched postseason berth</p>
     ${champsHTML}
+    ${allTimeHTML}
     ${asgHistoryHTML}
     ${asgCaptainsHTML}
     ${asgStatsHTML}
