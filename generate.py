@@ -4533,7 +4533,7 @@ function playerMilestones(pl){
       }
       reached.push({st, T, year:Y, ev});
     }
-    if(byYear[latest]){
+    if(byYear[latest]!==undefined){
       const nextT = (Math.floor(total/MSP_STEP)+1)*MSP_STEP, left = nextT - total;
       if(left<=MSP_STEP/2) next.push({st, T:nextT, left});
     }
