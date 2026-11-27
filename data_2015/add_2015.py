@@ -13,6 +13,11 @@ NICK={'Panthers':'Brookside Panthers','Eagles':'Brookside Kraken','Manatees':'Be
       'Mustangs':'Brentwood Mustangs','Flying Squirrels':'Brookside Squirrels','Squirrels':'Brookside Squirrels'}
 NAMEFIX={'Nima Khodakdah':'Nima Khodakhah'}
 TG=40
+_g=json.load(open('games2015.json'))
+PLAYED=collections.Counter()
+for _x in _g:
+    if _x['phase']=='Regular':
+        PLAYED[NICK[_x['a'][0]]]+=1;PLAYED[NICK[_x['h'][0]]]+=1   # forfeits (in the standings, not on the game list) carry no stats
 # ---------- training frame (2016-2020 regular season, real fields) ----------
 rec=[]
 for n,p in P.items():
@@ -87,6 +92,7 @@ for k in ('pH','pBB','pK'):
     for n,v in zip(pn,alloc([pit[n][k] for n in pn])):pit[n][k+'i']=v
 # integer batting lines
 B={}
+CAP={r['name']:sum(PLAYED[t] for t in r['teams']) for _,r in F.iterrows()}
 for n in bn:
     v=bat[n];PA=int(round(v['PA']));H=v['Hi'];HR=v['HR'];BB=v['BBi'];HBP=v['HBPi'];AB=PA-BB-HBP
     if AB<H:AB=H;PA=AB+BB+HBP
@@ -97,11 +103,11 @@ for n in bn:
         elif b3>0:b3-=1
         else:break
     b1=H-HR-b2-b3;PA=AB+BB+HBP
-    B[n]=dict(G_bat=int(min(max(round(gm.predict(pd.DataFrame({'PA':[PA]}))[0]),1),TG)),AB=AB,R=max(v['Ri'],HR),**{'1B':b1,'2B':b2,'3B':b3},HR=HR,RBI=v['RBI'],BB=BB,K=min(v['Ki'],max(AB-H,0)),HBP=HBP,H=H,PA=PA,TB=b1+2*b2+3*b3+4*HR)
+    B[n]=dict(G_bat=int(min(max(round(gm.predict(pd.DataFrame({'PA':[PA]}))[0]),1),CAP[n])),AB=AB,R=max(v['Ri'],HR),**{'1B':b1,'2B':b2,'3B':b3},HR=HR,RBI=v['RBI'],BB=BB,K=min(v['Ki'],max(AB-H,0)),HBP=HBP,H=H,PA=PA,TB=b1+2*b2+3*b3+4*HR)
 Pt={}
 for n in pn:
     v=pit[n];r=F[F.name==n].iloc[0]
-    Pt[n]=dict(G_pit=max(v['G'],int(r.W+r.L+r.SV)),IPouts=v['IPouts'],pR=int(v['ER']),ER=int(v['ER']),pH=v['pHi'],pBB=v['pBBi'],pK=v['pKi'],W=int(r.W),L=int(r.L),SV=int(r.SV))
+    Pt[n]=dict(G_pit=min(max(v['G'],int(r.W+r.L+r.SV)),CAP[n]),IPouts=v['IPouts'],pR=int(v['ER']),ER=int(v['ER']),pH=v['pHi'],pBB=v['pBBi'],pK=v['pKi'],W=int(r.W),L=int(r.L),SV=int(r.SV))
 ZERO=['SB','CS','SF','SH','pHB','CG','BS','G_fld','INN','TC','PO','A','E','DP','GS_pit']
 # ---------- games / teams ----------
 games=json.load(open('games2015.json'));GM={}
@@ -171,8 +177,7 @@ for n in F.name:
 # NOTE roster stat rows on split players must equal split rows (done above); recompute 1B etc already.
 for tm,nick in NB.items():
     w,l,rf,ra,gn=prec(tm,'Regular');W,L=OFFICIAL[tm]
-    scale=TG/gn if gn else 1
-    RF=round(rf*scale) if gn<TG else rf;RA=round(ra*scale) if gn<TG else ra
+    RF,RA=rf,ra   # forfeits have no runs, so team runs are just the recorded games
     pw,pl,prf,pra,pg_=prec(tm,'Playoffs')
     ts=T[tm];ts['seasons']['2015']={'roster':teamroster.get(tm,[]),'name':nick,'games':tgames[tm],
         'record':{'Regular':{'W':W,'L':L,'T':0,'RF':RF,'RA':RA},**({'Playoffs':{'W':pw,'L':pl,'T':0,'RF':prf,'RA':pra}} if pg_ else {})}}

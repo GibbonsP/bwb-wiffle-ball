@@ -5264,7 +5264,6 @@ function standRow(name, y){
   });
   const off = (s.record||{}).Regular;
   if(off && off.W+off.L+(off.T||0) > r.W+r.L+r.T){
-    if(off.RF!=null && (r.W+r.L+r.T) < 0.9*(off.W+off.L+(off.T||0))){ r.RF = off.RF; r.RA = off.RA; }   // list is missing many scores: use the club's season totals
     r.W = off.W; r.L = off.L; r.T = off.T||0; }   // forfeits aren't in the game list
   r.PCT = (r.W+r.L) ? r.W/(r.W+r.L) : 0;
   r.DIFF = r.RF - r.RA;
