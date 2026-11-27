@@ -1419,7 +1419,9 @@ a{color:var(--accent)}
   .pweek-row{flex-direction:column;align-items:flex-start;gap:4px}
   .pweek-wl{display:inline}
 }
-.awyear{margin-bottom:20px}
+.awyear{margin-bottom:20px;scroll-margin-top:64px}
+.awpills{position:sticky;top:0;z-index:4;background:var(--paper);margin:10px 0 14px;padding:8px 0;border-bottom:1px solid var(--line)}
+@media (max-width:700px){.chips.awpills:has(> :nth-child(8)){position:sticky;padding-left:16px;padding-right:16px}}   /* the phone chip-row rule makes rows relative; the year bar stays pinned */
 .awyear h4{font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.2rem;margin:0 0 8px}
 .awyear h5{font-size:.66rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
 td.am{white-space:normal;color:var(--muted);font-size:.8rem;max-width:32ch}
@@ -8461,9 +8463,10 @@ function awardsSection(){
     } else {
       inner=tbl(list, y);
     }
-    return `<div class="awyear"><h4>${y}</h4>${inner}</div>`;
+    return `<div class="awyear" id="aw-${y}"><h4>${y}</h4>${inner}</div>`;
   }).join('');
-  return `<h3 class="hsub" id="h-awards">Annual Awards</h3>
+  const pills = `<div class="chips awpills" role="group" aria-label="Jump to a year">${yrs.map((y,i)=>`<button data-awy="${y}" aria-pressed="${i===0}">${y}</button>`).join('')}</div>`;
+  return `<h3 class="hsub" id="h-awards">Annual Awards</h3>${pills}
     <p class="lead">League awards by year, ${yrs[yrs.length-1]}–${yrs[0]}. 2016 and earlier (plus 2017)
     were voted by division.</p>${blocks}`;
 }
@@ -8555,6 +8558,25 @@ function renderAwards(){
   app.querySelectorAll('[data-at]').forEach(b=>b.addEventListener('click',()=>{
     awardsTab = b.dataset.at; renderAwards();
   }));
+  /* year pills: jump to that year's awards, and follow along as the page scrolls */
+  const pillBtns = [...app.querySelectorAll('[data-awy]')];
+  if(pillBtns.length){
+    const mark = y => pillBtns.forEach(b=>{ const on = b.dataset.awy===String(y); b.setAttribute('aria-pressed', on);
+      if(on){ const bar = b.parentElement, l = b.offsetLeft - bar.clientWidth/2 + b.offsetWidth/2; if(bar.scrollWidth>bar.clientWidth) bar.scrollTo({left:Math.max(0,l)}); } });
+    pillBtns.forEach(b=>b.addEventListener('click',()=>{
+      const el = document.getElementById('aw-'+b.dataset.awy); if(!el) return;
+      el.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+      mark(b.dataset.awy);
+    }));
+    let tick = false;
+    const onScroll = () => { if(!document.querySelector('.awpills')){ removeEventListener('scroll', onScroll); return; }
+      if(tick) return; tick = true;
+      requestAnimationFrame(()=>{ tick = false;
+        const secs = [...app.querySelectorAll('.awyear')]; let cur = secs[0];
+        secs.forEach(sec=>{ if(sec.getBoundingClientRect().top <= 90) cur = sec; });
+        if(cur) mark(cur.id.slice(3)); }); };
+    addEventListener('scroll', onScroll, {passive:true});
+  }
 }
 
 /* every award tied to a franchise, resolved through the same team-
