@@ -5305,6 +5305,8 @@ function divisionEraName(canonical, year){
   return canonical;
 }
 const PLAYOFFS = DB.playoffs || {};
+/* 2012–2014: final standings only (no game logs or stat lines survive), kept as plain W-L tables */
+const OLD_STAND = DB.oldStandings || {};
 /* which postseason round a game belongs to: the two division series (named
    "Wild Card" through 2024, "Divisional Series" from 2025 on) or the Final
    (branded "World Series"), determined by matching the two teams against
@@ -5587,12 +5589,52 @@ function renderSeries(year, roundKey){
   document.querySelectorAll('table.sortable').forEach(makeSortable);
 }
 
+/* the league's first three seasons: win-loss tables from the league's own records, with the seeds that reached the postseason */
+function renderOldStandings(chips){
+  const y = standYear, data = OLD_STAND[y];
+  const seedMark = { '^':'<sup class="seed z" title="division winner">z</sup>',
+                     '*':'<sup class="seed x" title="clinched postseason berth">x</sup>' };
+  const pct = r => (r.W+r.L) ? r.W/(r.W+r.L) : 0;
+  const stMark = n => { const lg=teamLogoForYear(n, y); return lg
+    ? `<img class="stlogo" src="${lg}" alt="">`
+    : `<span class="clubdot" style="--cd:${teamAccent(n, y)||'var(--line-strong)'}"></span>`; };
+  const tbl = list => {
+    const lead = list[0];
+    const gb = r => { const v = ((lead.W-r.W)+(r.L-lead.L))/2; return v<=0 ? '—' : (Number.isInteger(v)?v:v.toFixed(1)); };
+    return `<div class="tscroll"><table class="dir stand"><thead><tr><th class="lft">Team</th><th>W</th><th>L</th>
+      <th class="mono">PCT</th><th class="mono">GB</th></tr></thead><tbody>${list.map((r,i)=>`<tr>
+      <td class="lft"><span class="rk">${i+1}</span>${stMark(r.full)}${histTeamLink(r.full, y)}${seedMark[r.mk]||''}</td>
+      <td>${r.W}</td><td>${r.L}</td><td class="mono">${rate(pct(r))}</td><td class="mono">${gb(r)}</td></tr>`).join('')}</tbody></table></div>`;
+  };
+  const divs = Object.keys(data);
+  const html = divs.map(dn=>{
+    if(dn==='League') return tbl(data[dn]);
+    const dlogo = (DB.divisionLogos||{})[dn];
+    return `<h4 class="divh">${dlogo?`<img class="divlogo${/^(North|South)$/.test(dn)?' wide':''}" src="${dlogo}" alt="${esc(dn)} Division">`:''}${esc(dn)} Division</h4>${tbl(data[dn])}`;
+  }).join('');
+  const hasDiv = divs.some(dn=>dn!=='League');
+  app.innerHTML = `
+    <div class="phead"><h2>Standings</h2></div>
+    ${chips}
+    ${html}
+    <p class="lead">${hasDiv?'<sup class="seed z">z</sup> division winner &nbsp; ':''}<sup class="seed x">x</sup> ${hasDiv?'clinched postseason berth':'reached the postseason'}</p>
+    ${PLAYOFFS[String(y)]?`<h3 class="divh">${y} Postseason</h3>${playoffBracket(y)}`:''}
+    <p class="note">${y} final standings from the league's own records. Game scores, runs and stat lines weren't kept for 2012–2014,
+    so only each club's win-loss record is shown. Clubs are shown by the name they used that season; the link opens the franchise page.</p>`;
+  app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ standYear=+b.dataset.sy; renderStandings(); }));
+  app.querySelectorAll('[data-div]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/div/'+encodeURIComponent(b.dataset.div); }));
+  app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{ teamYear=null; location.hash='#/t/'+encodeURIComponent(b.dataset.t); }));
+  app.querySelectorAll('.pname[data-series]').forEach(b=>b.addEventListener('click',()=>{
+    const [yy,rk] = b.dataset.series.split('|'); location.hash = '#/series/'+yy+'/'+rk; }));
+  app.querySelectorAll('.pname[data-g]').forEach(b=>b.addEventListener('click',()=>{ location.hash='#/g/'+b.dataset.g; }));
+}
 function renderStandings(){
   setNav('standings');
-  const yrs = ALL_YEARS.filter(y=>TEAMNAMES.some(n=>standRow(n,y)));
+  const yrs = [...new Set([...Object.keys(OLD_STAND).map(Number), ...ALL_YEARS.filter(y=>TEAMNAMES.some(n=>standRow(n,y)))])].sort((a,b)=>a-b);
   if(!yrs.includes(standYear)) standYear = yrs[yrs.length-1];
   const chips = `<div class="chips">${yrs.map(y=>
     `<button data-sy="${y}" aria-pressed="${standYear===y}">${y}</button>`).join('')}</div>`;
+  if(OLD_STAND[standYear]) return renderOldStandings(chips);
   let rows = TEAMNAMES.map(n=>standRow(n, standYear)).filter(Boolean)
     .sort((a,b)=> b.PCT-a.PCT || b.DIFF-a.DIFF);
   const gbf = lead => r => {
