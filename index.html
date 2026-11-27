@@ -2453,7 +2453,7 @@ function teamOfPlayer(x, year, isCareer){
   }
   return {label: esc(TEAMS[team] ? histName(team, yr) : team),
     html: leadTmLink(team, ly, esc(TEAMS[team] ? histName(team, yr) : team)), lt: team, ly,
-    logo: TEAMS[team] ? teamLogoForYear(team, yr) : null, logo2:null};
+    logo: teamLogoForYear(team, yr), logo2:null};
 }
 /* a team name/logo on the Leaders page that opens that franchise's page — on the season being
    viewed when there is one (data-ty), otherwise on its default (latest) season */
@@ -2513,7 +2513,7 @@ function teamHistoryChips(pl){
   if(!teams.length) return '—';
   return `<span class="tmchips">${teams.map(t=>{
     const lastYr = t.stints[t.stints.length-1].to;
-    const logo = TEAMS[t.team] ? teamLogoForYear(t.team, lastYr) : null;
+    const logo = teamLogoForYear(t.team, lastYr);
     const label = TEAMS[t.team] ? histName(t.team, lastYr) : t.team;
     const yrs = t.stints.map(s=>s.from===s.to?String(s.from):`${s.from}–${s.to}`).join(', ');
     return `<button class="pname tmchip" data-t="${esc(t.team)}" title="${esc(label)} · ${yrs}">${logo
@@ -4675,7 +4675,7 @@ function detail(name){
      finished the year with, matching how curTeamLabel already reads. */
   const curLogoTeam = curTeamEntry && curTeamEntry.team
     ? curTeamEntry.team.split(' / ').pop() : null;
-  const curLogo = curLogoTeam && TEAMS[curLogoTeam] ? teamLogoForYear(curLogoTeam, LATEST_YEAR) : null;
+  const curLogo = curLogoTeam && teamLogoForYear(curLogoTeam, LATEST_YEAR);
   /* most recent team is the Gladiators → purple is the page's main colour (top lines, charts, accents) */
   /* Bananas folded after 2024, so "latest team" is the test there: yellow, not their green */
   if(String(lt).split(' / ').pop() === 'Brentwood Bananas'){ const pa = primaryAccent('Brentwood Bananas', ltYear); if(pa) app.style.setProperty('--tc', pa); }
@@ -5327,7 +5327,7 @@ function gameTag(g){
   return raw ? playoffRound(+raw.date.slice(0,4), raw.away.team, raw.home.team) : 'Postseason';
 }
 function pbTeam(seedNo, t, isWin, year){
-  const full = t.full && TEAMS[t.full] ? t.full : null;
+  const full = t.full && franchiseIsLinkable(t.full) ? t.full : null;   // a folded franchise (Sox, Royals…) has its page and logo too
   const col = full ? teamAccent(full, year) : 'var(--line-strong)';
   const nm = full ? histName(full, year) : t.nick;
   const logo = full ? teamLogoForYear(full, year) : null;
@@ -5393,7 +5393,7 @@ function playoffBracket(year){
   const finalists = [winOf('brookside'), winOf('brentwood')];
   const finalRows = finalists.map(t=>pbTeam(null, t, t.nick===p.champion, year)).join('');
   const finalGids = seriesGids(year, finalists[0] && finalists[0].full, finalists[1] && finalists[1].full);
-  const champFull = p.championFull && TEAMS[p.championFull] ? p.championFull : null;
+  const champFull = p.championFull && franchiseIsLinkable(p.championFull) ? p.championFull : null;
   const champCol = colorsFor(champFull, year) || {};
   const champLabel = champFull
     ? `<button class="pname" data-t="${esc(champFull)}">${esc(histName(champFull, year))}</button>`
@@ -5509,7 +5509,7 @@ function renderSeries(year, roundKey){
   const dateLabel = iso => { const d=new Date(iso+'T00:00:00');
     return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}); };
   const gameRowHTML = (full, runs, win) => {
-    const logo = TEAMS[full] ? teamLogoForYear(full, year) : null;
+    const logo = franchiseIsLinkable(full) ? teamLogoForYear(full, year) : null;
     return `<div class="pb-row${win?' win':''}" style="--cd:${teamAccent(full, year)||'var(--line-strong)'}">
       ${logo?`<img class="pblogo" src="${logo}" alt="">`:'<span class="dot"></span>'}
       ${histTeamLink(full, year)}<b class="gscore">${runs}</b></div>`;
@@ -7179,10 +7179,10 @@ function renderRecords(){
     .filter(s2=>s2.year===x.y && s2.type==='Regular' && s2.split)
     .map(s2=>s2.team);
   const sLogo = x => {
-    if(x.s.team) return {logo: TEAMS[x.s.team] ? teamLogoForYear(x.s.team, x.y) : null, logo2:null};
+    if(x.s.team) return {logo: teamLogoForYear(x.s.team, x.y), logo2:null};
     const [t1, t2] = splitTeamsOf(x);
-    return {logo: t1 && TEAMS[t1] ? teamLogoForYear(t1, x.y) : null,
-      logo2: t2 && TEAMS[t2] ? teamLogoForYear(t2, x.y) : null};
+    return {logo: t1 && teamLogoForYear(t1, x.y),
+      logo2: t2 && teamLogoForYear(t2, x.y)};
   };
   const catS = (title, f, fmt, o={}) => {
     let a = seasonPool;
@@ -7477,7 +7477,7 @@ function renderRecords(){
     const items = streaks.slice(0,10).map(x=>{
       const team = x.g[x.side].team, yr = +x.end.slice(0,4);
       return {n:x.n, v:x.v, tm:`${x.start===x.end?x.start:`${x.start} – ${x.end}`}${x.ongoing?' · ongoing':''} · ${esc(histNick(team,yr))}`,
-        logo: TEAMS[team] ? teamLogoForYear(team, yr) : null};
+        logo: teamLogoForYear(team, yr)};
     });
     return items.length ? llist(title, items, fmt||(v=>v)) : '';
   };
