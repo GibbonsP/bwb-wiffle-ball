@@ -6544,10 +6544,9 @@ function teamRecordTable(t){
     const R=((t.seasons[y]||{}).record||{}).Regular;
     if(R){ cR.W+=R.W; cR.L+=R.L; cR.T+=R.T||0; cR.RF+=R.RF; cR.RA+=R.RA; }
   });
+  oldSeasonsFor(t.name).forEach(o=>{ cR.W += o.W; cR.L += o.L; });   // 2012–2014 count toward the record (runs and splits start in 2015)
   const cGp = cR.W+cR.L, cDiff = cR.RF-cR.RA;
-  /* runs, splits and the division records only exist from 2015 on, so with earlier (record-only) seasons above, the totals row says which seasons it adds up */
-  const totalLabel = oldRows ? (yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`) : 'All-Time';
-  const totalRow = `<tr><td class="lft">${totalLabel}</td><td class="lft"></td><td class="lft"></td>
+  const totalRow = `<tr><td class="lft">All-Time</td><td class="lft"></td><td class="lft"></td>
     <td>${cR.W}</td><td>${cR.L}</td><td class="mono">${cGp?rate(cR.W/cGp):'—'}</td>
     <td class="lft"></td><td class="lft"></td>
     <td>${cR.RF}</td><td>${cR.RA}</td><td>${cDiff>0?'+':''}${cDiff}</td>
@@ -6892,17 +6891,20 @@ function teamDetail(name){
     <button data-y="all" aria-pressed="${teamYear==='all'}">All years</button>
     ${yrs.map(y=>`<button data-y="${y}" aria-pressed="${teamYear===y}">${y}</button>`).join('')}
   </div>`;
-  const fr=t.record, g=fr.W+fr.L+fr.T;
+  /* the 2012–2014 seasons (record only) count toward a franchise's record, season count and first year */
+  const olds = oldSeasonsFor(name);
+  const fr = {...t.record, W:t.record.W + olds.reduce((a,o)=>a+o.W,0), L:t.record.L + olds.reduce((a,o)=>a+o.L,0)};
+  const g=fr.W+fr.L+fr.T, nSeasons = t.years.length + olds.length, firstYr = olds.length ? olds[0].y : t.firstYear;
   /* the Process page keeps its current blue for every season, including 2017 (Wildcats purple stays on the player circles only) */
   setTeamVars(name, teamYear==='all' || name==='Glenwood Process' ? null : +teamYear);
   const logoImg = t.logo ? `<img class="tlogo" src="${t.logo}" alt="">` : '';
   const hero = FRANCHISE_COLORS[name] ? `<div class="thero">
       <div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
-      <p class="tsub"><b>${fr.W}–${fr.L}</b> regular · ${t.years.length} season${t.years.length>1?'s':''}
-        · ${t.firstYear}–${t.lastYear}${t.aka&&t.aka.length?` · aka ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}`:''}</p>
+      <p class="tsub"><b>${fr.W}–${fr.L}</b> regular · ${nSeasons} season${nSeasons>1?'s':''}
+        · ${firstYr}–${t.lastYear}${t.aka&&t.aka.length?` · aka ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}`:''}</p>
       ${teamSocialIcons(name)}
     </div>` : `<div class="phead"><div class="hero-row">${logoImg}<h2>${esc(name)}</h2></div>
-      <span class="yrs">${t.years.length} season${t.years.length>1?'s':''} · ${t.firstYear}–${t.lastYear}
+      <span class="yrs">${nSeasons} season${nSeasons>1?'s':''} · ${firstYr}–${t.lastYear}
       · ${fr.W}–${fr.L} regular (${rate(g?fr.W/g:NaN)})</span></div>
     ${t.aka&&t.aka.length?`<p class="aka">Also played as ${t.aka.map(a=>esc(t.loc&&!a.startsWith(t.loc)?t.loc+' '+a:a)).join(', ')}.</p>`:''}`;
   app.innerHTML = `
