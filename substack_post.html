@@ -1,0 +1,189 @@
+<title>Building the Box Score</title>
+<meta name="description" content="How a 15-year backyard wiffleball league ended up with a Baseball-Savant-style stats site, and what actually went into building it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#102a4c; --ink:#1b2430; --paper:#f6f3ee; --card:#ffffff;
+  --clay:#c8362a; --muted:#5c6472; --line:#e2ddd3; --mono-bg:#eef1ee;
+  --shadow:0 1px 2px rgba(16,42,76,.06), 0 8px 24px rgba(16,42,76,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#7fb0ff; --ink:#e9edf2; --paper:#111820; --card:#171f29;
+    --clay:#ff7a63; --muted:#93a0ae; --line:#28323e; --mono-bg:#1c242f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#7fb0ff; --ink:#e9edf2; --paper:#111820; --card:#171f29;
+  --clay:#ff7a63; --muted:#93a0ae; --line:#28323e; --mono-bg:#1c242f;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;line-height:1.65;
+  padding-inline:16px;padding-block:48px}
+.wrap{max-width:680px;margin:0 auto}
+.kicker{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--clay);margin:0 0 14px}
+h1{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:700;
+  font-size:2.6rem;line-height:1.08;margin:0 0 14px;color:var(--navy);text-wrap:balance}
+.dek{font-size:1.15rem;color:var(--muted);margin:0 0 28px;max-width:56ch}
+.meta{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.75rem;
+  color:var(--muted);letter-spacing:.03em;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);padding:12px 0;margin:0 0 36px;
+  display:flex;gap:18px;flex-wrap:wrap}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);padding:20px 22px;margin:0 0 40px}
+nav.toc h2{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+nav.toc ol{margin:0;padding:0;list-style:none;columns:2;column-gap:24px}
+nav.toc li{break-inside:avoid;margin-bottom:8px;font-size:.92rem}
+nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+nav.toc a:hover{color:var(--clay);border-color:var(--clay)}
+nav.toc .n{font-family:"IBM Plex Mono",monospace;color:var(--clay);margin-right:6px;font-weight:600}
+@media (max-width:520px){nav.toc ol{columns:1}}
+section{margin:0 0 44px}
+h2{font-family:"Oswald","Arial Narrow",sans-serif;font-weight:600;
+  font-size:1.55rem;color:var(--navy);margin:0 0 4px;display:flex;align-items:baseline;gap:12px}
+h2 .num{font-family:"IBM Plex Mono",monospace;font-size:1rem;color:var(--clay);font-weight:600}
+p{margin:0 0 18px;font-size:1.04rem}
+p:last-child{margin-bottom:0}
+a{color:var(--navy)}
+strong{color:var(--ink)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.85em;
+  background:var(--mono-bg);padding:.1em .35em;border-radius:4px}
+.field-note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--clay);
+  border-radius:8px;box-shadow:var(--shadow);padding:18px 22px;margin:22px 0}
+.field-note .fn-label{font-family:"IBM Plex Mono",monospace;font-size:.68rem;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin:0 0 8px;font-weight:600}
+.field-note p{margin:0 0 10px;font-size:.98rem}
+.field-note p:last-child{margin-bottom:0}
+.stat-row{display:flex;gap:22px;flex-wrap:wrap;margin:20px 0 26px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;
+  box-shadow:var(--shadow);padding:12px 18px;flex:1;min-width:130px}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.35rem;color:var(--navy)}
+.stat span{font-size:.76rem;color:var(--muted);letter-spacing:.02em}
+hr.rule{border:none;border-top:1px solid var(--line);margin:44px 0}
+.close{text-align:center;padding-top:8px}
+.close a.cta{display:inline-block;font-family:"Oswald","Arial Narrow",sans-serif;
+  font-weight:600;font-size:1rem;letter-spacing:.02em;color:#fff;background:var(--navy);
+  padding:14px 30px;border-radius:8px;text-decoration:none;box-shadow:var(--shadow)}
+.close a.cta:hover{background:var(--clay)}
+.signoff{margin-top:36px;font-size:1.02rem}
+.signoff .sig{display:block;font-family:"Oswald","Arial Narrow",sans-serif;font-size:1.1rem;margin-top:2px;color:var(--navy)}
+.signoff .role{display:block;color:var(--muted);font-size:.85rem}
+</style>
+
+<div class="wrap">
+  <p class="kicker">Field Notes</p>
+  <h1>Building the Box Score</h1>
+  <p class="dek">A 15-year backyard wiffleball league, a pile of box scores going back to 2012, and how it all turned into a real stats site with park factors, percentile rankings, and a working Immaculate-Grid clone.</p>
+  <div class="meta">
+    <span>bwbwiffleball.com</span>
+    <span>Static site, ~7,700 lines of Python and JS</span>
+    <span>Built through conversation, not a template</span>
+  </div>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>In this post</h2>
+    <ol>
+      <li><a href="#origin"><span class="n">01</span>Why a league needs a stats site</a></li>
+      <li><a href="#skeleton"><span class="n">02</span>Two files, one static site</a></li>
+      <li><a href="#savant"><span class="n">03</span>Copying the pros</a></li>
+      <li><a href="#arcade"><span class="n">04</span>Games nobody asked for</a></li>
+      <li><a href="#bugs"><span class="n">05</span>Bugs worth telling</a></li>
+      <li><a href="#gamescore"><span class="n">06</span>The draft that's not done yet</a></li>
+      <li><a href="#history"><span class="n">07</span>Fifteen years, written down</a></li>
+      <li><a href="#reflection"><span class="n">08</span>What this process is actually like</a></li>
+    </ol>
+  </nav>
+
+  <section id="origin">
+    <h2><span class="num">01</span>Why a league needs a stats site</h2>
+    <p>BWB Wiffleball started in 2012 as six teams and seven players in my backyard. Fifteen years later it's six teams, dozens of players, a full regular season and postseason every year, and — as of this year — our first appearance at the NWLA national tournament. Somewhere in there, the league outgrew what a spreadsheet and a blog could hold.</p>
+    <p>We had every box score going back to 2017 sitting in a big JSON file: batting lines, pitching lines, fielding, game-by-game, year-by-year. What we didn't have was a way to actually <em>see</em> any of it — no career leaderboards, no park factors, no way to look up a player's career OPS+ without doing the math yourself. So I set out to build the site that data deserved, using Claude to do the actual engineering while I directed what it should look like, what it should say, and whether a given feature was actually good.</p>
+  </section>
+
+  <section id="skeleton">
+    <h2><span class="num">02</span>Two files, one static site</h2>
+    <p>The whole site comes from exactly two files. <code>players.json</code> holds every player, team, game, and award the league has ever recorded. <code>generate.py</code> is a Python script that reads that file and writes out a single self-contained <code>index.html</code> — one page, client-side routed, no backend, no database, nothing to keep running. GitHub Pages just serves the file.</p>
+    <p>That shape made the whole project move fast. Every change, from a new stat column to a full new page, is: edit the script, run <code>python3 generate.py</code>, get a fresh site in about a second, check it in a browser, ship it. There's no server to deploy, no migration to write, no cache to bust. The entire site is reproducible from two files any time.</p>
+  </section>
+
+  <section id="savant">
+    <h2><span class="num">03</span>Copying the pros</h2>
+    <p>Once the basics existed — player pages, team pages, standings, career leaders — the interesting work was figuring out which real stats sites' ideas actually translated to a backyard league, and which needed to be built from scratch because the data simply doesn't exist at this level (no exit velocity here, no pitch tracking, no Statcast).</p>
+    <p>A few things that did translate directly, modeled on Baseball Savant and Baseball-Reference:</p>
+    <p><strong>Percentile rankings</strong> — the colored bar charts Savant uses to show where a player ranks league-wide in each stat, complete with an animated "Play" button that steps a player's percentiles year by year.</p>
+    <p><strong>Park Factors</strong> — how much each field in the league inflates or suppresses offense, era-adjusted the same way OPS+ and ERA+ already are on the site, because this league's own scoring environment has swung by roughly 2.5x across its history. A flat, cross-era number would have just rewarded whichever field got used in a high-offense year.</p>
+    <p><strong>Player Cards</strong> — a shareable PNG, rendered on a canvas, built from the exact same percentile and season-stat data already on the page, so the card can never say something different from the site itself.</p>
+    <div class="stat-row">
+      <div class="stat"><b>2.5×</b><span>swing in league-wide scoring across BWB history</span></div>
+      <div class="stat"><b>15+</b><span>games needed at a field before Park Factors will show it</span></div>
+      <div class="stat"><b>96.9%</b><span>agreement rate reached on an early combined-score formula</span></div>
+    </div>
+  </section>
+
+  <section id="arcade">
+    <h2><span class="num">04</span>Games nobody asked for</h2>
+    <p>At some point "stats site" turned into "stats site with an arcade," which nobody explicitly asked for but which turned out to be the most fun part of the project. There are three original games, all built entirely from the league's own real data:</p>
+    <p><strong>Grid</strong> is an Immaculate-Grid clone: nine squares, each needing a player who fits both its row and column category (a franchise, an award, a career stat threshold). Getting this right took actual math — early versions could quietly become unsolvable if a player's guess order happened to use up the only name that fit some other square. The fix was a real bipartite-matching check at generation time, so every daily grid is now guaranteed to have a clean, no-repeat solution.</p>
+    <p><strong>Stat Pad</strong> flips the format: instead of finding <em>any</em> right answer, you're finding the <em>best</em> one, submitting a player and a season to maximize a target stat under given constraints.</p>
+    <p><strong>15-0</strong> is a five-round fantasy draft — deal a real team-year, draft one player from it, repeat — followed by an actual 15-game simulation of your roster's season, bootstrapped from the league's own real distribution of final scores rather than a textbook bell curve. That simulation went through a real round of statistical debugging: an early version scaled run totals multiplicatively, which meant a great offense could still get shut out just as often as a bad one (zero times anything is zero), and it blew up rare high-scoring games into absurd ones. Switching to an additive shift, validated with a Monte Carlo test against the real historical run-total pool, cut blowout frequency roughly in half.</p>
+  </section>
+
+  <section id="bugs">
+    <h2><span class="num">05</span>Bugs worth telling</h2>
+    <p>Some of the most interesting work on this site was diagnosing things that looked fine and weren't. A few favorites:</p>
+
+    <div class="field-note">
+      <p class="fn-label">Field note — the invisible favicon</p>
+      <p>The site's icon showed up fine in a browser tab but never in Google search results. The cause: the favicon was a <code>data:</code> URI baked directly into the HTML. A browser that already has the page loaded can render that fine, but Google's icon crawler fetches the favicon from its own URL, independent of the page — and a data URI has no URL to fetch. Writing the icon out as a real <code>favicon.png</code> file fixed it.</p>
+    </div>
+
+    <div class="field-note">
+      <p class="fn-label">Field note — three seasons of missing data</p>
+      <p>Park Factors was quietly excluding almost every game from 2017 through 2019 — not because the data was missing, but because the code required three or more individually-recorded batters per team to count a game as having "a box score." That threshold made sense somewhere else on the site, for attributing a stat line to one specific player. Park Factors never does that; it only sums a game's totals. The league's early games, which logged one combined team-total line instead of per-player lines, summed to the exact same real numbers a full box score would — the check was just measuring the wrong thing. Lowering the bar to one recorded batter fixed three years of "missing" history in one line.</p>
+    </div>
+
+    <div class="field-note">
+      <p class="fn-label">Field note — real data beats a good guess</p>
+      <p>Every pitcher's win-loss record was blank for the current season — 52 games, all recorded as 0-0, even though the display code was already correct. I built an algorithm to infer the winning and losing pitcher from each game's inning-by-inning line score, and validated it against 426 historical games where the real answer was already known: 90.8% right. Good, but not good enough to publish as fact. It turned out the league's games are also tracked on a public wiffleball stats platform, which has an endpoint that returns the actual, official decision for any game. Real data beat a good guess, so that's what shipped.</p>
+    </div>
+
+    <div class="field-note">
+      <p class="fn-label">Field note — the whole site was zoomed out</p>
+      <p>A layout bug on one page turned out to be missing a <code>&lt;meta name="viewport"&gt;</code> tag site-wide. Without it, phones render every page at a fake desktop-width canvas and zoom the whole thing out to fit the screen — which meant none of the site's existing mobile breakpoints had ever actually fired on a real phone. Adding one line fixed the original bug and, in the process, revealed a second one it had been hiding: every data table used a fixed <code>width: 100%</code>, which fights against text that isn't allowed to wrap, so tables started visibly overlapping themselves the moment real narrow-screen widths applied. A one-word change, from a fixed width to a minimum width, let tables grow to fit their content and scroll horizontally instead of colliding.</p>
+    </div>
+  </section>
+
+  <section id="gamescore">
+    <h2><span class="num">06</span>The draft that's not done yet</h2>
+    <p>Not everything on the build list has shipped, and that's deliberate. The most ambitious feature in progress is Game Score: a single number, inspired by hockey analytics, combining a player's hitting, pitching, and fielding into one per-game rating.</p>
+    <p>The formula went through several real rounds of revision before I'd trust it: hand-picked weights first, then validated against real outcomes for win-agreement, then found and fixed a bias where the same performance was worth up to 2.5x more or less depending on what year it happened in, then replaced several of the hand-picked weights with ones fitted by actual regression against the league's own team-game data. Along the way, a parallel effort scraped real play-by-play data from that same public wiffleball platform to build a genuine win-probability model — logistic regression, validated for internal consistency, cross-checked against every game.</p>
+    <p>None of it is live. The rule for this feature has been simple from the start: it doesn't ship until the formula is actually right, not just plausible. It's still sitting in a local draft, deliberately kept out of every other change that's gone out in the meantime.</p>
+  </section>
+
+  <section id="history">
+    <h2><span class="num">07</span>Fifteen years, written down</h2>
+    <p>The newest page on the site isn't a stat page at all. It's the league's own origin story — the backyard pickup games, the six-team season in 2012, the field that got retired in 2022, the comeback title in 2025 — paired with photos going back to some genuinely blurry early-2010s front-yard action shots. Writing it wasn't a coding problem so much as an editing one: rewording a repeated turn of phrase here, reordering a photo rail there, adding names that deserved a mention. It's the one part of the site where the "build" was really just careful revision, a sentence at a time, until it sounded right.</p>
+  </section>
+
+  <section id="reflection">
+    <h2><span class="num">08</span>What this process is actually like</h2>
+    <p>The honest version of "I built this with AI" is less like typing a wish into a box and more like directing an extremely fast, extremely literal collaborator who will confidently ship a bug if you don't check its work. The parts that made this project actually trustworthy weren't the parts where something got generated quickly — they were the parts where a claim got tested before it got shipped: running a Monte Carlo simulation against real historical data before trusting a formula change, validating an inferred stat against hundreds of games with known answers before deciding it wasn't good enough, screenshotting an actual phone-width browser before believing a layout was fixed.</p>
+    <p>Building software this way still means being the one who decides what's worth building, what's good enough to ship, and what needs another round before it's real. The tools got faster. That part didn't change.</p>
+    <p>If you want to see where all of this landed, the site is at <a href="https://bwbwiffleball.com">bwbwiffleball.com</a> — Players, Teams, Standings, Park Factors, an Arcade, and now fifteen years of history, in one place.</p>
+  </section>
+
+  <hr class="rule">
+  <div class="close">
+    <a class="cta" href="https://bwbwiffleball.com">Visit bwbwiffleball.com →</a>
+  </div>
+  <p class="signoff"><span class="sig">— Parker Gibbons</span><span class="role">Commissioner, BWB Wiffleball</span></p>
+</div>

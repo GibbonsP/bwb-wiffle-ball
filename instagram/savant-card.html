@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><title>BWB Savant card</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1350px;background:#070f1f}
+html.sq,html.sq body{height:1080px} html.st,html.st body{height:1920px}
+.card{position:relative;width:1080px;height:100%;overflow:hidden;color:#fff;font-family:"IBM Plex Sans",Arial,sans-serif;
+  background:radial-gradient(90% 70% at 50% 34%,#1d3a70 0%,#0e2145 46%,#070f1f 100%)}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
+.top{position:absolute;top:58px;left:64px;right:64px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:18px}
+.brand img{height:84px;width:auto;display:block}
+.brand span{font-family:"Oswald",sans-serif;font-weight:600;font-size:30px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.live{font-family:"Oswald",sans-serif;font-weight:600;font-size:28px;letter-spacing:.16em;text-transform:uppercase;background:#d22d49;padding:10px 24px;border-radius:6px}
+.logo{position:absolute;left:0;right:0;top:170px;display:flex;justify-content:center;filter:drop-shadow(0 26px 46px rgba(0,0,0,.5))}
+.logo svg{width:530px;height:530px;display:block}
+.title{position:absolute;left:0;right:0;top:738px;text-align:center}
+.title h1{font-family:"Oswald",sans-serif;font-weight:700;font-size:176px;line-height:1;letter-spacing:.01em}
+.bar{width:420px;height:10px;border-radius:5px;margin:22px auto 26px;background:linear-gradient(90deg,#3b62b0,#c9cdd6 50%,#d22d49)}
+.title p{font-size:42px;line-height:1.3;color:rgba(255,255,255,.88);max-width:820px;margin:0 auto}
+.chips{position:absolute;left:64px;right:64px;bottom:148px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.chips span{font-family:"Oswald",sans-serif;font-weight:500;font-size:28px;letter-spacing:.1em;text-transform:uppercase;padding:10px 24px;border:2px solid rgba(255,255,255,.4);border-radius:999px;color:#fff}
+.foot{position:absolute;left:0;right:0;bottom:52px;text-align:center;font-family:"Oswald",sans-serif;font-weight:500;font-size:34px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.foot b{color:#fff;font-weight:700}
+
+/* square (1080x1080) and story (1080x1920) versions: add ?f=sq or ?f=st to the URL */
+.sq .top{top:46px}.sq .brand img{height:70px}.sq .brand span{font-size:26px}
+.sq .logo{top:128px}.sq .logo svg{width:390px;height:390px}
+.sq .title{top:540px}.sq .title h1{font-size:150px}.sq .bar{margin:16px auto 20px;width:360px;height:9px}.sq .title p{font-size:36px}
+.sq .chips{bottom:112px;gap:12px}.sq .chips span{font-size:24px;padding:8px 20px}.sq .foot{bottom:40px;font-size:30px}
+.st .top{top:190px}.st .logo{top:360px}.st .logo svg{width:560px;height:560px}
+.st .title{top:1000px}.st .chips{bottom:350px}.st .foot{bottom:230px}
+</style></head><body>
+<div class="card">
+  <div class="top"><div class="brand"><img src="../img/data/05707d53ff4086a5a1ea.png" alt=""><span>BWB Wiffleball</span></div></div>
+  <div class="logo" id="logo"></div>
+  <div class="title"><h1>BWB Savant</h1><div class="bar"></div><p>The league’s home for advanced statistics</p></div>
+  <div class="chips"><span>Percentile rankings</span><span>Pizza charts</span><span>Team playstyle maps</span><span>League trends</span><span>Park factors</span></div>
+  <div class="foot"><b>bwbwiffleball.com</b></div>
+</div>
+<script>
+function svColor(p){
+  const t = Math.max(0,Math.min(100,p))/100;
+  const blue=[59,98,176], grey=[201,205,214], red=[210,45,73];
+  const mix=(a,b,u)=>a.map((x,i)=>Math.round(x+(b[i]-x)*u));
+  const c = t<0.5 ? mix(blue,grey,t*2) : mix(grey,red,(t-0.5)*2);
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function savantLogoSVG(size){
+  const PCT = [98,16,90,8,96,24,86,4], n = PCT.length, step = 2*Math.PI/n, cx = 50, cy = 50, BR = 33, RMAX = 48.5;
+  const pt = (a,r) => [cx+r*Math.cos(a), cy+r*Math.sin(a)];
+  const wedge = (i,r) => { const a0 = -Math.PI/2+i*step, a1 = a0+step, [x0,y0] = pt(a0,r), [x1,y1] = pt(a1,r);
+    return `M${cx},${cy}L${x0.toFixed(2)},${y0.toFixed(2)}A${r.toFixed(2)},${r.toFixed(2)} 0 0 1 ${x1.toFixed(2)},${y1.toFixed(2)}Z`; };
+  const wedges = PCT.map((p,i)=>`<path d="${wedge(i, BR + 4.5 + (RMAX-BR-4.5)*p/100)}" fill="${svColor(p)}" stroke="#0b1a33" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
+  /* the five slots are traced from a photo of a real wiffleball (outlines, not pills): each one is curved and tapers, because the ball is
+     round. A white lip sits under each, and a soft shadow runs along the upper edge. */
+  const SLOT_PATHS = ["M26.42,31.27C26.67,30.62 27.44,29.36 28.26,28.48C29.08,27.61 30.16,26.76 31.33,26.03C32.49,25.31 33.93,24.64 35.23,24.14C36.53,23.63 38.02,23.28 39.13,23.02C40.24,22.76 41.25,22.52 41.92,22.57C42.59,22.63 43.03,22.95 43.14,23.35C43.26,23.76 43.07,24.54 42.59,25.03C42.10,25.51 41.19,25.86 40.24,26.25C39.30,26.64 38.02,27.00 36.90,27.37C35.79,27.74 34.62,28.07 33.56,28.48C32.49,28.89 31.37,29.36 30.49,29.82C29.61,30.29 28.88,30.84 28.26,31.27C27.64,31.70 27.06,32.39 26.76,32.39C26.45,32.39 26.17,31.92 26.42,31.27Z", "M33.67,50.08C33.17,50.19 32.71,50.07 32.27,49.69C31.84,49.32 31.27,48.48 31.08,47.83C30.88,47.17 30.96,46.46 31.13,45.76C31.30,45.07 31.31,44.61 32.08,43.65C32.85,42.68 34.29,41.26 35.73,39.99C37.17,38.73 39.13,36.96 40.69,36.04C42.25,35.12 44.17,34.72 45.09,34.48C46.01,34.23 45.88,34.33 46.21,34.59C46.54,34.84 47.07,35.30 47.07,36.01C47.08,36.72 48.20,36.67 46.24,38.85C44.27,41.03 37.38,47.21 35.28,49.08C33.19,50.95 34.17,49.98 33.67,50.08Z", "M52.68,63.24C52.07,63.32 51.47,63.33 50.89,63.18C50.32,63.03 49.63,62.73 49.22,62.35C48.81,61.96 48.55,61.34 48.41,60.87C48.28,60.40 47.38,62.00 48.41,59.53C49.44,57.06 53.22,48.57 54.60,46.04C55.98,43.51 56.01,44.65 56.69,44.34C57.37,44.03 58.12,44.05 58.70,44.17C59.27,44.30 59.77,44.73 60.12,45.09C60.47,45.46 60.65,45.82 60.79,46.38C60.93,46.93 61.02,47.72 60.95,48.44C60.89,49.15 61.28,48.47 60.40,50.67C59.51,52.87 56.64,59.65 55.66,61.65C54.68,63.65 55.01,62.42 54.52,62.68C54.02,62.95 53.28,63.16 52.68,63.24Z", "M71.18,65.97C70.70,66.12 70.22,65.96 69.96,65.80C69.69,65.65 69.48,66.21 69.59,65.05C69.71,63.89 70.42,61.48 70.65,58.86C70.89,56.24 70.79,51.35 70.99,49.33C71.18,47.32 71.53,47.25 71.82,46.77C72.12,46.29 72.36,46.25 72.74,46.46C73.12,46.67 73.70,47.33 74.11,48.05C74.51,48.77 74.94,49.08 75.17,50.78C75.40,52.48 75.59,56.31 75.50,58.25C75.42,60.19 75.11,61.33 74.67,62.43C74.22,63.54 73.41,64.29 72.83,64.88C72.25,65.47 71.66,65.82 71.18,65.97Z", "M79.49,38.85C79.34,39.15 79.23,39.83 79.27,40.36C79.30,40.89 79.51,41.44 79.71,42.03C79.92,42.61 80.19,43.25 80.49,43.87C80.79,44.49 81.16,45.13 81.49,45.76C81.83,46.40 82.15,47.19 82.50,47.66C82.85,48.12 83.41,48.70 83.61,48.55C83.82,48.40 83.78,47.53 83.72,46.77C83.67,46.01 83.54,44.91 83.28,43.98C83.02,43.05 82.55,41.98 82.16,41.19C81.77,40.40 81.27,39.68 80.94,39.24C80.60,38.80 80.40,38.64 80.16,38.57C79.92,38.51 79.64,38.55 79.49,38.85Z"];
+  const holes = SLOT_PATHS.map(d=>`<path d="${d}" fill="#ffffff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${d}" fill="url(#svlgHole)"/>
+    <path d="${d}" fill="none" stroke="url(#svlgLip)" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
+  return `<svg class="svlogo" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Savant">
+    <defs>
+      <radialGradient id="svlgBall" cx="38%" cy="34%" r="72%"><stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#e9ecf2"/><stop offset="1" stop-color="#b8c0cf"/></radialGradient>
+      <linearGradient id="svlgHole" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d96ab"/><stop offset=".55" stop-color="#bfc6d3"/><stop offset="1" stop-color="#dde1e9"/></linearGradient>
+      <linearGradient id="svlgLip" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a5572"/><stop offset=".5" stop-color="#4a5572" stop-opacity=".25"/><stop offset="1" stop-color="#4a5572" stop-opacity="0"/></linearGradient>
+      <clipPath id="svlgClip"><circle cx="50" cy="50" r="${BR}"/></clipPath>
+    </defs>
+    ${wedges}
+    <circle cx="50" cy="50" r="${BR+1.3}" fill="#0b1a33"/>
+    <circle cx="50" cy="50" r="${BR}" fill="url(#svlgBall)"/>
+    <g clip-path="url(#svlgClip)">${holes}</g>
+    <ellipse cx="40" cy="31" rx="10" ry="5.4" fill="#fff" opacity=".4" transform="rotate(-30 40 31)"/>
+  </svg>`;
+}
+const F = new URLSearchParams(location.search).get('f');
+if(F==='sq'||F==='st') document.documentElement.classList.add(F);
+document.getElementById('logo').innerHTML = savantLogoSVG(600);
+</script></body></html>

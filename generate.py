@@ -5047,7 +5047,7 @@ const FRANCHISE_SUMMARY = [
   {t:'Bananas',         f:'Brentwood Bananas',            w:12, l:33, pct:.267, yr:'2022–2024', ws:0,wsa:1, dv:1, po:1, wsz:1, as:7, por:'2–2'},
   {t:'Royals',          f:null, full:'Brookside Royals',   w:57, l:38, pct:.600, yr:'2012–2014', ws:0,wsa:1, dv:0, po:1, wsz:2, as:3,  por:'1–1'},
   {t:'Aces',            f:null, full:'Brentwood Aces',     w:58, l:97, pct:.374, yr:'2013–2016', ws:0,wsa:0, dv:0, po:2, wsz:2, as:5,  por:'0–2'},
-  {t:'Squirrels',       f:null, full:'Brookside Squirrels',w:66, l:69, pct:.489, yr:'2012–2015', ws:0,wsa:0, dv:0, po:2, wsz:1, as:4,  por:'0–2'},
+  {t:'Squirrels',       f:'Brookside Squirrels', full:'Brookside Squirrels',w:66, l:69, pct:.489, yr:'2012–2015', ws:0,wsa:0, dv:0, po:2, wsz:1, as:4,  por:'0–2'},
   {t:'Dragons',         f:'Purchase Dragons',             w:16, l:29, pct:.356, yr:'2021–2023', ws:0,wsa:0, dv:0, po:1, wsz:0, as:6,  por:'0–1'},
   {t:'Mustangs',        f:'Brentwood Mustangs',           w:32, l:92, pct:.258, yr:'2015–2018', ws:0,wsa:0, dv:0, po:1, wsz:0, as:6,  por:'0–1'},
   {t:'Angels',          f:null, full:'Downtown Angels',    w:40, l:40, pct:.500, yr:'2013–2014', ws:0,wsa:0, dv:0, po:0, wsz:1, as:1,  por:'—'},
@@ -5235,7 +5235,7 @@ function renderTeams(){
     <h3 class="hsub">All-Time Team Pitching</h3>
     ${teamStatTable(T_PIT_COLS, statRows)}
     <p class="note">Batting and pitching are the sum of every season's roster lines, regular season,
-    ${RANGE} — so the totals cover the stat-database era only and won't match the pre-2016 win totals above.
+    ${RANGE} — so the totals cover the stat-database era only and won't match the earlier win totals above.
     Open a team for year-by-year detail.</p>`;
   app.querySelectorAll('.pname[data-t]').forEach(b=>b.addEventListener('click',()=>{
     teamYear=null; location.hash='#/t/'+encodeURIComponent(b.dataset.t);
@@ -5263,7 +5263,9 @@ function standRow(name, y){
     v[x.res]++;
   });
   const off = (s.record||{}).Regular;
-  if(off && off.W+off.L+(off.T||0) > r.W+r.L+r.T){ r.W = off.W; r.L = off.L; r.T = off.T||0; }   // forfeits aren't in the game list
+  if(off && off.W+off.L+(off.T||0) > r.W+r.L+r.T){
+    if(off.RF!=null && (r.W+r.L+r.T) < 0.9*(off.W+off.L+(off.T||0))){ r.RF = off.RF; r.RA = off.RA; }   // list is missing many scores: use the club's season totals
+    r.W = off.W; r.L = off.L; r.T = off.T||0; }   // forfeits aren't in the game list
   r.PCT = (r.W+r.L) ? r.W/(r.W+r.L) : 0;
   r.DIFF = r.RF - r.RA;
   return r;
@@ -7048,11 +7050,11 @@ function renderRecords(){
   setNav('records');
   llistPhotos = true;   // headshots on every player row, same as the Leaders page
   const lastYr = DB.seasonRange[1];
-  const inEra = y => recordsEra==='all' ? true : recordsEra==='early' ? (y>=2016 && y<=2021) : y>=2022;
-  const eraLabel = recordsEra==='early' ? '2016–2021' : recordsEra==='modern' ? `2022–${lastYr}` : RANGE;
+  const inEra = y => recordsEra==='all' ? true : recordsEra==='early' ? (y<=2021) : y>=2022;
+  const eraLabel = recordsEra==='early' ? `${DB.seasonRange[0]}–2021` : recordsEra==='modern' ? `2022–${lastYr}` : RANGE;
   const eraChips = `<div class="chips" role="group" aria-label="Era">
     <button data-era="all" aria-pressed="${recordsEra==='all'}">All Years</button>
-    <button data-era="early" aria-pressed="${recordsEra==='early'}">2016–2021 Era</button>
+    <button data-era="early" aria-pressed="${recordsEra==='early'}">${DB.seasonRange[0]}–2021 Era</button>
     <button data-era="modern" aria-pressed="${recordsEra==='modern'}">2022–${lastYr} Era</button>
   </div>`;
   const ipfmt = v => ipStr(Math.round(v*3));
@@ -7660,7 +7662,7 @@ function renderGames(){
     <div class="tscroll"><table class="dir glog"><thead><tr><th class="lft">Date</th><th class="lft">Away</th>
     <th class="mono b">R</th><th class="lft">Home</th><th class="lft">Field</th><th class="lft">Season</th></tr></thead>
     <tbody>${body}</tbody></table></div>
-    ${list.some(id=>GAMES[id].noBox) ? '<p class="note">2016 games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>' : ''}`;
+    ${list.some(id=>GAMES[id].noBox) ? `<p class="note">${[...new Set(list.filter(id=>GAMES[id].noBox).map(id=>GAMES[id].date.slice(0,4)))].sort().join(' and ')} games are final scores only — no box scores were kept, so they have no box score page, and the field each was played at is unknown.</p>` : ''}`;
   app.querySelectorAll('[data-gv]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.gv==='fields') location.hash = '#/games/fields'; }));
   const gfc = document.getElementById('gfClear'); if(gfc) gfc.addEventListener('click',()=>{ gField=null; renderGames(); });
   app.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>{ gYear=b.dataset.gy; renderGames(); }));
@@ -10763,7 +10765,7 @@ const svpQualPhase = (mode, r, phase) => phase==='Playoffs'
   ? (mode==='bat' ? r.G_bat>=SV_MIN_SHOW_G : r.IPouts>=SV_MIN_SHOW_OUTS) : svpQual(mode, r);
 /* the same two eras the Records tab uses */
 const SVP_ERAS = [
-  {from:2016, to:2021},
+  {from:DB.seasonRange[0], to:2021},
   {from:2022, to:SVP_YEARS[SVP_YEARS.length-1]},
 ];
 const svpDefaultAxes = {bat:{x:'ISO', y:'wOBA'}, pit:{x:'K%', y:'ERA'}};
@@ -12537,7 +12539,7 @@ function renderSavantGains(){
   const subTabs = inGraph ? `<div class="segs post glphase glsub" role="group" aria-label="Graph type">${[['graph','Graph'],['race','Stat race']].map(([k,l])=>`<button data-glsub="${k}" aria-pressed="${svpGL.view===k}">${l}</button>`).join('')}</div>` : '';
   const yearChips = `<div class="chips glyears" role="group" aria-label="Season">
     <button data-gly="all" aria-pressed="${String(svpGL.year)==='all'}">${oneSeason?'Latest':'All Years'}</button>
-    ${svpGL.view==='straight' ? `<button data-gly="early" aria-pressed="${svpGL.year==='early'}">2016–2021 Era</button><button data-gly="modern" aria-pressed="${svpGL.year==='modern'}">2022–Present Era</button>` : ''}
+    ${svpGL.view==='straight' ? `<button data-gly="early" aria-pressed="${svpGL.year==='early'}">${DB.seasonRange[0]}–2021 Era</button><button data-gly="modern" aria-pressed="${svpGL.year==='modern'}">2022–Present Era</button>` : ''}
     ${years.slice().reverse().map(y=>`<button data-gly="${y}" aria-pressed="${String(svpGL.year)===String(y)}">${y}</button>`).join('')}</div>`;
   const inPlayer = !!sel && !filt;
   const bk = svpGL.back;
@@ -12618,7 +12620,7 @@ function renderSavantGains(){
     const head2 = `<tr><th class="lft">Player</th><th title="Games in a row">Games</th><th class="lft">Dates</th><th class="lft">Totals</th></tr>`;
     const tbl2 = (rs, dn) => `<div class="tscroll"><table class="detail sortable glt glfix2"><thead>${head2}</thead><tbody>${rs.map(x=>row2(x,dn)).join('') || empty(4)}</tbody></table></div>`;
     const cnt = (all, shown) => `${all.length} found${all.length>shown.length?', top '+shown.length+' shown':''}`;
-    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season. The longest 50 are listed both ways: runs of games where the player did it (▲) and runs of games where they didn’t (▼). The ● marks a streak still going after the player’s latest game${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the 2016–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
+    body = `<p class="smeta">How many games in a row a player did the same thing: <b>${esc(cdef.l)}</b>. A run of ${post?2:3}+ games counts. Only games the player ${cdef.kind==='bat'?'batted':'pitched'} in are counted, and a run carries over the off-season. The longest 50 are listed both ways: runs of games where the player did it (▲) and runs of games where they didn’t (▼). The ● marks a streak still going after the player’s latest game${svpGL.year==='all'?'':' (here limited to '+(svpGL.year==='early'?'the ${DB.seasonRange[0]}–2021 era':svpGL.year==='modern'?'the 2022–Present era':svpGL.year)+')'}.</p>`
       + (!sel ? `<h4 class="glsec"><span class="${svpGL.actW?'glup':'gldn'}">●</span> Active now <small>still going</small></h4><div class="chips" role="group" aria-label="Active streaks shown">${[[true,'▲ '+cdef.w],[false,'▼ '+cdef.o]].map(([k,l])=>`<button data-glact="${k}" aria-pressed="${svpGL.actW===k}">${esc(l)}</button>`).join('')}</div>${tbl(act)}` : '')
       + `<h4 class="glsec">Longest streaks <small>● = still going</small></h4><div class="glcols">
         <section class="stat"><h4><span class="glup">▲</span> ${esc(cdef.w)} <small>${cnt(runs, top)}</small></h4>${tbl2(top)}</section>
