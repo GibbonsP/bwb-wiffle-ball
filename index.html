@@ -1231,7 +1231,14 @@ th.lft,td.lft{text-align:left !important}
 .detail tbody td.lft{color:var(--muted);font-weight:500}
 .detail tbody tr.splitrow td{color:var(--muted);background:color-mix(in srgb,var(--muted) 6%,transparent)}
 .detail tbody tr.splitrow td:first-child{color:var(--muted)}
-.detail tbody tr.totrow td{font-weight:700;border-bottom:2px solid var(--line-strong)}
+.detail tbody tr.totrow td{font-weight:700}
+.detail tbody tr.splitrow[hidden]{display:none}
+.detail tbody tr.splitrow td:first-child{padding-left:22px}
+.tmx{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap}
+.tmx::before{content:"▸";display:inline-block;width:1em;font-size:.8em;color:var(--muted);transition:transform .15s}
+.tmx[aria-expanded="true"]::before{transform:rotate(90deg)}
+.tmx:hover{text-decoration:underline}
+@media (prefers-reduced-motion:reduce){.tmx::before{transition:none}}
 .ntm{font-weight:700;font-size:.72rem;letter-spacing:.04em;color:var(--muted)}
 .h2htoggle{background:none;border:0;color:var(--muted);font-size:.7rem;padding:0 6px 0 0;
   cursor:pointer;vertical-align:middle}
@@ -2324,7 +2331,7 @@ const phLabel = p => p==='AllStar' ? 'All-Star' : p==='Exhib' ? 'Exhibition' : p
 /* display rows for one player, one phase — one per year, split by club with a
    season total row (Baseball-Reference style) when they changed clubs mid-year */
 function byYear(pl, type){
-  const rank = s => s.split ? 0 : s.tot ? 2 : 1;
+  const rank = s => s.tot ? 0 : 1;   // the season total leads; the per-club rows tuck underneath it
   return pl.seasons.filter(s=>s.type===type).slice()
     .sort((a,b)=> a.year-b.year || rank(a)-rank(b));
 }
@@ -3353,7 +3360,9 @@ function statTable(title, cols, rows, career, totLabel, cls, sortable, extra){
   const lft = c => (c.lft || ['Season','Tm','Player','Opp','Date'].includes(c.l)) ? 'lft' : '';
   const cc = c => `${c.m?'mono':''} ${lft(c)} ${c.cls||''}`;
   const th = cols.map(c=>`<th class="${cc(c)}">${c.l}</th>`).join('');
-  const tr = d => `<tr class="${d.tot?'totrow':d.split?'splitrow':''}${d.est?' estrow':''}">`+cols.map(c=>`<td class="${cc(c)}">${c.f(d)}</td>`).join('')+'</tr>';
+  const cell = (c,d) => (d.tot && c.l==='Tm')
+    ? `<button type="button" class="tmx" aria-expanded="false" title="Show each club">${d.nTeams}TM</button>` : c.f(d);
+  const tr = d => `<tr class="${d.tot?'totrow':d.split?'splitrow':''}${d.est?' estrow':''}"${d.split?' hidden':''}>`+cols.map(c=>`<td class="${cc(c)}">${cell(c,d)}</td>`).join('')+'</tr>';
   const foot = '<tr>'+cols.map((c,i)=>`<td class="${cc(c)}">${i===0?totLabel:(c.noTot?'':c.f(career))}</td>`).join('')+'</tr>';
   return `<section class="stat ${cls||''}"><h4>${title}</h4><div class="tscroll"><table class="detail${sortable?' sortable':''}">
     <thead><tr>${th}</tr></thead>
@@ -3373,12 +3382,11 @@ function makeSortable(tbl){
   const num = t => { const m = String(t).replace(/[,–—%]/g,'').match(/-?\d*\.?\d+/); return m?parseFloat(m[0]):NaN; };
   const unitsOf = rows => {
     if(!grouped) return rows.map(r=>({rows:[r], key:r}));
-    const out = []; let pend = [];
+    const out = [];
     rows.forEach(r=>{
-      if(r.classList.contains('splitrow')) pend.push(r);
-      else { out.push({rows:[...pend, r], key:r}); pend = []; }
+      if(r.classList.contains('splitrow') && out.length) out[out.length-1].rows.push(r);   // club rows ride with the season total above them
+      else out.push({rows:[r], key:r});
     });
-    if(pend.length) out.push({rows:pend, key:pend[pend.length-1]});
     return out;
   };
   heads.forEach((th, ci)=>{
@@ -14692,6 +14700,13 @@ function upgradeAppRender(){
   app.querySelectorAll('table.sortable').forEach(makeSortable);
 }
 new MutationObserver(upgradeAppRender).observe(app, {childList:true});
+/* "2TM" season rows: open or close that season's club rows */
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('.tmx'); if(!b) return;
+  const open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', open);
+  for(let n = b.closest('tr').nextElementSibling; n && n.classList.contains('splitrow'); n = n.nextElementSibling) n.hidden = !open;
+});
 upgradeAppRender();
 
 (function(){ const rc = CHAMPS[0] && colorsFor(CHAMPS[0].tm, CHAMPS[0].y); const el = document.querySelector('.perf i');
