@@ -5103,7 +5103,8 @@ const FRANCHISE_TIMELINE = [
     {from:2019,to:2020,loc:'Beaver Brook',nick:'Lavahogs'}]},
   {full:'Brookside Squirrels', nick:'Squirrels', eras:[
     {from:2012,to:2012,loc:'Brookside',nick:'Boulders'},
-    {from:2013,to:2015,loc:'Brookside',nick:'Squirrels'}]},
+    {from:2013,to:2013,loc:'Brookside',nick:'Ducks'},
+    {from:2014,to:2015,loc:'Brookside',nick:'Squirrels'}]},
   {full:'Brookside Royals', nick:'Royals', eras:[
     {from:2012,to:2012,loc:'Brookside',nick:'Bears'},
     {from:2013,to:2014,loc:'Brookside',nick:'Royals'}]},
