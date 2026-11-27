@@ -3451,11 +3451,11 @@ const ROLE_AWARDS = {
   pit:new Set(['MVP','Rookie of the Year','Comeback Player of the Year','Postseason MVP','CY Young','Reliever of the Year']),
   fld:new Set(['Golden Hands']),
 };
-function yearAwards(pl, y, phase, role){
+function yearAwards(pl, y, phase, role, withGH){
   const h = pl.honors || {rings:[],awards:[],asg:[]};
   const out = [];
   if(!HIDDEN_AWARD_YEARS.has(y)) h.awards.filter(a=>a.year===y).forEach(a=>{
-    if(role && !ROLE_AWARDS[role].has(a.award)) return;
+    if(role && !ROLE_AWARDS[role].has(a.award) && !(withGH && a.award==='Golden Hands')) return;
     if((phase==='Playoffs') !== (a.award==='Postseason MVP')) return;
     const ab=AW_ABBR[a.award]; if(ab && !out.includes(ab)) out.push(ab); });
   return out.join(', ');
@@ -3544,8 +3544,10 @@ function phaseBlock(pl, type){
     return d.year+(isASG?'<span class="asgstar" title="All-Star">★</span>':'')
       +(isWS?`<span class="wstrophy" title="World Series champion">${TROPHY}</span>`:'');
   }},{l:'Tm',f:teamCell,noTot:1}];
+  /* Golden Hands is a Fielding-table award, but a season with no fielding line (before 2020) shows it in Batting instead */
+  const fldYears = new Set(rows.filter(d=>d.TC>0||d.G_fld>0).map(d=>d.year));
   const awColFor = role => type==='Regular'
-    ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Regular',role)}]
+    ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Regular',role,role==='bat'&&!fldYears.has(d.year))}]
     : (type==='Playoffs' && role!=='fld' && ((pl.honors||{}).awards||[]).some(a=>a.award==='Postseason MVP' && !HIDDEN_AWARD_YEARS.has(a.year)))
       ? [{l:'Awards',lft:1,noTot:1,cls:'awc',f:d=>d.split?'':yearAwards(pl,d.year,'Playoffs',role)}] : [];
   const awCol = awColFor('bat'), awColPit = awColFor('pit');
@@ -6470,11 +6472,31 @@ function vsCanonicalRecord(r, y, canonical){
   }
   return {w, l};
 }
+/* the 2012–2014 seasons a franchise played (from OLD_STAND): division, record, finish within the division */
+function oldSeasonsFor(full){
+  const out = [];
+  Object.keys(OLD_STAND).map(Number).sort((a,b)=>a-b).forEach(y=>{
+    Object.keys(OLD_STAND[y]).forEach(dn=>{
+      const list = OLD_STAND[y][dn], i = list.findIndex(r=>r.full===full);
+      if(i<0) return;
+      const r = list[i], p = playoffResultFor(full, y);
+      out.push({y, dn: dn==='League' ? null : dn, W:r.W, L:r.L, finish:`${ORDINAL(i+1)} of ${list.length}`, post:p.label||'—'});
+    });
+  });
+  return out;
+}
 function teamRecordTable(t){
   /* a year with no regular season (e.g. a fall-only 2020) has nothing to show in this table */
   const yrs = t.years.filter(y=>((t.seasons[y]||{}).record||{}).Regular).sort((a,b)=>a-b);
   const cHA = {hw:0,hl:0,aw:0,al:0};
   const cVs = {Brookside:{w:0,l:0}, Brentwood:{w:0,l:0}};
+  const oldRows = oldSeasonsFor(t.name).map(o=>{
+    const gp=o.W+o.L, nm=histName(t.name, o.y);
+    return `<tr><td class="lft">${o.y}</td><td class="lft">${esc(nm)}</td><td class="lft">${o.dn?esc(o.dn):'—'}</td>
+      <td>${o.W}</td><td>${o.L}</td><td class="mono">${gp?rate(o.W/gp):'—'}</td>
+      <td class="lft">${esc(o.post)}</td><td class="lft">${esc(o.finish)}</td>
+      <td>—</td><td>—</td><td>—</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td></tr>`;
+  }).join('');
   const srows = yrs.map(y=>{
     const rec=(t.seasons[y]||{}).record||{};
     const R=rec.Regular||{W:0,L:0,T:0,RF:0,RA:0};
@@ -6511,7 +6533,9 @@ function teamRecordTable(t){
     if(R){ cR.W+=R.W; cR.L+=R.L; cR.T+=R.T||0; cR.RF+=R.RF; cR.RA+=R.RA; }
   });
   const cGp = cR.W+cR.L, cDiff = cR.RF-cR.RA;
-  const totalRow = `<tr><td class="lft">All-Time</td><td class="lft"></td><td class="lft"></td>
+  /* runs, splits and the division records only exist from 2015 on, so with earlier (record-only) seasons above, the totals row says which seasons it adds up */
+  const totalLabel = oldRows ? (yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`) : 'All-Time';
+  const totalRow = `<tr><td class="lft">${totalLabel}</td><td class="lft"></td><td class="lft"></td>
     <td>${cR.W}</td><td>${cR.L}</td><td class="mono">${cGp?rate(cR.W/cGp):'—'}</td>
     <td class="lft"></td><td class="lft"></td>
     <td>${cR.RF}</td><td>${cR.RA}</td><td>${cDiff>0?'+':''}${cDiff}</td>
@@ -6523,7 +6547,7 @@ function teamRecordTable(t){
     <th>RF</th><th>RA</th><th>Diff</th>
     <th class="mono">Home</th><th class="mono">Away</th>
     <th class="mono">vs Brookside</th><th class="mono">vs Brentwood</th></tr></thead>
-    <tbody>${srows}</tbody><tfoot>${totalRow}</tfoot></table></div></section>`;
+    <tbody>${oldRows}${srows}</tbody><tfoot>${totalRow}</tfoot></table></div></section>`;
 }
 
 /* yearly batting/pitching breakdown — lives under the "All years" chip, alongside the
@@ -6932,6 +6956,14 @@ function teamDetail(name){
    TEAMS entry — record-book numbers only, from FRANCHISE_SUMMARY/TIMELINE).
    No rosters or box scores exist for these, so the page is just the
    franchise's identity, name history, and leadership. */
+function historicalSeasonsTable(full){
+  const rows = oldSeasonsFor(full); if(!rows.length) return '';
+  return `<section class="stat"><h4>Season by Season</h4><div class="tscroll"><table class="detail">
+    <thead><tr><th class="lft">Year</th><th class="lft">Name</th><th class="lft">Division</th><th>W</th><th>L</th>
+    <th class="mono">PCT</th><th class="lft">Postseason</th><th class="lft">Finish</th></tr></thead>
+    <tbody>${rows.map(o=>`<tr><td class="lft">${o.y}</td><td class="lft">${esc(histName(full, o.y))}</td><td class="lft">${o.dn?esc(o.dn):'—'}</td>
+      <td>${o.W}</td><td>${o.L}</td><td class="mono">${rate(o.W/((o.W+o.L)||1))}</td><td class="lft">${esc(o.post)}</td><td class="lft">${esc(o.finish)}</td></tr>`).join('')}</tbody></table></div></section>`;
+}
 function renderHistoricalTeam(d){
   setNav('teams');
   const name = d.full;
@@ -6950,6 +6982,7 @@ function renderHistoricalTeam(d){
     ${hero}
     ${erasHtml}
     ${teamLeadershipHtml(name)}
+    ${historicalSeasonsTable(name)}
     ${historicalLogoHistory(d)}
     ${teamAccolades(name)}
     <p class="note">This franchise folded before the stat database begins in 2016, so no rosters or
