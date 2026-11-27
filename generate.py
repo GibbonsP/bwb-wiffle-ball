@@ -5276,6 +5276,7 @@ let standYear = null, standPhase = 'reg';
 let divYear = null;
 
 function standRow(name, y){
+  if(!TEAMS[name]) return null;   // a folded franchise has no game data
   const s = (TEAMS[name].seasons||{})[y];
   if(!s) return null;
   const g = (s.games||[]).filter(x=>x.phase==='Regular');
@@ -5613,7 +5614,7 @@ function renderOldStandings(chips){
   const html = divs.map(dn=>{
     if(dn==='League') return tbl(data[dn]);
     const dlogo = (DB.divisionLogos||{})[dn];
-    return `<h4 class="divh">${dlogo?`<img class="divlogo${/^(North|South)$/.test(dn)?' wide':''}" src="${dlogo}" alt="${esc(dn)} Division">`:''}${esc(dn)} Division</h4>${tbl(data[dn])}`;
+    return `<h4 class="divh">${dlogo?`<img class="divlogo${/^(North|South)$/.test(dn)?' wide':''}" src="${dlogo}" alt="${esc(dn)} Division">`:''}<button type="button" class="pname divlink" data-div="${esc(canonicalDivision(dn))}">${esc(dn)} Division</button></h4>${tbl(data[dn])}`;
   }).join('');
   const hasDiv = divs.some(dn=>dn!=='League');
   app.innerHTML = `
@@ -5773,7 +5774,7 @@ function renderStandings(){
 function renderDivision(canonical){
   if(!['Brookside','Brentwood'].includes(canonical)){ location.hash='#/standings'; return; }
   setNav('standings');
-  const years = ALL_YEARS.filter(y=>{
+  const years = [...new Set([...Object.keys(OLD_STAND).map(Number), ...ALL_YEARS])].sort((a,b)=>a-b).filter(y=>{
     const divs=(DB.divisions||{})[y]; return divs && divs[divisionEraName(canonical,y)];
   });
   if(!years.length){ location.hash='#/standings'; return; }
@@ -5806,7 +5807,15 @@ function renderDivision(canonical){
       <th class="lft">Team</th><th>W</th><th>L</th><th class="mono">PCT</th><th class="mono">GB</th>
       <th>RF</th><th>RA</th><th class="mono">Diff</th><th class="mono">Home</th><th class="mono">Away</th>
     </tr></thead>`;
-  const standTable = `<div class="tscroll"><table class="dir stand">${thead}<tbody>${rows.map((r,i)=>trow(r,i)).join('')}</tbody></table></div>`;
+  /* 2012–2014 only have final win-loss records (OLD_STAND), no scores */
+  const oldList = (OLD_STAND[divYear]||{})[eraName];
+  const oldRec = (tm,y) => { const l=(OLD_STAND[y]||{})[divisionEraName(canonical,y)]; return (l && l.find(r=>r.full===tm)) || null; };
+  const oldTable = list => { const lead=list[0], gbo=r=>{ const v=((lead.W-r.W)+(r.L-lead.L))/2; return v<=0?'—':(Number.isInteger(v)?v:v.toFixed(1)); };
+    return `<div class="tscroll"><table class="dir stand"><thead><tr><th class="lft">Team</th><th>W</th><th>L</th><th class="mono">PCT</th><th class="mono">GB</th></tr></thead><tbody>${list.map((r,i)=>`<tr>
+      <td class="lft"><span class="rk">${i+1}</span>${stMark(r.full)}${histTeamLink(r.full, divYear)}${seedMark[r.mk]||''}</td>
+      <td>${r.W}</td><td>${r.L}</td><td class="mono">${rate(r.W/((r.W+r.L)||1))}</td><td class="mono">${gbo(r)}</td></tr>`).join('')}</tbody></table></div>`; };
+  const standTable = oldList ? oldTable(oldList)
+    : `<div class="tscroll"><table class="dir stand">${thead}<tbody>${rows.map((r,i)=>trow(r,i)).join('')}</tbody></table></div>`;
   const chips = `<div class="chips">${years.map(y=>
     `<button data-dy="${y}" aria-pressed="${divYear===y}">${y}</button>`).join('')}</div>`;
 
@@ -5819,9 +5828,9 @@ function renderDivision(canonical){
     const era=divisionEraName(canonical,y);
     const entry = ((DB.divisions[y]||{})[era]||[]).find(([,m])=>m==='^');
     const tm = entry && entry[0];
-    if(!tm || !TEAMS[tm]) return '';
+    if(!tm) return '';
     const logo = teamLogoForYear(tm, y);
-    const r = standRow(tm, y);
+    const r = standRow(tm, y) || oldRec(tm, y);
     return `<li>${logo?`<img class="snaplogo" src="${logo}" alt="">`:'<span class="snaplogo" style="background:var(--line)"></span>'}
       <button class="pname" data-t="${esc(tm)}">${esc(histName(tm, y))}</button>
       <span class="dy">${y}</span>${r?`<b>${r.W}–${r.L}</b>`:''}</li>`;
@@ -5942,12 +5951,13 @@ function renderDivision(canonical){
     const era = divisionEraName(canonical, y);
     ((DB.divisions[y]||{})[era]||[]).forEach(([tm])=>{ (memberYears[tm]=memberYears[tm]||[]).push(y); });
   });
-  const members = Object.keys(memberYears).filter(tm=>TEAMS[tm])
+  const members = Object.keys(memberYears).filter(tm=>franchiseIsLinkable(tm))
     .sort((a,b)=> memberYears[b].length-memberYears[a].length);
   const memberRows = members.map(tm=>{
     const yrs = memberYears[tm];
     const span = yrs.length>1 ? `${yrs[0]}–${yrs[yrs.length-1]}` : `${yrs[0]}`;
-    return `<tr><td class="lft">${TEAMS[tm].logo?`<img class="stlogo" src="${TEAMS[tm].logo}" alt="">`:''}
+    const mlogo = teamLogoForYear(tm, yrs[yrs.length-1]);
+    return `<tr><td class="lft">${mlogo?`<img class="stlogo" src="${mlogo}" alt="">`:''}
       <button class="pname" data-t="${esc(tm)}">${esc(tm)}</button></td>
       <td>${yrs.length}</td><td class="lft">${span}</td></tr>`;
   }).join('');
@@ -5966,8 +5976,9 @@ function renderDivision(canonical){
     const theirs = new Set(((DB.divisions[y]||{})[divisionEraName(otherCanon,y)]||[]).map(([t])=>t));
     let yW=0, yL=0, yT=0;
     ours.forEach(([tm,mark])=>{
-      if(!TEAMS[tm]) return;
-      const r = standRow(tm, y); if(!r) return;
+      let r = standRow(tm, y), isOld = false;
+      if(!r){ const o = oldRec(tm, y); if(!o) return; isOld = true;
+        r = {name:tm, W:o.W, L:o.L, PCT:o.W/((o.W+o.L)||1), RF:0, RA:0, DIFF:0, vs:{}}; }
       const a = atm[tm] || (atm[tm]={tm, W:0, L:0, RF:0, RA:0, yrs:0, titles:0, berths:0});
       a.W+=r.W; a.L+=r.L; a.RF+=r.RF; a.RA+=r.RA; a.yrs++;
       if(mark==='^'){ a.titles++; a.berths++; } else if(mark==='*') a.berths++;
@@ -5975,6 +5986,7 @@ function renderDivision(canonical){
       if(r.W+r.L>=6){
         if(!bestPct || r.PCT>bestPct.v) bestPct={v:r.PCT, r, y};
       }
+      if(isOld) return;      // runs aren't on record before 2015
       if(!bestRF || r.RF>bestRF.v) bestRF={v:r.RF, r, y};
       if(!bestDiff || r.DIFF>bestDiff.v) bestDiff={v:r.DIFF, r, y};
     });
@@ -5984,7 +5996,7 @@ function renderDivision(canonical){
   const atTbl = atRows.length ? `<div class="tscroll"><table class="dir"><thead><tr>
       <th class="lft">Team</th><th>Seasons</th><th>W</th><th>L</th><th class="mono">PCT</th><th>RF</th><th>RA</th>
       <th title="division titles">Titles</th><th title="postseason berths from this division">Berths</th></tr></thead><tbody>
-      ${atRows.map(a=>`<tr><td class="lft">${TEAMS[a.tm].logo?`<img class="stlogo" src="${TEAMS[a.tm].logo}" alt="">`:''}
+      ${atRows.map(a=>`<tr><td class="lft">${teamLogoForYear(a.tm, years[years.length-1])?`<img class="stlogo" src="${teamLogoForYear(a.tm, years[years.length-1])}" alt="">`:''}
         <button class="pname" data-t="${esc(a.tm)}">${esc(a.tm)}</button></td>
         <td>${a.yrs}</td><td>${a.W}</td><td>${a.L}</td><td class="mono">${rate(a.W/((a.W+a.L)||1))}</td>
         <td>${a.RF}</td><td>${a.RA}</td><td>${a.titles}</td><td>${a.berths}</td></tr>`).join('')}
@@ -6003,7 +6015,7 @@ function renderDivision(canonical){
       </tbody></table></div>` : '';
   const allTimeHTML = atRows.length ? `<h3 class="hsub">All-Time Division Records</h3>
     <p class="pmeta">Regular-season records of every club <i>while in this division</i>, ${years[0]}–${years[years.length-1]}.
-    Single-season marks are for teams that played at least 6 games.</p>
+    Single-season marks are for teams that played at least 6 games. Runs scored and the record against the other division start in 2015, the first season with game scores.</p>
     ${atTbl}${recsHTML}
     <h3 class="hsub">Against the ${esc(otherCanon)} Division</h3>${intrHTML}` : '';
 
