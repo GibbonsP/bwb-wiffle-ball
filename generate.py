@@ -810,7 +810,7 @@ td.mono,th.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .awroll dt{font-weight:600;white-space:nowrap}
 .awroll dt b{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-weight:600}
 .awroll dd{margin:0;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;flex:1}
-td.awc,th.awc{white-space:normal;min-width:5.5em}
+td.awc,th.awc{white-space:nowrap;min-width:5.5em}   /* one line per season, however many awards — the table scrolls sideways instead of growing taller */
 td.awc{font-size:.76rem;font-weight:600;color:var(--accent);letter-spacing:.02em}
 .acc-leg{margin:14px 0 0;font-size:.76rem;color:var(--muted);line-height:1.7}
 .acc-leg b{color:var(--ink);font-weight:600}
