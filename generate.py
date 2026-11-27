@@ -3569,7 +3569,7 @@ function phaseBlock(pl, type){
         : eraPlusFor(d, d._wpit || rows.filter(r=>!r.split).map(r=>({year:r.year, outs:r.IPouts, post:type==='Playoffs'})));
       return isFinite(v)?String(v):'—';
     }}];
-    const gsCol = [{l:'GS',f:d=>d.est?'—':d.GS_pit}];
+    const gsCol = [{l:'GS',f:d=>(d.est||d.noGS)?'—':d.GS_pit}];
     const pitCols = [...seasonCols,
       {l:'G',f:d=>d.G_pit},...gsCol,{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
       {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
@@ -6281,7 +6281,7 @@ function rosterPitching(roster, ph, label, weights, photos){
   rows.sort((a,b)=>b.IPouts-a.IPouts);
   const cols=[
     {l:'Player',lft:1,f:d=>`<span class="plcell">${photos?llHead(d.name):''}<button class="pname" data-p="${esc(d.name)}">${esc(d.name)}</button></span>`},
-    {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>d.est?'—':d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
+    {l:'G',f:d=>d.G_pit},{l:'GS',f:d=>(d.est||d.noGS)?'—':d.GS_pit},{l:'IP',m:1,f:d=>ipStr(d.IPouts)},{l:'W',f:d=>d.W},{l:'L',f:d=>d.L},
     {l:'SV',f:d=>d.SV},{l:'CG',f:d=>d.CG},{l:'H',f:d=>d.pH},{l:'R',f:d=>d.pR},{l:'ER',f:d=>d.ER},
     {l:'BB',f:d=>d.pBB},{l:'K',f:d=>d.pK},
     {l:'ERA',m:1,f:d=>two(era(d))},{l:'WHIP',m:1,f:d=>two(whip(d))},{l:'K/3',m:1,f:d=>two(k9(d))},
@@ -10760,7 +10760,7 @@ function svpStats(mode){
     ['RBI', c=>c.RBI, svpInt], ['BB', c=>c.BB, svpInt], ['K', c=>c.K, svpInt],
     ['wRAA', c=>wrAAFor(c, c.year, c.type==='Playoffs'), svpOne],
   ] : [
-    ['G', c=>c.G_pit, svpInt], ['GS', c=>c.est?NaN:c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
+    ['G', c=>c.G_pit, svpInt], ['GS', c=>(c.est||c.noGS)?NaN:c.GS_pit, svpInt], ['IP', c=>c.IPouts/3, svpOne],
     ['W', c=>c.W, svpInt], ['L', c=>c.L, svpInt], ['SV', c=>c.SV, svpInt],
     ['K', c=>c.pK, svpInt], ['BB', c=>c.est?NaN:c.pBB, svpInt], ['H', c=>c.est?NaN:c.pH, svpInt], ['R', c=>c.pR, svpInt],
     ['RAA', c=>{ const r = leagueRatesFor(c.year, c.type==='Playoffs'); return r ? (r.era - era(c)) * c.IPouts/9 : NaN; }, svpOne],
