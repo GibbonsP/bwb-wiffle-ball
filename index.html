@@ -3361,8 +3361,8 @@ function statTable(title, cols, rows, career, totLabel, cls, sortable, extra){
   const cc = c => `${c.m?'mono':''} ${lft(c)} ${c.cls||''}`;
   const th = cols.map(c=>`<th class="${cc(c)}">${c.l}</th>`).join('');
   const cell = (c,d) => (d.tot && c.l==='Tm')
-    ? `<button type="button" class="tmx" aria-expanded="false" title="Show each club">${d.nTeams}TM</button>` : c.f(d);
-  const tr = d => `<tr class="${d.tot?'totrow':d.split?'splitrow':''}${d.est?' estrow':''}"${d.split?' hidden':''}>`+cols.map(c=>`<td class="${cc(c)}">${cell(c,d)}</td>`).join('')+'</tr>';
+    ? `<button type="button" class="tmx" aria-expanded="true" title="Show or hide each club">${d.nTeams}TM</button>` : c.f(d);
+  const tr = d => `<tr class="${d.tot?'totrow':d.split?'splitrow':''}${d.est?' estrow':''}">`+cols.map(c=>`<td class="${cc(c)}">${cell(c,d)}</td>`).join('')+'</tr>';
   const foot = '<tr>'+cols.map((c,i)=>`<td class="${cc(c)}">${i===0?totLabel:(c.noTot?'':c.f(career))}</td>`).join('')+'</tr>';
   return `<section class="stat ${cls||''}"><h4>${title}</h4><div class="tscroll"><table class="detail${sortable?' sortable':''}">
     <thead><tr>${th}</tr></thead>
@@ -3408,6 +3408,9 @@ function makeSortable(tbl){
         return dir==='asc' ? cmp : -cmp;
       });
       units.forEach(u=>u.rows.forEach(r=>body.appendChild(r)));
+      /* sorted, a traded player's season is one row — the club rows fold under its "2TM" toggle */
+      body.querySelectorAll('tr.splitrow').forEach(r=>{ r.hidden = true; });
+      body.querySelectorAll('.tmx').forEach(b=>b.setAttribute('aria-expanded','false'));
       const ar = document.createElement('span'); ar.className='ar'; ar.textContent = dir==='desc'?' ▼':' ▲';
       th.appendChild(ar);
     });
